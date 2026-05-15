@@ -1,0 +1,143 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Addition Within 10 – Drag and Drop Assessment”** where students complete simple addition equations (sums ≤ 10) by dragging the correct missing addend into place, with progress tracking, feedback, and hints.
+
+TARGET AUDIENCE:
+- Lower Primary Mathematics (Primary 1–2; approx. ages 6–8)
+
+INTERACTIVE REQUIREMENTS:
+- One equation shown at a time in the form:
+  - **firstNumber + ? = result** (e.g., `8 + ? = 10`).
+- A **drop zone** for the missing number, initially showing a `?` placeholder.
+- A bank of **draggable number tiles** (e.g., 1–7) displayed below the equation.
+- Students drag a number tile into the drop zone to propose an answer.
+- Assessment consists of a fixed set of **5 questions**, generated randomly but within constraints.
+- UI elements:
+  - Progress bar showing how many questions have been attempted.
+  - Score display (e.g., “Score: X/5”).
+  - Feedback text area for immediate response.
+  - Hint area for contextual hints when students struggle.
+  - Completion modal at the end summarizing performance and offering a restart option.
+- Self-contained HTML, CSS, JavaScript (no external libraries). Support mouse and touch.
+- **ACCESSIBLE & MOBILE-FRIENDLY**:
+  - Draggable numbers should be keyboard-focusable and operable (Enter/Space to select).
+  - Layout adapts to iframe or full-screen.
+
+SPECIFIC REQUIREMENTS:
+
+Question generation
+- Generate **5 unique addition questions** where:
+  - result is between 3 and 10 inclusive.
+  - firstNumber is between 1 and result−1.
+  - secondNumber = result − firstNumber is between 1 and 7.
+- Avoid duplicate questions by tracking combinations like `a+b=result`.
+- Store questions as objects `{ firstNumber, secondNumber, result, answered }`.
+
+Main assessment flow
+- State variables:
+  - `currentQuestion` index (0–4).
+  - `score` (0–5).
+  - `totalQuestions = 5`.
+  - `isAnswered` flag for current question.
+  - `attempts` count for current question.
+  - `maxAttempts` (e.g., 3 attempts per question).
+  - `hintShown` flag per question.
+- For each question:
+  - Display `firstNumber` and `result` in the equation view.
+  - Drop zone contains `?` until a number is dropped/selected.
+  - When a number tile is placed in drop zone:
+    - Show it visually.
+    - Mark that tile as “used” (e.g., greyed) while others reset.
+    - Enable **Check Answer** button.
+    - Update feedback: prompt student to check.
+
+Drag-and-drop and touch/keyboard
+- Each `.draggable-number` tile:
+  - Is `draggable="true"` for desktop HTML5 DnD.
+  - Has `data-value` storing its numeric value.
+  - Has `tabindex="0"`, `role="button"`, and `aria-label` describing the number.
+- Drag logic (desktop):
+  - On `dragstart`, set transfer data to selected value and add a `dragging` class.
+  - On drop zone `dragover`, prevent default and add `drag-over` style.
+  - On `drop`, read value, call a handler to update the drop zone and mark the chosen tile as used.
+- Touch logic (mobile):
+  - On `touchstart` on a number tile, directly treat as selection and send its value to the drop zone (no complex drag visual needed).
+- Keyboard logic:
+  - When a tile has focus, pressing Enter or Space selects that value as if dragged into the drop zone.
+
+Answer checking and feedback
+- When **Check Answer** is pressed:
+  - If already answered or no value selected, do nothing.
+  - Increment `attempts`.
+  - Compare the student’s chosen value in drop zone with `secondNumber` of the current question.
+- If correct:
+  - Mark drop zone with a `correct` style.
+  - Feedback text: enthusiastic positive message (e.g., “Excellent! That’s correct! 🎉”).
+  - Hide the hint area and remove any highlights.
+  - Increment `score` and update score display.
+  - Hide **Check Answer** and Hint buttons.
+  - If not the last question: show **Next Question** button.
+  - If last question: after a slight delay, show completion modal.
+- If incorrect and attempts < maxAttempts:
+  - Momentarily mark drop zone with `incorrect` style.
+  - Show friendly feedback (e.g., “Not quite right. Try again!”).
+  - Hide **Check Answer**, show **Try Again** button, and reveal **Hint** button (if not already shown).
+- If incorrect and attempts >= maxAttempts:
+  - Show feedback revealing the correct answer (e.g., “The correct answer is 2. Let’s try the next one!”).
+  - Hide Check/Hint, ensure hint area is hidden.
+  - Move on to Next Question or finish and show completion modal.
+
+Hint system
+- **Hint button** appears after at least one incorrect attempt and before max attempts reached.
+- `showHint()` generates a graded hint depending on how many attempts have been made, e.g.:
+  - 1st hint: “Think: What number do you add to 4 to get 9?”
+  - 2nd hint: “Try counting up from 4: 4… 5… 6… until you reach 9.”
+  - 3rd hint: “Use your fingers to count from 4 up to 9.”
+  - Beyond that: reveal the correct number with an explanation.
+- Hints are displayed in a dedicated hint area (`#hintArea`) with a lightbulb icon.
+- Optionally highlight the correct `.draggable-number` tile after later hints (e.g., add `hint-highlight` class).
+- Auto-hide hint box after a few seconds and remove highlights.
+
+UI controls
+- Buttons and behaviour:
+  - **Check Answer** (`#checkBtn`): enabled only when a number is placed in drop zone; disabled/reset between questions.
+  - **Next Question** (`#nextBtn`): shown after a correct answer or after max attempts used; advances `currentQuestion` and resets per-question state.
+  - **Try Again** (`#tryAgainBtn`): shown when an answer is wrong but more attempts allowed; resets drop zone and tile states while preserving attempts count.
+  - **Hint** (`#hintBtn`): shows contextual hint, then hides itself until the student tries again.
+  - **Restart** (`#restartBtn`): in completion modal, resets the entire assessment with new randomly generated questions.
+- Ensure button visibility is switched correctly between states (Check vs Try Again vs Next; Hint visible only when relevant).
+
+Progress and completion
+- **Progress bar**:
+  - Uses CSS custom property (e.g., `--progress`) to indicate proportion of questions completed (based on index or answered count).
+  - Progress text shows `currentQuestion/totalQuestions`.
+- **Score display**:
+  - Shows `score/totalQuestions`, updated when questions are answered correctly.
+- **Completion modal**:
+  - Appears when all questions are completed.
+  - Shows a summary message depending on final percentage (e.g., Outstanding / Good / Needs more practice).
+  - Provides a **Try Again** button to restart assessment with a fresh set of questions.
+
+Accessibility & tooltips
+- A small info icon at the top with a custom tooltip on hover (not default browser tooltip) explaining the task.
+- Keyboard navigation:
+  - Draggable numbers are focusable; Enter/Space selects them.
+  - Add screen-reader-friendly labels (aria-labels) on number tiles and key buttons.
+- Use simple, child-friendly language in all feedback and hints.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Solve **addition within 10** by identifying the missing addend in a simple equation.
+  - Use strategies like counting on and using fingers to find the missing number.
+  - Gain confidence through feedback and hints when they make mistakes.
+- The assessment should support both **formative checking** and self-practice.
+
+INTERACTION FEATURES TO INCLUDE:
+- Drag-and-drop / click-to-select for number choices.
+- Immediate feedback (correct/incorrect) with animations.
+- Progressive hint system supporting multiple attempts.
+- Simple progress tracking and final score summary.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

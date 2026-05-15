@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Idiom Translation Fun — 习语中英互动（TTS+图片+特效）</title>
+<style>
+  :root{
+    --bg:#f7fafc; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+    --primary:#2563eb; --accent:#10b981; --wrong:#ef4444; --grey:#e5e7eb; --amber:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif; background:var(--bg); color:var(--text);}
+  .wrap{max-width:980px; margin:24px auto; padding:0 16px;}
+  .card{background:var(--card); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.06); padding:20px; position:relative; overflow:hidden}
+  h1{font-size:1.5rem; margin:0 0 8px}
+  .sub{color:var(--muted); margin-bottom:16px}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  button{cursor:pointer; border:0; border-radius:12px; padding:12px 16px; font-size:1rem}
+  .btn{background:var(--primary); color:#fff}
+  .btn.secondary{background:#1118270f; color:var(--text); border:1px solid var(--grey)}
+  .btn.ghost{background:transparent; color:var(--text)}
+  .btn.small{padding:8px 10px; font-size:.9rem; border:1px solid var(--grey); background:#fff}
+  .controls{display:flex; gap:8px; flex-wrap:wrap}
+  .opt{width:100%; text-align:left; border:1px solid var(--grey); background:#fff; transition:.15s; display:flex; gap:10px; align-items:flex-start}
+  .opt:hover{transform:translateY(-1px)}
+  .opt.correct{border-color:var(--accent); background:#f0fbf6}
+  .opt.wrong{border-color:var(--wrong); background:#fff5f5}
+  .opt .tag{min-width:28px; height:28px; border-radius:8px; display:grid; place-items:center; font-weight:700; background:#f3f4f6}
+  .explain{margin-top:8px; color:var(--muted)}
+  .meta{display:flex; justify-content:space-between; align-items:center; gap:8px; margin:10px 0 16px}
+  .progress{flex:1; height:10px; background:#edf0f5; border-radius:999px; overflow:hidden}
+  .bar{height:100%; background:var(--primary); width:0%}
+  .score{font-weight:700}
+  .pill{display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px; background:#f3f4f6; font-size:.9rem}
+  .grid{display:grid; grid-template-columns:1fr; gap:10px}
+  @media (min-width:740px){ .grid{grid-template-columns:1fr 1fr} }
+  .footer{margin-top:14px; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap}
+  details{margin:8px 0}
+  .review-item{border:1px solid var(--grey); border-radius:12px; padding:10px; margin-bottom:10px; background:#fff}
+  .review-item .q{font-weight:700; margin-bottom:6px}
+  .badge{padding:2px 8px; border-radius:999px; font-size:.8rem; font-weight:700; color:#fff; display:inline-block}
+  .badge.ok{background:var(--accent)}
+  .badge.no{background:var(--wrong)}
+  .muter{display:flex; align-items:center; gap:6px; font-size:.95rem}
+  .tiny{font-size:.9rem; color:var(--muted)}
+  .ttsbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0 4px}
+  .ttsbar select{padding:8px 10px; border-radius:10px; border:1px solid var(--grey); background:#fff}
+  .illus{width:100%; border:1px dashed #e5e7eb; border-radius:14px; padding:10px; background:#fafafa; display:flex; align-items:center; justify-content:center; min-height:120px; margin-bottom:10px}
+  .streak{display:flex; gap:8px; align-items:center}
+  .streak .fire{font-size:1.2rem}
+  .ribbon{position:absolute; top:0; right:-32px; background:linear-gradient(45deg, var(--amber), #fbbf24); color:#111; padding:8px 48px; transform:rotate(35deg); font-weight:700; box-shadow:0 4px 10px rgba(0,0,0,.15)}
+  .confetti-canvas{position:absolute; inset:0; pointer-events:none}
+  .pop{animation:pop .35s ease}
+  @keyframes pop{0%{transform:scale(.98)}60%{transform:scale(1.02)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="screen-intro" aria-live="polite">
+    <div class="ribbon">Fun Mode</div>
+    <canvas id="introConfetti" class="confetti-canvas" aria-hidden="true"></canvas>
+    <h1>中英习语互动测验 Idiom Translation Fun</h1>
+    <p class="sub">20题 · 即时反馈 · 计分 · <b>TTS朗读</b> · <b>插画辅助</b> · <b>无依赖/可离线</b>（SLS兼容）。</p>
+    <details>
+      <summary><b>玩法说明 / How to play</b></summary>
+      <ul>
+        <li>选择答案立刻判分；连对会点燃🔥连胜条。</li>
+        <li>点击🔊可朗读题目与选项（中英都可）。</li>
+        <li>完成后查看复盘并回顾解释。</li>
+      </ul>
+    </details>
+    <div class="ttsbar">
+      <label class="pill"><input type="checkbox" id="shuffleToggle" /> 随机题序 Shuffle</label>
+      <label class="pill muter"><input type="checkbox" id="muteToggle"/> 静音音效 Mute SFX</label>
+      <button class="btn small" id="initAudioBtn">🔈 启用声音 / Enable Audio</button>
+      <select id="voiceLang">
+        <option value="auto">TTS语言自动 Auto</option>
+        <option value="zh">中文优先</option>
+        <option value="en">English first</option>
+      </select>
+      <button class="btn small" id="testTTS">🔊 测试朗读 Test</button>
+    </div>
+    <div class="controls">
+      <button class="btn" id="startBtn">开始 Start</button>
+      <button class="btn secondary" id="trySample">试做一题 Try a sample</button>
+    </div>
+    <p class="tiny">提示：本互动使用浏览器的 Web Speech TTS（speechSynthesis）。如果朗读没有声音，请先点击“启用声音”，或在浏览器设置中允许音频播放。</p>
+  </div>
+
+  <div class="card" id="screen-quiz" style="display:none" aria-live="polite">
+    <canvas id="fx" class="confetti-canvas" aria-hidden="true"></canvas>
+    <div class="meta">
+      <div class="pill"><span id="qIndexTxt">第 1/20 题</span></div>
+      <div class="progress" aria-label="进度"><div class="bar" id="bar"></div></div>
+      <div class="pill score" id="scoreTxt">得分 0</div>
+      <div class="pill streak"><span class="fire">🔥</span><span id="streakTxt">0 连胜</span></div>
+    </div>
+
+    <div class="illus" id="illusSlot" aria-hidden="true"><!-- inline SVG goes here --></div>
+
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+      <div id="qText" style="font-size:1.1rem; font-weight:700; flex:1;">题干</div>
+      <button class="btn small" id="speakQ">🔊 读题</button>
+    </div>
+    <div class="grid" id="options"></div>
+    <div id="explain" class="explain"></div>
+    <div class="footer">
+      <div class="row">
+        <button class="btn small" id="speakA">🔊 读选项</button>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn secondary" id="prevBtn">上一题</button>
+      <button class="btn" id="nextBtn">下一题</button>
+    </div>
+  </div>
+
+  <div class="card" id="screen-result" style="display:none" aria-live="polite">
+    <canvas id="resultFx" class="confetti-canvas" aria-hidden="true"></canvas>
+    <h1>完成啦！🎉</h1>
+    <p class="sub">你的得分 Your Score：<b id="finalScore">0 / 20</b></p>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn" id="retryBtn">再玩一次 Retry</button>
+      <button class="btn secondary" id="reviewBtn">查看复盘 Review</button>
+    </div>
+    <details id="reviewPanel" style="display:none" open>
+      <summary><b>错题复盘 Review</b></summary>
+      <div id="reviewList"></div>
+    </details>
+  </div>
+</div>
+
+<script>
+/* --------------------------
+   DATA with categories for pictures
+   -------------------------- */
+const QUESTIONS = [
+  { q: "“On cloud nine”的意思是？", opts:["心情愉快","紧张不安","生气暴躁","害怕发抖"], ans:0, exp:"on cloud nine = extremely happy（非常高兴）。", cat:"sky" },
+  { q: "“Aim for the sky”的中文意思是？", opts:["不切实际的梦想","设立高目标","脚踏实地","自暴自弃"], ans:1, exp:"aim for the sky = set high goals（制定远大目标）。", cat:"sky" },
+  { q: "“Pie in the sky”指的是？", opts:["不切实际的希望","实际可行的计划","好吃的甜点","天空的颜色"], ans:0, exp:"pie in the sky = unrealistic hope（空想）。", cat:"sky" },
+  { q: "“Building castles in the air”最接近的中文成语：", opts:["纸上谈兵","画蛇添足","对牛弹琴","雪中送炭"], ans:0, exp:"castles in the air = 纸上谈兵 / 空中楼阁（不切实际）。", cat:"sky" },
+  { q: "“Many moons ago”的意思最接近：", opts:["不久之前","很久以前","明天","最近发生"], ans:1, exp:"many moons ago = a long time ago（很久很久以前）。", cat:"sky" },
+
+  { q: "“In the same boat”的意思是：", opts:["坐在同一艘船上","处境相同，共同行动","比喻竞争关系","一起去旅行"], ans:1, exp:"in the same boat = in the same situation（处境相同）。", cat:"transport" },
+  { q: "“Go off the rails”在中文里的意思？", opts:["偏离轨道，行为失常","成功上轨道","保持冷静","安全到达"], ans:0, exp:"go off the rails = behave wildly / out of control（走偏了）。", cat:"transport" },
+  { q: "“End of the road”的意思：", opts:["走到人生尽头","遇到瓶颈，无法再前进","停车场","旅行结束"], ans:1, exp:"end of the road = the point where progress stops（尽头/瓶颈）。", cat:"transport" },
+  { q: "“Train of thought”翻译成中文是：", opts:["思路","火车旅程","精神状态","交通路线"], ans:0, exp:"train of thought = line of reasoning（思路）。", cat:"transport" },
+  { q: "“Take flight”可以表示：", opts:["乘飞机","逃跑或迅速离开","学习飞行","放飞气球"], ans:1, exp:"take flight = flee / run away（逃离）。", cat:"transport" },
+
+  { q: "“Under the weather”意思是？", opts:["身体不舒服","心情晴朗","出去晒太阳","天气不好"], ans:0, exp:"under the weather = feel unwell（不舒服）。", cat:"weather" },
+  { q: "“Break the ice”的中文意思是：", opts:["打破冰块","缓和气氛、打破僵局","造成麻烦","惹人生气"], ans:1, exp:"break the ice = ease the tension（破冰）。", cat:"weather" },
+  { q: "“A storm in a teacup”对应的中文成语是：", opts:["小题大做","大难临头","杞人忧天","稳如泰山"], ans:0, exp:"a storm in a teacup = 小题大做（小事闹大）。", cat:"weather" },
+  { q: "“Every cloud has a silver lining”意思是：", opts:["黑暗中总有希望","天空总是晴朗","雨后总有彩虹","云朵很漂亮"], ans:0, exp:"每朵乌云都有银边 = 困境中也有转机。", cat:"weather" },
+  { q: "“To have your head in the clouds”的意思是：", opts:["注意力集中","心不在焉、做白日梦","努力学习","工作认真"], ans:1, exp:"head in the clouds = daydreaming（分心/做梦）。", cat:"weather" },
+
+  { q: "“Actions speak louder than words”对应的中文是：", opts:["纸上谈兵","行动胜于言语","言过其实","三思而后行"], ans:1, exp:"行动比语言更有说服力。", cat:"daily" },
+  { q: "“Kill two birds with one stone”中文成语：", opts:["一石二鸟","画蛇添足","九牛一毛","雪中送炭"], ans:0, exp:"一举两得/一石二鸟。", cat:"daily" },
+  { q: "“Don’t cry over spilt milk”中文意思是：", opts:["为过去的事后悔也没用","喜极而泣","珍惜眼前","善待他人"], ans:0, exp:"覆水难收，不必为已成事实而懊恼。", cat:"daily" },
+  { q: "“A blessing in disguise”的意思是：", opts:["伪装的好人","塞翁失马，焉知非福","虚假的幸福","意外的坏事"], ans:1, exp:"坏事中藏着好结果。", cat:"daily" },
+  { q: "“When pigs fly”的中文意思：", opts:["不可能的事","飞猪的梦","事情很顺利","天气晴朗"], ans:0, exp:"等到猪会飞 = 永远不会发生。", cat:"daily" }
+];
+
+/* --------------------------
+   STATE
+   -------------------------- */
+let order = [...QUESTIONS.keys()];
+let idx = 0;
+let score = 0;
+let streak = 0;
+let bestStreak = 0;
+let chosen = new Array(QUESTIONS.length).fill(null);
+let muted = false;
+
+/* --------------------------
+   SOUND (SFX) — Web Audio API
+   -------------------------- */
+let audioCtx;
+function initAudio(){
+  if(!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+  } else if(audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+}
+function tone(freq=880, time=0.12, type="sine", vol=0.2){
+  if(muted) return;
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = vol;
+  osc.connect(gain).connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  osc.start(now);
+  osc.stop(now + time);
+}
+function correctSfx(){ initAudio(); tone(880, .09, "triangle", .22); setTimeout(()=>tone(1175, .09, "triangle", .20), 95); }
+function wrongSfx(){ initAudio(); tone(220, .15, "sawtooth", .24); }
+
+/* --------------------------
+   CONFETTI (tiny, inline)
+   -------------------------- */
+function confetti(canvas, n=80){
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr; ctx.scale(dpr,dpr);
+  let parts = Array.from({length:n},()=>({
+    x: Math.random()*w, y: -10, r: 4+Math.random()*4,
+    c: `hsl(${Math.random()*360},90%,60%)`,
+    vx: -1 + Math.random()*2, vy: 2 + Math.random()*2, rot: Math.random()*Math.PI
+  }));
+  let t = 0, maxT = 800;
+  function step(){
+    ctx.clearRect(0,0,w,h);
+    parts.forEach(p=>{
+      p.x += p.vx; p.y += p.vy; p.rot += 0.08;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+      ctx.restore();
+    });
+    t+=16; if(t<maxT) requestAnimationFrame(step); else ctx.clearRect(0,0,w,h);
+  }
+  step();
+}
+
+/* --------------------------
+   SIMPLE SVG ILLUSTRATIONS
+   -------------------------- */
+function svgFor(cat){
+  if(cat==="sky") return `
+  <svg viewBox="0 0 200 120" width="100%" height="120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sky">
+    <defs>
+      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#bfdbfe"/><stop offset="1" stop-color="#e0f2fe"/></linearGradient>
+    </defs>
+    <rect width="200" height="120" fill="url(#g1)"/>
+    <g fill="#fff">
+      <ellipse cx="50" cy="50" rx="26" ry="16"/><ellipse cx="72" cy="50" rx="20" ry="12"/>
+      <ellipse cx="130" cy="40" rx="26" ry="16"/><ellipse cx="152" cy="40" rx="20" ry="12"/>
+    </g>
+    <circle cx="165" cy="20" r="10" fill="#fde68a" stroke="#fbbf24"/>
+    <text x="12" y="110" fill="#1f2937" font-size="12">天空 Sky & Happiness</text>
+  </svg>`;
+  if(cat==="transport") return `
+  <svg viewBox="0 0 200 120" width="100%" height="120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Transport">
+    <rect width="200" height="120" fill="#ecfeff"/>
+    <rect y="85" width="200" height="12" fill="#d1d5db"/>
+    <g transform="translate(20,50)">
+      <rect x="0" y="10" width="100" height="24" rx="6" fill="#93c5fd" stroke="#2563eb"/>
+      <circle cx="20" cy="40" r="8" fill="#111827"/><circle cx="80" cy="40" r="8" fill="#111827"/>
+      <rect x="8" y="14" width="30" height="12" rx="3" fill="#e0f2fe"/>
+    </g>
+    <text x="12" y="110" fill="#1f2937" font-size="12">交通 Transport & Movement</text>
+  </svg>`;
+  if(cat==="weather") return `
+  <svg viewBox="0 0 200 120" width="100%" height="120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Weather">
+    <rect width="200" height="120" fill="#eef2ff"/>
+    <g>
+      <circle cx="150" cy="26" r="12" fill="#fde68a" stroke="#fbbf24"/>
+      <g fill="#fff">
+        <ellipse cx="60" cy="50" rx="28" ry="16"/><ellipse cx="84" cy="50" rx="20" ry="12"/>
+      </g>
+      <g stroke="#60a5fa" stroke-width="3">
+        <line x1="58" y1="64" x2="54" y2="76"/><line x1="72" y1="64" x2="68" y2="78"/><line x1="86" y1="64" x2="82" y2="76"/>
+      </g>
+    </g>
+    <text x="12" y="110" fill="#1f2937" font-size="12">天气 Weather & Feelings</text>
+  </svg>`;
+  return `
+  <svg viewBox="0 0 200 120" width="100%" height="120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Daily">
+    <rect width="200" height="120" fill="#fdf2f8"/>
+    <g transform="translate(30,30)">
+      <rect x="0" y="0" width="140" height="60" rx="10" fill="#fef3c7" stroke="#f59e0b"/>
+      <text x="70" y="36" text-anchor="middle" font-size="16" fill="#1f2937">Daily Wisdom</text>
+    </g>
+    <text x="12" y="110" fill="#1f2937" font-size="12">Daily Idioms & Proverbs</text>
+  </svg>`;
+}
+
+/* --------------------------
+   TTS (speechSynthesis)
+   -------------------------- */
+const TTS = {
+  voices: [],
+  ready: false
+};
+function loadVoices(){
+  TTS.voices = speechSynthesis.getVoices();
+  TTS.ready = TTS.voices && TTS.voices.length>0;
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+function speak(text, langPref="auto"){
+  if(!('speechSynthesis' in window)) return;
+  if(!text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  // language choice: auto detects Chinese characters
+  let isZh = /[\u4e00-\u9fff]/.test(text);
+  const prefer = (langPref==="zh") ? "zh" : (langPref==="en" ? "en" : (isZh?"zh":"en"));
+  const match = TTS.voices.find(v => v.lang.toLowerCase().startsWith(prefer));
+  if(match){ u.voice = match; u.lang = match.lang; } else { u.lang = prefer==="zh" ? "zh-CN" : "en-US"; }
+  u.rate = isZh ? 0.95 : 1.02;
+  u.pitch = 1.0;
+  window.speechSynthesis.speak(u);
+}
+
+/* --------------------------
+   UTIL + RENDER
+   -------------------------- */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function byId(id){ return document.getElementById(id); }
+function setProgress(){
+  const pct = ((idx)/order.length)*100;
+  byId("bar").style.width = pct + "%";
+  byId("qIndexTxt").textContent = `第 ${idx+1}/${order.length} 题`;
+  byId("scoreTxt").textContent = `得分 ${score}`;
+  byId("streakTxt").textContent = `${streak} 连胜`;
+}
+function renderIllustration(){
+  const cat = QUESTIONS[order[idx]].cat || "daily";
+  byId("illusSlot").innerHTML = svgFor(cat);
+  byId("illusSlot").classList.add("pop");
+  setTimeout(()=>byId("illusSlot").classList.remove("pop"), 360);
+}
+function renderQuestion(){
+  const qObj = QUESTIONS[order[idx]];
+  renderIllustration();
+  byId("qText").textContent = qObj.q;
+  const container = byId("options");
+  container.innerHTML = "";
+  const letters = ["A","B","C","D"];
+  qObj.opts.forEach((opt,optIndex)=>{
+    const btn = document.createElement("button");
+    btn.className = "opt";
+    btn.setAttribute("data-index", optIndex);
+    btn.innerHTML = `<span class="tag">${letters[optIndex]}</span> <span>${opt}</span>`;
+    btn.addEventListener("click", ()=> chooseOption(optIndex));
+    container.appendChild(btn);
+  });
+  byId("explain").textContent = "";
+  highlightSelection();
+  setProgress();
+  byId("prevBtn").disabled = (idx===0);
+  byId("nextBtn").textContent = (idx===order.length-1) ? "提交 Submit" : "下一题";
+}
+function highlightSelection(){
+  const q = QUESTIONS[order[idx]];
+  const picked = chosen[order[idx]];
+  const buttons = [...byId("options").children];
+  buttons.forEach(b=> b.classList.remove("correct","wrong"));
+  if(picked!==null){
+    if(picked===q.ans){
+      buttons[picked].classList.add("correct");
+      byId("explain").textContent = q.exp || "";
+    }else{
+      buttons[picked].classList.add("wrong");
+      buttons[q.ans]?.classList.add("correct");
+      byId("explain").textContent = q.exp || "";
+    }
+  }
+}
+
+/* --------------------------
+   ANSWERING & FUN LOGIC
+   -------------------------- */
+function chooseOption(optIndex){
+  const q = QUESTIONS[order[idx]];
+  const already = chosen[order[idx]]!==null;
+  chosen[order[idx]] = optIndex;
+
+  if(!already){ // only score on first pick
+    if(optIndex===q.ans){
+      score++; streak++; bestStreak = Math.max(bestStreak, streak);
+      correctSfx();
+      confetti(byId("fx"), 70 + Math.floor(Math.random()*30));
+      // tiny badge when hit streak milestones
+      if([3,5,8].includes(streak)){
+        toast(`连胜 ${streak}! Keep it up! 🔥`);
+      }
+    }else{
+      wrongSfx();
+      if(streak>=3) toast(`连胜中断：${streak}。再接再厉！`);
+      streak = 0;
+    }
+  }
+  highlightSelection();
+  setProgress();
+}
+
+/* --------------------------
+   TOAST (tiny)
+   -------------------------- */
+function toast(msg){
+  const t = document.createElement("div");
+  t.textContent = msg;
+  Object.assign(t.style,{
+    position:"fixed", left:"50%", top:"12px", transform:"translateX(-50%)",
+    background:"#111827", color:"#fff", padding:"10px 14px", borderRadius:"12px",
+    boxShadow:"0 6px 16px rgba(0,0,0,.25)", zIndex:1000, fontSize:".95rem"
+  });
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.transition="opacity .4s"; t.style.opacity="0"; setTimeout(()=>t.remove(), 380); }, 1200);
+}
+
+/* --------------------------
+   REVIEW
+   -------------------------- */
+function buildReview(){
+  const list = byId("reviewList");
+  list.innerHTML = "";
+  order.forEach((qi, i)=>{
+    const q = QUESTIONS[qi];
+    const picked = chosen[qi];
+    const wrap = document.createElement("div");
+    wrap.className = "review-item";
+    const isCorrect = picked===q.ans;
+    wrap.innerHTML = `
+      <div class="q">${i+1}. ${q.q}</div>
+      <div>你的选择 Your pick：${picked===null ? "<i>未作答</i>" : q.opts[picked]}</div>
+      <div>正确答案 Correct：<b>${q.opts[q.ans]}</b> <span class="badge ${isCorrect?'ok':'no'}">${isCorrect?'✔ 正确 Correct':'✖ 错误 Wrong'}</span></div>
+      <div class="explain">${q.exp || ""}</div>
+    `;
+    list.appendChild(wrap);
+  });
+}
+
+/* --------------------------
+   SCREENS
+   -------------------------- */
+function show(elId){
+  ["screen-intro","screen-quiz","screen-result"].forEach(id=>{
+    byId(id).style.display = (id===elId) ? "block" : "none";
+  });
+}
+function startQuiz(sample=false){
+  score = 0; streak = 0; bestStreak = 0;
+  chosen = new Array(QUESTIONS.length).fill(null);
+  idx = 0;
+  const shuffleOn = byId("shuffleToggle").checked && !sample;
+  order = shuffleOn ? shuffle([...QUESTIONS.keys()]) : [...QUESTIONS.keys()];
+  if(sample){ order = [0]; }
+  show("screen-quiz");
+  setProgress();
+  renderQuestion();
+}
+
+/* --------------------------
+   TTS UI
+   -------------------------- */
+function readQuestion(){
+  const q = QUESTIONS[order[idx]];
+  const pref = byId("voiceLang").value;
+  speak(q.q, pref);
+}
+function readOptions(){
+  const q = QUESTIONS[order[idx]];
+  const pref = byId("voiceLang").value;
+  const letters = ["A","B","C","D"];
+  const text = q.opts.map((o,i)=>`${letters[i]}、${o}`).join("；");
+  speak(text, pref);
+}
+
+/* --------------------------
+   DOM HOOKS
+   -------------------------- */
+function setProgressUI(){ byId("qIndexTxt").textContent = `第 ${idx+1}/${order.length} 题`; }
+byId("startBtn").addEventListener("click", ()=> { startQuiz(false); });
+byId("trySample").addEventListener("click", ()=> { startQuiz(true); });
+byId("prevBtn").addEventListener("click", ()=>{ if(idx>0){ idx--; renderQuestion(); }});
+byId("nextBtn").addEventListener("click", ()=>{
+  if(idx < order.length-1){
+    idx++; renderQuestion();
+  }else{
+    byId("finalScore").textContent = `${score} / ${order.length}（最佳连胜 Best Streak: ${bestStreak}）`;
+    show("screen-result");
+    byId("reviewPanel").style.display = "block";
+    buildReview();
+    confetti(byId("resultFx"), 160);
+  }
+});
+byId("reviewBtn").addEventListener("click", ()=>{
+  const p = byId("reviewPanel");
+  p.style.display = (p.style.display === "none" ? "block":"none");
+});
+byId("muteToggle").addEventListener("change", (e)=> { muted = e.target.checked; });
+byId("initAudioBtn").addEventListener("click", ()=> { initAudio(); tone(660,.06,"sine",.14); });
+byId("speakQ").addEventListener("click", readQuestion);
+byId("speakA").addEventListener("click", readOptions);
+byId("testTTS").addEventListener("click", ()=> speak("你好 Hello! TTS ready.", byId("voiceLang").value));
+
+/* Intro confetti once visible */
+(function(){
+  const c = byId("introConfetti");
+  confetti(c, 80);
+})();
+
+/* Accessibility: keyboard shortcuts */
+document.addEventListener("keydown", (e)=>{
+  if(byId("screen-quiz").style.display!=="block") return;
+  if(e.key==="ArrowRight"){ byId("nextBtn").click(); }
+  if(e.key==="ArrowLeft"){ byId("prevBtn").click(); }
+  if(["1","2","3","4"].includes(e.key)){
+    const i = Number(e.key)-1;
+    const btn = byId("options").children[i];
+    if(btn) btn.click();
+  }
+});
+
+/* Adjust canvases on resize */
+function resizeCanvases(){
+  ["fx","introConfetti","resultFx"].forEach(id=>{
+    const c = byId(id); if(!c) return;
+    c.width = c.clientWidth; c.height = c.clientHeight;
+  });
+}
+window.addEventListener("resize", resizeCanvases);
+resizeCanvases();
+</script>
+</body>
+</html>

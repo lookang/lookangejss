@@ -1,0 +1,148 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“School Day Timeline”** where students drag activity cards (e.g., Wake Up, Breakfast, Go to School) into the correct time-of-day sections (Morning, Afternoon, Evening) on a visual timeline.
+
+TARGET AUDIENCE:
+- Lower Primary / Middle Primary students (approx. ages 7–9)
+
+INTERACTIVE REQUIREMENTS:
+- A set of **activity cards** representing common daily school-day activities, each with:
+  - An icon/illustration.
+  - A short label (e.g., “Wake Up”, “Breakfast”, “Go to School”, “Recess”, “Lessons”, “Lunch”, “Go Home”, “Homework”, “Dinner”).
+  - A data attribute indicating its correct **time-of-day** category (morning/afternoon/evening).
+- A **timeline area** divided into three labelled sections:
+  - Morning (6:00 AM – 12:00 PM) with icon (e.g., 🌅).
+  - Afternoon (12:00 PM – 6:00 PM) with icon (☀️).
+  - Evening (6:00 PM – 10:00 PM) with icon (🌙).
+- Each section has a **drop zone** where cards can be dropped and a “drop hint” text that disappears once cards are placed.
+- Students **drag and drop** activity cards into the time sections they believe are correct.
+- Controls:
+  - **“Check My Timeline”** button: evaluates placements and gives feedback.
+  - **“Reset”** button: clears the timeline and returns all cards to the starting area.
+- A **feedback area** that shows performance messages with simple icons/emojis.
+- Self-contained HTML, CSS, and JavaScript (no external libraries required).
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Dragging must work with both mouse and touch (on phones/tablets).
+  - Layout adapts for iframe or full browser use (container height adjusted accordingly).
+
+SPECIFIC REQUIREMENTS:
+
+Activity cards
+- Place all activity cards in an `activity-cards` container initially.
+- Each card:
+  - Has class `.card`.
+  - Is `draggable="true"` for desktop drag-and-drop.
+  - Has `data-time` attribute indicating the correct time period (e.g., `data-time="morning"`).
+  - Has `data-activity` to uniquely identify the activity.
+  - Contains an image (e.g., inline SVG) and a label `<span>`.
+- There should be **9 activities** in total (3 per time period).
+
+Timeline sections and drop zones
+- Three `.time-section` blocks with:
+  - A header showing icon, time-of-day label, and approximate time range.
+  - A `.drop-zone` element (`data-time="morning"|"afternoon"|"evening"`) where cards can be dropped.
+  - Each drop zone initially shows a hint (e.g., “Drag morning activities here”), which hides once at least one card is placed.
+
+Drag-and-drop interactions (desktop)
+- Implement standard HTML5 drag-and-drop:
+  - On card `dragstart`:
+    - Mark the card as dragging, store it as the current `draggedElement`.
+    - Set `effectAllowed` and `dataTransfer` appropriately.
+  - On drop zone `dragover`:
+    - Prevent default to allow drop.
+    - Add a `drag-over` highlight class to the drop zone.
+  - On `drop`:
+    - Remove highlight class.
+    - Move the `draggedElement` into that drop zone.
+    - Clone vs move logic should ensure the card isn’t duplicated; the original should move.
+  - On `dragend`:
+    - Clear dragging state, reset references.
+
+Touch interactions (mobile)
+- For each card, implement touch handlers:
+  - On `touchstart`:
+    - Mark the card as being dragged.
+    - Record initial touch coordinates.
+  - On `touchmove`:
+    - Position the card near the finger (`position: fixed`, updated left/top, high z-index).
+    - Use `document.elementFromPoint()` to detect if the finger is over a drop zone and visually highlight that zone (add `drag-over`).
+  - On `touchend`:
+    - Reset card positioning styling.
+    - Remove highlights from all drop zones.
+    - If the final touch position is over a drop zone, move the card into that zone.
+- Ensure default touch behaviours (scrolling/zoom) do not interfere with dragging (use `preventDefault()` judiciously).
+
+Placement logic
+- When moving a card into a drop zone:
+  - Append the card element as a child of the drop zone.
+  - Hide the drop hint (e.g., set `display: none`).
+  - Reattach drag/touch event listeners to the moved card so it can be dragged again if needed.
+  - Clear any existing feedback message (so students understand they need to re-check).
+
+Checking answers
+- On “Check My Timeline” click:
+  - For each drop zone:
+    - Read its `data-time` (morning/afternoon/evening).
+    - Inspect all `.card` elements inside.
+    - For each card, compare its `data-time` with the drop zone’s `data-time`.
+      - If they match, count as **correct placement**.
+      - Otherwise, count as **incorrect placement**.
+  - Count:
+    - `correctCount`: total # of correctly placed cards.
+    - `totalPlaced`: total # of cards placed in any drop zone.
+  - Visual feedback on sections:
+    - For drop zones where all contained cards are correct, add a `correct` class.
+    - For zones with any incorrect cards, add an `incorrect` class.
+
+Feedback messages
+- Show feedback in `#feedback` (previously hidden by `hidden` class):
+  - Case 1: All 9 cards placed and all correct:
+    - Message like: `🎉 Excellent! You got all activities in the right time! Well done!`.
+    - Add `success` class; trigger a subtle celebration animation (e.g., container pulse).
+  - Case 2: All placed cards are correct but not all 9 placed:
+    - Message like: `✅ Great job! 6 activities are correct. Try placing the remaining activities.`.
+    - Add `success` class.
+  - Case 3: More than half of placed cards are correct but not perfect:
+    - Message like: `👍 Good try! You got X out of Y activities correct. Keep going!`.
+    - Add `error` class to encourage improvement but with positive tone.
+  - Case 4: Half or fewer correct:
+    - Message like: `🤔 Let's try again! Think about when you do these activities during the day.`.
+    - Add `error` class.
+
+Reset behaviour
+- On “Reset” button:
+  - Move all cards from timeline drop zones back to the `activity-cards` container.
+  - Reattach drag & touch handlers.
+  - Show all `drop-hint` texts again.
+  - Remove `correct`, `incorrect`, `drag-over` classes from drop zones.
+  - Hide and clear the feedback message (`feedback` gets `hidden` class again).
+
+Tooltips and accessibility
+- Use `title` attributes on key elements (e.g., container, buttons) and mirror them to `aria-label` for improved accessibility.
+- Simple tooltip handling:
+  - On mouseenter, copy the `title` into `aria-label`.
+  - On mouseleave, remove the temporary `aria-label`.
+- Add `aria-label` on the main container describing the activity (e.g., “School Day Timeline – Drag activities to the correct time of day”).
+
+Responsive behaviour
+- When embedded in an iframe, apply a class or style (e.g., `body.iframe-mode`) to set container height to about 450px.
+- In full browser mode, use `90vh` height for the main container.
+- On window resize, adjust container height accordingly.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Recognise typical school-day activities (wake up, breakfast, school, recess, lessons, lunch, go home, homework, dinner).
+  - Sort and sequence activities into appropriate **time-of-day** categories.
+  - Reflect on their daily routines and time organisation.
+- The activity should be simple, visual, and encourage trial-and-error with supportive feedback.
+
+INTERACTION FEATURES TO INCLUDE:
+- Drag-and-drop with both mouse and touch.
+- Clear visual grouping of morning/afternoon/evening.
+- Immediate visual cues when dragging over valid drop zones.
+- Rich feedback messages showing correctness and encouraging further attempts.
+- Reset functionality for repeated practice.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

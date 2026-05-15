@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAD Metacognition Module - Detailed Prototype</title>
+    <style>
+        /*
+         * CORE CHANGES FOR IFRAME FIT
+         * These rules ensure the content fits exactly within the iframe's
+         * dimensions and prevents any scrollbars from appearing.
+         */
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0; /* Removing padding to avoid overflow */
+            overflow: hidden; /* This hides any content that exceeds the body's boundaries */
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            /* Flexbox properties adjusted to fit without vertical centering */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Aligns content to the top */
+            box-sizing: border-box;
+            padding: 20px; /* Re-adding padding for content spacing, but might cause overflow depending on content size. Adjust if needed. */
+        }
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            padding: 25px 40px;
+            text-align: center;
+            /*
+             * Ensure the container doesn't overflow its parent
+             * max-height is added to prevent content from pushing the container size.
+             */
+            max-height: calc(100% - 40px); /* 100% minus the 20px padding on body, multiplied by two sides. */
+            overflow-y: auto; /* Allows scrolling within the container if needed, but not on the iframe itself */
+            -webkit-overflow-scrolling: touch;
+        }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        h1 { font-size: 2.2em; color: #005662; }
+        h2 { font-size: 1.6em; color: #005662; margin-bottom: 20px; }
+        p { font-size: 1.1em; line-height: 1.6; }
+        .btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin: 8px;
+            text-decoration: none;
+        }
+        .btn:hover { background-color: #0056b3; }
+        .btn:disabled { background-color: #c0c0c0; cursor: not-allowed; }
+        .btn.start-btn { padding: 15px 40px; font-size: 1.3em; }
+        .choice-btn {
+            display: block;
+            width: 90%;
+            margin: 12px auto;
+            background-color: #17a2b8;
+        }
+        .choice-btn:hover { background-color: #117a8b; }
+        .guide-message {
+            background-color: #eef7ff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #b8d7f5;
+            margin: 25px 0;
+            text-align: left;
+        }
+        /* Style for the new images */
+        .asset-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin: 20px 0;
+            background-color: #e9ecef;
+        }
+        textarea {
+            width: 95%;
+            height: 120px;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 1em;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+        /* Screen 4 Styles */
+        .reason-option {
+            display: inline-block;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .reason-option.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        /* Screen 9 Styles */
+        .dialogue-builder select {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 1em;
+            border-radius: 8px;
+        }
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div id="screen-1" class="screen active">
+            <h1>How do you deal with group pressure?</h1>
+            <iframe src="owl.html" width="55%" height="400" frameborder="0"></iframe>
+            <p>Hello, I am Pavo 🦉, your friendly wise guide!</p> <p>I’ll be here to help you pause, think, and make decisions that feel right for you.</p>
+            <button id="start-btn" class="btn start-btn">Start</button>
+        </div>
+
+        <div id="screen-2" class="screen">
+            <h2>The Scenario</h2>
+            <iframe src="comic.html" width="55%" height="400" frameborder="0"></iframe>
+            <div class="guide-message"><strong>🦉:</strong> "Oh no! This looks like a tough situation. Let's think it through together using the 'Situation, Actions, Decision' skill set!"</div>
+            <button class="btn" onclick="goToScreen(3)">Next</button>
+        </div>
+
+        <div id="screen-3" class="screen">
+            <h2>🦉: In this situation, what do your friends want you to do?</h2>
+            <button class="btn choice-btn" onclick="goToScreen(4)">Trip the classmate who is walking.</button>
+            <button class="btn choice-btn" onclick="handleWrongAnswerScreen3()">Share your food with the classmate.</button>
+            <button class="btn choice-btn" onclick="handleWrongAnswerScreen3()">Ask the classmate to sit with you.</button>
+        </div>
+
+        <div id="screen-4" class="screen">
+            <h2>Why do you think they want you to do it?</h2>
+            <div class="guide-message"><strong>🦉: </strong> "Click on all the reasons you think are likely. If you pick an unlikely one, I'll ask you to think again!"</div>
+            <div id="reason-options">
+                <div class="reason-option" data-is-likely="true">They want to test my loyalty to the group.</div>
+                <div class="reason-option" data-is-likely="false">They are helping me feel that I belong in the group.</div>
+                <div class="reason-option" data-is-likely="true">They want to embarrass the classmate simply just for fun.</div>
+                <div class="reason-option" data-is-likely="true">They assumed I would enjoy the prank as much as they do.</div>
+                <div class="reason-option" data-is-likely="true">They thought picking on the classmate would make them feel powerful.</div>
+            </div>
+            <button class="btn" onclick="checkScreen4Answers()">Check Answers</button>
+        </div>
+
+        <div id="screen-5" class="screen">
+            <h2>How does this whole situation make you feel inside?</h2>
+            <div class="guide-message"><strong>🦉: </strong>"Now, let's think about the most important person here... you. Click on an emoji that shows how you feel."</div>
+            <div style="font-size: 3.5em; cursor: pointer;">
+                <span onclick="goToScreen(6)">😐</span>
+                <span onclick="goToScreen(6)">😟</span>
+                <span onclick="goToScreen(6)">😥</span>
+                <span onclick="goToScreen(6)">🤔</span>
+                <span onclick="goToScreen(6)">😠</span>
+            </div>
+        </div>
+
+        <div id="screen-6" class="screen">
+            <h2>🦉: Is the action of "tripping the classmate" helpful or unhelpful?</h2>
+            <div style="font-size: 2em; cursor: pointer;">
+                <span onclick="handleHelpfulChoice()">👍 Helpful    </span>
+                <span onclick="goToScreen(7)">    👎 Unhelpful</span>
+            </div>
+        </div>
+
+        <div id="screen-7" class="screen">
+            <h2>What Happens Next?</h2>
+            <div class="guide-message"><strong>🦉: </strong>"You're right, it's unhelpful. Let's see what might happen."</div>
+
+<body>
+  <img id="animatedImg" src="animation-frame-1.jpg" width="55%" height="400" frameborder="0" alt="Animated">
+
+  <script>
+    // Replace these with your Imgur links
+    const images = [
+      "animation-frame-1.jpg",
+      "animation-frame-2.jpg",
+      "animation-frame-3.jpg",
+      "animation-frame-4.jpg"
+    ];
+
+    let index = 0;
+    const imgElement = document.getElementById("animatedImg");
+
+    setInterval(() => {
+      index = (index + 1) % images.length;
+      imgElement.src = images[index];
+    }, 2000); // change every 2 second
+  </script>
+</body>
+
+<br>
+            <button class="btn" onclick="goToScreen(8)">Continue</button>
+        </div>
+
+        <div id="screen-8" class="screen">
+            <h2>What is the right thing to do?</h2>
+            <button class="btn choice-btn" onclick="handleWrongDecision()">Trip the classmate as they ask.</button>
+            <button class="btn choice-btn" onclick="goToScreen(9)">Refuse to trip the classmate.</button>
+        </div>
+
+        <div id="screen-9" class="screen">
+            <h2>How to Say No</h2>
+            <div id="stage-1-9">
+                <div class="guide-message"><strong>🦉: </strong>"Great choice! Let's practice what you could say. Use the dropdowns to build your response."</div>
+                <div class="dialogue-builder">
+                    <select id="builder-part1">
+                        <option>I don't want to do that...</option>
+                        <option>No, I'm not going to do that...</option>
+                        <option>I feel uncomfortable with that...</option>
+                    </select>
+                    <select id="builder-part2">
+                        <option>...because it's a mean thing to do.</option>
+                        <option>...because we could all get in trouble.</option>
+                        <option>...because it's not a kind choice.</option>
+                    </select>
+                    <select id="builder-part3">
+                        <option>Instead, let's just finish our food.</option>
+                        <option>How about we go play outside instead?</option>
+                        <option>I think we should just leave him alone.</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="showStage2()">Confirm Response</button>
+            </div>
+            <div id="stage-2-9" style="display: none;">
+                <div class="guide-message"><strong>🦉: </strong>"That's a great start! You can change the words or add more details in the box below. When you're happy with it, click the 'Copy Text' button and paste it onto SLS."</div>
+                <textarea id="final-response-textarea"></textarea>
+                <button id="copy-btn" class="btn">Copy Text</button>
+                <button class="btn" onclick="goToScreen(10)">Finish This Step</button>
+            </div>
+        </div>
+
+        <div id="screen-10" class="screen">
+            <h2>Wait! Before you finish...</h2>
+            <div class="guide-message"><strong>🦉: </strong>"It looks like you forgot to copy your thoughtful response. Click the 'Copy Text' button now and remember to paste it onto SLS."</div>
+            <textarea id="final-checkin-textarea" readonly></textarea>
+            <button id="final-copy-btn" class="btn">Copy Text</button>
+            <button class="btn" onclick="goToScreen(11)">Continue to Summary</button>
+        </div>
+
+        <div id="screen-11" class="screen">
+            <h2>✨ Your Good Choices! ✨</h2>
+            <p><strong>S</strong>ituation: You understood this was a tough situation where you felt pressured.</p>
+            <p><strong>A</strong>ctions: You knew that tripping was an unhelpful action with negative consequences.</p>
+            <p><strong>D</strong>ecision: You made a great decision to say no and suggest something better!</p>
+            <button class="btn" onclick="goToScreen(12)">Next</button>
+        </div>
+
+        <div id="screen-12" class="screen">
+            <h1>🦉: You're a Positive Influence! 🏆</h1>
+            <iframe src="badge.html" width="55%" height="400" frameborder="0"></iframe>
+            <p>🦉: Remember to use the <strong>"Situation, Actions, Decision" skill sets</strong> whenever you face a tricky peer pressure problem in future!</p>
+            <button class="btn" onclick="goToScreen(1)">Play Again</button>
+        </div>
+
+    </div>
+
+    <script>
+        let currentScreen = 1;
+        let textWasCopied = false;
+        let animationInterval; // To hold the animation timer
+
+        function goToScreen(screenNumber) {
+            // Stop any running animation when leaving a screen
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+
+            document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+            document.getElementById(`screen-${screenNumber}`).classList.add('active');
+            currentScreen = screenNumber;
+
+            // Start animation when entering Screen 7
+            if (currentScreen === 7) {
+                playConsequenceAnimation();
+            }
+
+            if (currentScreen === 10) {
+                if (textWasCopied) {
+                    goToScreen(11);
+                } else {
+                    const userText = document.getElementById('final-response-textarea').value;
+                    document.getElementById('final-checkin-textarea').value = userText;
+                }
+            }
+        }
+        
+        function playConsequenceAnimation() {
+            const animationImage = document.getElementById('animation-image');
+            const animationFrames = [
+                "https://i.ibb.co/k3yMbb3/Animation-frame-1.png",
+                "https://i.ibb.co/gZ6x0L7/Animation-frame-2.png",
+                "https://i.ibb.co/7gN6pYT/Animation-frame-3.png",
+                "https://i.ibb.co/2KzYhW0/Animation-frame-4.png"
+            ];
+            let currentFrame = 0;
+            
+            // Set the first frame immediately
+            animationImage.src = animationFrames[currentFrame];
+            currentFrame++;
+
+            animationInterval = setInterval(() => {
+                if (currentFrame < animationFrames.length) {
+                    animationImage.src = animationFrames[currentFrame];
+                    currentFrame++;
+                } else {
+                    clearInterval(animationInterval); // Stop the animation
+                }
+            }, 1500); // Change image every 1.5 seconds
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => goToScreen(2));
+
+        function handleWrongAnswerScreen3() {
+            alert("🦉: That's a nice thought, but is that what your friends are asking you to do in the story? Read the scenario again carefully and see what they are cheering you on to do.");
+        }
+
+        document.querySelectorAll('.reason-option').forEach(option => {
+            option.addEventListener('click', () => {
+                option.classList.toggle('selected');
+            });
+        });
+
+        function checkScreen4Answers() {
+            const selectedOptions = document.querySelectorAll('.reason-option.selected');
+            let hasUnlikely = false;
+            selectedOptions.forEach(option => {
+                if (option.getAttribute('data-is-likely') === 'false') {
+                    hasUnlikely = true;
+                }
+            });
+
+            if (hasUnlikely) {
+                alert("🦉: Let's look closer at your choices. Can tripping someone ever be a truly 'helpful' action? Re-think your choices and try again.");
+            } else if (selectedOptions.length === 0) {
+                alert("🦉: Please select at least one reason you think is likely.");
+            } else {
+                alert("🦉: Excellent thinking! You've identified some very likely reasons for their unhelpful behaviour.");
+                goToScreen(5);
+            }
+        }
+
+        function handleHelpfulChoice() {
+            alert("🦉: Let's think about that again. A 'helpful' action makes a situation better or makes someone feel good. Would tripping someone do that? Please choose again.");
+        }
+
+        function handleWrongDecision() {
+            alert("🦉: Oh dear, choosing to trip your classmate can hurt his feelings and get yourself into trouble. Let's go back and make a more helpful choice.");
+        }
+
+        function showStage2() {
+            const part1 = document.getElementById('builder-part1').value;
+            const part2 = document.getElementById('builder-part2').value;
+            const part3 = document.getElementById('builder-part3').value;
+            const fullSentence = `${part1} ${part2} ${part3}`;
+            
+            document.getElementById('final-response-textarea').value = fullSentence;
+            document.getElementById('stage-1-9').style.display = 'none';
+            document.getElementById('stage-2-9').style.display = 'block';
+        }
+
+        function copyTextFrom(elementId) {
+            const textArea = document.getElementById(elementId);
+            textArea.select();
+            textArea.setSelectionRange(0, 99999);
+            try {
+                navigator.clipboard.writeText(textArea.value);
+                alert("Text copied to clipboard!");
+                textWasCopied = true;
+            } catch (err) {
+                alert("Sorry, your browser does not support copying text this way.");
+                console.error('Failed to copy text: ', err);
+            }
+        }
+
+        document.getElementById('copy-btn').addEventListener('click', () => copyTextFrom('final-response-textarea'));
+        document.getElementById('final-copy-btn').addEventListener('click', () => copyTextFrom('final-checkin-textarea'));
+    </script>
+</body>
+</html>

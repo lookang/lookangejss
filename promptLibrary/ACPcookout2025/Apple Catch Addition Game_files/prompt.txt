@@ -1,0 +1,179 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Apple Catch Addition Game”** where students practice addition facts (sums up to 10) by catching falling apples with the correct answer in a moving basket.
+
+TARGET AUDIENCE:
+- Primary 2 Mathematics (approx. ages 7–8)
+
+INTERACTIVE REQUIREMENTS:
+- A game-like environment focused on **single-digit addition** with sums ≤ 10.
+- Central **game area** showing:
+  - A falling stream of apples, each labelled with a number.
+  - A **movable basket** at the bottom that the player controls.
+- A **question panel** that shows the current addition question (e.g., `6 + 1 = ?`).
+- The learner’s goal: **move the basket to catch apples whose number equals the correct answer** to the question.
+- UI elements:
+  - **Score** display that increases for correct catches.
+  - **Lives** display using hearts (❤️) that decreases when:
+    - A wrong apple is caught, or
+    - A correct apple falls off the screen.
+  - **Feedback messages** for correct/incorrect actions.
+  - A **Game Over** panel showing final score and encouragement.
+- Game controls:
+  - **Start Game** button.
+  - **Pause / Resume** button.
+  - **Reset** button.
+  - **Play Again** button on the Game Over screen.
+- Include a brief **“How to Play”** instructions tooltip within the game.
+- Implement **smooth animations** (falling apples, feedback effects) using CSS/JS.
+- Self-contained front-end (HTML + CSS + vanilla JavaScript only).
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Layout works on phones and tablets.
+  - Basket can be moved with touch as well as mouse & keyboard.
+
+SPECIFIC REQUIREMENTS:
+
+Game content and difficulty
+- Focus on **addition within 10** (e.g., 1+2, 4+3, 6+1, etc.).
+- Question generator:
+  - Randomly pick two addends where the **sum ≤ 10**.
+  - Display question as text (e.g., `3 + 5 = ?`).
+- For each question:
+  - Define a unique **correct answer**.
+  - Spawn at least one **correct apple** with that number.
+  - Spawn **1–2 incorrect apples** with other numbers (1–10) that are **not equal** to the correct answer.
+
+Visual layout
+- Top **game header**:
+  - Score area: label + numeric score.
+  - Question display area.
+  - Lives display showing hearts (e.g., `❤️❤️❤️`).
+- **Game area**:
+  - Background area where apples fall from the top to the bottom.
+  - Container for dynamically created apple elements.
+  - Basket graphic at bottom center that can move horizontally.
+  - Overlay elements for feedback text and a happy-face emoji animation.
+- **Controls row** below the game area with Start, Pause, and Reset buttons.
+- **Game Over screen** overlaying the game area when lives reach zero:
+  - Shows “Game Over!” text.
+  - Displays final score.
+  - Shows a performance-based encouragement message.
+  - Includes a “Play Again” button.
+
+Apple behaviour
+- Each apple:
+  - Rendered as a circular/rounded element with number text.
+  - Has data attributes for its value and whether it’s correct.
+  - Spawns at a random horizontal position (e.g., between 10% and 90% of game width).
+  - Starts above the visible area and **falls down** at a fixed speed (e.g., pixels/frame).
+- Apples are continuously updated in a game loop using `requestAnimationFrame`:
+  - The y-position increases by a fixed `appleSpeed` each frame.
+  - When apples leave the bottom of the game area, they are removed.
+- When a **correct apple** falls off screen:
+  - Player **loses 1 life**.
+  - Display feedback like “Missed the correct answer!”.
+  - Optionally play a soft error sound.
+  - Generate a new question after a short delay.
+
+Basket control and collision
+- Basket movement options:
+  - **Mouse** / **touch**: moving/clicking/touch-dragging within the game area moves the basket horizontally.
+  - **Keyboard**: left/right arrow keys move the basket in steps (e.g., ±5%), with boundaries at edges.
+  - Basket position stored as a percentage from the left; constrained within [10%, 90%].
+- Basket visual position updated via inline style (e.g., `left: 50%`).
+- Collision detection:
+  - Apples are considered “caught” when their horizontal position overlaps the basket’s region and their vertical position reaches the basket height.
+  - Optional: allow **tap-to-catch** by clicking/tapping on apples that are near the basket.
+
+Scoring and lives
+- Initial state:
+  - Score = 0.
+  - Lives = 3 (shown as three hearts).
+- On catching an apple near the basket:
+  - If apple is correct:
+    - Increase score by a fixed amount (e.g., +10 points).
+    - Show positive feedback text (e.g., “Correct! +10 points”).
+    - Trigger a **happy face** animation.
+    - Play a gentle **success chime** (Web Audio API or simple audio).
+    - Generate a new question shortly after.
+  - If apple is incorrect:
+    - Decrease lives by 1.
+    - Show feedback like “Try again!”.
+    - Play a soft error tone.
+    - If lives reach 0, trigger Game Over.
+- Lives display:
+  - Use coloured hearts for remaining lives and hollow/white hearts for lost lives (e.g., `❤️❤️🤍`).
+
+Game states and loop
+- Key states:
+  - `gameRunning` (whether main loop is active).
+  - `gamePaused` (paused but not reset).
+- Buttons behaviour:
+  - **Start Game**:
+    - Enables audio context (resume if suspended).
+    - Sets `gameRunning = true` and `gamePaused = false`.
+    - Disables the Start button while game is running.
+    - Starts the animation/game loop.
+  - **Pause**:
+    - Toggles between Paused and Resume states.
+    - When paused, stop updating apples (but don’t clear them).
+  - **Reset**:
+    - Stops the game loop (`gameRunning = false`).
+    - Resets score, lives, basket position, apples array.
+    - Clears all apples from the screen.
+    - Hides the Game Over screen.
+    - Generates a **new question**.
+    - Re-enables the Start button and resets Pause button text.
+  - **Play Again** (on Game Over):
+    - Calls the same logic as Reset, then waits for Start.
+- Game loop (called with `requestAnimationFrame`):
+  - If game is running and not paused:
+    - With probability based on `appleSpawnRate` and limited by `maxApples`, spawn a new set of apples:
+      - Always at least one correct apple.
+      - 1–2 incorrect apples if room allows.
+    - Move all apples down.
+    - Check apples that have fallen off the screen (remove and penalise if correct).
+    - Check for basket collisions with apples and handle catches.
+    - Continue the loop via `requestAnimationFrame`.
+
+Feedback and encouragement
+- **Feedback display** in the game area that shows transient messages:
+  - “Correct! +10 points” when correct.
+  - “Try again!” or “Missed the correct answer!” when incorrect/missed.
+  - Messages should fade away after ~1–1.5 seconds.
+- **Happy face** emoji pops up briefly on correct catches.
+- **Game Over screen**:
+  - Final score.
+  - Encouragement message based on score, for example:
+    - Score ≥ 100: “Excellent work! You’re a math star! ⭐”
+    - Score ≥ 50: “Great job! Keep practicing! 👍”
+    - Otherwise: “Good effort! Try again to improve! 💪”
+
+Instructions and accessibility
+- Provide a **“How to Play”** tooltip or box in/near the game area explaining:
+  - Move your basket left and right.
+  - Catch apples with the correct answer.
+  - Avoid wrong apples or you lose a life.
+  - Score points for each correct catch.
+- Tooltip should appear when the game area is focused/hovered or when the game starts, and fade out automatically after a few seconds.
+- Ensure colour contrast is adequate and text is legible.
+- Keyboard support for learners who can’t easily use mouse/touch.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Practise and strengthen fluency with addition facts up to 10.
+  - Link symbolic addition (e.g., `4 + 3`) with numerical answers.
+  - Receive immediate feedback and adjust their strategy (focus on correct sums).
+- The game should emphasise a **positive learning experience** with encouraging feedback rather than punishment.
+
+INTERACTION FEATURES TO INCLUDE:
+- Real-time apple animations and basket movement.
+- Responsive input via mouse, touch, and keyboard.
+- Immediate feedback for each catch/miss.
+- Visible score and lives that update dynamically.
+- Start/Pause/Reset/Play Again controls.
+- Game Over screen with summary and encouragement.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

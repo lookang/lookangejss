@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML5 Interactive</title>
+  <script src="xapiwrapper.min.js"></script>
+  <script src="index.js" defer></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      overflow: hidden; /* Prevent scrollbars */
+    }
+    .container {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      width: 590px;
+      height: 470px;
+      overflow: auto; /* Enable scrollbars if content overflows */
+    }
+    .center {
+      text-align: center;
+    }
+    input, select, button {
+      margin: 5px;
+      padding: 6px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .criteria-group {
+      margin: 5px 0;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    .criteria-group button {
+      background-color: #dc3545;
+    }
+    .criteria-group button:hover {
+      background-color: #c82333;
+    }
+    .output-container {
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+      overflow: auto; /* Ensure content is scrollable if too large */
+      max-height: 200px;
+    }
+    pre {
+      background-color: #e9ecef;
+      padding: 5px;
+      border-radius: 4px;
+      white-space: pre-wrap; /* Allows for text wrapping */
+      word-wrap: break-word; /* Ensures long words are wrapped */
+      margin: 0;
+      overflow-x: auto; /* Adds horizontal scrollbar if necessary */
+    }
+  </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+  <div class="container">
+    <p class="center"><strong>HTML5 Interactive</strong></p>
+    
+    <div class="center">
+      <label for="score-input">Score:</label>
+      <input type="text" id="score-input">
+      
+      <label for="feedback-input">Feedback:</label>
+      <input type="text" id="feedback-input" placeholder="Enter feedback">
+    </div>
+
+    <div id="criteria-container" class="center">
+      <!-- Criteria groups will be populated here -->
+    </div>
+
+    <div class="center">
+      <button id="add-criteria-button">Add Rubric Criteria</button>
+    </div>
+
+    <div id="scenario-options">
+      <span>Scenario:</span>
+      <br>
+      <label><input type="radio" name="scenario-option" value="all">All</label><br>
+      <label><input type="radio" name="scenario-option" value="score">Send score only</label><br>
+      <label><input type="radio" name="scenario-option" value="score-with-feedback">Send score with feedback</label><br>
+      <label><input type="radio" name="scenario-option" value="score-with-rubric">Send score with grading rubric</label><br>
+      <label><input type="radio" name="scenario-option" value="rubric">Send grading rubric only</label><br>
+      <label><input type="radio" name="scenario-option" value="save-input">Save input value only</label>
+    </div>
+
+    <div class="center">
+      <button id="save-store">Send/Save</button>
+      <button id="clear-inputs">Clear</button>
+    </div>
+    
+    <div class="output-container">
+      <pre id="result"></pre>
+      <hr class="separator">
+      <pre id="getState"></pre>
+      <hr class="separator">
+      <pre id="questionId"></pre>
+      <pre id="userId"></pre>
+      <pre id="cookieId"></pre>
+    </div>
+  </div>
+
+  <script>
+    function populateData(data) {
+      // Populate form with retrieved data
+      document.getElementById('score-input').value = data?.score || '';
+      document.getElementById('feedback-input').value = data?.feedback || '';
+
+      const criteriaContainer = document.getElementById('criteria-container');
+      criteriaContainer.innerHTML = ''; // Clear existing criteria groups
+
+      for (const [criteriaId, criteriaData] of Object.entries(data?.rubric || {})) {
+        const criteriaGroup = document.createElement('div');
+        criteriaGroup.classList.add('criteria-group');
+        criteriaGroup.innerHTML = `
+          <label>Rubric Criteria:</label>
+          <select class="criteria-id">
+            <option value="">Select Criteria</option>
+            <option value="1" ${criteriaId === 'criteria-1' ? 'selected' : ''}>1</option>
+            <option value="2" ${criteriaId === 'criteria-2' ? 'selected' : ''}>2</option>
+            <option value="3" ${criteriaId === 'criteria-3' ? 'selected' : ''}>3</option>
+            <option value="4" ${criteriaId === 'criteria-4' ? 'selected' : ''}>4</option>
+            <option value="5" ${criteriaId === 'criteria-5' ? 'selected' : ''}>5</option>
+            <option value="6" ${criteriaId === 'criteria-6' ? 'selected' : ''}>6</option>
+            <option value="7" ${criteriaId === 'criteria-7' ? 'selected' : ''}>7</option>
+            <option value="8" ${criteriaId === 'criteria-8' ? 'selected' : ''}>8</option>
+          </select>
+          <input type="number" class="criteria-score" value="${criteriaData?.score || 0}" min="0">
+          <input type="text" class="criteria-feedback" value="${criteriaData?.feedback || ''}">
+          <button class="remove-criteria-button">Remove Criteria</button>
+        `;
+        criteriaContainer.appendChild(criteriaGroup);
+
+        // Attach event listener to the newly added remove button
+        criteriaGroup.querySelector('.remove-criteria-button').addEventListener('click', function() {
+          criteriaGroup.remove();
+        });
+      }
+    }
+
+    function updateStore() {
+      // Gather data from inputs
+      const score = formatValue(document.getElementById('score-input').value);
+      const feedback = document.getElementById('feedback-input').value || undefined;
+
+      // Gather criteria data
+      const criteriaElements = document.querySelectorAll('.criteria-group');
+      const rubric = {};
+      criteriaElements.forEach(element => {
+        const criteriaId = element.querySelector('.criteria-id').value;
+        const criteriaScore = element.querySelector('.criteria-score').value;
+        const criteriaFeedback = element.querySelector('.criteria-feedback').value.trim();
+
+        // Ensure criteriaId has the prefix "criteria-"
+        const formattedCriteriaId = criteriaId ? `criteria-${criteriaId}` : '';
+
+        if (formattedCriteriaId) {
+          rubric[formattedCriteriaId] = {
+            score: formatValue(criteriaScore),
+            feedback: criteriaFeedback || undefined
+          };
+        }
+      });
+
+      let state;
+
+      switch (document.querySelector('input[name="scenario-option"]:checked')?.value) {
+        case "score":
+          state = {
+            score: score
+          };
+          break;
+        case "score-with-feedback":
+          state = {
+            score: score,
+            feedback: feedback
+          };
+          break;
+          break;
+        case "score-with-rubric":
+          state = {
+            score: score,
+            feedback: feedback,
+            rubric: Object.keys(rubric).length > 0 ? rubric : undefined
+          };
+          break;
+        case "rubric":
+          state = {
+            rubric: rubric
+          };
+          break;
+        case "save-input":
+          state = {
+            data: {
+              score: score,
+              feedback: feedback,
+              rubric: rubric
+            }
+          };
+          break;
+        default:
+          state = {
+            score: score,
+            feedback: feedback,
+            rubric: Object.keys(rubric).length > 0 ? rubric : undefined,
+            data: {
+              score: score,
+              feedback: feedback,
+              rubric: rubric
+            }
+          }
+          break;
+      }
+
+      storeState(state);
+    }
+
+    function isNumber(value) {
+      return !isNaN(parseFloat(value)) && isFinite(value);
+    }
+
+    function formatValue(value) {
+      return isNumber(value) ? parseFloat(value) : value;
+    }
+
+    // Fetch data on page load
+    window.addEventListener('load', function() {
+      const store = getState();
+      if (store?.data) {
+        populateData(store.data);
+      }
+    });
+
+    document.getElementById('add-criteria-button').addEventListener('click', function() {
+      const criteriaContainer = document.getElementById('criteria-container');
+      const criteriaGroup = document.createElement('div');
+      criteriaGroup.classList.add('criteria-group');
+      criteriaGroup.innerHTML = `
+        <label>Rubric Criteria:</label>
+        <select class="criteria-id">
+          <option value="">Select Criteria</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+        <input type="number" class="criteria-score" placeholder="Score" min="0">
+        <input type="text" class="criteria-feedback" placeholder="Feedback">
+        <button class="remove-criteria-button">Remove Criteria</button>
+      `;
+      criteriaContainer.appendChild(criteriaGroup);
+
+      // Attach event listener to the newly added remove button
+      criteriaGroup.querySelector('.remove-criteria-button').addEventListener('click', function() {
+        criteriaGroup.remove();
+      });
+    });
+
+    document.getElementById('save-store').addEventListener('click', function() {
+      updateStore();
+    });
+
+    document.getElementById('clear-inputs').addEventListener('click', function() {
+      // Clear form inputs
+      document.getElementById('score-input').value = '';
+      document.getElementById('feedback-input').value = '';
+
+      // Clear criteria groups
+      const criteriaContainer = document.getElementById('criteria-container');
+      criteriaContainer.innerHTML = '';
+      updateStore();
+    });
+  </script>
+</body>
+</html>

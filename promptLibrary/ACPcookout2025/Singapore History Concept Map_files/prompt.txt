@@ -1,0 +1,139 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Singapore History Concept Map”** where students build their own concept map of Singapore’s history by dragging events, places, and key figures onto a canvas and drawing labelled connections between them.
+
+TARGET AUDIENCE:
+- Upper Primary / Lower Secondary History / Social Studies (approx. ages 11–14)
+
+INTERACTIVE REQUIREMENTS:
+- Main layout split into:
+  - **Control panel** on the left with tools and a **content bank** of draggable items.
+  - **Canvas area** on the right where students drop items to create a concept map.
+  - A **legend** explaining colour coding by historical era.
+- Pre-placed central node on the canvas labelled **“Singapore History”**.
+- Content bank sections:
+  - **Events** (e.g., 1819 Founding of Singapore; 1942 Fall of Singapore; 1965 Independence; 1820s Opium Trade; 1942–1945 Japanese Occupation; 1963 Malaysia Merger).
+  - **Places** (e.g., Raffles Landing Site; Fort Canning; The Padang; Changi Prison; City Hall).
+  - **Key Figures** (e.g., Sir Stamford Raffles; Lee Kuan Yew; General Percival; Goh Keng Swee).
+- Students drag items from the bank onto the canvas to create **concept nodes**, then click nodes to **select two at a time** and define a labelled relationship between them (e.g., “established”, “occurred at”, “led to”, “declared at”).
+- Connections appear as **arrowed lines** between nodes, with relationship labels and optional notes.
+- Tool buttons:
+  - Zoom In / Zoom Out (scales the canvas).
+  - Show Example (overlay explaining what a good concept map might include).
+  - Validate Connections (checks for historically important connections and provides feedback).
+  - Export Map (exports nodes/connections as JSON).
+- Self-contained HTML, CSS, and JavaScript (no external frameworks); use DOM and SVG for nodes and connection lines.
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Dragging/dropping from the content bank and moving nodes on the canvas must work with mouse and touch.
+
+SPECIFIC REQUIREMENTS:
+
+Content bank and node creation
+- Content bank items:
+  - Represented as `.draggable-item` elements with:
+    - `data-type` (event/place/figure).
+    - `data-id` (e.g., `founding`, `fall`, `independence`, `raffles-site`, `raffles`, `lky`).
+    - CSS classes indicating their historical era (`colonial-era`, `war-era`, `merger-era`, `independence-era`).
+- On drag start (mouse or touch) from the content bank:
+  - Create a **floating copy** of the item following the cursor/finger.
+- On drag end:
+  - If the drop point is inside the canvas, create a **new concept node** there:
+    - Node text = item’s text content.
+    - Node data attributes: `data-type`, `data-id` preserved from bank item.
+    - Node CSS classes include the era class for colour coding.
+  - Nodes appear with a short scale/opacity animation.
+
+Canvas and node behaviour
+- Canvas is a positioned container where nodes can be free-placed.
+- Each node:
+  - Is a `.concept-node` element positioned absolutely within the canvas.
+  - Stores its type/id and text.
+  - Can be clicked to **select/deselect**.
+  - Supports dragging within the canvas to rearrange the map; connections update positions as nodes move.
+- Ensure nodes remain within canvas bounds when dragged.
+
+Connections (edges)
+- Selecting nodes:
+  - Clicking a node toggles its `selected` state.
+  - Maintain an array of currently selected nodes.
+  - When exactly **two nodes** are selected, open a **Connection Details** modal.
+- Connection modal:
+  - Inputs:
+    - Relationship label (required) – e.g., “established”, “led to”, “occurred at”.
+    - Optional note explaining significance.
+  - Buttons: Save / Cancel.
+- On Save:
+  - Create a connection between the two selected nodes:
+    - A `<line>` element in the SVG overlay with class `.connection-line`.
+    - A `<text>` label element at the midpoint of the line showing the relationship.
+    - Optional note stored in connection metadata (not necessarily visible by default).
+  - Store connection in an internal structure keyed by an ID.
+  - Clear selections and close the modal.
+- On Cancel:
+  - Close the modal and clear node selection.
+- On node drag:
+  - Recalculate positions of all connections that involve that node and update line + label positions.
+- Use a **marker arrowhead** at the end of lines for direction (via `<marker id="arrowhead">` and `marker-end="url(#arrowhead)"`).
+
+Zoom and view
+- Zoom In / Zoom Out buttons:
+  - Adjust an internal `zoomLevel` between ~50% and 200%.
+  - Apply CSS transform on the canvas element (scale) around its centre.
+  - Show brief feedback indicating the current zoom percentage.
+
+Example overlay
+- Example button:
+  - Shows an overlay describing what a strong concept map might include (textual example listing key connections e.g., “Raffles → 1819 Founding via ‘established’”, “Lee Kuan Yew → 1965 Independence via ‘led’”, etc.).
+  - Close button hides the overlay.
+
+Validation
+- Validate button:
+  - Compare student-created connections against a **list of expected key connections**, e.g.:
+    - `raffles → founding` (established)
+    - `raffles-site → founding` (location of)
+    - `fall → occupation` (led to)
+    - `lky → independence` (led)
+    - `city-hall → independence` (declared at)
+  - Calculate a score based on how many of these key relationships are present (direction may be flexible).
+  - Show a text summary in a feedback area (e.g., “3/5 key connections found”) plus a qualitative message:
+    - High score: “Great work! Strong historical connections identified.”
+    - Lower score: “Good start! Try adding more key historical relationships.”
+
+Export
+- Export button:
+  - Collect all nodes and connections into a JSON object, including:
+    - Node IDs, text, type, era, and positions (x,y).
+    - For each connection: source node ID, target node ID, label, note.
+  - Trigger a download of a `.json` file (e.g., `singapore-history-concept-map.json`).
+  - Show confirmation feedback: “Concept map exported successfully!”.
+
+Legend and colour coding
+- A legend explaining the era colour scheme:
+  - Colonial Era (1819–1942)
+  - War Era (1942–1945)
+  - Merger Period (1963–1965)
+  - Independence Era (1965+)
+- Legend uses coloured boxes with the same CSS classes as nodes.
+
+Responsive and iframe behaviour
+- If running inside an iframe (SLS embedding), apply an `iframe-mode` class to body for adjusted sizing.
+- Ensure drag-and-drop and node interactions still work on smaller screens (touch-friendly behaviour for both bank items and nodes).
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Identify major **events**, **places**, and **figures** in Singapore’s history.
+  - Construct and explain **relationships** between these elements (cause/effect, location, leadership, etc.).
+  - Recognise how different historical periods connect (colonial era, war era, merger, independence).
+- The interactive should foster **historical reasoning** and **concept mapping skills**, not just recall.
+
+INTERACTION FEATURES TO INCLUDE:
+- Drag-and-drop creation of concept nodes from a content bank.
+- Free placement and repositioning of nodes on a canvas.
+- Creation of labelled connections between nodes via a modal.
+- Visual encoding of eras via colours and legend.
+- Validation mechanism for key historically accurate connections.
+- Export feature for saving/sharing concept maps.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

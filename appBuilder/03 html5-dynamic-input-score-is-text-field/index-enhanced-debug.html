@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML5 Interactive with Enhanced xAPI Debug</title>
+  <script src="xapiwrapper.min.js"></script>
+  <script src="index.js" defer></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      overflow: hidden;
+    }
+    .container {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      width: 590px;
+      height: 470px;
+      overflow: auto;
+    }
+    .center {
+      text-align: center;
+    }
+    input, select, button {
+      margin: 5px;
+      padding: 6px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .criteria-group {
+      margin: 5px 0;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    .criteria-group button {
+      background-color: #dc3545;
+    }
+    .criteria-group button:hover {
+      background-color: #c82333;
+    }
+    .output-container {
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+      overflow: auto;
+      max-height: 200px;
+    }
+    pre {
+      background-color: #e9ecef;
+      padding: 5px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0;
+      overflow-x: auto;
+    }
+    
+    /* Enhanced Debug Panel Styles */
+    .debug-panel {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 450px;
+      max-height: 85vh;
+      background: #1a1a1a;
+      color: #00ff00;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      resize: both;
+    }
+    .debug-header {
+      background: #333;
+      color: #fff;
+      padding: 8px;
+      margin: -10px -10px 10px -10px;
+      border-radius: 6px 6px 0 0;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .debug-toggle {
+      background: #ff4444;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .debug-section {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+    }
+    .debug-title {
+      color: #ffff00;
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .debug-item {
+      margin: 5px 0;
+      padding: 5px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      border-left: 3px solid #555;
+    }
+    .debug-timestamp {
+      color: #888;
+      font-size: 10px;
+    }
+    .debug-success {
+      color: #00ff00;
+      border-left-color: #00ff00;
+    }
+    .debug-error {
+      color: #ff4444;
+      border-left-color: #ff4444;
+    }
+    .debug-warning {
+      color: #ffaa00;
+      border-left-color: #ffaa00;
+    }
+    .debug-info {
+      color: #00aaff;
+      border-left-color: #00aaff;
+    }
+    .debug-clear {
+      background: #666;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      margin-left: 5px;
+    }
+    .debug-export {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      margin-left: 5px;
+    }
+    .debug-count {
+      background: #444;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 9px;
+    }
+    .sls-status {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    .sls-connected {
+      border-left: 3px solid #00ff00;
+    }
+    .sls-disconnected {
+      border-left: 3px solid #ff4444;
+    }
+    .json-viewer {
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 5px 0;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 10px;
+    }
+    .json-key {
+      color: #9cdcfe;
+    }
+    .json-string {
+      color: #ce9178;
+    }
+    .json-number {
+      color: #b5cea8;
+    }
+    .json-boolean {
+      color: #569cd6;
+    }
+  </style>
+</head>
+<body>
+  <!-- Enhanced Debug Panel -->
+  <div id="debug-panel" class="debug-panel">
+    <div class="debug-header">
+      <span>🔍 Enhanced xAPI Debug Console</span>
+      <div>
+        <button id="debug-export" class="debug-export">Export</button>
+        <button id="debug-clear" class="debug-clear">Clear</button>
+        <button id="debug-toggle" class="debug-toggle">Hide</button>
+      </div>
+    </div>
+    <div id="debug-content">
+      <div class="debug-section">
+        <div class="debug-title">
+          <span>🌐 SLS Connection Status</span>
+        </div>
+        <div id="debug-sls-status"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">
+          <span>📊 Session Info</span>
+        </div>
+        <div id="debug-session"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">
+          <span>📤 xAPI Statements</span>
+          <span id="statements-count" class="debug-count">0</span>
+        </div>
+        <div id="debug-statements"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">
+          <span>💾 State Updates</span>
+          <span id="states-count" class="debug-count">0</span>
+        </div>
+        <div id="debug-states"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">
+          <span>🎯 Score Tracking</span>
+          <span id="scores-count" class="debug-count">0</span>
+        </div>
+        <div id="debug-scores"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">
+          <span>⚠️ System Messages</span>
+          <span id="messages-count" class="debug-count">0</span>
+        </div>
+        <div id="debug-messages"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <p class="center"><strong>HTML5 Interactive with Enhanced xAPI Debug</strong></p>
+    
+    <div class="center">
+      <label for="score-input">Score:</label>
+      <input type="text" id="score-input">
+      
+      <label for="feedback-input">Feedback:</label>
+      <input type="text" id="feedback-input" placeholder="Enter feedback">
+    </div>
+
+    <div id="criteria-container" class="center">
+      <!-- Criteria groups will be populated here -->
+    </div>
+
+    <div class="center">
+      <button id="add-criteria-button">Add Rubric Criteria</button>
+    </div>
+
+    <div id="scenario-options">
+      <span>Scenario:</span>
+      <br>
+      <label><input type="radio" name="scenario-option" value="all">All</label><br>
+      <label><input type="radio" name="scenario-option" value="score">Send score only</label><br>
+      <label><input type="radio" name="scenario-option" value="score-with-feedback">Send score with feedback</label><br>
+      <label><input type="radio" name="scenario-option" value="score-with-rubric">Send score with grading rubric</label><br>
+      <label><input type="radio" name="scenario-option" value="rubric">Send grading rubric only</label><br>
+      <label><input type="radio" name="scenario-option" value="save-input">Save input value only</label>
+    </div>
+
+    <div class="center">
+      <button id="save-store">Send/Save</button>
+      <button id="clear-inputs">Clear</button>
+    </div>
+    
+    <div class="output-container">
+      <pre id="result"></pre>
+      <hr class="separator">
+      <pre id="getState"></pre>
+      <hr class="separator">
+      <pre id="questionId"></pre>
+      <pre id="userId"></pre>
+      <pre id="cookieId"></pre>
+    </div>
+  </div>
+
+  <script>
+    // Enhanced xAPI Debugger with SLS Integration Focus
+    class EnhancedXAPIDebugger {
+      constructor() {
+        this.statements = [];
+        this.states = [];
+        this.scores = [];
+        this.messages = [];
+        this.sessionInfo = {};
+        this.slsStatus = { connected: false, endpoint: null, lastActivity: null };
+        this.init();
+      }
+
+      init() {
+        this.updateSessionInfo();
+        this.setupEventListeners();
+        this.interceptConsole();
+        this.interceptXAPI();
+        this.monitorSLSConnection();
+        this.startPeriodicChecks();
+      }
+
+      setupEventListeners() {
+        document.getElementById('debug-toggle').addEventListener('click', () => {
+          const content = document.getElementById('debug-content');
+          const button = document.getElementById('debug-toggle');
+          if (content.style.display === 'none') {
+            content.style.display = 'block';
+            button.textContent = 'Hide';
+          } else {
+            content.style.display = 'none';
+            button.textContent = 'Show';
+          }
+        });
+
+        document.getElementById('debug-clear').addEventListener('click', () => {
+          this.clearAll();
+        });
+
+        document.getElementById('debug-export').addEventListener('click', () => {
+          this.exportDebugData();
+        });
+      }
+
+      updateSessionInfo() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.sessionInfo = {
+          endpoint: urlParams.get('endpoint') || 'Not provided',
+          activityId: urlParams.get('activityId') || 'Not provided',
+          stateId: urlParams.get('stateId') || 'Not provided',
+          auth: urlParams.get('auth') ? 'Provided' : 'Not provided',
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          url: window.location.href
+        };
+
+        const sessionDiv = document.getElementById('debug-session');
+        sessionDiv.innerHTML = `
+          <div class="debug-item debug-info">
+            <div><strong>Endpoint:</strong> ${this.sessionInfo.endpoint}</div>
+            <div><strong>Activity ID:</strong> ${this.sessionInfo.activityId}</div>
+            <div><strong>State ID:</strong> ${this.sessionInfo.stateId}</div>
+            <div><strong>Auth Token:</strong> ${this.sessionInfo.auth}</div>
+            <div><strong>Session Start:</strong> ${this.sessionInfo.timestamp}</div>
+            <div><strong>Current URL:</strong> ${this.sessionInfo.url}</div>
+          </div>
+        `;
+      }
+
+      monitorSLSConnection() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const endpoint = urlParams.get('endpoint');
+        
+        if (endpoint && endpoint.includes('learning.moe.edu.sg')) {
+          this.slsStatus.connected = true;
+          this.slsStatus.endpoint = endpoint;
+          this.logMessage('success', 'SLS connection detected');
+        } else {
+          this.slsStatus.connected = false;
+          this.logMessage('warning', 'No SLS connection detected - running in standalone mode');
+        }
+        
+        this.updateSLSStatus();
+      }
+
+      updateSLSStatus() {
+        const statusDiv = document.getElementById('debug-sls-status');
+        const statusClass = this.slsStatus.connected ? 'sls-connected' : 'sls-disconnected';
+        const statusText = this.slsStatus.connected ? 'Connected to SLS' : 'Standalone Mode';
+        const statusIcon = this.slsStatus.connected ? '🟢' : '🔴';
+        
+        statusDiv.innerHTML = `
+          <div class="sls-status ${statusClass}">
+            <div><strong>${statusIcon} Status:</strong> ${statusText}</div>
+            ${this.slsStatus.endpoint ? `<div><strong>Endpoint:</strong> ${this.slsStatus.endpoint}</div>` : ''}
+            ${this.slsStatus.lastActivity ? `<div><strong>Last Activity:</strong> ${this.slsStatus.lastActivity}</div>` : ''}
+          </div>
+        `;
+      }
+
+      interceptConsole() {
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = (...args) => {
+          originalLog.apply(console, args);
+          const message = args.join(' ');
+          if (message.includes('xAPI') || message.includes('Statement') || message.includes('State')) {
+            this.logMessage('info', message);
+          }
+        };
+
+        console.error = (...args) => {
+          originalError.apply(console, args);
+          this.logMessage('error', args.join(' '));
+        };
+
+        console.warn = (...args) => {
+          originalWarn.apply(console, args);
+          this.logMessage('warning', args.join(' '));
+        };
+      }
+
+      interceptXAPI() {
+        // Store original functions
+        const originalStoreState = window.storeState;
+        const originalGetState = window.getState;
+
+        // Override storeState to capture and enhance data
+        window.storeState = (stateValue) => {
+          this.logState('Store State', stateValue);
+          
+          // Send enhanced xAPI statements for SLS compatibility
+          this.sendEnhancedScoringStatements(stateValue);
+          
+          // Call original function
+          if (originalStoreState) {
+            return originalStoreState(stateValue);
+          }
+        };
+
+        // Override getState to capture data
+        window.getState = () => {
+          const result = originalGetState ? originalGetState() : null;
+          this.logState('Get State', result);
+          return result;
+        };
+
+        // Monitor ADL.XAPIWrapper if available
+        if (window.ADL && window.ADL.XAPIWrapper) {
+          const originalSendStatement = window.ADL.XAPIWrapper.sendStatement;
+          window.ADL.XAPIWrapper.sendStatement = (statement, callback) => {
+            this.logStatement('ADL Statement Sent', statement);
+            return originalSendStatement.call(window.ADL.XAPIWrapper, statement, (err, result) => {
+              if (err) {
+                this.logMessage('error', `xAPI Statement Error: ${JSON.stringify(err)}`);
+              } else {
+                this.logMessage('success', `xAPI Statement Success: ${result?.id || 'No ID'}`);
+                this.slsStatus.lastActivity = new Date().toISOString();
+                this.updateSLSStatus();
+              }
+              if (callback) callback(err, result);
+            });
+          };
+        }
+      }
+
+      sendEnhancedScoringStatements(stateValue) {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const activityId = urlParams.get('activityId') || 'http://example.com/activity';
+          
+          // Create multiple statement types for better SLS compatibility
+          const statements = [];
+
+          // 1. Scored statement (primary for SLS scoring)
+          if (stateValue && (stateValue.score !== undefined || stateValue.feedback)) {
+            const scoredStatement = this.createSLSCompatibleScoredStatement(stateValue, activityId);
+            statements.push({ type: 'Scored Statement', statement: scoredStatement });
+          }
+
+          // 2. Answered statement (for question responses)
+          if (stateValue && (stateValue.score !== undefined || stateValue.data)) {
+            const answeredStatement = this.createSLSCompatibleAnsweredStatement(stateValue, activityId);
+            statements.push({ type: 'Answered Statement', statement: answeredStatement });
+          }
+
+          // 3. Completed statement (for activity completion)
+          const completedStatement = this.createSLSCompatibleCompletedStatement(stateValue, activityId);
+          statements.push({ type: 'Completed Statement', statement: completedStatement });
+
+          // Send all statements
+          statements.forEach(({ type, statement }) => {
+            this.logStatement(type, statement);
+            
+            if (window.ADL && window.ADL.XAPIWrapper) {
+              window.ADL.XAPIWrapper.sendStatement(statement, (err, result) => {
+                if (err) {
+                  this.logMessage('error', `${type} failed: ${JSON.stringify(err)}`);
+                } else {
+                  this.logMessage('success', `${type} sent successfully: ${result?.id || 'No ID'}`);
+                  
+                  // Track scores specifically
+                  if (type === 'Scored Statement' && stateValue.score !== undefined) {
+                    this.logScore(stateValue.score, stateValue.feedback, result?.id);
+                  }
+                }
+              });
+            } else {
+              this.logMessage('warning', 'ADL.XAPIWrapper not available - statements not sent');
+            }
+          });
+
+        } catch (error) {
+          this.logMessage('error', `Error creating enhanced xAPI statements: ${error.message}`);
+        }
+      }
+
+      createSLSCompatibleScoredStatement(stateValue, activityId) {
+        const statement = {
+          actor: this.getActor(),
+          verb: {
+            id: "http://adlnet.gov/expapi/verbs/scored",
+            display: { "en-US": "scored" }
+          },
+          object: {
+            id: activityId,
+            definition: {
+              name: { "en-US": "Interactive Assessment" },
+              description: { "en-US": "Student scored on interactive content" },
+              type: "http://adlnet.gov/expapi/activities/assessment"
+            }
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        // Enhanced result object for SLS compatibility
+        if (stateValue.score !== undefined || stateValue.feedback) {
+          statement.result = {};
+          
+          if (stateValue.score !== undefined) {
+            const rawScore = parseFloat(stateValue.score) || 0;
+            statement.result.score = {
+              raw: rawScore,
+              min: 0,
+              max: 100,
+              scaled: rawScore / 100
+            };
+            
+            // Add success flag based on score
+            statement.result.success = rawScore >= 50;
+          }
+          
+          if (stateValue.feedback) {
+            statement.result.response = String(stateValue.feedback);
+          }
+          
+          statement.result.completion = true;
+          
+          // Add duration if available
+          statement.result.duration = "PT30S"; // Default 30 seconds, could be calculated
+        }
+
+        // Add context for SLS
+        statement.context = {
+          platform: "SLS Interactive Content",
+          language: "en-US",
+          extensions: {
+            "http://id.tincanapi.com/extension/browser-info": {
+              userAgent: navigator.userAgent,
+              url: window.location.href
+            }
+          }
+        };
+
+        return statement;
+      }
+
+      createSLSCompatibleAnsweredStatement(stateValue, activityId) {
+        return {
+          actor: this.getActor(),
+          verb: {
+            id: "http://adlnet.gov/expapi/verbs/answered",
+            display: { "en-US": "answered" }
+          },
+          object: {
+            id: activityId + '/question',
+            definition: {
+              name: { "en-US": "Interactive Question" },
+              description: { "en-US": "Student answered interactive question" },
+              type: "http://adlnet.gov/expapi/activities/cmi.interaction",
+              interactionType: "other"
+            }
+          },
+          result: {
+            response: JSON.stringify(stateValue),
+            success: stateValue.score ? parseFloat(stateValue.score) >= 50 : undefined,
+            completion: true,
+            extensions: {
+              "http://example.com/xapi/extensions/interaction-data": stateValue
+            }
+          },
+          context: {
+            platform: "SLS Interactive Content",
+            language: "en-US"
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      createSLSCompatibleCompletedStatement(stateValue, activityId) {
+        return {
+          actor: this.getActor(),
+          verb: {
+            id: "http://adlnet.gov/expapi/verbs/completed",
+            display: { "en-US": "completed" }
+          },
+          object: {
+            id: activityId,
+            definition: {
+              name: { "en-US": "Interactive Content" },
+              description: { "en-US": "Student completed interactive content" },
+              type: "http://adlnet.gov/expapi/activities/lesson"
+            }
+          },
+          result: {
+            completion: true,
+            success: stateValue && stateValue.score ? parseFloat(stateValue.score) >= 50 : true
+          },
+          context: {
+            platform: "SLS Interactive Content",
+            language: "en-US"
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      getActor() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const agent = urlParams.get('agent');
+        
+        if (agent) {
+          try {
+            return JSON.parse(decodeURIComponent(agent));
+          } catch (e) {
+            this.logMessage('warning', 'Failed to parse agent from URL parameters');
+          }
+        }
+        
+        // Fallback actor
+        return {
+          name: "Student",
+          mbox: "mailto:student@example.com"
+        };
+      }
+
+      logStatement(type, statement) {
+        this.statements.push({
+          type,
+          statement,
+          timestamp: new Date().toISOString()
+        });
+        this.updateStatementsDisplay();
+      }
+
+      logState(type, state) {
+        this.states.push({
+          type,
+          state,
+          timestamp: new Date().toISOString()
+        });
+        this.updateStatesDisplay();
+      }
+
+      logScore(score, feedback, statementId) {
+        this.scores.push({
+          score,
+          feedback,
+          statementId,
+          timestamp: new Date().toISOString()
+        });
+        this.updateScoresDisplay();
+      }
+
+      logMessage(type, message) {
+        this.messages.push({
+          type,
+          message,
+          timestamp: new Date().toISOString()
+        });
+        this.updateMessagesDisplay();
+      }
+
+      formatJSON(obj) {
+        if (!obj) return 'null';
+        try {
+          return JSON.stringify(obj, null, 2)
+            .replace(/"([^"]+)":/g, '<span class="json-key">"$1":</span>')
+            .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+            .replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+            .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>');
+        } catch (error) {
+          return `<span class="json-error">Error formatting JSON: ${error.message}</span>`;
+        }
+      }
+
+      updateStatementsDisplay() {
+        const div = document.getElementById('debug-statements');
+        const count = document.getElementById('statements-count');
+        count.textContent = this.statements.length;
+        
+        div.innerHTML = this.statements.slice(-3).map(item => `
+          <div class="debug-item debug-success">
+            <div><strong>${item.type}</strong></div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+            <div class="json-viewer">${this.formatJSON(item.statement)}</div>
+          </div>
+        `).join('');
+      }
+
+      updateStatesDisplay() {
+        const div = document.getElementById('debug-states');
+        const count = document.getElementById('states-count');
+        count.textContent = this.states.length;
+        
+        div.innerHTML = this.states.slice(-3).map(item => `
+          <div class="debug-item debug-info">
+            <div><strong>${item.type}</strong></div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+            <div class="json-viewer">${this.formatJSON(item.state)}</div>
+          </div>
+        `).join('');
+      }
+
+      updateScoresDisplay() {
+        const div = document.getElementById('debug-scores');
+        const count = document.getElementById('scores-count');
+        count.textContent = this.scores.length;
+        
+        div.innerHTML = this.scores.slice(-5).map(item => `
+          <div class="debug-item debug-success">
+            <div><strong>Score: ${item.score}</strong></div>
+            ${item.feedback ? `<div><strong>Feedback:</strong> ${item.feedback}</div>` : ''}
+            <div><strong>Statement ID:</strong> ${item.statementId || 'N/A'}</div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+          </div>
+        `).join('');
+      }
+
+      updateMessagesDisplay() {
+        const div = document.getElementById('debug-messages');
+        const count = document.getElementById('messages-count');
+        count.textContent = this.messages.length;
+        
+        div.innerHTML = this.messages.slice(-10).map(item => `
+          <div class="debug-item debug-${item.type}">
+            <div><strong>${item.type.toUpperCase()}</strong></div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+            <div>${item.message}</div>
+          </div>
+        `).join('');
+      }
+
+      startPeriodicChecks() {
+        // Check for xAPI activity every 5 seconds
+        setInterval(() => {
+          if (window.ADL && window.ADL.XAPIWrapper) {
+            // Check if wrapper is properly configured
+            const config = window.ADL.XAPIWrapper.lrs;
+            if (config && config.endpoint) {
+              if (!this.slsStatus.connected) {
+                this.slsStatus.connected = true;
+                this.slsStatus.endpoint = config.endpoint;
+                this.logMessage('success', 'xAPI LRS connection established');
+                this.updateSLSStatus();
+              }
+            }
+          }
+        }, 5000);
+      }
+
+      exportDebugData() {
+        const debugData = {
+          sessionInfo: this.sessionInfo,
+          slsStatus: this.slsStatus,
+          statements: this.statements,
+          states: this.states,
+          scores: this.scores,
+          messages: this.messages,
+          exportTimestamp: new Date().toISOString()
+        };
+
+        const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `xapi-debug-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.logMessage('info', 'Debug data exported successfully');
+      }
+
+      clearAll() {
+        this.statements = [];
+        this.states = [];
+        this.scores = [];
+        this.messages = [];
+        this.updateStatementsDisplay();
+        this.updateStatesDisplay();
+        this.updateScoresDisplay();
+        this.updateMessagesDisplay();
+        this.logMessage('info', 'Debug console cleared');
+      }
+    }
+
+    // Initialize enhanced debugger
+    let xapiDebugger;
+    window.addEventListener('load', function() {
+      xapiDebugger = new EnhancedXAPIDebugger();
+    });
+
+    // Original functionality (unchanged)
+    function populateData(data) {
+      document.getElementById('score-input').value = data?.score || '';
+      document.getElementById('feedback-input').value = data?.feedback || '';
+
+      const criteriaContainer = document.getElementById('criteria-container');
+      criteriaContainer.innerHTML = '';
+
+      for (const [criteriaId, criteriaData] of Object.entries(data?.rubric || {})) {
+        const criteriaGroup = document.createElement('div');
+        criteriaGroup.classList.add('criteria-group');
+        criteriaGroup.innerHTML = `
+          <label>Rubric Criteria:</label>
+          <select class="criteria-id">
+            <option value="">Select Criteria</option>
+            <option value="1" ${criteriaId === 'criteria-1' ? 'selected' : ''}>1</option>
+            <option value="2" ${criteriaId === 'criteria-2' ? 'selected' : ''}>2</option>
+            <option value="3" ${criteriaId === 'criteria-3' ? 'selected' : ''}>3</option>
+            <option value="4" ${criteriaId === 'criteria-4' ? 'selected' : ''}>4</option>
+            <option value="5" ${criteriaId === 'criteria-5' ? 'selected' : ''}>5</option>
+            <option value="6" ${criteriaId === 'criteria-6' ? 'selected' : ''}>6</option>
+            <option value="7" ${criteriaId === 'criteria-7' ? 'selected' : ''}>7</option>
+            <option value="8" ${criteriaId === 'criteria-8' ? 'selected' : ''}>8</option>
+          </select>
+          <input type="number" class="criteria-score" value="${criteriaData?.score || 0}" min="0">
+          <input type="text" class="criteria-feedback" value="${criteriaData?.feedback || ''}">
+          <button class="remove-criteria-button">Remove Criteria</button>
+        `;
+        criteriaContainer.appendChild(criteriaGroup);
+
+        criteriaGroup.querySelector('.remove-criteria-button').addEventListener('click', function() {
+          criteriaGroup.remove();
+        });
+      }
+    }
+
+    function updateStore() {
+      const score = formatValue(document.getElementById('score-input').value);
+      const feedback = document.getElementById('feedback-input').value || undefined;
+
+      const criteriaElements = document.querySelectorAll('.criteria-group');
+      const rubric = {};
+      criteriaElements.forEach(element => {
+        const criteriaId = element.querySelector('.criteria-id').value;
+        const criteriaScore = element.querySelector('.criteria-score').value;
+        const criteriaFeedback = element.querySelector('.criteria-feedback').value.trim();
+
+        const formattedCriteriaId = criteriaId ? `criteria-${criteriaId}` : '';
+
+        if (formattedCriteriaId) {
+          rubric[formattedCriteriaId] = {
+            score: formatValue(criteriaScore),
+            feedback: criteriaFeedback || undefined
+          };
+        }
+      });
+
+      let state;
+
+      switch (document.querySelector('input[name="scenario-option"]:checked')?.value) {
+        case "score":
+          state = { score: score };
+          break;
+        case "score-with-feedback":
+          state = { score: score, feedback: feedback };
+          break;
+        case "score-with-rubric":
+          state = { score: score, feedback: feedback, rubric: Object.keys(rubric).length > 0 ? rubric : undefined };
+          break;
+        case "rubric":
+          state = { rubric: rubric };
+          break;
+        case "save-input":
+          state = { data: { score: score, feedback: feedback, rubric: rubric } };
+          break;
+        default:
+          state = {
+            score: score,
+            feedback: feedback,
+            rubric: Object.keys(rubric).length > 0 ? rubric : undefined,
+            data: { score: score, feedback: feedback, rubric: rubric }
+          };
+          break;
+      }
+
+      storeState(state);
+    }
+
+    function isNumber(value) {
+      return !isNaN(parseFloat(value)) && isFinite(value);
+    }
+
+    function formatValue(value) {
+      return isNumber(value) ? parseFloat(value) : value;
+    }
+
+    window.addEventListener('load', function() {
+      const store = getState();
+      if (store?.data) {
+        populateData(store.data);
+      }
+    });
+
+    document.getElementById('add-criteria-button').addEventListener('click', function() {
+      const criteriaContainer = document.getElementById('criteria-container');
+      const criteriaGroup = document.createElement('div');
+      criteriaGroup.classList.add('criteria-group');
+      criteriaGroup.innerHTML = `
+        <label>Rubric Criteria:</label>
+        <select class="criteria-id">
+          <option value="">Select Criteria</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+        <input type="number" class="criteria-score" placeholder="Score" min="0">
+        <input type="text" class="criteria-feedback" placeholder="Feedback">
+        <button class="remove-criteria-button">Remove Criteria</button>
+      `;
+      criteriaContainer.appendChild(criteriaGroup);
+
+      criteriaGroup.querySelector('.remove-criteria-button').addEventListener('click', function() {
+        criteriaGroup.remove();
+      });
+    });
+
+    document.getElementById('save-store').addEventListener('click', function() {
+      updateStore();
+    });
+
+    document.getElementById('clear-inputs').addEventListener('click', function() {
+      document.getElementById('score-input').value = '';
+      document.getElementById('feedback-input').value = '';
+      const criteriaContainer = document.getElementById('criteria-container');
+      criteriaContainer.innerHTML = '';
+      updateStore();
+    });
+  </script>
+</body>
+</html>

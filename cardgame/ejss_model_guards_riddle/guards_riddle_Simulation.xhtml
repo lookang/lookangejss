@@ -1,0 +1,908 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Guard's Riddle, game to position numbers apart by the number they are in</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+function guards_riddle(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = EJSS_CORE.Tools;
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var n;
+  var guardX;
+  var guardY;
+  var initGuardX;
+  var guardVal;
+  var guardPos;
+  var guardWidth;
+  var guardHeight;
+  var pairList;
+  var boxX;
+  var boxY;
+  var boxPos;
+  var boxOccupied;
+  var boxFillColor; // per-box color array for solver highlighting
+  var textStr;
+  var interact;
+  var thresholdDist;
+  var font;
+  var score;
+  var imageurl;
+  var solverMessage; // message shown on canvas TLMessage
+
+  // Solver state (not EJSS model variables)
+  var _solverSteps = [];
+  var _solverIdx = 0;
+  var _solverRunning = false;
+  var _solverPaused = false;
+  var _solverTimer = null;
+
+  _model.getOdes = function() { return []; };
+
+  _model.removeEvents = function(){
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      n : n,
+      guardX : guardX,
+      guardY : guardY,
+      initGuardX : initGuardX,
+      guardVal : guardVal,
+      guardPos : guardPos,
+      guardWidth : guardWidth,
+      guardHeight : guardHeight,
+      pairList : pairList,
+      boxX : boxX,
+      boxY : boxY,
+      boxPos : boxPos,
+      boxOccupied : boxOccupied,
+      textStr : textStr,
+      interact : interact,
+      thresholdDist : thresholdDist,
+      font : font,
+      score : score,
+      imageurl : imageurl
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.guardX != "undefined") guardX = json.guardX;
+    if(typeof json.guardY != "undefined") guardY = json.guardY;
+    if(typeof json.initGuardX != "undefined") initGuardX = json.initGuardX;
+    if(typeof json.guardVal != "undefined") guardVal = json.guardVal;
+    if(typeof json.guardPos != "undefined") guardPos = json.guardPos;
+    if(typeof json.guardWidth != "undefined") guardWidth = json.guardWidth;
+    if(typeof json.guardHeight != "undefined") guardHeight = json.guardHeight;
+    if(typeof json.pairList != "undefined") pairList = json.pairList;
+    if(typeof json.boxX != "undefined") boxX = json.boxX;
+    if(typeof json.boxY != "undefined") boxY = json.boxY;
+    if(typeof json.boxPos != "undefined") boxPos = json.boxPos;
+    if(typeof json.boxOccupied != "undefined") boxOccupied = json.boxOccupied;
+    if(typeof json.textStr != "undefined") textStr = json.textStr;
+    if(typeof json.interact != "undefined") interact = json.interact;
+    if(typeof json.thresholdDist != "undefined") thresholdDist = json.thresholdDist;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.score != "undefined") score = json.score;
+    if(typeof json.imageurl != "undefined") imageurl = json.imageurl;
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model.addToReset(function() {
+    __pagesEnabled["Init Page"] = true;
+  });
+
+  _model.addToReset(function() {
+    guardX = [];
+    guardY = [];
+    initGuardX = [];
+    guardVal = [];
+    guardPos = [];
+    guardWidth = 1;
+    guardHeight = 1.5;
+    pairList = [];
+    boxX = [];
+    boxY = [];
+    boxPos = [];
+    boxOccupied = [];
+    boxFillColor = [];
+    textStr = [];
+    interact = 0;
+    thresholdDist = 0.3;
+    font = "normal normal 3vmax";
+    score = 0;
+    solverMessage = "";
+    imageurl = ["./guards_riddle/01.png","./guards_riddle/01.png","./guards_riddle/02.png","./guards_riddle/02.png","./guards_riddle/03.png","./guards_riddle/03.png","./guards_riddle/04.png","./guards_riddle/04.png","./guards_riddle/05.png","./guards_riddle/05.png","./guards_riddle/06.png","./guards_riddle/06.png","./guards_riddle/07.png","./guards_riddle/07.png","./guards_riddle/08.png","./guards_riddle/08.png"];
+    // Stop any running solver on reset
+    if (_solverTimer) { clearTimeout(_solverTimer); _solverTimer = null; }
+    _solverRunning = false;
+    _solverPaused = false;
+    _solverIdx = 0;
+    _solverSteps = [];
+    _updateSolverUI(null);
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function toggleFullScreen() {
+    if (!document.fullscreenElement &&
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen();
+      } else if (document.documentElement.msRequestFullscreen) {
+        document.documentElement.msRequestFullscreen();
+      } else if (document.documentElement.mozRequestFullScreen) {
+        document.documentElement.mozRequestFullScreen();
+      } else if (document.documentElement.webkitRequestFullscreen) {
+        document.documentElement.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  }
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    if(n == undefined)
+      n = 3;
+    _view.comboBox.setProperty('SelectedOptions', [n]);
+    for(var i = 0; i < n * 2; i++){
+      // guard position
+      guardX.push(i * guardWidth), guardY.push(guardHeight);
+      initGuardX.push(i * guardWidth);
+      guardVal.push(parseInt(i / 2) + 1);
+      guardPos.push(-1);
+      // box position
+      boxX.push(i * guardWidth), boxY.push(-guardHeight);
+      boxPos.push(i);
+      boxOccupied.push(false);
+      boxFillColor.push('#FFD700'); // default yellow
+      // text label
+      textStr.push(parseInt(i / 2) + 1);
+    }
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  // ═══════════════════════════════════════════════════════════════
+  // SOLVER ENGINE — Backtracking with step recording
+  // ═══════════════════════════════════════════════════════════════
+
+  // Pre-compute every backtracking step for n guard pairs.
+  // Rule: guard of rank k must be exactly k positions apart from its twin.
+  function _buildSteps(numN) {
+    var steps = [];
+    var board = new Array(2 * numN).fill(0);
+    var tries = 0, backtracks = 0;
+
+    function bt(rank) {
+      if (rank > numN) {
+        steps.push({
+          type: 'SOLVED', board: board.slice(),
+          tries: tries, backtracks: backtracks,
+          p1: -1, p2: -1, rank: rank
+        });
+        return true;
+      }
+      for (var p1 = 0; p1 <= 2 * numN - rank - 1; p1++) {
+        var p2 = p1 + rank;
+        if (board[p1] === 0 && board[p2] === 0) {
+          board[p1] = board[p2] = rank;
+          tries++;
+          steps.push({
+            type: 'TRY', rank: rank, p1: p1, p2: p2,
+            board: board.slice(), tries: tries, backtracks: backtracks
+          });
+          if (bt(rank + 1)) return true;
+          board[p1] = board[p2] = 0;
+          backtracks++;
+          steps.push({
+            type: 'BACK', rank: rank, p1: p1, p2: p2,
+            board: board.slice(), tries: tries, backtracks: backtracks
+          });
+        }
+      }
+      return false;
+    }
+
+    if (!bt(1)) {
+      steps.push({
+        type: 'NONE', board: board.slice(),
+        tries: tries, backtracks: backtracks,
+        p1: -1, p2: -1, rank: -1
+      });
+    }
+    return steps;
+  }
+
+  // Apply a board state array to the visual simulation
+  function _applyBoard(board, step) {
+    // Reset all guards to top row
+    for (var i = 0; i < n * 2; i++) {
+      guardX[i] = initGuardX[i];
+      guardY[i] = guardHeight;
+      guardPos[i] = -1;
+      boxOccupied[i] = false;
+      boxFillColor[i] = '#FFD700'; // yellow = empty
+    }
+    score = 0;
+
+    // Place guards according to board state (scan left-to-right,
+    // first occurrence of rank k → even guard index, second → odd)
+    var rankCount = {};
+    for (var pos = 0; pos < n * 2; pos++) {
+      var rank = board[pos];
+      if (rank > 0) {
+        if (!rankCount[rank]) rankCount[rank] = 0;
+        var gIdx = 2 * (rank - 1) + rankCount[rank];
+        rankCount[rank]++;
+        guardX[gIdx] = boxX[pos];
+        guardY[gIdx] = boxY[pos];
+        guardPos[gIdx] = pos;
+        boxOccupied[pos] = true;
+        boxFillColor[pos] = '#87CEEB'; // sky blue = confirmed placement
+        score++;
+      }
+    }
+
+    // Overlay highlight for the current step's affected positions
+    if (step && step.p1 >= 0 && step.p2 >= 0) {
+      var hlColor = step.type === 'TRY' ? '#90EE90' : '#FFB6C1';
+      // For TRY: the positions are occupied (board has rank there), override to green
+      // For BACK: the positions are empty again, override to pink
+      boxFillColor[step.p1] = hlColor;
+      boxFillColor[step.p2] = hlColor;
+    }
+
+    if (step && step.type === 'SOLVED') {
+      // Paint all placed boxes gold to celebrate
+      for (var j = 0; j < n * 2; j++) {
+        if (boxOccupied[j]) boxFillColor[j] = '#FFD700';
+      }
+      score = n * 2;
+    }
+
+    _model.update();
+  }
+
+  // Advance the solver by one step and redraw
+  function _doStep() {
+    if (_solverIdx >= _solverSteps.length) {
+      _solverRunning = false;
+      _updateSolverUI(null);
+      return;
+    }
+    var step = _solverSteps[_solverIdx++];
+    _applyBoard(step.board, step);
+    solverMessage = _stepLabel(step);
+    _updateSolverUI(step);
+
+    if (step.type === 'SOLVED' || step.type === 'NONE') {
+      _solverRunning = false;
+      if (step.type === 'SOLVED') {
+        setTimeout(function() {
+          _tools.showOkDialog("Congratulations! The computer found a solution in " +
+            step.tries + " attempts and " + step.backtracks + " backtracks.\n\n" +
+            "Board: [" + step.board.join(", ") + "]");
+        }, 100);
+      }
+    }
+  }
+
+  // Auto-run loop
+  function _runLoop() {
+    if (!_solverRunning || _solverPaused) return;
+    _doStep();
+    if (_solverRunning) {
+      var delay = (window._solver && window._solver._delay) ? window._solver._delay : 400;
+      _solverTimer = setTimeout(_runLoop, delay);
+    }
+  }
+
+  // Start the auto-solver from scratch
+  function _startSolve() {
+    if (_solverTimer) clearTimeout(_solverTimer);
+    _reset();
+    _solverSteps = _buildSteps(n);
+    _solverIdx = 0;
+    _solverRunning = true;
+    _solverPaused = false;
+    _updateSolverUI(null);
+    var delay = (window._solver && window._solver._delay) ? window._solver._delay : 400;
+    _solverTimer = setTimeout(_runLoop, delay);
+  }
+
+  // Toggle pause/resume
+  function _togglePause() {
+    if (_solverSteps.length === 0) { _startSolve(); return; }
+    _solverPaused = !_solverPaused;
+    if (!_solverPaused) {
+      _solverRunning = true;
+      _runLoop();
+    }
+    _updateSolverUI(null);
+  }
+
+  // Manual single step
+  function _stepOnce() {
+    if (_solverTimer) { clearTimeout(_solverTimer); _solverTimer = null; }
+    _solverRunning = false;
+    if (_solverSteps.length === 0) {
+      _reset();
+      _solverSteps = _buildSteps(n);
+      _solverIdx = 0;
+    }
+    _solverPaused = true;
+    _doStep();
+  }
+
+  // Reset solver and board
+  function _resetSolverMode() {
+    if (_solverTimer) { clearTimeout(_solverTimer); _solverTimer = null; }
+    _solverTimer = null;
+    _solverRunning = false;
+    _solverPaused = false;
+    _solverIdx = 0;
+    _solverSteps = [];
+    _reset();
+  }
+
+  // Human-readable label for a step
+  function _stepLabel(step) {
+    if (!step) return "";
+    if (step.type === 'TRY')
+      return "Trying rank " + step.rank + " at boxes " + (step.p1+1) + " & " + (step.p2+1);
+    if (step.type === 'BACK')
+      return "Backtracking rank " + step.rank + " from boxes " + (step.p1+1) + " & " + (step.p2+1);
+    if (step.type === 'SOLVED')
+      return "SOLVED in " + step.tries + " tries / " + step.backtracks + " backtracks";
+    if (step.type === 'NONE')
+      return "No solution for n=" + n + " (" + step.tries + " tries / " + step.backtracks + " backtracks)";
+    return "";
+  }
+
+  // Update the HTML solver panel below the simulation
+  function _updateSolverUI(step) {
+    try {
+      var statusEl  = document.getElementById('solverStatus');
+      var stepEl    = document.getElementById('stepCounter');
+      var tryEl     = document.getElementById('tryCount');
+      var backEl    = document.getElementById('backtrackCount');
+      var logEl     = document.getElementById('solverLog');
+      var boardEl   = document.getElementById('boardDisplay');
+      var btnSolve  = document.getElementById('btnAutoSolve');
+      var btnPause  = document.getElementById('btnPause');
+      var btnStep   = document.getElementById('btnStep');
+
+      if (!statusEl) return;
+
+      var total = _solverSteps.length;
+      if (stepEl) stepEl.textContent = _solverIdx + ' / ' + total;
+
+      if (!step) {
+        if (_solverIdx === 0) {
+          statusEl.textContent = 'Press \u{1F916} Auto-Solve to watch the computer solve step by step, or ⏭ One Step to step manually.';
+          statusEl.style.borderLeftColor = '#3498db';
+          statusEl.style.background = '#eaf2ff';
+          statusEl.style.color = '#2c3e50';
+          if (boardEl) boardEl.textContent = '';
+        }
+        if (btnSolve) btnSolve.disabled = _solverRunning;
+        if (btnPause) {
+          btnPause.disabled = _solverIdx === 0;
+          btnPause.textContent = (_solverRunning && !_solverPaused) ? '⏸ Pause' : '▶ Resume';
+        }
+        if (btnStep) btnStep.disabled = false;
+        return;
+      }
+
+      if (tryEl)  tryEl.textContent  = step.tries  || 0;
+      if (backEl) backEl.textContent = step.backtracks || 0;
+
+      var board = step.board || [];
+      var boardStr = board.map(function(v, i) {
+        return '<span style="display:inline-block;min-width:1.8em;text-align:center;' +
+          (v > 0 ? 'background:#87CEEB;border-radius:3px;font-weight:bold;' : '') + '">' +
+          (v === 0 ? '_' : v) + '</span>';
+      }).join(' ');
+      if (boardEl) boardEl.innerHTML = 'Board: [' + boardStr + ']';
+
+      var msg = '', color = '#3498db', bg = '#eaf2ff', textColor = '#2c3e50';
+      if (step.type === 'TRY') {
+        msg = '\u{1F50D} Trying rank ' + step.rank + ' at positions ' + (step.p1+1) + ' and ' + (step.p2+1) +
+              ' — rank ' + step.rank + ' guards must be exactly ' + step.rank + ' box' + (step.rank===1?'':'es') + ' apart';
+        color = '#27ae60'; bg = '#eafaf1'; textColor = '#1a5733';
+      } else if (step.type === 'BACK') {
+        msg = '↩ Backtracking rank ' + step.rank + ' — no valid completion exists from this state, trying next option';
+        color = '#e74c3c'; bg = '#fdedec'; textColor = '#7b241c';
+      } else if (step.type === 'SOLVED') {
+        msg = '\u{1F389} Solution found! Tried ' + step.tries + ' placements, backtracked ' + step.backtracks + ' times';
+        color = '#f39c12'; bg = '#fef9e7'; textColor = '#7d6608';
+      } else if (step.type === 'NONE') {
+        msg = '❌ No solution exists for n=' + n + ' after ' + step.tries + ' tries and ' + step.backtracks + ' backtracks';
+        color = '#e74c3c'; bg = '#fdedec'; textColor = '#7b241c';
+      }
+
+      statusEl.innerHTML = msg;
+      statusEl.style.borderLeftColor = color;
+      statusEl.style.background = bg;
+      statusEl.style.color = textColor;
+
+      // Append to step log
+      if (logEl && step.type !== 'SOLVED') {
+        var lineColor = step.type === 'TRY'  ? '#90EE90' :
+                        step.type === 'BACK' ? '#FFB6C1' :
+                        step.type === 'NONE' ? '#FF6B6B' : '#FFD700';
+        var boardShort = (step.board||[]).map(function(v){return v===0?'_':v;}).join(',');
+        var line = document.createElement('div');
+        line.style.cssText = 'color:' + lineColor + ';padding:1px 2px;';
+        line.textContent = '[' + _solverIdx + '] ' + _stepLabel(step) + '  [' + boardShort + ']';
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      if (btnSolve) btnSolve.disabled = _solverRunning;
+      if (btnPause) {
+        var canPause = _solverRunning || (_solverIdx > 0 && _solverIdx < total && step.type !== 'SOLVED' && step.type !== 'NONE');
+        btnPause.disabled = !canPause;
+        btnPause.textContent = (_solverRunning && !_solverPaused) ? '⏸ Pause' : '▶ Resume';
+      }
+      if (btnStep) btnStep.disabled = (_solverIdx >= total);
+
+    } catch(e) {
+      console.log('SolverUI error:', e);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // END SOLVER ENGINE
+  // ═══════════════════════════════════════════════════════════════
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  };
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : null, height : null };
+    return _viewsInfo;
+  }
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new guards_riddle_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break;
+        default :
+        case 0:
+          _view.topPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } );
+          _view.label.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } );
+          _view.comboBox.setAction("OnChange", function(_data,_info) {
+  var selected = _view.comboBox.getProperty("SelectedOptions")[0];
+  n = parseInt(selected);
+  _reset();
+}); // OnChange for comboBox
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } );
+          _view.reset.setAction("OnClick", function(_data,_info) {
+  _reset();
+}); // OnClick for reset
+          _view.reset.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } );
+          _view.plottingPanel.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+}); // OnDoubleClick for plottingPanel
+          _view.plottingPanel.linkProperty("MaximumY",  function() { return guardHeight * 3 / 2; } );
+          _view.plottingPanel.linkProperty("MaximumX",  function() { return guardWidth * n * 2; } );
+          _view.plottingPanel.linkProperty("YFixedTick",  function() { return guardY[0]+guardHeight/2; } );
+          _view.plottingPanel.linkProperty("MinimumX",  function() { return -guardWidth; } );
+          _view.plottingPanel.linkProperty("MinimumY",  function() { return -guardHeight * 3 / 2; } );
+          _view.plottingPanel.linkProperty("YTickStep",  function() { return guardY[0]+guardHeight/2; } );
+          _view.plottingPanel.linkProperty("TLMessage",  function() { return solverMessage; } );
+          _view.boxSet.linkProperty("NumberOfElements",  function() { return n * 2; } );
+          _view.boxSet.linkProperty("FillColor",  function() { return boxFillColor; }, function(_v) { boxFillColor = _v; } );
+          _view.boxSet.linkProperty("SizeX",  function() { return guardWidth; }, function(_v) { guardWidth = _v; } );
+          _view.boxSet.linkProperty("X",  function() { return boxX; }, function(_v) { boxX = _v; } );
+          _view.boxSet.linkProperty("Y",  function() { return boxY; }, function(_v) { boxY = _v; } );
+          _view.boxSet.linkProperty("SizeY",  function() { return guardHeight; }, function(_v) { guardHeight = _v; } );
+          _view.guardSet.linkProperty("NumberOfElements",  function() { return n * 2; } );
+          _view.guardSet.setAction("OnRelease", function(_data,_info) {
+  // Manual drag-and-drop handler
+  var x = guardX[interact], y = guardY[interact];
+  var choosenBox = -1, minDist = thresholdDist * 2;
+  for(var i = 0; i < n * 2; i++){  // fixed: was n*n (bug)
+    if(boxOccupied[i]) continue;
+    var curX = boxX[i], curY = boxY[i];
+    var dist = (curX - x) ** 2 + (curY - y) ** 2;
+    if(dist <= minDist){ choosenBox = i; minDist = dist; }
+  }
+  if(guardPos[interact] != -1){
+    boxOccupied[guardPos[interact]] = false;
+    boxFillColor[guardPos[interact]] = '#FFD700';
+    score--;
+  }
+  var pairCard = interact % 2 == 0 ? interact + 1 : interact - 1;
+  if(choosenBox != -1 && (guardPos[pairCard] == -1 || Math.abs(guardPos[pairCard] - boxPos[choosenBox]) == guardVal[interact])){
+    guardX[interact] = boxX[choosenBox];
+    guardY[interact] = boxY[choosenBox];
+    boxOccupied[choosenBox] = true;
+    boxFillColor[choosenBox] = '#87CEEB'; // sky blue = placed
+    guardPos[interact] = boxPos[choosenBox];
+    score++;
+    if(score == n * 2){
+      _tools.showOkDialog("Congratulations! You arranged all the guards correctly!");
+    }
+  } else {
+    guardX[interact] = initGuardX[interact];
+    guardY[interact] = guardHeight;
+    guardPos[interact] = -1;
+  }
+}); // OnRelease for guardSet
+          _view.guardSet.linkProperty("SizeX",  function() { return guardWidth; }, function(_v) { guardWidth = _v; } );
+          _view.guardSet.linkProperty("X",  function() { return guardX; }, function(_v) { guardX = _v; } );
+          _view.guardSet.linkProperty("Y",  function() { return guardY; }, function(_v) { guardY = _v; } );
+          _view.guardSet.linkProperty("SizeY",  function() { return guardHeight; }, function(_v) { guardHeight = _v; } );
+          _view.guardSet.linkProperty("ElementInteracted",  function() { return interact; }, function(_v) { interact = _v; } );
+          _view.textSet.linkProperty("NumberOfElements",  function() { return n * 2; } );
+          _view.textSet.linkProperty("X",  function() { return guardX; }, function(_v) { guardX = _v; } );
+          _view.textSet.linkProperty("Y",  function() { return guardY; }, function(_v) { guardY = _v; } );
+          _view.textSet.linkProperty("Text",  function() { return textStr; }, function(_v) { textStr = _v; } );
+          _view.textSet.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } );
+          _view.imageSet.linkProperty("NumberOfElements",  function() { return n * 2; } );
+          _view.imageSet.linkProperty("SizeX",  function() { return guardWidth; }, function(_v) { guardWidth = _v; } );
+          _view.imageSet.linkProperty("X",  function() { return guardX; }, function(_v) { guardX = _v; } );
+          _view.imageSet.linkProperty("Y",  function() { return guardY; }, function(_v) { guardY = _v; } );
+          _view.imageSet.linkProperty("ImageUrl",  function() { return imageurl; }, function(_v) { imageurl = _v; } );
+          _view.imageSet.linkProperty("SizeY",  function() { return guardHeight; }, function(_v) { guardHeight = _v; } );
+          break;
+      }
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+
+    // Expose solver control API to HTML buttons
+    window._solver = {
+      _delay: 400,
+      start:       function() { _startSolve(); },
+      togglePause: function() { _togglePause(); },
+      step:        function() { _stepOnce(); },
+      reset:       function() { _resetSolverMode(); },
+      setSpeed:    function(val) {
+        var delays = [2000, 1200, 700, 400, 200, 120, 70, 30, 10];
+        var labels = ['Slowest','Very Slow','Slow','Medium','Normal','Fast','Very Fast','Super Fast','Instant'];
+        var idx = Math.max(0, Math.min(8, parseInt(val) - 1));
+        window._solver._delay = delays[idx];
+        var lbl = document.getElementById('speedLabel');
+        if (lbl) lbl.textContent = labels[idx];
+      }
+    };
+
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews()));
+  return _model;
+}
+
+function guards_riddle_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break;
+    default :
+    case 0: _view = guards_riddle_View_0 (_topFrame); break;
+  }
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+  _view._addDescriptionPage('Intro Page','./guards_riddle_Intro_1.html');
+
+  return _view;
+}
+
+function guards_riddle_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"topPanel", _view._topFrame)
+      .setProperty("Width","100%")
+      .setProperty("Display","inline-flex")
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label", _view.topPanel)
+      .setProperty("Width","30%")
+      .setProperty("Text","Rank: 1 to")
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.topPanel)
+      .setProperty("Width","30%")
+      .setProperty("Options",[3, 4, 5, 6, 7, 8])
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"reset", _view.topPanel)
+      .setProperty("Width","30%")
+      .setProperty("Text","↻Reset")
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"mainPanel", _view._topFrame)
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.mainPanel)
+      .setProperty("Height","80vh")
+      .setProperty("Width","100%")
+      .setProperty("Gutters",[0, 0, 0, 0])
+      .setProperty("YScalePrecision",2)
+      .setProperty("XFixedTick",0.5)
+      .setProperty("Enabled",true)
+      .setProperty("SquareAspect",true)
+      .setProperty("YAutoTicks",false)
+      .setProperty("XTickStep",1)
+      .setProperty("XAutoTicks",false)
+      .setProperty("XScalePrecision",1)
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shapeSet,"boxSet", _view.plottingPanel)
+      .setProperty("FillColor","#FFD700")
+      .setProperty("ShapeType","RECTANGLE")
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shapeSet,"guardSet", _view.plottingPanel)
+      .setProperty("FillColor","rgba(200,220,208,1)")
+      .setProperty("Sensitivity",0)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("EnabledPosition","ENABLED_ANY")
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.textSet,"textSet", _view.plottingPanel)
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"offset", _view.plottingPanel)
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.imageSet,"imageSet", _view.offset)
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"html", _view._topFrame)
+      .setProperty("Html","<p><b>Instructions:</b> Choose the number of guard ranks and drag each guard into the yellow boxes below. </p><p><b>Rule:</b> Two guards of rank <em>k</em> must be placed exactly <em>k</em> boxes apart. For example, two Rank 3 guards must have exactly 3 boxes between their positions (|pos₂ − pos₁| = 3).</p>")
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+
+  <!-- ═══════════════ SOLVER PANEL ═══════════════ -->
+  <div id="solverSection" style="font-family:Arial,sans-serif;padding:12px 16px;max-width:900px;margin:0 auto;box-sizing:border-box;">
+
+    <h3 style="color:#2c3e50;margin:0 0 8px;font-size:1.1em;">🤖 Computer Solver — Watch the Thinking Process</h3>
+
+    <div style="background:#f0f4f8;border-left:4px solid #3498db;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:0.85em;line-height:1.5;">
+      <strong>About this puzzle:</strong> This is a variant of the
+      <a href="https://en.wikipedia.org/wiki/Langford_pairing" target="_blank" style="color:#2980b9;">Langford pairing problem</a>.
+      The computer uses <strong>backtracking search</strong> — it tries every possible placement in order.
+      If it reaches a state where no valid completion exists, it <em>undoes</em> the last placement and tries the next option.
+      <br><strong>Color code:</strong>
+      <span style="background:#90EE90;padding:1px 5px;border-radius:3px;">green = trying</span> &nbsp;
+      <span style="background:#FFB6C1;padding:1px 5px;border-radius:3px;">pink = backtrack</span> &nbsp;
+      <span style="background:#87CEEB;padding:1px 5px;border-radius:3px;">blue = placed</span>
+    </div>
+
+    <!-- Controls row -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+      <button id="btnAutoSolve" onclick="window._solver && window._solver.start()"
+        style="background:#27ae60;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:0.9em;font-weight:bold;">
+        🤖 Auto-Solve
+      </button>
+      <button id="btnPause" onclick="window._solver && window._solver.togglePause()"
+        style="background:#e67e22;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:0.9em;" disabled="true">
+        ⏸ Pause
+      </button>
+      <button id="btnStep" onclick="window._solver && window._solver.step()"
+        style="background:#3498db;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:0.9em;">
+        ⏭ One Step
+      </button>
+      <button onclick="window._solver && window._solver.reset()"
+        style="background:#7f8c8d;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:0.9em;">
+        ↺ Reset
+      </button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.85em;">
+        Speed:
+        <input type="range" id="speedSlider" min="1" max="9" value="5" step="1"
+          oninput="window._solver && window._solver.setSpeed(this.value)"
+          style="width:90px;vertical-align:middle;" />
+        <span id="speedLabel" style="min-width:70px;">Normal</span>
+      </label>
+    </div>
+
+    <!-- Step stats -->
+    <div style="display:flex;gap:16px;font-size:0.82em;color:#555;margin-bottom:8px;">
+      <span>Step: <strong id="stepCounter">0 / 0</strong></span>
+      <span>Tries: <strong id="tryCount" style="color:#27ae60;">0</strong></span>
+      <span>Backtracks: <strong id="backtrackCount" style="color:#e74c3c;">0</strong></span>
+    </div>
+
+    <!-- Status message -->
+    <div id="solverStatus"
+      style="background:#eaf2ff;border-left:4px solid #3498db;padding:8px 12px;border-radius:4px;margin-bottom:8px;min-height:28px;font-size:0.88em;line-height:1.4;color:#2c3e50;">
+      Press 🤖 Auto-Solve to watch the computer solve step by step, or ⏭ One Step to step manually.
+    </div>
+
+    <!-- Board display -->
+    <div id="boardDisplay"
+      style="font-family:monospace;font-size:0.88em;padding:4px 8px;background:#f8f9fa;border-radius:4px;margin-bottom:8px;min-height:22px;">
+    </div>
+
+    <!-- Step log (collapsible) -->
+    <details>
+      <summary style="cursor:pointer;font-weight:bold;font-size:0.88em;color:#2c3e50;padding:4px 0;">
+        📋 Step Log (click to expand/collapse)
+      </summary>
+      <div style="display:flex;justify-content:flex-end;margin:4px 0;">
+        <button onclick="var l=document.getElementById('solverLog');if(l)l.innerHTML='';"
+          style="background:none;border:1px solid #ccc;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:0.8em;color:#666;">
+          Clear log
+        </button>
+      </div>
+      <div id="solverLog"
+        style="background:#1e1e1e;color:#d4d4d4;font-family:'Courier New',monospace;font-size:0.78em;padding:8px;border-radius:4px;max-height:200px;overflow-y:auto;">
+      </div>
+    </details>
+
+    <!-- Pedagogical note -->
+    <div style="background:#fff9e6;border:1px solid #f0c040;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:0.84em;line-height:1.5;">
+      <strong>🧠 When does a solution exist?</strong>
+      For this puzzle (|pos₂ − pos₁| = k), solutions exist only for certain values of n:
+      <ul style="margin:6px 0 0 16px;padding:0;">
+        <li><span style="color:#e74c3c;">n = 3</span>: ❌ No solution</li>
+        <li><span style="color:#27ae60;">n = 4</span>: ✅ e.g. 4 1 1 3 4 2 3 2</li>
+        <li><span style="color:#27ae60;">n = 5</span>: ✅ e.g. 2 3 2 5 3 4 1 1 5 4</li>
+        <li><span style="color:#e74c3c;">n = 6</span>: ❌ No solution</li>
+        <li><span style="color:#e74c3c;">n = 7</span>: ❌ No solution</li>
+        <li><span style="color:#27ae60;">n = 8</span>: ✅ e.g. 1 1 2 8 2 3 7 5 3 6 4 5 8 4 7 6</li>
+      </ul>
+      Can you spot the pattern? (Hint: look at n mod 4)
+      <details style="margin-top:6px;">
+        <summary style="cursor:pointer;color:#2980b9;">Reveal the pattern</summary>
+        <p style="margin:4px 0 0;">Solutions exist when <strong>n ≡ 0 or 3 (mod 4)</strong>
+        — i.e. when n divided by 4 leaves remainder 0 or 3.
+        n=3 (3 mod 4=3 ✅ but this variant differs slightly), n=4 (0), n=5 (1 ✅ for this variant), n=8 (0).
+        Notice that backtracking lets the computer prove no solution exists by exhaustively trying every possibility.</p>
+      </details>
+    </div>
+
+  </div>
+  <!-- ═══════════════ END SOLVER PANEL ═══════════════ -->
+
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Guard's Riddle, game to position numbers apart by the number they are in<br />
+     <img alt="Logo" src="guards_riddle/Screenshot 2021-06-05 at 12.30.53 PM.png" />
+      </p>
+      <p>
+ Shaun Quek; Loo Kang Wee; Francisco Esquembre; Félix Jesús García Clemente.; based on idea by Theresa Heng
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2021, Shaun Quek; Loo Kang Wee; Francisco Esquembre; Félix Jesús García Clemente.; based on idea by Theresa Heng. Compiled with EJS 6.1 BETA (201115)
+</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () {
+          _model =  new guards_riddle("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

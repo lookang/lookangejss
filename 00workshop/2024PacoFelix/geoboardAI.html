@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geoboard</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+<canvas id="geoboard" width="600" height="600"></canvas>
+<script>
+    const canvas = document.getElementById('geoboard');
+    const ctx = canvas.getContext('2d');
+
+    const gridSize = 10;
+    const spacing = 50;
+    const points = [];
+
+    function drawGrid() {
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const x = i * spacing;
+                const y = j * spacing;
+                points.push({x, y});
+                drawPoint(x, y);
+            }
+        }
+    }
+
+    function drawPoint(x, y) {
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'blue';
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function drawLine(x1, y1, x2, y2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = 'black';
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    canvas.addEventListener('click', handleCanvasClick);
+
+    let startPoint = null;
+
+    function handleCanvasClick(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        const clickedPoint = points.find(point => 
+            Math.hypot(point.x - x, point.y - y) < 10
+        );
+
+        if (clickedPoint) {
+            if (!startPoint) {
+                startPoint = clickedPoint;
+            } else {
+                drawLine(startPoint.x, startPoint.y, clickedPoint.x, clickedPoint.y);
+                startPoint = null;
+            }
+        }
+    }
+
+    drawGrid();
+</script>
+</body>
+</html>

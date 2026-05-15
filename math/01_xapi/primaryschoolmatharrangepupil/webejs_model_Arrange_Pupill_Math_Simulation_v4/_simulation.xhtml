@@ -1,0 +1,875 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Arrange_Pupill_Math_Simulation</title>
+<style type="text/css">
+.metadata { display: none; }
+</style>
+    <link rel="stylesheet"  type="text/css" href="./_ejs_library/css/ejss.css" />
+
+    <script type='text/javascript'><!--//--><![CDATA[//><!--
+      var gOldOnError = window.onerror;
+      window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+        console.log(errorMsg + " (at " + url.toString() + " => line:" + lineNumber + ")" );
+        if (gOldOnError) return gOldOnError(errorMsg, url, lineNumber);
+        return false;
+      }
+    //--><!]]></script>
+    <script src="./_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="./_ejs_library/ejsS.v1.min.js"></script>
+    <script src='./lib/xapiwrapper.min.js'></script>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+function _simulation (_topFrame, _libraryPath, _codebasePath, _inputParameters) {
+
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isEPub = false;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+  var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+  // Is this still needed if we don't have locales???
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var scenarios; // Model.Variables.Var Table 1.scenarios
+  var pupils; // Model.Variables.Var Table 1.pupils
+  var selectedScenario; // Model.Variables.Var Table 1.selectedScenario
+  var roomX; // Model.Variables.Var Table 1.roomX
+  var roomY; // Model.Variables.Var Table 1.roomY
+  var pupilX; // Model.Variables.Var Table 1.pupilX
+  var pupilY; // Model.Variables.Var Table 1.pupilY
+  var roomImage; // Model.Variables.Var Table 1.roomImage
+  var pupilImage; // Model.Variables.Var Table 1.pupilImage
+  var roomText; // Model.Variables.Var Table 1.roomText
+  var textX; // Model.Variables.Var Table 1.textX
+  var textY; // Model.Variables.Var Table 1.textY
+  var selectedPupil; // Model.Variables.Var Table 1.selectedPupil
+  var pastAttemptsByScenario; // Model.Variables.Var Table 1.pastAttemptsByScenario
+  var totalScore; // Model.Variables.Var Table 1.totalScore
+
+  var scenarioStartTime; // Model.Variables.Var Table 2.scenarioStartTime
+  var score; // Model.Variables.Var Table 2.score
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return { scenarios : scenarios, pupils : pupils, selectedScenario : selectedScenario, roomX : roomX, roomY : roomY, pupilX : pupilX, pupilY : pupilY, roomImage : roomImage, pupilImage : pupilImage, roomText : roomText, textX : textX, textY : textY, selectedPupil : selectedPupil, pastAttemptsByScenario : pastAttemptsByScenario, totalScore : totalScore, scenarioStartTime : scenarioStartTime, score : score };
+  }
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return { scenarios : scenarios, pupils : pupils, selectedScenario : selectedScenario, roomX : roomX, roomY : roomY, pupilX : pupilX, pupilY : pupilY, roomImage : roomImage, pupilImage : pupilImage, roomText : roomText, textX : textX, textY : textY, selectedPupil : selectedPupil, pastAttemptsByScenario : pastAttemptsByScenario, totalScore : totalScore, scenarioStartTime : scenarioStartTime, score : score };
+  }
+
+  _model._readParameters = function(json) {
+    if(typeof json.scenarios != 'undefined') scenarios = json.scenarios;
+    if(typeof json.pupils != 'undefined') pupils = json.pupils;
+    if(typeof json.selectedScenario != 'undefined') selectedScenario = json.selectedScenario;
+    if(typeof json.roomX != 'undefined') roomX = json.roomX;
+    if(typeof json.roomY != 'undefined') roomY = json.roomY;
+    if(typeof json.pupilX != 'undefined') pupilX = json.pupilX;
+    if(typeof json.pupilY != 'undefined') pupilY = json.pupilY;
+    if(typeof json.roomImage != 'undefined') roomImage = json.roomImage;
+    if(typeof json.pupilImage != 'undefined') pupilImage = json.pupilImage;
+    if(typeof json.roomText != 'undefined') roomText = json.roomText;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.selectedPupil != 'undefined') selectedPupil = json.selectedPupil;
+    if(typeof json.pastAttemptsByScenario != 'undefined') pastAttemptsByScenario = json.pastAttemptsByScenario;
+    if(typeof json.totalScore != 'undefined') totalScore = json.totalScore;
+    if(typeof json.scenarioStartTime != 'undefined') scenarioStartTime = json.scenarioStartTime;
+    if(typeof json.score != 'undefined') score = json.score;
+  }
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.scenarios != 'undefined') scenarios = json.scenarios;
+    if(typeof json.pupils != 'undefined') pupils = json.pupils;
+    if(typeof json.selectedScenario != 'undefined') selectedScenario = json.selectedScenario;
+    if(typeof json.roomX != 'undefined') roomX = json.roomX;
+    if(typeof json.roomY != 'undefined') roomY = json.roomY;
+    if(typeof json.pupilX != 'undefined') pupilX = json.pupilX;
+    if(typeof json.pupilY != 'undefined') pupilY = json.pupilY;
+    if(typeof json.roomImage != 'undefined') roomImage = json.roomImage;
+    if(typeof json.pupilImage != 'undefined') pupilImage = json.pupilImage;
+    if(typeof json.roomText != 'undefined') roomText = json.roomText;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.selectedPupil != 'undefined') selectedPupil = json.selectedPupil;
+    if(typeof json.pastAttemptsByScenario != 'undefined') pastAttemptsByScenario = json.pastAttemptsByScenario;
+    if(typeof json.totalScore != 'undefined') totalScore = json.totalScore;
+    if(typeof json.scenarioStartTime != 'undefined') scenarioStartTime = json.scenarioStartTime;
+    if(typeof json.score != 'undefined') score = json.score;
+  }
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  _model.getOdes = function() { return []; }
+
+  _model.removeEvents = function(){
+  }
+
+  _model.addToReset(function() {
+    __pagesEnabled['scenarios'] = true;
+    __pagesEnabled['pupils'] = true;
+    __pagesEnabled['init'] = true;
+  });
+
+  _model.addToReset(function() { // Reset of Var Table 1
+    scenarios = {}; // Model.Variables.Var Table 1.scenarios
+    pupils = []; // Model.Variables.Var Table 1.pupils
+    selectedScenario = "Demonstration"; // Model.Variables.Var Table 1.selectedScenario
+    roomX = []; // Model.Variables.Var Table 1.roomX
+    roomY = []; // Model.Variables.Var Table 1.roomY
+    pupilX = []; // Model.Variables.Var Table 1.pupilX
+    pupilY = []; // Model.Variables.Var Table 1.pupilY
+    roomImage = []; // Model.Variables.Var Table 1.roomImage
+    pupilImage = []; // Model.Variables.Var Table 1.pupilImage
+    roomText = []; // Model.Variables.Var Table 1.roomText
+    textX = []; // Model.Variables.Var Table 1.textX
+    textY = []; // Model.Variables.Var Table 1.textY
+    selectedPupil = -1; // Model.Variables.Var Table 1.selectedPupil
+    pastAttemptsByScenario = {}; // Model.Variables.Var Table 1.pastAttemptsByScenario
+    totalScore = 0; // Model.Variables.Var Table 1.totalScore
+  }); // End of reset of Var Table 1
+
+  _model.addToReset(function() { // Reset of Var Table 2
+    scenarioStartTime = ""; // Model.Variables.Var Table 2.scenarioStartTime
+    score = 0; // Model.Variables.Var Table 2.score
+  }); // End of reset of Var Table 2
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function initRooms() { // > Custom code page: initFunctions - line 1
+      scenarios[selectedScenario].rooms.forEach(room => room.count = 0); // > Custom code page: initFunctions - line 2
+      scenarios[selectedScenario].rooms.forEach(room => room["Chinese-Female.png"] = 0); // > Custom code page: initFunctions - line 3
+      scenarios[selectedScenario].rooms.forEach(room => room["Chinese-Male.png"] = 0); // > Custom code page: initFunctions - line 4
+      scenarios[selectedScenario].rooms.forEach(room => room["Eurasian-Female.png"] = 0); // > Custom code page: initFunctions - line 5
+      scenarios[selectedScenario].rooms.forEach(room => room["Eurasian-Male.png"] = 0); // > Custom code page: initFunctions - line 6
+      scenarios[selectedScenario].rooms.forEach(room => room["Malay-Female.png"] = 0); // > Custom code page: initFunctions - line 7
+      scenarios[selectedScenario].rooms.forEach(room => room["Malay-Male.png"] = 0); // > Custom code page: initFunctions - line 8
+      scenarios[selectedScenario].rooms.forEach(room => room["Indian-Female.png"] = 0); // > Custom code page: initFunctions - line 9
+      scenarios[selectedScenario].rooms.forEach(room => room["Indian-Male.png"] = 0); // > Custom code page: initFunctions - line 10
+      roomX = []; // > Custom code page: initFunctions - line 11
+      roomY = []; // > Custom code page: initFunctions - line 12
+      roomImage = []; // > Custom code page: initFunctions - line 13
+      textX = []; // > Custom code page: initFunctions - line 14
+      textY = []; // > Custom code page: initFunctions - line 15
+      roomText = []; // > Custom code page: initFunctions - line 16
+   // > Custom code page: initFunctions - line 17
+      let numOfRooms = scenarios[selectedScenario].rooms.length; // > Custom code page: initFunctions - line 18
+      let currentY = 0.85;   // > Custom code page: initFunctions - line 19
+      let roomIndex = 0; // > Custom code page: initFunctions - line 20
+   // > Custom code page: initFunctions - line 21
+      while (roomIndex < numOfRooms) { // > Custom code page: initFunctions - line 22
+          let roomsInRow = Math.min(3, numOfRooms - roomIndex); // > Custom code page: initFunctions - line 23
+          let xCoords; // > Custom code page: initFunctions - line 24
+   // > Custom code page: initFunctions - line 25
+          if (roomsInRow === 1) { // > Custom code page: initFunctions - line 26
+              xCoords = [0.5];   // > Custom code page: initFunctions - line 27
+          } else if (roomsInRow === 2) { // > Custom code page: initFunctions - line 28
+              xCoords = [0.3, 0.7];  // > Custom code page: initFunctions - line 29
+          } else { // > Custom code page: initFunctions - line 30
+              xCoords = [0.15, 0.5, 0.85];  // > Custom code page: initFunctions - line 31
+          } // > Custom code page: initFunctions - line 32
+   // > Custom code page: initFunctions - line 33
+          for (let i = 0; i < roomsInRow; i++) { // > Custom code page: initFunctions - line 34
+              roomX.push(xCoords[i]); // > Custom code page: initFunctions - line 35
+              roomY.push(currentY); // > Custom code page: initFunctions - line 36
+              scenarios[selectedScenario].rooms[roomIndex].x = xCoords[i]; // > Custom code page: initFunctions - line 37
+              scenarios[selectedScenario].rooms[roomIndex].y = currentY; // > Custom code page: initFunctions - line 38
+              roomImage.push("./rooms/" + scenarios[selectedScenario].rooms[roomIndex].image);   // > Custom code page: initFunctions - line 39
+              textX.push(xCoords[i]); // > Custom code page: initFunctions - line 40
+              textY.push(currentY - 0.15); // > Custom code page: initFunctions - line 41
+              roomText.push(scenarios[selectedScenario].rooms[roomIndex].room); // > Custom code page: initFunctions - line 42
+              roomIndex++; // > Custom code page: initFunctions - line 43
+          } // > Custom code page: initFunctions - line 44
+   // > Custom code page: initFunctions - line 45
+          currentY -= 0.3; // > Custom code page: initFunctions - line 46
+      } // > Custom code page: initFunctions - line 47
+  } // > Custom code page: initFunctions - line 48
+   // > Custom code page: initFunctions - line 49
+  function initPupils() { // > Custom code page: initFunctions - line 50
+      pupils.forEach(pupil => pupil.room = ''); // > Custom code page: initFunctions - line 51
+      pupilX = []; // > Custom code page: initFunctions - line 52
+      pupilY = []; // > Custom code page: initFunctions - line 53
+      pupilImage = []; // > Custom code page: initFunctions - line 54
+   // > Custom code page: initFunctions - line 55
+      let numOfPupils = scenarios[selectedScenario].pupils; // > Custom code page: initFunctions - line 56
+      let currentY = 0.25; // > Custom code page: initFunctions - line 57
+      let pupilIndex = 0; // > Custom code page: initFunctions - line 58
+   // > Custom code page: initFunctions - line 59
+   // > Custom code page: initFunctions - line 60
+     while (pupilIndex < numOfPupils) { // > Custom code page: initFunctions - line 61
+          let pupilsInRow = Math.min(9, numOfPupils - pupilIndex);   // > Custom code page: initFunctions - line 62
+          let xCoords = []; // > Custom code page: initFunctions - line 63
+       // > Custom code page: initFunctions - line 64
+          for (let i = 0; i < pupilsInRow; i++) { // > Custom code page: initFunctions - line 65
+              xCoords.push((i + 1) / 10);   // > Custom code page: initFunctions - line 66
+          } // > Custom code page: initFunctions - line 67
+       // > Custom code page: initFunctions - line 68
+          for (let i = 0; i < pupilsInRow; i++) { // > Custom code page: initFunctions - line 69
+              pupilX.push(xCoords[i]); // > Custom code page: initFunctions - line 70
+              pupilY.push(currentY); // > Custom code page: initFunctions - line 71
+              pupils[pupilIndex].x = xCoords[i]; // > Custom code page: initFunctions - line 72
+              pupils[pupilIndex].y = currentY; // > Custom code page: initFunctions - line 73
+              pupilImage.push("./pupils/" + pupils[pupilIndex].image);   // > Custom code page: initFunctions - line 74
+              pupilIndex++; // > Custom code page: initFunctions - line 75
+          } // > Custom code page: initFunctions - line 76
+       // > Custom code page: initFunctions - line 77
+          currentY -= 0.15;  // > Custom code page: initFunctions - line 78
+      } // > Custom code page: initFunctions - line 79
+  } // > Custom code page: initFunctions - line 80
+
+  function onRelease(x, y, index) { // > Custom code page: onRelease - line 1
+      let rooms = scenarios[selectedScenario].rooms; // > Custom code page: onRelease - line 2
+      let currentRoomName = pupils[index].room; // > Custom code page: onRelease - line 3
+   // > Custom code page: onRelease - line 4
+      // console.log(scenarios[selectedScenario].rooms); // > Custom code page: onRelease - line 5
+       // > Custom code page: onRelease - line 6
+      if (currentRoomName) { // > Custom code page: onRelease - line 7
+          for (let i = 0; i < rooms.length; i++) { // > Custom code page: onRelease - line 8
+              let room = rooms[i]; // > Custom code page: onRelease - line 9
+              let roomX = room.x; // > Custom code page: onRelease - line 10
+              let roomY = room.y; // > Custom code page: onRelease - line 11
+              let halfSize = 0.15; // > Custom code page: onRelease - line 12
+   // > Custom code page: onRelease - line 13
+              if (room.room === currentRoomName && x >= roomX - halfSize && x <= roomX + halfSize && y >= roomY - halfSize && y <= roomY + halfSize) { // > Custom code page: onRelease - line 14
+                  return; // > Custom code page: onRelease - line 15
+              } // > Custom code page: onRelease - line 16
+          } // > Custom code page: onRelease - line 17
+   // > Custom code page: onRelease - line 18
+          for (let i = 0; i < rooms.length; i++) { // > Custom code page: onRelease - line 19
+              if (rooms[i].room === currentRoomName && rooms[i].hasOwnProperty('count')) { // > Custom code page: onRelease - line 20
+                  rooms[i].count -= 1; // > Custom code page: onRelease - line 21
+                  rooms[i][pupils[index].image] -= 1; // > Custom code page: onRelease - line 22
+                  pupils[index].room = ''; // > Custom code page: onRelease - line 23
+                  break; // > Custom code page: onRelease - line 24
+              } // > Custom code page: onRelease - line 25
+          } // > Custom code page: onRelease - line 26
+      } // > Custom code page: onRelease - line 27
+   // > Custom code page: onRelease - line 28
+      for (let i = 0; i < rooms.length; i++) { // > Custom code page: onRelease - line 29
+          let room = rooms[i]; // > Custom code page: onRelease - line 30
+          let roomX = room.x; // > Custom code page: onRelease - line 31
+          let roomY = room.y; // > Custom code page: onRelease - line 32
+          let halfSize = 0.15; // > Custom code page: onRelease - line 33
+   // > Custom code page: onRelease - line 34
+          if (x >= roomX - halfSize && x <= roomX + halfSize && y >= roomY - halfSize && y <= roomY + halfSize) { // > Custom code page: onRelease - line 35
+              if (!room.hasOwnProperty('count')) { // > Custom code page: onRelease - line 36
+                  room.count = 0; // > Custom code page: onRelease - line 37
+                  room[pupils[index].image] = 0; // > Custom code page: onRelease - line 38
+              } // > Custom code page: onRelease - line 39
+   // > Custom code page: onRelease - line 40
+              pupils[index].room = room.room; // > Custom code page: onRelease - line 41
+              room.count += 1; // > Custom code page: onRelease - line 42
+              room[pupils[index].image] += 1; // > Custom code page: onRelease - line 43
+          } // > Custom code page: onRelease - line 44
+      } // > Custom code page: onRelease - line 45
+  } // > Custom code page: onRelease - line 46
+   // > Custom code page: onRelease - line 47
+
+  function check() { // > Custom code page: check - line 1
+      let currentAttempt = []; // > Custom code page: check - line 2
+      let checkCount = 0; // > Custom code page: check - line 3
+       // > Custom code page: check - line 4
+      // scenarios[selectedScenario].rooms.forEach(room => { // > Custom code page: check - line 5
+      //     checkCount += room.count; // > Custom code page: check - line 6
+      //     currentAttempt.push(`${room.room}: ${room.count} pupils`); // > Custom code page: check - line 7
+      // }); // > Custom code page: check - line 8
+       // > Custom code page: check - line 9
+      scenarios[selectedScenario].rooms.forEach(room => { // > Custom code page: check - line 10
+          checkCount += room.count; // > Custom code page: check - line 11
+       // > Custom code page: check - line 12
+          const pupilDescriptions = []; // > Custom code page: check - line 13
+       // > Custom code page: check - line 14
+          for (const [key, value] of Object.entries(room)) { // > Custom code page: check - line 15
+              if (key.endsWith(".png") && value > 0) { // > Custom code page: check - line 16
+                  const [ethnicity, genderWithExt] = key.split("-"); // > Custom code page: check - line 17
+                  const gender = genderWithExt.replace(".png", ""); // > Custom code page: check - line 18
+                  const shortCode = ethnicity[0] + gender[0]; // e.g. Chinese Female → CF // > Custom code page: check - line 19
+                  pupilDescriptions.push(`${value} ${shortCode}`); // > Custom code page: check - line 20
+              } // > Custom code page: check - line 21
+          } // > Custom code page: check - line 22
+       // > Custom code page: check - line 23
+          if (pupilDescriptions.length > 0) { // > Custom code page: check - line 24
+              currentAttempt.push(`${room.room}: ${pupilDescriptions.join(", ")}`); // > Custom code page: check - line 25
+          } // > Custom code page: check - line 26
+      }); // > Custom code page: check - line 27
+   // > Custom code page: check - line 28
+       // > Custom code page: check - line 29
+      if (!pastAttemptsByScenario[selectedScenario]) { // > Custom code page: check - line 30
+          pastAttemptsByScenario[selectedScenario] = { // > Custom code page: check - line 31
+              attemptsTakenToComplete: 0, // > Custom code page: check - line 32
+              completed: false, // > Custom code page: check - line 33
+              log: [], // > Custom code page: check - line 34
+              timeTakenToComplete: "Did not complete" // > Custom code page: check - line 35
+            }; // > Custom code page: check - line 36
+        } // > Custom code page: check - line 37
+         // > Custom code page: check - line 38
+      if (!pastAttemptsByScenario[selectedScenario].completed) { // > Custom code page: check - line 39
+          pastAttemptsByScenario[selectedScenario].attemptsTakenToComplete += 1; // > Custom code page: check - line 40
+      } // > Custom code page: check - line 41
+       // > Custom code page: check - line 42
+      pastAttemptsByScenario[selectedScenario].log.push({ // > Custom code page: check - line 43
+          attempt: currentAttempt, // > Custom code page: check - line 44
+          timeStamp: `${Math.floor((new Date() - scenarioStartTime) / 1000 / 60)}m ${Math.floor((new Date() - scenarioStartTime) / 1000 % 60)}s`, // > Custom code page: check - line 45
+          correct: false // > Custom code page: check - line 46
+      }) // > Custom code page: check - line 47
+        // > Custom code page: check - line 48
+      try { // > Custom code page: check - line 49
+          if (checkCount != scenarios[selectedScenario].pupils) { // > Custom code page: check - line 50
+              alert("There is an error. Read the question again!"); // > Custom code page: check - line 51
+              return; // > Custom code page: check - line 52
+          } // > Custom code page: check - line 53
+       // > Custom code page: check - line 54
+          for (let room of scenarios[selectedScenario].rooms) { // > Custom code page: check - line 55
+              if (room.count < room.min || room.count > room.max) { // > Custom code page: check - line 56
+                  alert("There is an error. Read the question again!"); // > Custom code page: check - line 57
+                  return; // > Custom code page: check - line 58
+              } // > Custom code page: check - line 59
+          } // > Custom code page: check - line 60
+       // > Custom code page: check - line 61
+          alert("Congrats! You did it, now try a different approach or a different task!"); // > Custom code page: check - line 62
+          if (!pastAttemptsByScenario[selectedScenario].completed) { // > Custom code page: check - line 63
+              pastAttemptsByScenario[selectedScenario].completed = true; // > Custom code page: check - line 64
+              pastAttemptsByScenario[selectedScenario].timeTakenToComplete = pastAttemptsByScenario[selectedScenario].log[pastAttemptsByScenario[selectedScenario].log.length-1].timeStamp // > Custom code page: check - line 65
+              score += 1; // > Custom code page: check - line 66
+          } // > Custom code page: check - line 67
+           // > Custom code page: check - line 68
+          pastAttemptsByScenario[selectedScenario].log[pastAttemptsByScenario[selectedScenario].log.length-1].correct = true; // > Custom code page: check - line 69
+           // > Custom code page: check - line 70
+      } finally { // > Custom code page: check - line 71
+          console.log(pastAttemptsByScenario); // > Custom code page: check - line 72
+          let attemptLogHtml = ''; // > Custom code page: check - line 73
+          pastAttemptsByScenario[selectedScenario].log.forEach((log, index) => { // > Custom code page: check - line 74
+          attemptLogHtml += 'Attempt ' + (index + 1) +  // > Custom code page: check - line 75
+          ': Pupils Arranged: ' + log.attempt.join(', ') +  // > Custom code page: check - line 76
+          '; Pupils were arranged ' +  // > Custom code page: check - line 77
+          (log.correct ? 'correctly' : 'incorrectly') +  // > Custom code page: check - line 78
+          '; Time Stamp: ' + log.timeStamp + '<br>'; // > Custom code page: check - line 79
+      }); // > Custom code page: check - line 80
+       // > Custom code page: check - line 81
+      const feedback =  // > Custom code page: check - line 82
+        '<div>' + // > Custom code page: check - line 83
+          '<div>' + // > Custom code page: check - line 84
+            'Total Attempts Taken To Complete: ' + pastAttemptsByScenario[selectedScenario].attemptsTakenToComplete + '<br>' + // > Custom code page: check - line 85
+            'Managed To Complete: ' + pastAttemptsByScenario[selectedScenario].completed + '<br>' + // > Custom code page: check - line 86
+            'Total Time Taken to Complete: ' + pastAttemptsByScenario[selectedScenario].timeTakenToComplete + '<br><br>' + // > Custom code page: check - line 87
+            'Attempt Log:<br>' + // > Custom code page: check - line 88
+            attemptLogHtml + // > Custom code page: check - line 89
+          '</div>' + // > Custom code page: check - line 90
+        '</div>'; // > Custom code page: check - line 91
+          console.log(feedback) // > Custom code page: check - line 92
+          console.log(score) // > Custom code page: check - line 93
+          storeState({score, feedback}); // > Custom code page: check - line 94
+          reset(); // > Custom code page: check - line 95
+      } // > Custom code page: check - line 96
+  } // > Custom code page: check - line 97
+   // > Custom code page: check - line 98
+  function displayPastAnswers() { // > Custom code page: check - line 99
+      const pastAnswersDiv = document.getElementById("pastAttempts"); // > Custom code page: check - line 100
+      pastAnswersDiv.innerHTML = ""; // > Custom code page: check - line 101
+   // > Custom code page: check - line 102
+      for (let scenario in pastAttemptsByScenario) { // > Custom code page: check - line 103
+          let scenarioDiv = document.createElement("div"); // > Custom code page: check - line 104
+          scenarioDiv.innerHTML = `<h3 style="margin: 0; font-size: 18px; font-weight: bold;">${scenario}:</h3>`; // > Custom code page: check - line 105
+   // > Custom code page: check - line 106
+          let attemptsContainer = document.createElement("div"); // > Custom code page: check - line 107
+          attemptsContainer.style.display = "flex"; // > Custom code page: check - line 108
+          attemptsContainer.style.flexWrap = "wrap"; // > Custom code page: check - line 109
+   // > Custom code page: check - line 110
+          pastAttemptsByScenario[scenario].forEach((attempt, index) => { // > Custom code page: check - line 111
+              let attemptDiv = document.createElement("div"); // > Custom code page: check - line 112
+              attemptDiv.innerHTML = `<strong style="font-size: 16px;">Attempt ${index + 1}:</strong><br>${attempt.join('<br>')}`; // > Custom code page: check - line 113
+              attemptDiv.style.padding = "10px"; // > Custom code page: check - line 114
+              attemptDiv.style.width = "200px"; // > Custom code page: check - line 115
+              attemptDiv.style.textAlign = "left"; // > Custom code page: check - line 116
+              attemptsContainer.appendChild(attemptDiv); // > Custom code page: check - line 117
+          }); // > Custom code page: check - line 118
+   // > Custom code page: check - line 119
+          scenarioDiv.appendChild(attemptsContainer); // > Custom code page: check - line 120
+          pastAnswersDiv.appendChild(scenarioDiv); // > Custom code page: check - line 121
+      } // > Custom code page: check - line 122
+  } // > Custom code page: check - line 123
+   // > Custom code page: check - line 124
+
+  function reset() { // > Custom code page: reset - line 1
+      initRooms(); // > Custom code page: reset - line 2
+      initPupils(); // > Custom code page: reset - line 3
+  } // > Custom code page: reset - line 4
+
+  // Using a namespace to prevent global variable clashes // > Custom code page: xApi - line 1
+  const XAPIUtils = { // > Custom code page: xApi - line 2
+    parameters: null, // Parameters store // > Custom code page: xApi - line 3
+    getParameters: function () { // > Custom code page: xApi - line 4
+      if (!this.parameters) { // Ensure fetch once // > Custom code page: xApi - line 5
+        var urlParams = new URLSearchParams(window.location.search); // > Custom code page: xApi - line 6
+        var endpoint = urlParams.get('endpoint'); // > Custom code page: xApi - line 7
+        var auth = urlParams.get('auth'); // > Custom code page: xApi - line 8
+        var agent = JSON.parse(urlParams.get('agent')); // > Custom code page: xApi - line 9
+        var stateId = urlParams.get('stateId'); // > Custom code page: xApi - line 10
+        var activityId = urlParams.get('activityId'); // > Custom code page: xApi - line 11
+   // > Custom code page: xApi - line 12
+        // document.querySelector("#cookieId").innerText = "Cookie: " + auth; // > Custom code page: xApi - line 13
+        // document.querySelector("#questionId").innerText = "Question ID: " + activityId; // > Custom code page: xApi - line 14
+        // document.querySelector("#userId").innerText = "User ID: " + stateId; // > Custom code page: xApi - line 15
+   // > Custom code page: xApi - line 16
+        ADL.XAPIWrapper.changeConfig({ // > Custom code page: xApi - line 17
+          "endpoint": endpoint + "/", // > Custom code page: xApi - line 18
+          "auth": `Basic ${auth}` // > Custom code page: xApi - line 19
+        }); // > Custom code page: xApi - line 20
+        this.parameters = { // > Custom code page: xApi - line 21
+          agent, // > Custom code page: xApi - line 22
+          stateId, // > Custom code page: xApi - line 23
+          activityId // > Custom code page: xApi - line 24
+        }; // > Custom code page: xApi - line 25
+      } // > Custom code page: xApi - line 26
+   // > Custom code page: xApi - line 27
+      return this.parameters; // > Custom code page: xApi - line 28
+    } // > Custom code page: xApi - line 29
+  }; // > Custom code page: xApi - line 30
+   // > Custom code page: xApi - line 31
+  // Immediately invoke getParameters on page load // > Custom code page: xApi - line 32
+  document.addEventListener("DOMContentLoaded", function () { // > Custom code page: xApi - line 33
+    XAPIUtils.getParameters(); // Fetch parameters once on load // > Custom code page: xApi - line 34
+  }); // > Custom code page: xApi - line 35
+   // > Custom code page: xApi - line 36
+  function storeState(stateValue) { // Removed async // > Custom code page: xApi - line 37
+    try { // > Custom code page: xApi - line 38
+      const parameters = XAPIUtils.getParameters(); // Retrieve parameters from store // > Custom code page: xApi - line 39
+      const activityId = parameters.activityId; // > Custom code page: xApi - line 40
+      const stateId = parameters.stateId; // > Custom code page: xApi - line 41
+      const agent = parameters.agent; // > Custom code page: xApi - line 42
+      const registration = null; // > Custom code page: xApi - line 43
+   // > Custom code page: xApi - line 44
+      ADL.XAPIWrapper.sendState(activityId, agent, stateId, registration, stateValue); // > Custom code page: xApi - line 45
+      console.log("Submitted: " + JSON.stringify(stateValue, null, 2)); // > Custom code page: xApi - line 46
+    } catch (err) { // > Custom code page: xApi - line 47
+      console.error("An error has occurred!", err); // > Custom code page: xApi - line 48
+    } // > Custom code page: xApi - line 49
+  } // > Custom code page: xApi - line 50
+   // > Custom code page: xApi - line 51
+  function getState() { // > Custom code page: xApi - line 52
+    try { // > Custom code page: xApi - line 53
+      const parameters = XAPIUtils.getParameters(); // Retrieve parameters from store // > Custom code page: xApi - line 54
+      const activityId = parameters.activityId; // > Custom code page: xApi - line 55
+      const stateId = parameters.stateId; // > Custom code page: xApi - line 56
+      const agent = parameters.agent; // > Custom code page: xApi - line 57
+   // > Custom code page: xApi - line 58
+      const result = ADL.XAPIWrapper.getState(activityId, agent, stateId); // > Custom code page: xApi - line 59
+      document.querySelector("#getState").innerText = "First Load State: " + JSON.stringify(result, null, 2); // > Custom code page: xApi - line 60
+      return result; // > Custom code page: xApi - line 61
+    } catch (err) { // > Custom code page: xApi - line 62
+      console.error("An error has occurred!", err); // > Custom code page: xApi - line 63
+      document.querySelector("#getState").innerText = "Error has occurred: " + err; // > Custom code page: xApi - line 64
+    } // > Custom code page: xApi - line 65
+  } // > Custom code page: xApi - line 66
+   // > Custom code page: xApi - line 67
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['scenarios']) return;
+    scenarios  = { // > Initialization page: scenarios - line 1
+        "Demonstration": { // > Initialization page: scenarios - line 2
+            scenario: "There are 7 pupils and there are 2 rooms. Each room cannot take more than 4 pupils.<br/>How should I arrange the pupils in each room?", // > Initialization page: scenarios - line 3
+            pupils: 7, // > Initialization page: scenarios - line 4
+            rooms: [ // > Initialization page: scenarios - line 5
+              { // > Initialization page: scenarios - line 6
+                room: "Music Room", // > Initialization page: scenarios - line 7
+                image: "Music-Room.png", // > Initialization page: scenarios - line 8
+                max: 4, // > Initialization page: scenarios - line 9
+                min: 1, // > Initialization page: scenarios - line 10
+              }, // > Initialization page: scenarios - line 11
+              { // > Initialization page: scenarios - line 12
+                room: "Classroom", // > Initialization page: scenarios - line 13
+                image: "Class-Room.png", // > Initialization page: scenarios - line 14
+                max: 4, // > Initialization page: scenarios - line 15
+                min: 1, // > Initialization page: scenarios - line 16
+              }, // > Initialization page: scenarios - line 17
+            ], // > Initialization page: scenarios - line 18
+        }, // > Initialization page: scenarios - line 19
+        "Task A": { // > Initialization page: scenarios - line 20
+            scenario: "There are 16 pupils and there are 4 rooms. Each room cannot take more than 4 pupils.<br/>How should I arrange the pupils in each room?", // > Initialization page: scenarios - line 21
+            pupils: 16, // > Initialization page: scenarios - line 22
+            rooms: [ // > Initialization page: scenarios - line 23
+              { // > Initialization page: scenarios - line 24
+                room: "Music Room", // > Initialization page: scenarios - line 25
+                image: "Music-Room.png", // > Initialization page: scenarios - line 26
+                max: 4, // > Initialization page: scenarios - line 27
+                min: 1, // > Initialization page: scenarios - line 28
+              }, // > Initialization page: scenarios - line 29
+              { // > Initialization page: scenarios - line 30
+                room: "Classroom", // > Initialization page: scenarios - line 31
+                image: "Class-Room.png", // > Initialization page: scenarios - line 32
+                max: 4, // > Initialization page: scenarios - line 33
+                min: 1, // > Initialization page: scenarios - line 34
+              }, // > Initialization page: scenarios - line 35
+              { // > Initialization page: scenarios - line 36
+                room: "Computer Room", // > Initialization page: scenarios - line 37
+                image: "Computer-Room.png", // > Initialization page: scenarios - line 38
+                max: 4, // > Initialization page: scenarios - line 39
+                min: 1, // > Initialization page: scenarios - line 40
+              }, // > Initialization page: scenarios - line 41
+              { // > Initialization page: scenarios - line 42
+                room: "Art Room", // > Initialization page: scenarios - line 43
+                image: "Math-Room.png", // > Initialization page: scenarios - line 44
+                max: 4, // > Initialization page: scenarios - line 45
+                min: 1, // > Initialization page: scenarios - line 46
+              }, // > Initialization page: scenarios - line 47
+            ], // > Initialization page: scenarios - line 48
+        }, // > Initialization page: scenarios - line 49
+         "Task B": { // > Initialization page: scenarios - line 50
+            scenario: "There are 18 pupils and there are 5 rooms. Each room cannot take more than 4 pupils.<br/>How should I arrange the pupils in each room?<br/>Find as many ways to arrange the students.", // > Initialization page: scenarios - line 51
+            pupils: 18, // > Initialization page: scenarios - line 52
+            rooms: [ // > Initialization page: scenarios - line 53
+              { // > Initialization page: scenarios - line 54
+                room: "Music Room", // > Initialization page: scenarios - line 55
+                image: "Music-Room.png", // > Initialization page: scenarios - line 56
+                max: 4, // > Initialization page: scenarios - line 57
+                min: 1, // > Initialization page: scenarios - line 58
+              }, // > Initialization page: scenarios - line 59
+              { // > Initialization page: scenarios - line 60
+                room: "Classroom", // > Initialization page: scenarios - line 61
+                image: "Class-Room.png", // > Initialization page: scenarios - line 62
+                max: 4, // > Initialization page: scenarios - line 63
+                min: 1, // > Initialization page: scenarios - line 64
+              }, // > Initialization page: scenarios - line 65
+              { // > Initialization page: scenarios - line 66
+                room: "Computer Room", // > Initialization page: scenarios - line 67
+                image: "Computer-Room.png", // > Initialization page: scenarios - line 68
+                max: 4, // > Initialization page: scenarios - line 69
+                min: 1, // > Initialization page: scenarios - line 70
+              }, // > Initialization page: scenarios - line 71
+              { // > Initialization page: scenarios - line 72
+                room: "Art Room", // > Initialization page: scenarios - line 73
+                image: "Art-Room.png", // > Initialization page: scenarios - line 74
+                max: 4, // > Initialization page: scenarios - line 75
+                min: 1, // > Initialization page: scenarios - line 76
+              }, // > Initialization page: scenarios - line 77
+              { // > Initialization page: scenarios - line 78
+                room: "Math Room", // > Initialization page: scenarios - line 79
+                image: "Math-Room.png", // > Initialization page: scenarios - line 80
+                max: 4, // > Initialization page: scenarios - line 81
+                min: 1, // > Initialization page: scenarios - line 82
+              }, // > Initialization page: scenarios - line 83
+            ], // > Initialization page: scenarios - line 84
+        } // > Initialization page: scenarios - line 85
+    } // > Initialization page: scenarios - line 86
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['pupils']) return;
+    pupils = [ // > Initialization page: pupils - line 1
+        { // > Initialization page: pupils - line 2
+            image: "Chinese-Female.png", // > Initialization page: pupils - line 3
+        }, // > Initialization page: pupils - line 4
+        { // > Initialization page: pupils - line 5
+            image: "Chinese-Male.png", // > Initialization page: pupils - line 6
+        }, // > Initialization page: pupils - line 7
+        { // > Initialization page: pupils - line 8
+            image: "Eurasian-Female.png", // > Initialization page: pupils - line 9
+        }, // > Initialization page: pupils - line 10
+        { // > Initialization page: pupils - line 11
+            image: "Eurasian-Male.png", // > Initialization page: pupils - line 12
+        }, // > Initialization page: pupils - line 13
+        { // > Initialization page: pupils - line 14
+            image: "Indian-Female.png", // > Initialization page: pupils - line 15
+        }, // > Initialization page: pupils - line 16
+        { // > Initialization page: pupils - line 17
+            image: "Indian-Male.png", // > Initialization page: pupils - line 18
+        }, // > Initialization page: pupils - line 19
+        { // > Initialization page: pupils - line 20
+            image: "Malay-Female.png", // > Initialization page: pupils - line 21
+        }, // > Initialization page: pupils - line 22
+        { // > Initialization page: pupils - line 23
+            image: "Malay-Male.png", // > Initialization page: pupils - line 24
+        }, // > Initialization page: pupils - line 25
+        { // > Initialization page: pupils - line 26
+            image: "Chinese-Female.png", // > Initialization page: pupils - line 27
+        }, // > Initialization page: pupils - line 28
+        { // > Initialization page: pupils - line 29
+            image: "Chinese-Male.png", // > Initialization page: pupils - line 30
+        }, // > Initialization page: pupils - line 31
+        { // > Initialization page: pupils - line 32
+            image: "Eurasian-Female.png", // > Initialization page: pupils - line 33
+        }, // > Initialization page: pupils - line 34
+        { // > Initialization page: pupils - line 35
+            image: "Eurasian-Male.png", // > Initialization page: pupils - line 36
+        }, // > Initialization page: pupils - line 37
+        { // > Initialization page: pupils - line 38
+            image: "Indian-Female.png", // > Initialization page: pupils - line 39
+        }, // > Initialization page: pupils - line 40
+        { // > Initialization page: pupils - line 41
+            image: "Indian-Male.png", // > Initialization page: pupils - line 42
+        }, // > Initialization page: pupils - line 43
+        { // > Initialization page: pupils - line 44
+            image: "Malay-Female.png", // > Initialization page: pupils - line 45
+        }, // > Initialization page: pupils - line 46
+        { // > Initialization page: pupils - line 47
+            image: "Malay-Male.png", // > Initialization page: pupils - line 48
+        }, // > Initialization page: pupils - line 49
+            { // > Initialization page: pupils - line 50
+            image: "Chinese-Female.png", // > Initialization page: pupils - line 51
+        }, // > Initialization page: pupils - line 52
+        { // > Initialization page: pupils - line 53
+            image: "Chinese-Male.png", // > Initialization page: pupils - line 54
+        }, // > Initialization page: pupils - line 55
+    ] // > Initialization page: pupils - line 56
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['init']) return;
+    initRooms(); // > Initialization page: init - line 1
+    initPupils(); // > Initialization page: init - line 2
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  // Intentionally repeated
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model._fontResized = function(iBase,iSize,iDelta) {
+    _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _createView() {
+    _view = new _simulationView(_topFrame,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      _view.currentScenario.linkProperty('Text', function() { return scenarios[selectedScenario].scenario; }); // linking Text of currentScenario
+      _view.selectScenario.setAction('OnChange', function(_data, _info) { // Action OnChange for element selectScenario
+        var opts = _view.selectScenario.getProperty("SelectedOptions");   // property OnChange of selectScenario: line 1
+        selectedScenario = (opts.length > 0)? opts[0]:""; // property OnChange of selectScenario: line 2
+        initRooms(); // property OnChange of selectScenario: line 3
+        initPupils(); // property OnChange of selectScenario: line 4
+        scenarioStartTime = ""; // property OnChange of selectScenario: line 5
+      });
+      _view.check.setAction('OnPress', function(_data, _info) { // Action OnPress for element check
+        check() // property OnPress of check: line 1
+      });
+      _view.reset.setAction('OnPress', function(_data, _info) { // Action OnPress for element reset
+        reset(); // property OnPress of reset: line 1
+      });
+      _view.roomSets.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].rooms.length; }); // linking NumberOfElements of roomSets
+      _view.roomSets.linkProperty('X', function() { return roomX; }, function(_v) { roomX = _v; }); // linking X of roomSets
+      _view.roomSets.linkProperty('Y', function() { return roomY; }, function(_v) { roomY = _v; }); // linking Y of roomSets
+      _view.roomSets.linkProperty('ImageUrl', function() { return roomImage; }, function(_v) { roomImage = _v; }); // linking ImageUrl of roomSets
+      _view.roomNameSets.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].rooms.length; }); // linking NumberOfElements of roomNameSets
+      _view.roomNameSets.linkProperty('X', function() { return textX; }, function(_v) { textX = _v; }); // linking X of roomNameSets
+      _view.roomNameSets.linkProperty('Y', function() { return textY; }, function(_v) { textY = _v; }); // linking Y of roomNameSets
+      _view.roomNameSets.linkProperty('Text', function() { return roomText; }, function(_v) { roomText = _v; }); // linking Text of roomNameSets
+      _view.pupilSets.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].pupils; }); // linking NumberOfElements of pupilSets
+      _view.pupilSets.linkProperty('X', function() { return pupilX; }, function(_v) { pupilX = _v; }); // linking X of pupilSets
+      _view.pupilSets.linkProperty('Y', function() { return pupilY; }, function(_v) { pupilY = _v; }); // linking Y of pupilSets
+      _view.pupilSets.linkProperty('ImageUrl', function() { return pupilImage; }, function(_v) { pupilImage = _v; }); // linking ImageUrl of pupilSets
+      _view.pupilSets.linkProperty('ElementInteracted', function() { return selectedPupil; }, function(_v) { selectedPupil = _v; }); // linking ElementInteracted of pupilSets
+      _view.pupilSets.setAction('OnRelease', function(_data, _info) { // Action OnRelease for element pupilSets
+        onRelease(pupilX[selectedPupil], pupilY[selectedPupil],selectedPupil) // property OnRelease of pupilSets: line 1
+      });
+      _view.pupilSets.setAction('OnPress', function(_data, _info) { // Action OnPress for element pupilSets
+        if (!scenarioStartTime){ // property OnPress of pupilSets: line 1
+        scenarioStartTime= new Date(); // property OnPress of pupilSets: line 2
+            console.log(`Timer started for ${selectedScenario} at ${scenarioStartTime}`); // property OnPress of pupilSets: line 3
+        } // property OnPress of pupilSets: line 4
+      });
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _createView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _createView(); // this includes _model.reset()
+  return _model;
+}
+
+function _simulationView (_topFrame,_libraryPath,_codebasePath) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  if (_libraryPath)  _view._setLibraryPath(_libraryPath);
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel, 'wrapper', _view._topFrame);
+    _view._addElement(EJSS_INTERFACE.panel, 'firstRow', _view.wrapper)
+      .setProperty("CSS","{ margin-bottom: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'currentScenario', _view.firstRow);
+    _view._addElement(EJSS_INTERFACE.panel, 'secondRow', _view.wrapper)
+      .setProperty("CSS","{ margin-bottom: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.comboBox, 'selectScenario', _view.secondRow)
+      .setProperty("Options",["Demonstration", "Task A", "Task B"])
+      .setProperty("CSS","{ margin-right: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'check', _view.secondRow)
+      .setProperty("Text","Check")
+      .setProperty("CSS","{ margin-right: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'reset', _view.secondRow)
+      .setProperty("Text","reset")
+      ;
+    _view._addElement(EJSS_DRAWING2D.plottingPanel, 'plottingPanel', _view.wrapper)
+      .setProperty("Width","100%")
+      .setProperty("Height","70vh")
+      .setProperty("Enabled",true)
+      .setProperty("Gutters",[0,0,0,0])
+      .setProperty("AutoScaleY",false)
+      .setProperty("AutoScaleX",false)
+      .setProperty("MaximumX",1)
+      .setProperty("MinimumX",0)
+      .setProperty("MinimumY",0)
+      .setProperty("MaximumY",1)
+      .setProperty("XAutoTicks",false)
+      .setProperty("GridXShow",false)
+      .setProperty("YAutoTicks",false)
+      .setProperty("GridYShow",false)
+      .setProperty("AxisXShow",false)
+      .setProperty("AxisYShow",false)
+      ;
+    _view._addElement(EJSS_DRAWING2D.imageSet, 'roomSets', _view.plottingPanel)
+      .setProperty("Sensitivity",0)
+      .setProperty("SizeX",0.3)
+      .setProperty("SizeY",0.3)
+      ;
+    _view._addElement(EJSS_DRAWING2D.textSet, 'roomNameSets', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.imageSet, 'pupilSets', _view.plottingPanel)
+      .setProperty("EnabledPosition","ENABLED_ANY")
+      .setProperty("SizeX",0.07)
+      .setProperty("SizeY",0.15)
+      ;
+    _view._addElement(EJSS_INTERFACE.panel, 'pastAttempts', _view.wrapper)
+      .setProperty("ClassName","pastAttempts")
+      .setProperty("CSS","{text-align: left}")
+      ;
+  }; // end of _view._reset
+  return _view;
+}
+
+    //--><!]]></script>
+
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+    <div id='metadata' class='metadata'>
+      <br />
+      <div id='title_author'>
+        <hr />
+        <b>Title and author:</b>
+        <p>
+          Arrange_Pupill_Math_Simulation<br/>
+          <img alt='Logo' src='./Screenshot2025-09-12083359.png'/>
+        </p>
+        <p>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+kangRui, meiYoke, looKang
+        </p>
+        <hr />
+      </div>
+      <p></p>
+      <div id='copyright_message'>
+        <div class='cc_left'  style='float:left'>
+          &#169;2025, kangRui, meiYoke, looKang. <br />
+          Compiled with <a href='https://t.um.es/webejs' target='_blank'>WebEJS : the web version of Easy JavaScript Simulations</a>.<br />
+          Version 1.0 (240505)
+        </div>
+        <div class='cc_right' style='float:right'>
+          Released under a <a rel='license' target='_blank' href='https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US'>
+          <img alt='Creative Commons Attribution-NonCommercial-ShareAlike' src='./_ejs_library/images/cc_icon.png' />
+          </a> license.
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () {
+          _model = new _simulation("_topFrame","./_ejs_library/",null);
+
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+                _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+                },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

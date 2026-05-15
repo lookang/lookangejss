@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P2 Test — Multiplication &amp; Division (4 DnD)</title>
+
+  <!-- === ACTIVITY ID (UNIQUE) === -->
+  <script>
+    window.ACTIVITY_ID = "https://limkimsze-maker.github.io/P2_Mult_Div_DnD_Test_20251201_120000/";
+  </script>
+
+  <!-- === MOE SLS xAPI Scripts (unchanged) === -->
+  <script src="xapiwrapper.min.js"></script>
+  <script src="index.js" defer></script>
+
+  <!-- === ALWAYS-CLEAR ON LOAD (before any hydrate) === -->
+  <script>
+    (function (global) {
+      const ACTIVITY_ID = String(global.ACTIVITY_ID || location.href);
+
+      function clearAllForActivity() {
+        try {
+          const prefixes = [
+            `${ACTIVITY_ID}`,
+            `sls_scope::${ACTIVITY_ID}`,
+            `UFCO-firstSubmit::${ACTIVITY_ID}`,
+            `sls_unlike_payload::${ACTIVITY_ID}`
+          ];
+
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (!k) continue;
+            if (prefixes.some(p => k === p || k.startsWith(p))) {
+              localStorage.removeItem(k);
+            }
+          }
+
+          sessionStorage.removeItem(`${ACTIVITY_ID}::locked`);
+          sessionStorage.removeItem(`${ACTIVITY_ID}::done`);
+        } catch (e) {}
+
+        try {
+          const bc = new BroadcastChannel("xapi-state");
+          bc.postMessage({ type: "clear", activityId: ACTIVITY_ID, ts: Date.now() });
+          bc.close?.();
+        } catch (e) {}
+      }
+
+      // Run clear on every load
+      clearAllForActivity();
+
+      // Expose for teacher "New Session — Clear"
+      global.__SLS_CLEAR_ACTIVITY__ = clearAllForActivity;
+    })(window);
+  </script>
+
+  <style>
+    :root {
+      --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+      --bg-1:#fff7ed; --bg-2:#eff6ff; --panel:#ffffff;
+      --accent:#0ea5e9; --accent-2:#f97316;
+      --good:#16a34a; --bad:#dc2626;
+      --shadow:0 18px 40px rgba(15,23,42,.18);
+      --shadow-sm:0 6px 16px rgba(15,23,42,.12);
+      --round:16px;
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font:17px/1.5 "Comic Sans MS","Comic Neue","Lexend",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      color:var(--ink);
+      background:
+        radial-gradient(18rem 18rem at 12% 8%, rgba(249,200,255,.35), transparent 55%),
+        radial-gradient(22rem 22rem at 82% 14%, rgba(255,238,150,.35), transparent 55%),
+        radial-gradient(18rem 18rem at 18% 90%, rgba(168,240,255,.35), transparent 55%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-2) 60%);
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:16px;
+    }
+
+    /* Hidden teacher/xAPI panel */
+    .container{
+      background:#fff;
+      padding:10px;
+      border-radius:8px;
+      box-shadow:0 0 5px rgba(0,0,0,.08);
+      width:590px;
+      height:470px;
+      overflow:auto;
+      display:none; /* keep hidden in SLS */
+    }
+    #xapiBase{display:block;}
+    .center{text-align:center;}
+    input,button{
+      font-size:14px;
+      padding:6px;
+      margin:5px;
+      border-radius:4px;
+      border:1px solid #cbd5e1;
+    }
+    button{
+      background:#22c55e;
+      color:#fff;
+      cursor:pointer;
+    }
+    button:hover{background:#16a34a;}
+    .output-container{
+      margin-top:10px;
+      padding:5px;
+      border:1px solid #e5e7eb;
+      border-radius:4px;
+      background:#f9fafb;
+      max-height:200px;
+      overflow:auto;
+    }
+    pre{
+      margin:0;
+      background:#e5e7eb;
+      padding:5px;
+      border-radius:4px;
+      white-space:pre-wrap;
+      word-wrap:break-word;
+    }
+
+    /* === Student App === */
+    .app{
+      width:100%;
+      max-width:960px;
+      background:var(--panel);
+      border-radius:var(--round);
+      box-shadow:var(--shadow);
+      padding:18px;
+      position:relative;
+    }
+    header{
+      position:sticky;
+      top:0;
+      z-index:5;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.96)) padding-box,
+        linear-gradient(135deg,#0ea5e9,#6366f1,#f97316) border-box;
+      border-bottom:1px solid transparent;
+      border-image:linear-gradient(135deg,#0ea5e9,#6366f1,#f97316) 1;
+      border-radius:14px;
+      padding:16px 18px 12px;
+      box-shadow:var(--shadow-sm);
+      backdrop-filter:blur(6px);
+    }
+    h1{
+      margin:0 0 6px;
+      font-size:24px;
+      display:flex;
+      align-items:center;
+      gap:.5ch;
+    }
+    h1::before{content:"✖️➗";}
+    .heroNote{
+      margin-top:6px;
+      padding:8px 10px;
+      border-radius:12px;
+      background:#ecfeff;
+      border:1px solid #bae6fd;
+      color:#0f172a;
+      font-weight:700;
+      font-size:0.92rem;
+    }
+    .heroNote b{color:#0ea5e9;}
+
+    .bar{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .scorechip{
+      padding:8px 12px;
+      border-radius:999px;
+      border:2px solid transparent;
+      background:
+        linear-gradient(#ffffff,#ffffff) padding-box,
+        linear-gradient(135deg,#22c55e,#0ea5e9,#f97316) border-box;
+      display:flex;
+      gap:10px;
+      font-weight:800;
+      font-size:0.9rem;
+      box-shadow:var(--shadow-sm);
+    }
+    .scorechip small{color:var(--muted); font-weight:700;}
+    .teacherBtn{
+      margin-left:auto;
+      padding:8px 10px;
+      border-radius:999px;
+      border:none;
+      background:linear-gradient(135deg,#ef4444,#f97316);
+      color:#fff;
+      font-weight:800;
+      font-size:0.8rem;
+      box-shadow:var(--shadow-sm);
+      cursor:pointer;
+    }
+
+    section{margin-top:18px;}
+    h2{
+      margin:0 0 4px;
+      font-size:19px;
+    }
+    .note{
+      margin:0 0 12px;
+      font-size:0.95rem;
+      color:var(--muted);
+    }
+
+    .card{
+      position:relative;
+      margin-bottom:12px;
+      padding:12px 14px 14px;
+      border-radius:var(--round);
+      border:2px solid transparent;
+      background:
+        linear-gradient(#ffffff,#ffffff) padding-box,
+        linear-gradient(135deg, rgba(14,165,233,.6), rgba(249,115,22,.6)) border-box;
+      box-shadow:var(--shadow-sm);
+    }
+    .qnum{
+      position:absolute;
+      top:6px;
+      left:8px;
+      font-size:11px;
+      font-weight:900;
+      padding:2px 8px;
+      border-radius:999px;
+      background:#eff6ff;
+      border:1px solid #bfdbfe;
+      color:#1d4ed8;
+    }
+    .q-stem{
+      padding-left:2px;
+      padding-top:4px;
+      margin-bottom:8px;
+    }
+    .blankline{
+      display:inline-block;
+      min-width:60px;
+      border-bottom:2px dashed #94a3b8;
+      margin:0 4px;
+    }
+
+    .answerRow{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+      margin-top:4px;
+    }
+    .answerRow label{
+      font-size:0.92rem;
+      color:var(--muted);
+    }
+    .answerRow input[type="number"],
+    .answerRow input[type="text"]{
+      min-width:90px;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid #cbd5e1;
+      font-size:15px;
+    }
+
+    .unitTag{
+      font-size:0.9rem;
+      font-weight:700;
+      color:#0f172a;
+    }
+
+    .card.correct{
+      outline:3px solid var(--good);
+      box-shadow:0 0 0 5px rgba(34,197,94,.18);
+    }
+    .card.incorrect{
+      outline:3px solid var(--bad);
+      box-shadow:0 0 0 5px rgba(239,68,68,.18);
+    }
+
+    /* Drag-and-drop styling */
+    .dndRow{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+    .dropZone{
+      min-height:40px;
+      min-width:160px;
+      border:2px dashed #cbd5e1;
+      border-radius:12px;
+      padding:6px 10px;
+      background:#f8fafc;
+      font-size:0.95rem;
+    }
+    .dropZone:focus{
+      outline:3px solid #0ea5e9;
+      outline-offset:2px;
+    }
+    .dndOptions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:8px;
+    }
+    .dragToken{
+      background:#e0f2fe;
+      color:#0f172a;
+      border-radius:999px;
+      border:1px solid #cbd5e1;
+      padding:6px 10px;
+      font-size:0.9rem;
+      cursor:pointer;
+      margin:0;
+    }
+
+    .actions{
+      margin-top:18px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+    }
+    .appbtn{
+      border:none;
+      border-radius:14px;
+      padding:10px 16px;
+      font-size:15px;
+      font-weight:900;
+      cursor:pointer;
+      background:linear-gradient(135deg,#0ea5e9,#6366f1);
+      color:#fff;
+      box-shadow:var(--shadow-sm);
+    }
+    .appbtn.secondary{
+      background:linear-gradient(135deg,#ffffff,#f1f5f9);
+      color:var(--ink);
+      border:1px solid #e2e8f0;
+    }
+
+    #miniStatus{
+      font-size:0.85rem;
+      color:var(--muted);
+    }
+
+    #statusBadge{
+      display:none;
+      margin:10px 0;
+      padding:8px 12px;
+      border-radius:12px;
+      font-size:0.8rem;
+      font-weight:800;
+      background:#0f172a;
+      color:#fff;
+      text-align:center;
+    }
+
+    footer{
+      margin-top:14px;
+      font-size:0.8rem;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    footer::before{content:"🎉 ";}
+
+    @media (max-width:640px){
+      .scorechip{flex-direction:column; align-items:flex-start;}
+      footer{flex-direction:column; gap:6px; align-items:flex-start;}
+    }
+  </style>
+</head>
+<body>
+  <!-- Hidden xAPI base panel (for teacher/debug) -->
+  <div class="container" id="xapiOuter">
+    <div id="xapiBase">
+      <p class="center"><strong>HTML5 Interactive</strong></p>
+      <div class="center">
+        <label for="score-input">Score:</label>
+        <input type="text" id="score-input" />
+        <label for="feedback-input">Feedback:</label>
+        <input type="text" id="feedback-input" placeholder="Enter feedback" />
+      </div>
+      <div class="center">
+        <button id="save-store" type="button">Send/Save</button>
+        <button id="clear-inputs" type="button">Clear</button>
+        <button id="newSessionBtn" type="button" style="display:none;">_newSession</button>
+      </div>
+      <div class="output-container">
+        <pre id="result"></pre>
+        <hr class="separator" />
+        <pre id="getState"></pre>
+        <hr class="separator" />
+        <pre id="questionId"></pre>
+        <pre id="userId"></pre>
+        <pre id="cookieId"></pre>
+        <a id="activityLink" href="https://limkimsze-maker.github.io/P2_Mult_Div_DnD_Test_20251201_120000/" target="_blank" rel="noopener">
+          ActivityID
+        </a>
+      </div>
+      <div id="statusBadge"></div>
+    </div>
+  </div>
+
+  <!-- Student App -->
+  <div class="app" id="appRoot">
+    <header>
+      <h1>P2 Test — Multiplication &amp; Division</h1>
+      <div class="heroNote">
+        This is a <b>Test</b> with <b>4 drag-and-drop questions</b> on <b>multiplication</b> and <b>division</b>.<br/>
+        Tap a token (or drag it) and drop it into the box to answer. Two questions are multiplication, two are division.
+      </div>
+      <div class="bar">
+        <div class="scorechip">
+          <span>Total Correct: <span id="scoreNum">0</span><small>/4</small></span>
+        </div>
+        <button id="teacherClear" class="teacherBtn" type="button">[Teacher] New Session — Clear</button>
+      </div>
+    </header>
+
+    <section aria-label="Test questions">
+      <h2>Test — 4 Questions (Multiplication &amp; Division)</h2>
+      <p class="note">
+        For multiplication use × and for division use ÷. Drag or tap the correct answer token into the drop box.
+      </p>
+
+      <div id="testList">
+        <!-- Q1: Multiplication (dnd) -->
+        <div class="card question" data-q-id="P2Q1" data-type="dnd" data-correct="12" data-topic="multiplication">
+          <div class="qnum">Q1/4</div>
+          <div class="q-stem">
+            What is <b>3 × 4</b>?
+            <span class="blankline"></span>
+          </div>
+          <div class="answerRow dndRow">
+            <div class="dropZone" data-chosen="" aria-label="Drop your answer here" tabindex="0">
+              Drop answer here
+            </div>
+            <div class="dndOptions">
+              <button type="button" class="dragToken" data-value="11">11</button>
+              <button type="button" class="dragToken" data-value="12">12</button>
+              <button type="button" class="dragToken" data-value="13">13</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q2: Multiplication (dnd) -->
+        <div class="card question" data-q-id="P2Q2" data-type="dnd" data-correct="30" data-topic="multiplication">
+          <div class="qnum">Q2/4</div>
+          <div class="q-stem">
+            What is <b>6 × 5</b>?
+            <span class="blankline"></span>
+          </div>
+          <div class="answerRow dndRow">
+            <div class="dropZone" data-chosen="" aria-label="Drop your answer here" tabindex="0">
+              Drop answer here
+            </div>
+            <div class="dndOptions">
+              <button type="button" class="dragToken" data-value="25">25</button>
+              <button type="button" class="dragToken" data-value="30">30</button>
+              <button type="button" class="dragToken" data-value="35">35</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q3: Division (dnd) -->
+        <div class="card question" data-q-id="P2Q3" data-type="dnd" data-correct="4" data-topic="division">
+          <div class="qnum">Q3/4</div>
+          <div class="q-stem">
+            What is <b>12 ÷ 3</b>?
+            <span class="blankline"></span>
+          </div>
+          <div class="answerRow dndRow">
+            <div class="dropZone" data-chosen="" aria-label="Drop your answer here" tabindex="0">
+              Drop answer here
+            </div>
+            <div class="dndOptions">
+              <button type="button" class="dragToken" data-value="2">2</button>
+              <button type="button" class="dragToken" data-value="4">4</button>
+              <button type="button" class="dragToken" data-value="6">6</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Q4: Division (dnd) -->
+        <div class="card question" data-q-id="P2Q4" data-type="dnd" data-correct="6" data-topic="division">
+          <div class="qnum">Q4/4</div>
+          <div class="q-stem">
+            What is <b>18 ÷ 3</b>?
+            <span class="blankline"></span>
+          </div>
+          <div class="answerRow dndRow">
+            <div class="dropZone" data-chosen="" aria-label="Drop your answer here" tabindex="0">
+              Drop answer here
+            </div>
+            <div class="dndOptions">
+              <button type="button" class="dragToken" data-value="5">5</button>
+              <button type="button" class="dragToken" data-value="6">6</button>
+              <button type="button" class="dragToken" data-value="9">9</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="btnTestSubmit" class="appbtn" type="button">Submit Test</button>
+      <button id="btnTestReset" class="appbtn secondary" type="button">Reset Answers</button>
+      <div id="miniStatus" aria-live="polite">
+        First Test score not sent yet.
+      </div>
+    </div>
+
+    <footer>
+      <div>✔ 4 auto-marked drag-and-drop questions on multiplication &amp; division.</div>
+      <div>© 2025 Lim Kim Sze</div>
+    </footer>
+  </div>
+
+  <script>
+    /* ===== PERSISTENCE & xAPI BRIDGE (Test-style, first submit only) ===== */
+    const APP_SCOPE   = String(window.ACTIVITY_ID || location.href);
+    const PAYLOAD_KEY = `sls_unlike_payload::${APP_SCOPE}::v1`;
+    const FIRST_KEY   = `UFCO-firstSubmit::${APP_SCOPE}`;
+
+    function pushToXAPI(score, feedback) {
+      try {
+        const sInput = document.getElementById("score-input");
+        const fInput = document.getElementById("feedback-input");
+        if (sInput) sInput.value = score;
+        if (fInput) fInput.value = feedback || "";
+
+        if (typeof updateStore === "function") {
+          updateStore();
+        } else if (typeof storeState === "function") {
+          storeState({ score, feedback });
+        }
+
+        const badge = document.getElementById("statusBadge");
+        if (badge) {
+          badge.style.display = "block";
+          badge.textContent = `Saved for SLS · Score ${score}` + (feedback ? ` · ${feedback}` : "");
+        }
+      } catch (e) {
+        // fail silently
+      }
+    }
+
+    function writePayload(score, feedback, hiddenMarks) {
+      try {
+        const obj = { score, feedback, hiddenMarks, t: Date.now() };
+        localStorage.setItem(PAYLOAD_KEY, JSON.stringify(obj));
+      } catch (e) {}
+    }
+
+    function readPayload() {
+      try {
+        const raw = localStorage.getItem(PAYLOAD_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function hasPostedFirstSubmit() {
+      try {
+        return localStorage.getItem(FIRST_KEY) === "1";
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function lockFirstSubmit() {
+      try {
+        localStorage.setItem(FIRST_KEY, "1");
+      } catch (e) {}
+    }
+
+    function postFirstSubmitIfNeeded(score, feedback, hiddenMarks) {
+      if (hasPostedFirstSubmit()) return false;
+      writePayload(score, feedback, hiddenMarks);
+      pushToXAPI(score, feedback);
+      lockFirstSubmit();
+      return true;
+    }
+
+    function syncFromLocalToXAPI() {
+      const p = readPayload();
+      if (!p) return;
+      pushToXAPI(p.score, p.feedback);
+    }
+
+    window.addEventListener("load", syncFromLocalToXAPI);
+    window.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncFromLocalToXAPI();
+    });
+    window.addEventListener("focus", syncFromLocalToXAPI);
+    window.addEventListener("storage", (e) => {
+      if (e.key === PAYLOAD_KEY && e.newValue) syncFromLocalToXAPI();
+    });
+
+    /* ===== TEST LOGIC (4 DnD questions: 2 multiplication, 2 division) ===== */
+    const testList   = document.getElementById("testList");
+    const scoreNumEl = document.getElementById("scoreNum");
+    const miniStatus = document.getElementById("miniStatus");
+
+    function getQuestionCards() {
+      return Array.from(testList.querySelectorAll(".card.question"));
+    }
+
+    function computeTestStats() {
+      const cards = getQuestionCards();
+      let score = 0;
+      const detail = [];
+
+      // Category counters
+      let multTotal = 0, multCorrect = 0;
+      let divTotal = 0, divCorrect = 0;
+
+      cards.forEach((card) => {
+        const type = card.dataset.type || "number";
+        const correctVal = card.dataset.correct;
+        const topic = (card.dataset.topic || "").toLowerCase();
+        let ok = false;
+        let attempted = false;
+
+        if (type === "number") {
+          const input = card.querySelector("input[type='number'], input[data-kind='number']");
+          const raw = (input?.value || "").trim();
+          if (raw !== "" && !Number.isNaN(Number(raw))) {
+            attempted = true;
+            const ans = Number(raw);
+            ok = ans === Number(correctVal);
+          }
+        } else if (type === "mcq") {
+          const chosen = card.querySelector("input[type='radio']:checked");
+          if (chosen) {
+            attempted = true;
+            const val = chosen.value || chosen.dataset.value;
+            ok = String(val) === String(correctVal);
+          }
+        } else if (type === "dropdown") {
+          const sel = card.querySelector("select");
+          if (sel && sel.value !== "") {
+            attempted = true;
+            ok = String(sel.value) === String(correctVal);
+          }
+        } else if (type === "dnd") {
+          const zone = card.querySelector(".dropZone");
+          const chosen = (zone?.dataset.chosen || "").trim();
+          if (chosen !== "") {
+            attempted = true;
+            ok = chosen.toLowerCase() === String(correctVal).toLowerCase();
+          }
+        }
+
+        // Track category totals & corrects if topic is specified
+        if (topic === "multiplication") {
+          multTotal++;
+          if (ok) multCorrect++;
+        } else if (topic === "division") {
+          divTotal++;
+          if (ok) divCorrect++;
+        }
+
+        detail.push(ok ? 1 : 0);
+
+        card.classList.remove("correct", "incorrect");
+        if (!attempted) {
+          card.classList.add("incorrect"); // blanks treated as incorrect
+        } else {
+          card.classList.add(ok ? "correct" : "incorrect");
+        }
+
+        if (ok) score++;
+      });
+
+      return {
+        score,
+        total: cards.length,
+        detail,
+        multiplication: { total: multTotal, correct: multCorrect },
+        division: { total: divTotal, correct: divCorrect }
+      };
+    }
+
+    function buildTeacherFeedback(stats) {
+      // Categorised feedback for teacher: Multiplication & Division
+      const mult = stats.multiplication || { total: 0, correct: 0 };
+      const div = stats.division || { total: 0, correct: 0 };
+      // Example format requested by user:
+      // "Multiplication: 2/2 correct. Division: 1/2 correct. Total: 3/4."
+      return `Multiplication: ${mult.correct}/${mult.total} correct. Division: ${div.correct}/${div.total} correct. Total: ${stats.score}/${stats.total}. Per-question: ${stats.detail.join("")}.`;
+    }
+
+    function buildHiddenMarks(stats) {
+      const parts = [];
+      for (let i = 0; i < stats.detail.length; i++) {
+        parts.push(`Q${i + 1}:${stats.detail[i]}`);
+      }
+      // Include category summary in hidden marks for teachers if needed
+      const mult = stats.multiplication || { total: 0, correct: 0 };
+      const div = stats.division || { total: 0, correct: 0 };
+      parts.push(`M:${mult.correct}/${mult.total}`);
+      parts.push(`D:${div.correct}/${div.total}`);
+      return parts.join(" ");
+    }
+
+    function resetAnswers() {
+      const cards = getQuestionCards();
+      cards.forEach((card) => {
+        const type = card.dataset.type || "number";
+
+        if (type === "number") {
+          const input = card.querySelector("input[type='number'], input[data-kind='number']");
+          if (input) input.value = "";
+        } else if (type === "mcq") {
+          const radios = card.querySelectorAll("input[type='radio']");
+          radios.forEach(r => { r.checked = false; });
+        } else if (type === "dropdown") {
+          const sel = card.querySelector("select");
+          if (sel) sel.value = "";
+        } else if (type === "dnd") {
+          const zone = card.querySelector(".dropZone");
+          if (zone) {
+            zone.dataset.chosen = "";
+            zone.textContent = "Drop answer here";
+          }
+        }
+
+        card.classList.remove("correct", "incorrect");
+      });
+      scoreNumEl.textContent = "0";
+    }
+
+    function goToFirstQuestion(container) {
+      const firstCard = container.querySelector(".card.question");
+      if (!firstCard) return;
+      firstCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      const firstInput = firstCard.querySelector("input, button, select, textarea");
+      if (firstInput) firstInput.focus();
+    }
+
+    function attachDnDHandlers() {
+      const tokens = document.querySelectorAll(".dragToken");
+      tokens.forEach((token) => {
+        const card = token.closest(".card");
+        const zone = card ? card.querySelector(".dropZone") : null;
+        if (!zone) return;
+
+        function choose() {
+          const val = token.dataset.value || "";
+          if (!val) return;
+          zone.dataset.chosen = val;
+          zone.textContent = token.textContent.trim();
+        }
+
+        // Tap / click selection
+        token.addEventListener("click", choose);
+        token.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            choose();
+          }
+        });
+
+        // Optional drag support
+        token.setAttribute("draggable", "true");
+        token.addEventListener("dragstart", (e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", token.dataset.value || "");
+        });
+
+        zone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        });
+        zone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          const val = e.dataTransfer.getData("text/plain");
+          if (!val) return;
+          zone.dataset.chosen = val;
+          const match = Array.from(card.querySelectorAll(".dragToken")).find(
+            t => (t.dataset.value || "") === val
+          );
+          zone.textContent = match ? match.textContent.trim() : val;
+        });
+      });
+    }
+
+    // Wire buttons
+    document.getElementById("btnTestSubmit").addEventListener("click", () => {
+      const stats = computeTestStats();
+      scoreNumEl.textContent = String(stats.score);
+
+      const feedback    = buildTeacherFeedback(stats);
+      const hiddenMarks = buildHiddenMarks(stats);
+
+      const first = postFirstSubmitIfNeeded(stats.score, feedback, hiddenMarks);
+      if (first) {
+        miniStatus.textContent =
+          `First Test score sent to SLS: ${stats.score}/${stats.total}`;
+      } else {
+        miniStatus.textContent =
+          `Score not sent to SLS (first Test score was already sent). Current attempt: ${stats.score}/${stats.total}.`;
+      }
+    });
+
+    document.getElementById("btnTestReset").addEventListener("click", () => {
+      resetAnswers();
+      miniStatus.textContent = "Answers cleared. First Test score not sent yet.";
+    });
+
+    // Teacher new-session clear
+    document.getElementById("teacherClear").addEventListener("click", () => {
+      if (confirm("Teacher only:\nStart a completely new session for this activity? This clears stored scores.")) {
+        if (typeof window.__SLS_CLEAR_ACTIVITY__ === "function") {
+          window.__SLS_CLEAR_ACTIVITY__();
+        }
+        // make sure first-submit gate is cleared
+        try { localStorage.removeItem(FIRST_KEY); } catch (e) {}
+        location.reload();
+      }
+    });
+
+    // Focus Q1 on load + wire drag-and-drop
+    window.addEventListener("load", () => {
+      setTimeout(() => { goToFirstQuestion(testList); }, 80);
+      attachDnDHandlers();
+    });
+
+    /* Wire hidden Save/Store + Clear buttons to bridge (teacher/debug) */
+    (function wireHiddenButtons() {
+      const saveStoreBtn = document.getElementById("save-store");
+      if (saveStoreBtn) {
+        saveStoreBtn.addEventListener("click", () => {
+          const sVal = Number(document.getElementById("score-input").value || 0);
+          const fVal = String(document.getElementById("feedback-input").value || "");
+          writePayload(sVal, fVal, undefined);
+          pushToXAPI(sVal, fVal);
+        });
+      }
+
+      const clearBtn = document.getElementById("clear-inputs");
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          document.getElementById("score-input").value = "";
+          document.getElementById("feedback-input").value = "";
+          writePayload(0, "", undefined);
+          pushToXAPI(0, "");
+        });
+      }
+    })();
+  </script>
+
+  <!--
+  TEACHER ANSWER AUDIT (not shown to students)
+
+  Q1 (P2Q1): Multiplication, Correct = 12
+      Stem: 3 × 4 = 12. Tokens: 11, 12 (correct), 13.
+
+  Q2 (P2Q2): Multiplication, Correct = 30
+      Stem: 6 × 5 = 30. Tokens: 25, 30 (correct), 35.
+
+  Q3 (P2Q3): Division, Correct = 4
+      Stem: 12 ÷ 3 = 4. Tokens: 2, 4 (correct), 6.
+
+  Q4 (P2Q4): Division, Correct = 6
+      Stem: 18 ÷ 3 = 6. Tokens: 5, 6 (correct), 9.
+
+  Feedback formatting:
+    buildTeacherFeedback returns:
+      "Multiplication: X/2 correct. Division: Y/2 correct. Total: S/4. Per-question: 1101."
+    buildHiddenMarks returns:
+      "Q1:1 Q2:1 Q3:0 Q4:1 M:2/2 D:1/2" (example when some answers are right/ wrong)
+  -->
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Challenges in Globalisation - Interactive Game</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const payload = {
+      score: raw,
+      max,
+      feedback: 'Quiz ' + reason + ': ' + raw + '/' + max + ' (correct ' + quizMeta.correct + '/' + max + ')',
+      reason,
+      quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+      history: history.slice(-80)
+    };
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /correct/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState({
+          score: scoreRaw,
+          max: max,
+          feedback: feedback || '',
+          quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+          history: history.slice(-80)
+        });
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    // If we know quizMeta.max, send a score on each change.
+    // Debounced by lastScoreSent.
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Score: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = qs.questions.length;
+    quizMeta.max = quizMeta.total;
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          pushHistory({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          qs.attempted++;
+          if (ok === true) quizMeta.correct++;
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        pushHistory({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          qs.attempted++;
+          if (result === 'correct') quizMeta.correct++;
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+  }
+})();
+    </script>
+  </head>
+<body>
+    <!-- Main container for the interactive -->
+    <div id="main-container">
+        
+        <!-- Tooltip for header information (appears on hover over main panel) -->
+        <div id="header-tooltip" class="tooltip">
+            Security Challenges in Globalisation - Interactive Game
+        </div>
+
+        <!-- Game area - main interactive panel -->
+        <div id="game-area">
+            
+            <!-- Scenario display -->
+            <div id="scenario-panel">
+                <div id="scenario-icon">🌍</div>
+                <div id="scenario-text">Click "Start Game" to begin exploring security challenges in our globalised world!</div>
+            </div>
+
+            <!-- Challenge cards container (drag-and-drop area) -->
+            <div id="challenge-cards-container">
+                <h3>Security Challenges</h3>
+                <div id="challenge-cards"></div>
+            </div>
+
+            <!-- Drop zones for categorization -->
+            <div id="drop-zones-container">
+                <h3>Categorize the Challenges</h3>
+                <div id="drop-zones">
+                    <!-- Drop zones will be generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Control buttons -->
+            <div id="controls">
+                <button id="start-btn" class="btn btn-primary">Start Game</button>
+                <button id="check-btn" class="btn btn-success" disabled>Check Answers</button>
+                <button id="reset-btn" class="btn btn-secondary">Reset</button>
+                <button id="hint-btn" class="btn btn-info">Hint</button>
+            </div>
+
+            <!-- Score and progress display -->
+            <div id="score-panel">
+                <div class="score-item">
+                    <span class="score-label">Score:</span>
+                    <span id="score-value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Level:</span>
+                    <span id="level-value">1</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Challenges Solved:</span>
+                    <span id="progress-value">0/0</span>
+                </div>
+            </div>
+
+            <!-- Feedback message area -->
+            <div id="feedback-message"></div>
+
+        </div>
+
+        <!-- Analytics Panel (collapsible) -->
+        <div id="analytics-panel">
+            <div id="analytics-header">
+                <h3>📊 Learning Analytics</h3>
+                <button id="toggle-analytics" class="btn-icon">▼</button>
+            </div>
+            <div id="analytics-content">
+                <div id="analytics-log"></div>
+                <button id="clear-analytics" class="btn btn-small">Clear Log</button>
+            </div>
+        </div>
+
+        <!-- Help/Instructions Modal (hidden by default) -->
+        <div id="help-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>How to Play</h2>
+                <div class="instructions">
+                    <p><strong>Learning Objective:</strong> Understand different types of security challenges that arise from globalisation and how to categorize them.</p>
+                    
+                    <h3>Instructions:</h3>
+                    <ol>
+                        <li>Click <strong>"Start Game"</strong> to begin</li>
+                        <li>Read each security challenge scenario carefully</li>
+                        <li><strong>Drag and drop</strong> each challenge card into the correct category zone</li>
+                        <li>Categories include:
+                            <ul>
+                                <li><strong>Cybersecurity:</strong> Digital threats and online security</li>
+                                <li><strong>Health Security:</strong> Disease spread and pandemics</li>
+                                <li><strong>Economic Security:</strong> Financial crimes and economic threats</li>
+                                <li><strong>Terrorism:</strong> Extremism and terrorist activities</li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>"Check Answers"</strong> when you've placed all cards</li>
+                        <li>Use <strong>"Hint"</strong> if you need help</li>
+                        <li>Progress through levels with increasing difficulty</li>
+                    </ol>
+
+                    <h3>Scoring:</h3>
+                    <ul>
+                        <li>✅ Correct placement: +10 points</li>
+                        <li>❌ Incorrect placement: -5 points</li>
+                        <li>Complete all challenges to advance to the next level</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

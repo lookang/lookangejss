@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Interactive ZIP File</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="xapiwrapper.min.js"></script>
+</head>
+<body>
+
+<h1>Upload Interactive ZIP File</h1>
+
+<!-- File upload input -->
+<input type="file" id="zipFileInput" accept=".zip" />
+
+<!-- Download link (initially hidden) -->
+<a id="downloadButton" href="#" download="modified_interactive.zip" style="display:none;">Download Modified Interactive</a>
+
+<!-- Button to trigger download -->
+<button onclick="document.getElementById('downloadButton').click();">Download Modified Interactive</button>
+
+<!-- iframe to display the interactive content -->
+<iframe id="interactiveFrame" src="" width="800px" height="600px"></iframe>
+
+<script>
+    window.onload = function() {
+        document.getElementById('zipFileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Read the ZIP file using JSZip
+                JSZip.loadAsync(file).then(function (zip) {
+                    // Extract all files in the ZIP
+                    zip.forEach(function (relativePath, file) {
+                        if (file.dir) return; // skip directories
+                        file.async('string').then(function (content) {
+                            // Store files in a Map for easy access
+                            if (!window.zipFiles) window.zipFiles = new Map();
+                            window.zipFiles.set(relativePath, content);
+                        });
+                    });
+
+                    // Modify the interactive content
+                    modifyInteractiveContent(zip);
+                });
+            }
+        });
+    };
+
+    // Function to modify and display the interactive content
+    function modifyInteractiveContent(zip) {
+        // Find the main HTML file (assuming it's index.html)
+        if (window.zipFiles.has('index.html')) {
+            let htmlContent = window.zipFiles.get('index.html');
+
+            // Inject xAPI wrapper script and sendState function
+            htmlContent = htmlContent.replace(/<\/head>/, `
+                <script src="xapiwrapper.min.js"></script>
+                <script>
+                    var totalScore = 0;
+
+                    function getParameters() {
+                        var urlParams = new URLSearchParams(window.location.search);
+                        var endpoint = urlParams.get('endpoint') + "/";
+                        var auth = urlParams.get('auth');
+
+                        var actorObject = JSON.parse(urlParams.get('actor'));
+                        var actor = actorObject ? actorObject.id : null;
+                        var activity_id = urlParams.get('activityId');
+
+                        var conf = {
+                            "endpoint": endpoint,
+                            "auth": "Basic " + auth,
+                            "withCredentials": true
+                        };
+
+                        ADL.XAPIWrapper.changeConfig(conf);
+
+                        return {
+                            actor,
+                            activity_id
+                        };
+                    }
+
+                    function sendState(answer) {
+                        if (totalScore === 'randomText') {
+                            totalScore = 0;
+                        }
+                        if (answer === 'randomText') {
+                            totalScore = 'randomText';
+                        } else {
+                            totalScore += answer;
+                        }
+
+                        try {
+                            var parameters = getParameters();
+                            var stateval = {
+                                score: totalScore
+                            };
+                            ADL.XAPIWrapper.sendState("http://adlnet.gov/expapi/activities/question/" + parameters.activity_id,
+                                {"mbox": "mailto:tom@example.com"},
+                                parameters.actor, null, stateval);
+                        } catch (err) {
+                            console.error("An error has occurred!", err);
+                        }
+                    }
+
+                    // Add sendState(1) at the end state
+                    // For demonstration, we'll add a script tag that calls sendState(1) after 5 seconds
+                    setTimeout(function() {
+                        sendState(1);
+                    }, 5000);
+                </script>
+                </head>
+            `);
+
+            // Update the zipFiles map with the modified HTML content
+            window.zipFiles.set('index.html', htmlContent);
+
+            // Create a Blob for the modified ZIP file
+            createModifiedZip(zip);
+        } else {
+            alert('The ZIP file does not contain index.html');
+        }
+    }
+
+    // Function to create a new ZIP file with modified content
+    function createModifiedZip(zip) {
+        // Create a new JSZip instance
+        const newZip = new JSZip();
+
+        // Add all files from the original ZIP to the new ZIP
+        window.zipFiles.forEach(function (content, path) {
+            newZip.file(path, content);
+        });
+
+        // Generate the new ZIP file and provide a download link
+        newZip.generateAsync({ type: 'blob' }).then(function (blob) {
+            // Update the download button with the new ZIP file
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.href = URL.createObjectURL(blob);
+            downloadButton.style.display = 'inline';
+        });
+    }
+</script>
+
+</body>
+</html>

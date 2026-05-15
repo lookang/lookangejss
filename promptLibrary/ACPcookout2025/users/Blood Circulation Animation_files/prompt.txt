@@ -1,0 +1,130 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Blood Circulation Animation”** that visually demonstrates the flow of oxygenated and deoxygenated blood between the heart, lungs, and body, using an animated diagram and step-by-step explanation.
+
+TARGET AUDIENCE:
+- Upper Secondary Biology / Science (e.g., Sec 3–4)
+
+INTERACTIVE REQUIREMENTS:
+- A central **SVG diagram** showing:
+  - **Lungs** at the top, labelled, with simple alveoli icons.
+  - **Heart** in the middle, stylised with chambers and dividing line.
+  - **Body tissues** at the bottom, labelled BODY with cell icons.
+  - Four main **vessel paths**:
+    - Heart → Lungs (pulmonary artery, deoxygenated, blue).
+    - Lungs → Heart (pulmonary vein, oxygenated, red).
+    - Heart → Body (aorta/systemic arteries, oxygenated, red).
+    - Body → Heart (vena cava/systemic veins, deoxygenated, blue).
+- **Animated blood cells** moving along the vessels using SVG `<animateMotion>`:
+  - Red cells travelling along oxygenated paths.
+  - Blue cells travelling along deoxygenated paths.
+- A **legend panel** identifying colours:
+  - Oxygenated Blood.
+  - Deoxygenated Blood.
+- A **control panel** with buttons:
+  - **Start Animation**.
+  - **Pause**.
+  - **Reset**.
+- An **information panel** listing labelled steps (1–5) describing the circulation sequence.
+- A minimal **tooltip** system that shows short explanations when hovering over key diagram parts (heart, lungs, body, each vessel path).
+- Self-contained HTML, CSS, JavaScript; no external libraries.
+- **Responsive**: adapts layout for iframe / full-screen, includes special handling for reduced-motion preference.
+
+SPECIFIC REQUIREMENTS:
+
+Circulation model
+- Represent the **double circulation** concept:
+  1. Deoxygenated blood from body → heart.
+  2. Heart → lungs (deoxygenated).
+  3. Lungs oxygenate blood.
+  4. Lungs → heart (oxygenated).
+  5. Heart → body (oxygenated).
+- Use distinct colours:
+  - Deoxygenated: blue (#4a90e2).
+  - Oxygenated: red (#e74c3c).
+- Show animated blood cells (small circles) continuously travelling along the SVG paths to suggest ongoing flow.
+
+Controls & animation state
+- Manage animation with a class, e.g., `BloodCirculationAnimation`, holding:
+  - `isPlaying`, `isPaused`, `currentStep`, `stepTimer`.
+  - References to buttons, tooltip, container, and info panel.
+- **Start Animation**:
+  - If animation has not started, set `isPlaying = true`, `isPaused = false`, `currentStep = 0`.
+  - Disable Start, enable Pause and Reset.
+  - Remove any `.stopped` class from container.
+  - Begin a **step-by-step** highlighting routine guiding students through steps 1–5.
+- **Pause**:
+  - If currently playing, set `isPaused = true`, add `.paused` class.
+  - Enable Start (“Resume”), disable Pause.
+  - Clear step timer; animation of SVG blood cells continues visually, but step highlighting is paused.
+- **Reset**:
+  - Stop and clear timers, set `isPlaying = false`, `isPaused = false`, `currentStep = 0`.
+  - Re-enable Start, disable Pause and Reset.
+  - Add `.stopped` class and remove `.paused`.
+  - Remove `.active` from any highlighted steps.
+
+Step-by-step info panel
+- Info panel lists conceptual steps:
+  - Step 1: Deoxygenated blood returns to heart from body tissues.
+  - Step 2: Heart pumps deoxygenated blood to lungs.
+  - Step 3: Blood picks up oxygen in lungs.
+  - Step 4: Oxygenated blood returns to heart.
+  - Step 5: Heart pumps oxygenated blood to body tissues.
+- When running:
+  - A timed loop (`playNextStep`) cycles through `steps` array.
+  - For each step, apply `.active` class to the corresponding `.step` div.
+  - Smooth scroll the active step into view if necessary.
+  - After step 5, optionally loop back to step 1.
+
+Tooltip behaviour
+- Attach tooltip text to key diagram groups/paths:
+  - Heart group, lungs group, body group.
+  - Each major vessel path (`#to-lungs`, `#from-lungs`, `#to-body`, `#from-body`).
+- On hover (`mouseenter`):
+  - Show tooltip element near cursor with explanatory text.
+- On `mousemove`:
+  - Update tooltip position relative to container, keeping it inside the visible area.
+- On `mouseleave`:
+  - Hide tooltip.
+
+Keyboard & accessibility
+- Keyboard shortcuts:
+  - Space / Enter: toggle start/pause/resume.
+  - Escape: reset.
+- Buttons:
+  - All have ARIA labels (start/pause/reset animation).
+- Add a small on-screen hint (e.g., bottom-right): “Use Space/Enter to start/pause, Escape to reset”.
+- Add a live region (off-screen) to announce important state changes if desired (e.g., “Animation started”, “Animation paused”).
+- Respect `prefers-reduced-motion` media query:
+  - If true, add a `reduced-motion` CSS class to tone down or skip continuous animations where appropriate.
+
+Audio feedback (optional)
+- Use Web Audio API to play brief tones for key actions:
+  - Start: mid-pitch tone.
+  - Pause: slightly higher tone.
+  - Reset: lower tone.
+- Use simple envelope (attack/decay) and keep sounds under ~0.3 s.
+
+Responsive behaviour
+- Detect if running in an iframe; if so, adjust layout classes (e.g., narrower padding).
+- On window resize:
+  - Optionally reflow container (e.g., temporarily switch display to none and back to trigger layout).
+- Ensure SVG diagram scales within its container.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Describe the **pathway of blood** through the heart, lungs, and body.
+  - Distinguish between **pulmonary** and **systemic** circulation.
+  - Interpret colour coding (oxygenated vs deoxygenated) and relate it to gas exchange.
+  - Sequence the major steps of the circulatory process using the info panel.
+- The animation should reduce cognitive load by chunking the process into clear, labelled stages.
+
+INTERACTION FEATURES TO INCLUDE:
+- Start/Pause/Reset control over the conceptual walkthrough of blood circulation.
+- Visually distinct continuous flow of red and blue blood cells.
+- Tooltips that appear only when needed, providing concise explanations.
+- Keyboard shortcuts and subtle audio/visual feedback.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

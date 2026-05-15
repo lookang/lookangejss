@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Factoring Quadratic Expressions</title>
+    <style>
+        /* ===== BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        /* ===== HEADER SECTION ===== */
+        .header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .level-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .level-btn {
+            padding: 8px 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .level-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .level-btn.active {
+            background: #48bb78;
+            border-color: #48bb78;
+        }
+
+        .new-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .new-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        /* ===== PROBLEM DISPLAY ===== */
+        .problem-section {
+            background: #f7fafc;
+            padding: 16px;
+            text-align: center;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .problem-label {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 6px;
+        }
+
+        .problem-expression {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+            font-family: 'Times New Roman', serif;
+        }
+
+        /* ===== MAIN WORKSPACE ===== */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        @media (min-width: 640px) {
+            .workspace {
+                flex-direction: row;
+            }
+        }
+
+        /* ===== MULTIPLICATION FRAME ===== */
+        .frame-section {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .multiplication-frame {
+            display: grid;
+            grid-template-columns: 80px 1fr 1fr;
+            grid-template-rows: 60px 1fr 1fr;
+            gap: 4px;
+            background: #e2e8f0;
+            padding: 4px;
+            border-radius: 12px;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .frame-cell {
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Times New Roman', serif;
+            min-height: 60px;
+            position: relative;
+        }
+
+        .frame-corner {
+            background: #edf2f7;
+            font-size: 12px;
+            color: #718096;
+        }
+
+        /* Drop zones for factors */
+        .drop-zone {
+            background: #ebf8ff;
+            border: 2px dashed #4299e1;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 60px;
+            min-height: 60px;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            background: #bee3f8;
+            border-color: #3182ce;
+            transform: scale(1.02);
+        }
+
+        .drop-zone.filled {
+            background: #c6f6d5;
+            border: 2px solid #48bb78;
+        }
+
+        .drop-zone.error {
+            background: #fed7d7;
+            border-color: #fc8181;
+        }
+
+        /* Product cells */
+        .product-cell {
+            background: #faf5ff;
+            color: #6b46c1;
+        }
+
+        .product-cell.highlight {
+            background: #e9d8fd;
+        }
+
+        /* ===== FACTOR TILES SECTION ===== */
+        .tiles-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .tiles-container {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .tiles-group {
+            margin-bottom: 12px;
+        }
+
+        .tiles-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .tiles-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .tiles-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .factor-pairs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .factor-pair-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex: 0 0 calc(50% - 4px);
+            min-width: 120px;
+        }
+
+        .pair-separator {
+            color: #718096;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .factor-tile {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Times New Roman', serif;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            transition: all 0.2s;
+            min-width: 50px;
+            min-height: 44px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .factor-tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .factor-tile.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .factor-tile.used {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .factor-tile.constant {
+            background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+            box-shadow: 0 2px 8px rgba(237, 137, 54, 0.3);
+        }
+
+        .factor-tile.constant:hover {
+            box-shadow: 0 4px 12px rgba(237, 137, 54, 0.4);
+        }
+
+        /* ===== RESULT SECTION ===== */
+        .result-section {
+            padding: 16px;
+            background: #f7fafc;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .result-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .factored-form {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Times New Roman', serif;
+            color: #2d3748;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .factored-form.correct {
+            background: #c6f6d5;
+            border-color: #48bb78;
+            color: #276749;
+        }
+
+        .factored-form.incorrect {
+            background: #fed7d7;
+            border-color: #fc8181;
+            color: #c53030;
+        }
+
+        .check-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .check-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+        }
+
+        .check-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reset-btn {
+            padding: 12px 24px;
+            background: #718096;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-height: 44px;
+        }
+
+        .reset-btn:hover {
+            background: #4a5568;
+        }
+
+        /* ===== FEEDBACK MESSAGE ===== */
+        .feedback {
+            text-align: center;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.success {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .feedback.error {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .feedback.hint {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        /* ===== X-TERM SUM CHECKER ===== */
+        .sum-checker {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+        }
+
+        .sum-checker-label {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 6px;
+        }
+
+        .sum-checker-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .sum-current {
+            padding: 6px 12px;
+            background: white;
+            border-radius: 6px;
+            border: 2px solid #e2e8f0;
+            min-width: 60px;
+        }
+
+        .sum-current.match {
+            background: #c6f6d5;
+            border-color: #48bb78;
+            color: #276749;
+        }
+
+        .sum-current.mismatch {
+            background: #fed7d7;
+            border-color: #fc8181;
+            color: #c53030;
+        }
+
+        .sum-target {
+            color: #4a5568;
+        }
+
+        .sum-equals {
+            font-size: 20px;
+            color: #718096;
+        }
+
+        /* ===== ANALYTICS PANEL ===== */
+        .analytics-section {
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .analytics-header {
+            background: #2d3748;
+            color: white;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .analytics-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .analytics-toggle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .analytics-content {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #1a202c;
+            padding: 12px;
+            display: none;
+        }
+
+        .analytics-content.show {
+            display: block;
+        }
+
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #a0aec0;
+            padding: 4px 0;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #48bb78;
+        }
+
+        .log-action {
+            color: #63b3ed;
+        }
+
+        .log-value {
+            color: #faf089;
+        }
+
+        .clear-log-btn {
+            padding: 6px 12px;
+            background: #4a5568;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* ===== INSTRUCTIONS TOOLTIP ===== */
+        .instructions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            background: #4299e1;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+            z-index: 100;
+        }
+
+        .instructions-popup {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 16px;
+            display: none;
+            z-index: 100;
+        }
+
+        .instructions-popup.show {
+            display: block;
+        }
+
+        .instructions-popup h3 {
+            font-size: 16px;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .instructions-popup p {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+
+        .instructions-popup ol {
+            font-size: 14px;
+            color: #4a5568;
+            padding-left: 20px;
+        }
+
+        .instructions-popup li {
+            margin-bottom: 6px;
+        }
+
+        /* ===== SCORE DISPLAY ===== */
+        .score-display {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .score-item {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .score-value {
+            font-weight: 700;
+            color: #48bb78;
+        }
+
+        /* ===== DRAGGING OVERLAY ===== */
+        .drag-preview {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Times New Roman', serif;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .drag-preview.constant {
+            background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+        }
+
+        /* ===== RESPONSIVE ADJUSTMENTS ===== */
+        @media (max-width: 639px) {
+            .multiplication-frame {
+                grid-template-columns: 60px 1fr 1fr;
+                max-width: 280px;
+            }
+
+            .frame-cell {
+                min-height: 50px;
+                font-size: 16px;
+            }
+
+            .problem-expression {
+                font-size: 24px;
+            }
+
+            .score-display {
+                font-size: 12px;
+            }
+        }
+    </style>
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const payload = {
+      score: raw,
+      max,
+      feedback: 'Quiz ' + reason + ': ' + raw + '/' + max + ' (correct ' + quizMeta.correct + '/' + max + ')',
+      reason,
+      quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+      history: history.slice(-80)
+    };
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /correct/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState({
+          score: scoreRaw,
+          max: max,
+          feedback: feedback || '',
+          quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+          history: history.slice(-80)
+        });
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    // If we know quizMeta.max, send a score on each change.
+    // Debounced by lastScoreSent.
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Score: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = qs.questions.length;
+    quizMeta.max = quizMeta.total;
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          pushHistory({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          qs.attempted++;
+          if (ok === true) quizMeta.correct++;
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        pushHistory({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          qs.attempted++;
+          if (result === 'correct') quizMeta.correct++;
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+  }
+})();
+    </script>
+  </head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header with Level Selection -->
+        <div class="header">
+            <div class="level-selector">
+                <button class="level-btn active" data-level="1" title="x² coefficient is 1">L1</button>
+                <button class="level-btn" data-level="2" title="x² coefficient is ±1">L2</button>
+                <button class="level-btn" data-level="3" title="x² coefficient is ±small prime (2, 3, 5)">L3</button>
+                <button class="level-btn" data-level="4" title="Special identities with ±perfect square coefficients (1, 4, 9)">L4</button>
+            </div>
+            <div class="score-display">
+                <span class="score-item">Correct: <span class="score-value" id="correctCount">0</span></span>
+                <span class="score-item">Attempts: <span class="score-value" id="attemptCount">0</span></span>
+            </div>
+            <button class="new-btn" id="newProblemBtn">New Problem</button>
+        </div>
+
+        <!-- Problem Display -->
+        <div class="problem-section">
+            <div class="problem-label">Factor the expression:</div>
+            <div class="problem-expression" id="problemDisplay">x² + 5x + 6</div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="workspace">
+            <!-- Multiplication Frame -->
+            <div class="frame-section">
+                <div class="section-title">Multiplication Frame</div>
+                <div class="multiplication-frame" id="multFrame">
+                    <div class="frame-cell frame-corner">×</div>
+                    <div class="frame-cell drop-zone" id="top1" data-position="top1"></div>
+                    <div class="frame-cell drop-zone" id="top2" data-position="top2"></div>
+                    <div class="frame-cell drop-zone" id="left1" data-position="left1"></div>
+                    <div class="frame-cell product-cell" id="prod11">?</div>
+                    <div class="frame-cell product-cell" id="prod12">?</div>
+                    <div class="frame-cell drop-zone" id="left2" data-position="left2"></div>
+                    <div class="frame-cell product-cell" id="prod21">?</div>
+                    <div class="frame-cell product-cell" id="prod22">?</div>
+                </div>
+            </div>
+
+            <!-- Factor Tiles -->
+            <div class="tiles-section">
+                <div class="section-title">Factor Tiles</div>
+                <div class="tiles-container">
+                    <div class="tiles-group">
+                        <div class="tiles-label">x-terms (drag to frame):</div>
+                        <div class="tiles-row" id="xTermTiles"></div>
+                    </div>
+                    <div class="tiles-group">
+                        <div class="tiles-label">Constants (drag to frame):</div>
+                        <div class="tiles-row" id="constTiles"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="result-section">
+            <!-- X-Term Sum Checker -->
+            <div class="sum-checker">
+                <div class="sum-checker-label">Check: Do your x-terms sum to the middle term?</div>
+                <div class="sum-checker-content">
+                    <span class="sum-current" id="sumCurrent">?</span>
+                    <span class="sum-equals">=</span>
+                    <span class="sum-target" id="sumTarget">?</span>
+                </div>
+            </div>
+            <div class="result-row">
+                <div class="factored-form" id="factoredForm">( ? )( ? )</div>
+                <button class="check-btn" id="checkBtn">Check Answer</button>
+                <button class="reset-btn" id="resetBtn">Reset</button>
+            </div>
+            <div class="feedback" id="feedback"></div>
+        </div>
+
+        <!-- Analytics Panel -->
+        <div class="analytics-section">
+            <div class="analytics-header" id="analyticsHeader">
+                <span class="analytics-title">📊 Learning Analytics</span>
+                <span class="analytics-toggle">▼ Click to expand</span>
+            </div>
+            <div class="analytics-content" id="analyticsContent">
+                <div id="logContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions Button -->
+    <div class="instructions" id="instructionsBtn">?</div>
+    <div class="instructions-popup" id="instructionsPopup">
+        <h3>How to Factor</h3>
+        <ol>
+            <li>Look at the quadratic expression</li>
+            <li>Drag x-terms to the <strong>top row</strong> and <strong>left column</strong></li>
+            <li>Drag constants to complete the factors</li>
+            <li>The frame calculates products automatically</li>
+            <li>Check if products sum to the original expression</li>
+            <li>Click "Check Answer" to verify</li>
+        </ol>
+        <p><strong>Tip:</strong> For ax² + bx + c, find factors where the cross products sum to b!</p>
+    </div>
+
+    <!-- Drag Preview Element -->
+    <div class="drag-preview" id="dragPreview"></div>
+
+    <script>
+        /**
+         * =====================================================
+         * FACTORING QUADRATIC EXPRESSIONS - INTERACTIVE APP
+         * =====================================================
+         * This application helps students learn to factor quadratic
+         * expressions using the multiplication frame (area model).
+         *
+         * Levels:
+         * 1: coefficient of x² is 1
+         * 2: coefficient of x² is ±1
+         * 3: coefficient of x² is ±small prime (2, 3, 5)
+         * 4: Special identities with ±perfect square coefficients (1, 4, 9)
+         */
+
+        // ===== GLOBAL STATE =====
+        const state = {
+            level: 1,
+            currentProblem: null,
+            placedTiles: {
+                top1: null,
+                top2: null,
+                left1: null,
+                left2: null
+            },
+            correctCount: 0,
+            attemptCount: 0,
+            startTime: Date.now(),
+            analyticsLog: []
+        };
+
+        // ===== NUMBERS FOR GENERATION =====
+        const SMALL_PRIMES = [2, 3, 5, 7];
+        // Perfect squares up to 9 for x² coefficients (Level 4 special identities only)
+        const PERFECT_SQUARES = [1, 4, 9];
+        // Level 1: only positive primes
+        const LEVEL1_CONSTANTS = [2, 3, 5, 7];
+        // Level 2+: include non-primes with few factors (< 4 divisors)
+        const LEVEL2_CONSTANTS = [2, 3, 4, 5, 6, 7, 8, 9];
+
+        /**
+         * Gets all factor pairs of a number (positive and negative)
+         * Returns array of [a, b] pairs where a * b = n
+         */
+        function getFactorPairs(n) {
+            const pairs = [];
+            const absN = Math.abs(n);
+
+            if (absN === 0) return [[0, 0]];
+
+            // Find all positive factor pairs
+            for (let i = 1; i <= Math.sqrt(absN); i++) {
+                if (absN % i === 0) {
+                    const j = absN / i;
+                    if (n > 0) {
+                        // Positive product: both positive or both negative
+                        pairs.push([i, j]);
+                        pairs.push([-i, -j]);
+                    } else {
+                        // Negative product: one positive, one negative
+                        pairs.push([i, -j]);
+                        pairs.push([-i, j]);
+                    }
+                }
+            }
+
+            return pairs;
+        }
+
+        // ===== DOM ELEMENTS =====
+        const elements = {
+            problemDisplay: document.getElementById('problemDisplay'),
+            multFrame: document.getElementById('multFrame'),
+            xTermTiles: document.getElementById('xTermTiles'),
+            constTiles: document.getElementById('constTiles'),
+            factoredForm: document.getElementById('factoredForm'),
+            checkBtn: document.getElementById('checkBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+            newProblemBtn: document.getElementById('newProblemBtn'),
+            feedback: document.getElementById('feedback'),
+            correctCount: document.getElementById('correctCount'),
+            attemptCount: document.getElementById('attemptCount'),
+            analyticsContent: document.getElementById('analyticsContent'),
+            analyticsHeader: document.getElementById('analyticsHeader'),
+            logContainer: document.getElementById('logContainer'),
+            instructionsBtn: document.getElementById('instructionsBtn'),
+            instructionsPopup: document.getElementById('instructionsPopup'),
+            dragPreview: document.getElementById('dragPreview'),
+            sumCurrent: document.getElementById('sumCurrent'),
+            sumTarget: document.getElementById('sumTarget')
+        };
+
+        // Drop zone elements
+        const dropZones = {
+            top1: document.getElementById('top1'),
+            top2: document.getElementById('top2'),
+            left1: document.getElementById('left1'),
+            left2: document.getElementById('left2')
+        };
+
+        // Product cell elements
+        const productCells = {
+            prod11: document.getElementById('prod11'),
+            prod12: document.getElementById('prod12'),
+            prod21: document.getElementById('prod21'),
+            prod22: document.getElementById('prod22')
+        };
+
+        // ===== UTILITY FUNCTIONS =====
+
+        /**
+         * Returns a random element from an array
+         */
+        function randomChoice(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        /**
+         * Returns a random integer between min and max (inclusive)
+         */
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        /**
+         * Formats a term for display (handles coefficients and signs)
+         */
+        function formatTerm(coef, variable = '') {
+            if (coef === 0) return '0';
+            if (variable === '') return coef.toString();
+
+            if (coef === 1) return variable;
+            if (coef === -1) return '-' + variable;
+            return coef + variable;
+        }
+
+        /**
+         * Formats a polynomial for display
+         */
+        function formatPolynomial(a, b, c) {
+            let parts = [];
+
+            // x² term
+            if (a !== 0) {
+                if (a === 1) parts.push('x²');
+                else if (a === -1) parts.push('-x²');
+                else parts.push(a + 'x²');
+            }
+
+            // x term
+            if (b !== 0) {
+                if (b > 0 && parts.length > 0) parts.push('+');
+                if (b === 1) parts.push('x');
+                else if (b === -1) parts.push('-x');
+                else parts.push(b + 'x');
+            }
+
+            // constant term
+            if (c !== 0) {
+                if (c > 0 && parts.length > 0) parts.push('+');
+                parts.push(c.toString());
+            }
+
+            return parts.join(' ').replace(/\+\s*-/g, '- ').replace(/^\s*\+\s*/, '');
+        }
+
+        /**
+         * Logs an action to the analytics panel
+         */
+        function logAction(action, details = '') {
+            const elapsed = ((Date.now() - state.startTime) / 1000).toFixed(1);
+            const entry = {
+                time: elapsed,
+                action: action,
+                details: details
+            };
+            state.analyticsLog.push(entry);
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-time">t=${elapsed}s</span> ` +
+                `<span class="log-action">${action}</span> ` +
+                `<span class="log-value">${details}</span>`;
+
+            elements.logContainer.appendChild(logEntry);
+            elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+        }
+
+        // ===== PROBLEM GENERATION =====
+
+        /**
+         * Generates a Level 1 problem: x² + bx + c
+         * Factors: (x + p)(x + q) where p, q are positive integers
+         */
+        function generateLevel1() {
+            const p = randomChoice(LEVEL1_CONSTANTS);
+            const q = randomChoice(LEVEL1_CONSTANTS);
+
+            // (x + p)(x + q) = x² + (p+q)x + pq
+            const a = 1;
+            const b = p + q;
+            const c = p * q;
+
+            return {
+                a, b, c,
+                factors: [
+                    { xCoef: 1, const: p },
+                    { xCoef: 1, const: q }
+                ],
+                xTerms: [1, 1],
+                constants: [p, q]
+            };
+        }
+
+        /**
+         * Generates a Level 2 problem: ±x² + bx + c
+         * Allows negative factors: (x + p)(x - q) or (x - p)(x - q)
+         * Uses non-prime numbers as well
+         */
+        function generateLevel2() {
+            const p = randomChoice(LEVEL2_CONSTANTS);
+            const q = randomChoice(LEVEL2_CONSTANTS);
+
+            // Choose sign pattern: ++, +-, --, or -+
+            const patterns = [
+                [1, 1],   // (x + p)(x + q)
+                [1, -1],  // (x + p)(x - q)
+                [-1, 1],  // (x - p)(x + q)
+                [-1, -1]  // (x - p)(x - q)
+            ];
+            const [signP, signQ] = randomChoice(patterns);
+
+            const a = 1;
+            const b = signP * p + signQ * q;
+            const c = signP * p * signQ * q;
+
+            return {
+                a, b, c,
+                factors: [
+                    { xCoef: 1, const: signP * p },
+                    { xCoef: 1, const: signQ * q }
+                ],
+                xTerms: [1, 1],
+                constants: [signP * p, signQ * q]
+            };
+        }
+
+        /**
+         * Generates a Level 3 problem: ax² + bx + c where a is ±small prime (2, 3, or 5)
+         * Factors: (ax + p)(x + q) where a is ±2, ±3, or ±5
+         */
+        function generateLevel3() {
+            let leadCoef = randomChoice(SMALL_PRIMES.slice(0, 3)); // 2, 3, or 5
+            // Allow negative leading coefficient
+            leadCoef = randomChoice([1, -1]) * leadCoef;
+
+            const p = randomChoice(LEVEL2_CONSTANTS.slice(0, 6)); // 2-7
+            const q = randomChoice(LEVEL2_CONSTANTS.slice(0, 6)); // 2-7
+
+            // Choose sign for constants
+            const signP = randomChoice([1, -1]);
+            const signQ = randomChoice([1, -1]);
+
+            // (leadCoef*x + signP*p)(x + signQ*q)
+            const a = leadCoef;
+            const b = leadCoef * signQ * q + signP * p;
+            const c = signP * p * signQ * q;
+
+            return {
+                a, b, c,
+                factors: [
+                    { xCoef: leadCoef, const: signP * p },
+                    { xCoef: 1, const: signQ * q }
+                ],
+                xTerms: [leadCoef, 1],
+                constants: [signP * p, signQ * q]
+            };
+        }
+
+        /**
+         * Generates a Level 4 problem: Special identities with perfect square coefficients (1, 4, 9)
+         * - Difference of squares: (rx)² - p² = (rx + p)(rx - p)
+         * - Perfect square (sum): (rx + p)² = r²x² + 2rpx + p²
+         * - Perfect square (diff): (rx - p)² = r²x² - 2rpx + p²
+         * Also allows negative leading coefficient variants (r = 1, 2, or 3)
+         */
+        function generateLevel4() {
+            const type = randomChoice(['diffSquares', 'perfectSquareSum', 'perfectSquareDiff']);
+            const p = randomChoice(LEVEL2_CONSTANTS.slice(0, 6)); // 2-7
+            // Allow negative leading coefficient
+            const sign = randomChoice([1, -1]);
+            // Use perfect square coefficient (sqrt values 1-3, so squares 1, 4, 9)
+            const sqrtCoef = randomChoice([1, 2, 3]);
+            const perfectSquare = sqrtCoef * sqrtCoef;
+
+            if (type === 'diffSquares') {
+                // sign * ((sqrtCoef*x)² - p²) = sign * (sqrtCoef*x + p)(sqrtCoef*x - p)
+                // For sign=1: perfectSquare*x² - p² = (sqrtCoef*x + p)(sqrtCoef*x - p)
+                // For sign=-1: -perfectSquare*x² + p² = (-sqrtCoef*x + p)(sqrtCoef*x + p)
+                const xCoef1 = sign * sqrtCoef;
+                const xCoef2 = sqrtCoef;
+                return {
+                    a: sign * perfectSquare,
+                    b: 0,
+                    c: sign * (-(p * p)),
+                    factors: [
+                        { xCoef: xCoef1, const: p },
+                        { xCoef: xCoef2, const: -p }
+                    ],
+                    xTerms: [xCoef1, xCoef2],
+                    constants: [p, -p],
+                    identity: 'a² - b²'
+                };
+            } else if (type === 'perfectSquareSum') {
+                // sign * (sqrtCoef*x + p)² = sign * (perfectSquare*x² + 2*sqrtCoef*p*x + p²)
+                // For sign=1: (sqrtCoef*x + p)(sqrtCoef*x + p)
+                // For sign=-1: (-sqrtCoef*x - p)(sqrtCoef*x + p)
+                const xCoef1 = sign * sqrtCoef;
+                const xCoef2 = sqrtCoef;
+                const const1 = sign * p;
+                const const2 = p;
+                return {
+                    a: sign * perfectSquare,
+                    b: sign * 2 * sqrtCoef * p,
+                    c: sign * p * p,
+                    factors: [
+                        { xCoef: xCoef1, const: const1 },
+                        { xCoef: xCoef2, const: const2 }
+                    ],
+                    xTerms: [xCoef1, xCoef2],
+                    constants: [const1, const2],
+                    identity: '(a + b)²'
+                };
+            } else {
+                // sign * (sqrtCoef*x - p)² = sign * (perfectSquare*x² - 2*sqrtCoef*p*x + p²)
+                // For sign=1: (sqrtCoef*x - p)(sqrtCoef*x - p)
+                // For sign=-1: (-sqrtCoef*x + p)(sqrtCoef*x - p)
+                const xCoef1 = sign * sqrtCoef;
+                const xCoef2 = sqrtCoef;
+                const const1 = sign * (-p);
+                const const2 = -p;
+                return {
+                    a: sign * perfectSquare,
+                    b: sign * (-2 * sqrtCoef * p),
+                    c: sign * p * p,
+                    factors: [
+                        { xCoef: xCoef1, const: const1 },
+                        { xCoef: xCoef2, const: const2 }
+                    ],
+                    xTerms: [xCoef1, xCoef2],
+                    constants: [const1, const2],
+                    identity: '(a - b)²'
+                };
+            }
+        }
+
+        /**
+         * Generates a new problem based on current level
+         */
+        function generateProblem() {
+            let problem;
+
+            switch (state.level) {
+                case 1:
+                    problem = generateLevel1();
+                    break;
+                case 2:
+                    problem = generateLevel2();
+                    break;
+                case 3:
+                    problem = generateLevel3();
+                    break;
+                case 4:
+                    problem = generateLevel4();
+                    break;
+                default:
+                    problem = generateLevel1();
+            }
+
+            state.currentProblem = problem;
+            state.startTime = Date.now();
+
+            // Display the problem
+            const expression = formatPolynomial(problem.a, problem.b, problem.c);
+            elements.problemDisplay.textContent = expression;
+
+            // Generate tiles
+            generateTiles(problem);
+
+            // Reset the frame
+            resetFrame();
+
+            // Update sum checker with new target
+            updateSumChecker();
+
+            // Log the action
+            logAction('New Problem', `Level ${state.level}: ${expression}`);
+        }
+
+        /**
+         * Generates factor tiles for the current problem
+         */
+        function generateTiles(problem) {
+            elements.xTermTiles.innerHTML = '';
+            elements.constTiles.innerHTML = '';
+
+            // Get all factor pairs of the x² coefficient (problem.a)
+            const xSquaredCoef = problem.a;
+            const xTermFactorPairs = getFactorPairs(xSquaredCoef);
+
+            // Sort factor pairs by absolute value of first element
+            xTermFactorPairs.sort((a, b) => {
+                const absCompare = Math.abs(a[0]) - Math.abs(b[0]);
+                if (absCompare !== 0) return absCompare;
+                return b[0] - a[0]; // positive before negative
+            });
+
+            // Remove duplicate pairs (where [a,b] and [b,a] are the same)
+            const seenXPairs = new Set();
+            const uniqueXPairs = xTermFactorPairs.filter(pair => {
+                const key1 = `${pair[0]},${pair[1]}`;
+                const key2 = `${pair[1]},${pair[0]}`;
+                if (seenXPairs.has(key1) || seenXPairs.has(key2)) {
+                    return false;
+                }
+                seenXPairs.add(key1);
+                return true;
+            });
+
+            // Create x-term tiles as paired rows (like constants)
+            const xPairsContainer = document.createElement('div');
+            xPairsContainer.className = 'factor-pairs-container';
+
+            let xTileIndex = 0;
+            uniqueXPairs.forEach((pair, pairIndex) => {
+                const pairRow = document.createElement('div');
+                pairRow.className = 'factor-pair-row';
+
+                const tile1 = createTile(pair[0], 'x', 'xterm-' + xTileIndex++);
+                pairRow.appendChild(tile1);
+
+                const separator = document.createElement('span');
+                separator.className = 'pair-separator';
+                separator.textContent = '×';
+                pairRow.appendChild(separator);
+
+                const tile2 = createTile(pair[1], 'x', 'xterm-' + xTileIndex++);
+                pairRow.appendChild(tile2);
+
+                xPairsContainer.appendChild(pairRow);
+            });
+
+            elements.xTermTiles.appendChild(xPairsContainer);
+
+            // Get all factor pairs of the constant term
+            const constantProduct = problem.c;
+            const factorPairs = getFactorPairs(constantProduct);
+
+            // Sort factor pairs by absolute value of first element
+            factorPairs.sort((a, b) => {
+                const absCompare = Math.abs(a[0]) - Math.abs(b[0]);
+                if (absCompare !== 0) return absCompare;
+                return b[0] - a[0]; // positive before negative
+            });
+
+            // Remove duplicate pairs (where [a,b] and [b,a] are the same)
+            const seenPairs = new Set();
+            const uniquePairs = factorPairs.filter(pair => {
+                const key1 = `${pair[0]},${pair[1]}`;
+                const key2 = `${pair[1]},${pair[0]}`;
+                if (seenPairs.has(key1) || seenPairs.has(key2)) {
+                    return false;
+                }
+                seenPairs.add(key1);
+                return true;
+            });
+
+            // Create constant tiles as paired rows
+            const pairsContainer = document.createElement('div');
+            pairsContainer.className = 'factor-pairs-container';
+
+            let tileIndex = 0;
+            uniquePairs.forEach((pair, pairIndex) => {
+                const pairRow = document.createElement('div');
+                pairRow.className = 'factor-pair-row';
+
+                const tile1 = createTile(pair[0], '', 'const-' + tileIndex++);
+                tile1.classList.add('constant');
+                pairRow.appendChild(tile1);
+
+                const separator = document.createElement('span');
+                separator.className = 'pair-separator';
+                separator.textContent = '×';
+                pairRow.appendChild(separator);
+
+                const tile2 = createTile(pair[1], '', 'const-' + tileIndex++);
+                tile2.classList.add('constant');
+                pairRow.appendChild(tile2);
+
+                pairsContainer.appendChild(pairRow);
+            });
+
+            elements.constTiles.appendChild(pairsContainer);
+        }
+
+        /**
+         * Creates a draggable factor tile
+         */
+        function createTile(coef, variable, id) {
+            const tile = document.createElement('div');
+            tile.className = 'factor-tile';
+            tile.id = id;
+            tile.textContent = formatTerm(coef, variable);
+            tile.dataset.coef = coef;
+            tile.dataset.variable = variable;
+            tile.draggable = true;
+
+            // Mouse events
+            tile.addEventListener('dragstart', handleDragStart);
+            tile.addEventListener('dragend', handleDragEnd);
+
+            // Touch events for mobile
+            tile.addEventListener('touchstart', handleTouchStart, { passive: false });
+            tile.addEventListener('touchmove', handleTouchMove, { passive: false });
+            tile.addEventListener('touchend', handleTouchEnd);
+
+            return tile;
+        }
+
+        // ===== DRAG AND DROP HANDLERS =====
+
+        let currentDragTile = null;
+        let touchOffsetX = 0;
+        let touchOffsetY = 0;
+
+        /**
+         * Handles drag start for mouse
+         */
+        function handleDragStart(e) {
+            currentDragTile = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', e.target.id);
+
+            logAction('Drag Start', e.target.textContent);
+        }
+
+        /**
+         * Handles drag end for mouse
+         */
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            currentDragTile = null;
+
+            // Remove drag-over class from all drop zones
+            Object.values(dropZones).forEach(zone => {
+                zone.classList.remove('drag-over');
+            });
+        }
+
+        /**
+         * Handles touch start for mobile
+         */
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            currentDragTile = e.target;
+
+            const rect = e.target.getBoundingClientRect();
+            touchOffsetX = touch.clientX - rect.left - rect.width / 2;
+            touchOffsetY = touch.clientY - rect.top - rect.height / 2;
+
+            e.target.classList.add('dragging');
+
+            // Show drag preview
+            elements.dragPreview.textContent = e.target.textContent;
+            elements.dragPreview.style.display = 'block';
+            elements.dragPreview.style.left = touch.clientX + 'px';
+            elements.dragPreview.style.top = touch.clientY + 'px';
+
+            if (e.target.classList.contains('constant')) {
+                elements.dragPreview.classList.add('constant');
+            } else {
+                elements.dragPreview.classList.remove('constant');
+            }
+
+            logAction('Touch Drag Start', e.target.textContent);
+        }
+
+        /**
+         * Handles touch move for mobile
+         */
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!currentDragTile) return;
+
+            const touch = e.touches[0];
+
+            // Move drag preview
+            elements.dragPreview.style.left = touch.clientX + 'px';
+            elements.dragPreview.style.top = touch.clientY + 'px';
+
+            // Check for drop zone hover
+            Object.values(dropZones).forEach(zone => {
+                const rect = zone.getBoundingClientRect();
+                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                    zone.classList.add('drag-over');
+                } else {
+                    zone.classList.remove('drag-over');
+                }
+            });
+        }
+
+        /**
+         * Handles touch end for mobile
+         */
+        function handleTouchEnd(e) {
+            if (!currentDragTile) return;
+
+            const touch = e.changedTouches[0];
+
+            // Hide drag preview
+            elements.dragPreview.style.display = 'none';
+            currentDragTile.classList.remove('dragging');
+
+            // Find the drop zone under the touch point
+            let targetZone = null;
+            Object.entries(dropZones).forEach(([key, zone]) => {
+                const rect = zone.getBoundingClientRect();
+                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                    targetZone = { key, zone };
+                }
+                zone.classList.remove('drag-over');
+            });
+
+            if (targetZone) {
+                placeTileInZone(currentDragTile, targetZone.key);
+            }
+
+            currentDragTile = null;
+        }
+
+        /**
+         * Sets up drop zone event listeners
+         */
+        function setupDropZones() {
+            Object.entries(dropZones).forEach(([key, zone]) => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+
+                zone.addEventListener('dragleave', (e) => {
+                    zone.classList.remove('drag-over');
+                });
+
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+
+                    const tileId = e.dataTransfer.getData('text/plain');
+                    const tile = document.getElementById(tileId);
+
+                    if (tile) {
+                        placeTileInZone(tile, key);
+                    }
+                });
+
+                // Click to remove placed tile
+                zone.addEventListener('click', () => {
+                    if (state.placedTiles[key]) {
+                        removeTileFromZone(key);
+                    }
+                });
+            });
+        }
+
+        /**
+         * Places a tile in a drop zone
+         */
+        function placeTileInZone(tile, zoneKey) {
+            // Remove any existing tile in this zone
+            if (state.placedTiles[zoneKey]) {
+                const oldTile = document.getElementById(state.placedTiles[zoneKey].id);
+                if (oldTile) {
+                    oldTile.classList.remove('used');
+                }
+            }
+
+            // Store the tile data
+            state.placedTiles[zoneKey] = {
+                id: tile.id,
+                coef: parseInt(tile.dataset.coef),
+                variable: tile.dataset.variable,
+                text: tile.textContent
+            };
+
+            // Update visual
+            tile.classList.add('used');
+            dropZones[zoneKey].textContent = tile.textContent;
+            dropZones[zoneKey].classList.add('filled');
+
+            // Log the action
+            logAction('Tile Placed', `${tile.textContent} → ${zoneKey}`);
+
+            // Update products
+            updateProducts();
+            updateFactoredForm();
+        }
+
+        /**
+         * Removes a tile from a drop zone
+         */
+        function removeTileFromZone(zoneKey) {
+            const tileData = state.placedTiles[zoneKey];
+            if (!tileData) return;
+
+            // Restore the tile
+            const tile = document.getElementById(tileData.id);
+            if (tile) {
+                tile.classList.remove('used');
+            }
+
+            // Clear the zone
+            state.placedTiles[zoneKey] = null;
+            dropZones[zoneKey].textContent = '';
+            dropZones[zoneKey].classList.remove('filled', 'error');
+
+            // Log the action
+            logAction('Tile Removed', `${tileData.text} from ${zoneKey}`);
+
+            // Update products
+            updateProducts();
+            updateFactoredForm();
+        }
+
+        /**
+         * Updates the product cells based on placed tiles
+         */
+        function updateProducts() {
+            const top1 = state.placedTiles.top1;
+            const top2 = state.placedTiles.top2;
+            const left1 = state.placedTiles.left1;
+            const left2 = state.placedTiles.left2;
+
+            // prod11 = top1 * left1
+            productCells.prod11.textContent = calculateProduct(top1, left1);
+            productCells.prod11.classList.toggle('highlight', top1 && left1);
+
+            // prod12 = top2 * left1
+            productCells.prod12.textContent = calculateProduct(top2, left1);
+            productCells.prod12.classList.toggle('highlight', top2 && left1);
+
+            // prod21 = top1 * left2
+            productCells.prod21.textContent = calculateProduct(top1, left2);
+            productCells.prod21.classList.toggle('highlight', top1 && left2);
+
+            // prod22 = top2 * left2
+            productCells.prod22.textContent = calculateProduct(top2, left2);
+            productCells.prod22.classList.toggle('highlight', top2 && left2);
+
+            // Update the x-term sum checker
+            updateSumChecker();
+        }
+
+        /**
+         * Updates the x-term sum checker display
+         */
+        function updateSumChecker() {
+            const problem = state.currentProblem;
+            if (!problem) return;
+
+            // Show target (the b coefficient from ax² + bx + c)
+            const targetB = problem.b;
+            elements.sumTarget.textContent = formatTerm(targetB, 'x');
+
+            // Calculate current sum of x-terms (prod12 + prod21)
+            const top1 = state.placedTiles.top1;
+            const top2 = state.placedTiles.top2;
+            const left1 = state.placedTiles.left1;
+            const left2 = state.placedTiles.left2;
+
+            // prod12 = top2 * left1 (x-term if one is x and one is constant)
+            // prod21 = top1 * left2 (x-term if one is x and one is constant)
+            let currentSum = 0;
+            let hasAnyXTerm = false;
+
+            // Calculate prod12 contribution (top2 × left1)
+            if (top2 && left1) {
+                const prod = multiplyTerms(top2, left1);
+                if (prod.degree === 1) {
+                    currentSum += prod.coef;
+                    hasAnyXTerm = true;
+                }
+            }
+
+            // Calculate prod21 contribution (top1 × left2)
+            if (top1 && left2) {
+                const prod = multiplyTerms(top1, left2);
+                if (prod.degree === 1) {
+                    currentSum += prod.coef;
+                    hasAnyXTerm = true;
+                }
+            }
+
+            // Update display
+            if (hasAnyXTerm) {
+                elements.sumCurrent.textContent = formatTerm(currentSum, 'x');
+
+                // Check if it matches
+                if (currentSum === targetB) {
+                    elements.sumCurrent.classList.add('match');
+                    elements.sumCurrent.classList.remove('mismatch');
+                } else {
+                    elements.sumCurrent.classList.add('mismatch');
+                    elements.sumCurrent.classList.remove('match');
+                }
+            } else {
+                elements.sumCurrent.textContent = '?';
+                elements.sumCurrent.classList.remove('match', 'mismatch');
+            }
+        }
+
+        /**
+         * Calculates the product of two terms
+         * Shows partial info when only one term is available
+         */
+        function calculateProduct(term1, term2) {
+            // Show partial calculation if only one term is placed
+            if (!term1 && !term2) return '?';
+
+            if (!term1) {
+                // Only term2 is placed
+                return '? × ' + formatTerm(term2.coef, term2.variable);
+            }
+
+            if (!term2) {
+                // Only term1 is placed
+                return formatTerm(term1.coef, term1.variable) + ' × ?';
+            }
+
+            // Both terms available - calculate the product
+            const coef1 = term1.coef;
+            const coef2 = term2.coef;
+            const var1 = term1.variable;
+            const var2 = term2.variable;
+
+            const productCoef = coef1 * coef2;
+
+            // Determine the resulting variable
+            let resultVar = '';
+            if (var1 === 'x' && var2 === 'x') {
+                resultVar = 'x²';
+            } else if (var1 === 'x' || var2 === 'x') {
+                resultVar = 'x';
+            }
+
+            return formatTerm(productCoef, resultVar);
+        }
+
+        /**
+         * Updates the factored form display
+         */
+        function updateFactoredForm() {
+            const top1 = state.placedTiles.top1;
+            const top2 = state.placedTiles.top2;
+            const left1 = state.placedTiles.left1;
+            const left2 = state.placedTiles.left2;
+
+            if (!top1 || !top2 || !left1 || !left2) {
+                elements.factoredForm.textContent = '( ? )( ? )';
+                elements.factoredForm.classList.remove('correct', 'incorrect');
+                return;
+            }
+
+            // Build factor 1: (left1 + left2)
+            // Build factor 2: (top1 + top2)
+            const factor1 = formatFactor(left1, left2);
+            const factor2 = formatFactor(top1, top2);
+
+            elements.factoredForm.textContent = `(${factor1})(${factor2})`;
+        }
+
+        /**
+         * Formats a factor expression like (2x + 3)
+         */
+        function formatFactor(term1, term2) {
+            // term1 should be the x-term, term2 should be constant
+            // But we need to handle the order based on what's placed
+
+            let xTerm = term1.variable === 'x' ? term1 : term2;
+            let constTerm = term1.variable === '' ? term1 : term2;
+
+            if (!xTerm || !constTerm) {
+                return formatTerm(term1.coef, term1.variable) + ' + ' + formatTerm(term2.coef, term2.variable);
+            }
+
+            let result = formatTerm(xTerm.coef, 'x');
+
+            if (constTerm.coef >= 0) {
+                result += ' + ' + constTerm.coef;
+            } else {
+                result += ' - ' + Math.abs(constTerm.coef);
+            }
+
+            return result;
+        }
+
+        /**
+         * Checks if the current answer is correct
+         */
+        function checkAnswer() {
+            const top1 = state.placedTiles.top1;
+            const top2 = state.placedTiles.top2;
+            const left1 = state.placedTiles.left1;
+            const left2 = state.placedTiles.left2;
+
+            state.attemptCount++;
+            elements.attemptCount.textContent = state.attemptCount;
+
+            if (!top1 || !top2 || !left1 || !left2) {
+                showFeedback('Please place all tiles before checking!', 'hint');
+                logAction('Check Failed', 'Incomplete placement');
+                return;
+            }
+
+            // Calculate the expanded form
+            const a = (top1.variable === 'x' ? top1.coef : 0) * (left1.variable === 'x' ? left1.coef : 0) +
+                      (top2.variable === 'x' ? top2.coef : 0) * (left1.variable === 'x' ? left1.coef : 0) +
+                      (top1.variable === 'x' ? top1.coef : 0) * (left2.variable === 'x' ? left2.coef : 0) +
+                      (top2.variable === 'x' ? top2.coef : 0) * (left2.variable === 'x' ? left2.coef : 0);
+
+            // This is getting complex, let me simplify by calculating properly
+            // (top1 + top2)(left1 + left2) = top1*left1 + top1*left2 + top2*left1 + top2*left2
+
+            const products = [
+                multiplyTerms(top1, left1),
+                multiplyTerms(top1, left2),
+                multiplyTerms(top2, left1),
+                multiplyTerms(top2, left2)
+            ];
+
+            // Sum up coefficients by degree
+            let x2Coef = 0, x1Coef = 0, x0Coef = 0;
+
+            products.forEach(prod => {
+                if (prod.degree === 2) x2Coef += prod.coef;
+                else if (prod.degree === 1) x1Coef += prod.coef;
+                else x0Coef += prod.coef;
+            });
+
+            const problem = state.currentProblem;
+            const isCorrect = (x2Coef === problem.a && x1Coef === problem.b && x0Coef === problem.c);
+
+            if (isCorrect) {
+                state.correctCount++;
+                elements.correctCount.textContent = state.correctCount;
+                elements.factoredForm.classList.add('correct');
+                elements.factoredForm.classList.remove('incorrect');
+                showFeedback('🎉 Correct! Well done!', 'success');
+                logAction('Check Success', `Correct factorization`);
+
+                // Highlight all drop zones green
+                Object.values(dropZones).forEach(zone => {
+                    zone.classList.remove('error');
+                });
+            } else {
+                elements.factoredForm.classList.add('incorrect');
+                elements.factoredForm.classList.remove('correct');
+
+                // Provide helpful feedback
+                let hint = 'Not quite right. ';
+                if (x2Coef !== problem.a) {
+                    hint += `The x² coefficient should be ${problem.a}, got ${x2Coef}. `;
+                }
+                if (x1Coef !== problem.b) {
+                    hint += `The x coefficient should be ${problem.b}, got ${x1Coef}. `;
+                }
+                if (x0Coef !== problem.c) {
+                    hint += `The constant should be ${problem.c}, got ${x0Coef}.`;
+                }
+
+                showFeedback(hint, 'error');
+                logAction('Check Failed', `Got ${x2Coef}x² + ${x1Coef}x + ${x0Coef}`);
+            }
+        }
+
+        /**
+         * Multiplies two terms and returns the result with degree
+         */
+        function multiplyTerms(t1, t2) {
+            const coef = t1.coef * t2.coef;
+            const deg1 = t1.variable === 'x' ? 1 : 0;
+            const deg2 = t2.variable === 'x' ? 1 : 0;
+            const degree = deg1 + deg2;
+
+            return { coef, degree };
+        }
+
+        /**
+         * Shows feedback message
+         */
+        function showFeedback(message, type) {
+            elements.feedback.textContent = message;
+            elements.feedback.className = 'feedback show ' + type;
+        }
+
+        /**
+         * Resets the multiplication frame
+         */
+        function resetFrame() {
+            // Clear all placed tiles
+            Object.keys(state.placedTiles).forEach(key => {
+                if (state.placedTiles[key]) {
+                    const tile = document.getElementById(state.placedTiles[key].id);
+                    if (tile) {
+                        tile.classList.remove('used');
+                    }
+                }
+                state.placedTiles[key] = null;
+            });
+
+            // Clear drop zones
+            Object.values(dropZones).forEach(zone => {
+                zone.textContent = '';
+                zone.classList.remove('filled', 'error');
+            });
+
+            // Clear products
+            Object.values(productCells).forEach(cell => {
+                cell.textContent = '?';
+                cell.classList.remove('highlight');
+            });
+
+            // Clear factored form
+            elements.factoredForm.textContent = '( ? )( ? )';
+            elements.factoredForm.classList.remove('correct', 'incorrect');
+
+            // Clear feedback
+            elements.feedback.classList.remove('show');
+
+            // Reset sum checker display
+            elements.sumCurrent.textContent = '?';
+            elements.sumCurrent.classList.remove('match', 'mismatch');
+
+            logAction('Frame Reset', '');
+        }
+
+        // ===== EVENT LISTENERS =====
+
+        /**
+         * Sets up all event listeners
+         */
+        function setupEventListeners() {
+            // Level buttons
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelector('.level-btn.active').classList.remove('active');
+                    btn.classList.add('active');
+                    state.level = parseInt(btn.dataset.level);
+                    logAction('Level Changed', `Level ${state.level}`);
+                    generateProblem();
+                });
+            });
+
+            // New problem button
+            elements.newProblemBtn.addEventListener('click', generateProblem);
+
+            // Check button
+            elements.checkBtn.addEventListener('click', checkAnswer);
+
+            // Reset button
+            elements.resetBtn.addEventListener('click', () => {
+                resetFrame();
+                generateTiles(state.currentProblem);
+            });
+
+            // Analytics toggle
+            elements.analyticsHeader.addEventListener('click', () => {
+                elements.analyticsContent.classList.toggle('show');
+                const toggle = elements.analyticsHeader.querySelector('.analytics-toggle');
+                toggle.textContent = elements.analyticsContent.classList.contains('show') ?
+                    '▲ Click to collapse' : '▼ Click to expand';
+            });
+
+            // Instructions button
+            elements.instructionsBtn.addEventListener('click', () => {
+                elements.instructionsPopup.classList.toggle('show');
+            });
+
+            // Close instructions when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!elements.instructionsBtn.contains(e.target) &&
+                    !elements.instructionsPopup.contains(e.target)) {
+                    elements.instructionsPopup.classList.remove('show');
+                }
+            });
+
+            // Set up drop zones
+            setupDropZones();
+        }
+
+        // ===== INITIALIZATION =====
+
+        /**
+         * Initializes the application
+         */
+        function init() {
+            setupEventListeners();
+            generateProblem();
+            logAction('App Started', `Level ${state.level}`);
+        }
+
+        // Start the app when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>

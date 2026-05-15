@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Handwriting Mastery Tool</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- xAPI SLS Integration -->
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT: Use window.storeState() from lib/xAPI.js — never fetch/XHR directly (CORS)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try { if (typeof window.storeState === 'function') window.storeState(payload); } catch (e) {}
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch { return {}; }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    if (xapiState.actions.length > 2000) xapiState.actions.shift(); // keep full session log
+  }
+
+  function captureDashboardSnapshot() {
+    try {
+      const selectors = ['[id*="dashboard" i]','[class*="dashboard" i]','[id*="result" i]','[class*="result" i]','[id*="score" i]','[class*="score" i]'];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch { return null; }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch { return null; }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const directScore =
+        readDomNumberById('xapi-score') ??
+        readDomNumberById('score') ?? readDomNumberById('points') ??
+        readDomNumberById('correctCount') ?? readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ?? readDomNumberById('correctAnswersCount');
+      const directMax =
+        readDomNumberById('xapi-total') ??
+        readDomNumberById('max') ?? readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ?? readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ?? readDomNumberById('attempts') ?? readDomNumberById('totalAttempts');
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+      const selectors = ['[id*="score" i]','[class*="score" i]','[id*="result" i]','[class*="result" i]','[id*="correct" i]','[class*="correct" i]','[data-score]','[data-points]','[data-max]'];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const m = text.match(/(\d+)\s*\/\s*(\d+)/);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0, seqMulti = 0, headOn = 0, extremes = 0;
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes).map(k => k + ': ' + summary.actionTypes[k]).join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions; // full session log — no slice
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+    // Full action log from t=0 — no slice
+    const actionLog = actions.map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback, reason,
+      startedAt: xapiState.startTime,
+      summary, actionLog, actions,
+      dashboard: captureDashboardSnapshot(),
+      details: { summary, actionLog, dashboard: captureDashboardSnapshot() }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch { return String(Date.now()); }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const stateEl = entry.querySelector ? entry.querySelector('.log-state') : null;
+      const timeText = timeEl ? timeEl.textContent : (entry.textContent || '');
+      const actionText = actionEl ? actionEl.textContent : null;
+      const stateText = stateEl ? stateEl.textContent : null;
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+      const label = [actionText, stateText].filter(Boolean).join(' — ').trim();
+      return { timeSec: Number.isFinite(timeSec) ? timeSec : null, action: actionText ? actionText.trim() : null, details: stateText ? stateText.trim() : null, label: label || null };
+    } catch (e) { return null; }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) { const keep = Array.from(seen).slice(-200); seen.clear(); keep.forEach(k => seen.add(k)); }
+        const ts = parsed.timeSec != null ? (xapiState.startTime + Math.round(parsed.timeSec * 1000)) : Date.now();
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) { recordEntry(node); }
+              else { node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry); }
+            });
+          });
+        });
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('analyticsLog');
+        if (container) { attachToContainer(container); return true; }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) { attachToContainer(entry.parentElement); return true; }
+        return false;
+      }
+
+      if (tryAttach()) return;
+      let attempts = 0;
+      const timer = setInterval(() => { attempts += 1; if (tryAttach() || attempts > 20) clearInterval(timer); }, 500);
+    } catch (e) {}
+  }
+
+  // Track keystrokes in text inputs
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+    const isTextField = (tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')) || tag === 'textarea';
+    if (!isTextField) return;
+    logAction('key', { tag, id: t.id || null, name: t.name || null, value: t.value != null ? String(t.value).substring(0, 120) : null, text: null, key: String(e.key).substring(0, 40) });
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t) return;
+    logAction('click', summarizeTarget(t));
+    scheduleFlush('auto-click');
+  }, true);
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flush('pause'); });
+  window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999;font-size:13px;cursor:pointer;';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { addSaveBtn(); hookLearningAnalyticsLog(); });
+  } else {
+    addSaveBtn();
+    hookLearningAnalyticsLog();
+  }
+})();
+    </script>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Top Bar with Progress and Settings -->
+        <div class="top-bar">
+            <div class="progress-indicator" id="progressIndicator">
+                <span id="progressText">Character 1 of 15</span>
+            </div>
+            <div class="settings-container">
+                <button class="icon-btn" id="settingsBtn" title="Toggle Pinyin & English">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364 6.364l-4.243-4.243m-6.364 0L3.636 17.364m12.728 0l-4.243-4.243m-6.364 0L3.636 6.636"></path>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="modeToggle" title="Toggle Practice/Test Mode">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mode Indicator -->
+        <div class="mode-indicator" id="modeIndicator">
+            <span id="modeText">Practice Mode</span>
+        </div>
+
+        <!-- Main Canvas Area with Tian Zi Ge Grid -->
+        <div class="canvas-container">
+            <div id="characterTarget" class="character-target"></div>
+            <div class="completion-message" id="completionMessage">
+                <div class="message-content">
+                    <svg class="success-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <h2>Great Job!</h2>
+                    <p id="characterInfo"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Dock with Control Buttons -->
+        <div class="action-dock">
+            <button class="action-btn watch-btn" id="watchBtn" title="Watch stroke animation">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Watch Animation
+            </button>
+            <button class="action-btn reset-btn" id="resetBtn" title="Clear canvas and start over">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Reset Canvas
+            </button>
+            <button class="action-btn next-btn" id="nextBtn" title="Move to next character">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+                Next Character
+            </button>
+        </div>
+
+        <!-- Feedback Panel (Shows after completion) -->
+        <div class="feedback-panel" id="feedbackPanel">
+            <div class="feedback-content">
+                <div class="pinyin" id="pinyinDisplay"></div>
+                <div class="english" id="englishDisplay"></div>
+            </div>
+        </div>
+
+        <!-- Tooltip for hover information -->
+        <div class="tooltip" id="tooltip"></div>
+
+        <!-- Analytics Panel -->
+        <div class="analytics-panel" id="analyticsPanel">
+            <div class="analytics-header">
+                <span class="analytics-title">📊 Action Log</span>
+                <div class="analytics-controls">
+                    <button class="analytics-btn" id="clearLogBtn" title="Clear action log">🗑 Clear</button>
+                    <button class="analytics-btn analytics-toggle-btn" id="toggleAnalyticsBtn" title="Collapse analytics panel">▼</button>
+                </div>
+            </div>
+            <div class="analytics-body" id="analyticsBody">
+                <div class="analytics-log" id="analyticsLog">
+                    <div class="analytics-empty">Interactions will appear here…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden xAPI score holders: updated by script.js on each character completion -->
+    <span id="xapi-score" style="display:none">0</span>
+    <span id="xapi-total" style="display:none">15</span>
+
+    <!-- Hanzi Writer Library: local copy for SLS offline compatibility -->
+    <script src="hanzi-writer.min.js"></script>
+    <script>
+        // Fallback to CDN if local file fails to load
+        if (typeof HanziWriter === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"><\/script>');
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

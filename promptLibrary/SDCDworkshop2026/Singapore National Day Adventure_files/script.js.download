@@ -1,0 +1,565 @@
+// ============================================
+// GAME STATE MANAGEMENT
+// ============================================
+
+// Game state object to track all game variables
+let gameState = {
+    currentChapter: 0,
+    score: 0,
+    totalChapters: 3,
+    selectedLeft: null,
+    selectedRight: null,
+    matches: [],
+    correctMatches: 0,
+    musicEnabled: true,
+    sfxEnabled: true
+};
+
+// ============================================
+// GAME DATA - Chapter content and matching pairs
+// ============================================
+
+const chapters = [
+    {
+        title: "Chapter 1: National Symbols 🇸🇬",
+        description: "Match the symbols with their meanings!",
+        pairs: [
+            { left: "🦁 Merlion", right: "Symbol of Singapore's history", id: 1 },
+            { left: "🌺 Vanda Miss Joaquim", right: "National Flower", id: 2 },
+            { left: "🔴⚪ Red & White", right: "National Flag Colors", id: 3 },
+            { left: "⭐⭐⭐⭐⭐", right: "Five Stars represent ideals", id: 4 },
+            { left: "🎵 Majulah Singapura", right: "National Anthem", id: 5 }
+        ],
+        choices: [
+            "Continue to learn about Singapore's history! 📚",
+            "Take a quick break and review what you learned! ☕"
+        ]
+    },
+    {
+        title: "Chapter 2: Historical Milestones 📅",
+        description: "Match the years with important events!",
+        pairs: [
+            { left: "1965", right: "Singapore's Independence", id: 1 },
+            { left: "1959", right: "Self-Government achieved", id: 2 },
+            { left: "August 9", right: "National Day date", id: 3 },
+            { left: "1967", right: "National Service started", id: 4 },
+            { left: "1966", right: "First National Day Parade", id: 5 }
+        ],
+        choices: [
+            "Discover more about National Day celebrations! 🎉",
+            "Learn about Singapore's founding fathers! 👥"
+        ]
+    },
+    {
+        title: "Chapter 3: National Day Traditions 🎊",
+        description: "Match the traditions with their significance!",
+        pairs: [
+            { left: "🎆 Fireworks", right: "Celebrates unity and joy", id: 1 },
+            { left: "🎖️ National Day Parade", right: "Shows national pride", id: 2 },
+            { left: "🎁 Fun Pack", right: "Gift for all Singaporeans", id: 3 },
+            { left: "🏠 Flag Display", right: "Shows patriotism", id: 4 },
+            { left: "👥 Community Events", right: "Brings people together", id: 5 }
+        ],
+        choices: [
+            "Celebrate your victory! 🎉",
+            "Review all chapters again! 🔄"
+        ]
+    }
+];
+
+// ============================================
+// AUDIO SYSTEM - Background music and sound effects
+// ============================================
+
+// Audio context for generating tones (no external files needed)
+let audioContext;
+let backgroundMusicInterval;
+
+// Initialize audio context
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+// Play a tone with specified frequency and duration
+function playTone(frequency, duration, type = 'sine') {
+    if (!gameState.sfxEnabled) return;
+    
+    initAudio();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Sound effects for different actions
+function playSoundEffect(type) {
+    switch(type) {
+        case 'click':
+            playTone(800, 0.1, 'square');
+            break;
+        case 'select':
+            playTone(600, 0.15, 'sine');
+            break;
+        case 'correct':
+            playTone(880, 0.2, 'sine');
+            setTimeout(() => playTone(1046, 0.2, 'sine'), 100);
+            break;
+        case 'wrong':
+            playTone(200, 0.3, 'sawtooth');
+            break;
+        case 'complete':
+            playTone(523, 0.15, 'sine');
+            setTimeout(() => playTone(659, 0.15, 'sine'), 150);
+            setTimeout(() => playTone(784, 0.3, 'sine'), 300);
+            break;
+    }
+}
+
+// Background music loop
+function startBackgroundMusic() {
+    if (!gameState.musicEnabled) return;
+    
+    initAudio();
+    const melody = [523, 587, 659, 698, 784, 698, 659, 587];
+    let noteIndex = 0;
+    
+    backgroundMusicInterval = setInterval(() => {
+        if (gameState.musicEnabled) {
+            playTone(melody[noteIndex], 0.3, 'triangle');
+            noteIndex = (noteIndex + 1) % melody.length;
+        }
+    }, 500);
+}
+
+function stopBackgroundMusic() {
+    if (backgroundMusicInterval) {
+        clearInterval(backgroundMusicInterval);
+    }
+}
+
+// Toggle functions for audio controls
+function toggleMusic() {
+    gameState.musicEnabled = !gameState.musicEnabled;
+    const btn = document.getElementById('musicToggle');
+    btn.classList.toggle('muted');
+    btn.textContent = gameState.musicEnabled ? '🎵' : '🎵';
+    
+    if (gameState.musicEnabled) {
+        startBackgroundMusic();
+    } else {
+        stopBackgroundMusic();
+    }
+}
+
+function toggleSFX() {
+    gameState.sfxEnabled = !gameState.sfxEnabled;
+    const btn = document.getElementById('sfxToggle');
+    btn.classList.toggle('muted');
+    btn.textContent = gameState.sfxEnabled ? '🔊' : '🔇';
+    playSoundEffect('click');
+}
+
+// ============================================
+// NEW: BACKGROUND ANIMATION SYSTEM
+// ============================================
+
+// Animate background images with dynamic movement
+function animateBackgroundImages() {
+    const bgImages = document.querySelectorAll('.bg-image');
+    
+    bgImages.forEach((img, index) => {
+        // Add random delay to each background element for varied animation
+        const delay = index * 2;
+        img.style.animationDelay = `${delay}s`;
+        
+        // Add random starting positions for more variety
+        const randomTop = Math.random() * 80;
+        const randomLeft = Math.random() * 80;
+        
+        // Only apply random positions if not already set in CSS
+        if (!img.style.top) {
+            img.style.top = `${randomTop}%`;
+        }
+        if (!img.style.left && !img.style.right) {
+            img.style.left = `${randomLeft}%`;
+        }
+    });
+}
+
+// ============================================
+// GAME INITIALIZATION
+// ============================================
+
+// Start the game
+function startGame() {
+    playSoundEffect('click');
+    gameState.currentChapter = 0;
+    gameState.score = 0;
+    updateProgress();
+    showScreen('matchingScreen');
+    loadChapter(0);
+    startBackgroundMusic();
+}
+
+// Load a specific chapter
+function loadChapter(chapterIndex) {
+    const chapter = chapters[chapterIndex];
+    
+    // Update chapter info
+    document.getElementById('chapterTitle').textContent = chapter.title;
+    document.getElementById('chapterDesc').textContent = chapter.description;
+    
+    // Shuffle and create matching cards
+    const leftItems = [...chapter.pairs].sort(() => Math.random() - 0.5);
+    const rightItems = [...chapter.pairs].sort(() => Math.random() - 0.5);
+    
+    // Generate left column
+    const leftColumn = document.getElementById('leftColumn');
+    leftColumn.innerHTML = '';
+    leftItems.forEach((item, index) => {
+        const card = createMatchCard(item.left, item.id, 'left', index);
+        leftColumn.appendChild(card);
+    });
+    
+    // Generate right column
+    const rightColumn = document.getElementById('rightColumn');
+    rightColumn.innerHTML = '';
+    rightItems.forEach((item, index) => {
+        const card = createMatchCard(item.right, item.id, 'right', index);
+        rightColumn.appendChild(card);
+    });
+    
+    // Reset matching state
+    gameState.matches = [];
+    gameState.correctMatches = 0;
+    gameState.selectedLeft = null;
+    gameState.selectedRight = null;
+    document.getElementById('submitBtn').disabled = true;
+}
+
+// Create a match card element
+function createMatchCard(text, id, side, index) {
+    const card = document.createElement('div');
+    card.className = 'match-card';
+    card.textContent = text;
+    card.dataset.id = id;
+    card.dataset.side = side;
+    card.dataset.index = index;
+    
+    // Add tooltip for longer text
+    card.addEventListener('mouseenter', (e) => showTooltip(e, text));
+    card.addEventListener('mouseleave', hideTooltip);
+    
+    card.addEventListener('click', () => selectCard(card, side, id, index));
+    
+    return card;
+}
+
+// ============================================
+// MATCHING GAME LOGIC
+// ============================================
+
+// Handle card selection
+function selectCard(card, side, id, index) {
+    // Prevent selecting already matched cards
+    if (card.classList.contains('matched')) return;
+    
+    playSoundEffect('select');
+    
+    if (side === 'left') {
+        // Deselect previous left selection
+        if (gameState.selectedLeft) {
+            const prevCard = document.querySelector(`.match-card[data-side="left"][data-index="${gameState.selectedLeft.index}"]`);
+            if (prevCard) prevCard.classList.remove('selected');
+        }
+        
+        // Select new card
+        gameState.selectedLeft = { id, index };
+        card.classList.add('selected');
+    } else {
+        // Deselect previous right selection
+        if (gameState.selectedRight) {
+            const prevCard = document.querySelector(`.match-card[data-side="right"][data-index="${gameState.selectedRight.index}"]`);
+            if (prevCard) prevCard.classList.remove('selected');
+        }
+        
+        // Select new card
+        gameState.selectedRight = { id, index };
+        card.classList.add('selected');
+    }
+    
+    // Check if both sides are selected
+    if (gameState.selectedLeft && gameState.selectedRight) {
+        // Add to matches array
+        const existingMatch = gameState.matches.find(m => 
+            m.leftIndex === gameState.selectedLeft.index || 
+            m.rightIndex === gameState.selectedRight.index
+        );
+        
+        if (existingMatch) {
+            // Remove existing match
+            gameState.matches = gameState.matches.filter(m => m !== existingMatch);
+        }
+        
+        gameState.matches.push({
+            leftId: gameState.selectedLeft.id,
+            rightId: gameState.selectedRight.id,
+            leftIndex: gameState.selectedLeft.index,
+            rightIndex: gameState.selectedRight.index
+        });
+        
+        // Enable submit button if all pairs are matched
+        if (gameState.matches.length === chapters[gameState.currentChapter].pairs.length) {
+            document.getElementById('submitBtn').disabled = false;
+        }
+    }
+}
+
+// Reset all matches
+function resetMatches() {
+    playSoundEffect('click');
+    
+    // Clear all selections
+    document.querySelectorAll('.match-card').forEach(card => {
+        card.classList.remove('selected', 'matched', 'wrong');
+    });
+    
+    gameState.matches = [];
+    gameState.selectedLeft = null;
+    gameState.selectedRight = null;
+    gameState.correctMatches = 0;
+    document.getElementById('submitBtn').disabled = true;
+}
+
+// Submit and check matches
+function submitMatches() {
+    playSoundEffect('click');
+    
+    let correctCount = 0;
+    const chapter = chapters[gameState.currentChapter];
+    
+    // Check each match
+    gameState.matches.forEach(match => {
+        const leftCard = document.querySelector(`.match-card[data-side="left"][data-index="${match.leftIndex}"]`);
+        const rightCard = document.querySelector(`.match-card[data-side="right"][data-index="${match.rightIndex}"]`);
+        
+        if (match.leftId === match.rightId) {
+            // Correct match
+            leftCard.classList.add('matched');
+            rightCard.classList.add('matched');
+            leftCard.classList.remove('selected', 'wrong');
+            rightCard.classList.remove('selected', 'wrong');
+            correctCount++;
+            playSoundEffect('correct');
+        } else {
+            // Wrong match
+            leftCard.classList.add('wrong');
+            rightCard.classList.add('wrong');
+            leftCard.classList.remove('selected', 'matched');
+            rightCard.classList.remove('selected', 'matched');
+            playSoundEffect('wrong');
+        }
+    });
+    
+    gameState.correctMatches = correctCount;
+    
+    // Calculate score (67 points reference for the students' interest!)
+    const chapterScore = Math.round((correctCount / chapter.pairs.length) * 67);
+    gameState.score += chapterScore;
+    
+    // Update display
+    updateProgress();
+    
+    // Check if all correct
+    if (correctCount === chapter.pairs.length) {
+        setTimeout(() => {
+            playSoundEffect('complete');
+            if (gameState.currentChapter < gameState.totalChapters - 1) {
+                showChoiceScreen();
+            } else {
+                showResultsScreen();
+            }
+        }, 1000);
+    } else {
+        // Allow retry
+        setTimeout(() => {
+            // Remove wrong class after animation
+            document.querySelectorAll('.match-card.wrong').forEach(card => {
+                card.classList.remove('wrong', 'selected');
+            });
+            gameState.selectedLeft = null;
+            gameState.selectedRight = null;
+            
+            // Remove incorrect matches from array
+            gameState.matches = gameState.matches.filter(match => match.leftId === match.rightId);
+            
+            // Update submit button
+            if (gameState.matches.length === chapter.pairs.length) {
+                document.getElementById('submitBtn').disabled = false;
+            } else {
+                document.getElementById('submitBtn').disabled = true;
+            }
+        }, 1500);
+    }
+}
+
+// ============================================
+// STORY PROGRESSION
+// ============================================
+
+// Show choice screen between chapters
+function showChoiceScreen() {
+    const chapter = chapters[gameState.currentChapter];
+    
+    document.getElementById('choiceTitle').textContent = `Chapter ${gameState.currentChapter + 1} Complete! 🎉`;
+    document.getElementById('choiceText').textContent = `Amazing work, Demon Hunter! You earned ${Math.round((gameState.correctMatches / chapter.pairs.length) * 67)} points! Choose your next adventure:`;
+    
+    const choiceBtns = document.querySelectorAll('.choice-btn');
+    choiceBtns[0].textContent = chapter.choices[0];
+    choiceBtns[1].textContent = chapter.choices[1];
+    
+    showScreen('choiceScreen');
+}
+
+// Handle choice selection
+function makeChoice(choice) {
+    playSoundEffect('click');
+    
+    // Both choices lead to next chapter (narrative flavor)
+    gameState.currentChapter++;
+    
+    if (gameState.currentChapter < gameState.totalChapters) {
+        showScreen('matchingScreen');
+        loadChapter(gameState.currentChapter);
+        updateProgress();
+    } else {
+        showResultsScreen();
+    }
+}
+
+// Show final results
+function showResultsScreen() {
+    const maxScore = gameState.totalChapters * 67; // 67 reference!
+    const percentage = (gameState.score / maxScore) * 100;
+    
+    let rank = '';
+    let message = '';
+    
+    if (percentage >= 90) {
+        rank = '🏆 Legendary Demon Hunter';
+        message = 'Outstanding! You are a true guardian of Singapore\'s history!';
+    } else if (percentage >= 75) {
+        rank = '⭐ Master Demon Hunter';
+        message = 'Excellent work! You have great knowledge of National Day!';
+    } else if (percentage >= 60) {
+        rank = '🎖️ Skilled Demon Hunter';
+        message = 'Good job! You\'re learning well about Singapore!';
+    } else {
+        rank = '🎯 Apprentice Demon Hunter';
+        message = 'Keep practicing! Every demon hunter starts somewhere!';
+    }
+    
+    document.getElementById('finalScore').textContent = gameState.score;
+    document.getElementById('rankDisplay').textContent = rank;
+    document.getElementById('finalMessage').textContent = message;
+    
+    showScreen('resultsScreen');
+    playSoundEffect('complete');
+}
+
+// Restart the game
+function restartGame() {
+    playSoundEffect('click');
+    gameState = {
+        currentChapter: 0,
+        score: 0,
+        totalChapters: 3,
+        selectedLeft: null,
+        selectedRight: null,
+        matches: [],
+        correctMatches: 0,
+        musicEnabled: gameState.musicEnabled,
+        sfxEnabled: gameState.sfxEnabled
+    };
+    updateProgress();
+    showScreen('storyScreen');
+}
+
+// ============================================
+// UI HELPER FUNCTIONS
+// ============================================
+
+// Show specific screen
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
+    document.getElementById(screenId).classList.add('active');
+}
+
+// Update progress bar and stats
+function updateProgress() {
+    const progress = ((gameState.currentChapter + 1) / gameState.totalChapters) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+    document.getElementById('scoreDisplay').textContent = `🏆 Score: ${gameState.score}`;
+    document.getElementById('levelDisplay').textContent = `📍 Chapter: ${gameState.currentChapter + 1}/${gameState.totalChapters}`;
+}
+
+// Tooltip functions
+function showTooltip(event, text) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = text;
+    tooltip.style.left = event.pageX + 'px';
+    tooltip.style.top = (event.pageY - 40) + 'px';
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('show');
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+// Initialize the game when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if in iframe
+    if (window.self !== window.top) {
+        document.documentElement.setAttribute('data-iframe', 'true');
+    }
+    
+    // Add header tooltip on hover over progress bar
+    const progressContainer = document.querySelector('.progress-container');
+    progressContainer.addEventListener('mouseenter', (e) => {
+        showTooltip(e, 'Singapore National Day Adventure - Match symbols and facts to save National Day! 🇸🇬');
+    });
+    progressContainer.addEventListener('mouseleave', hideTooltip);
+    
+    // Initialize audio on first user interaction
+    document.addEventListener('click', () => {
+        initAudio();
+    }, { once: true });
+    
+    // NEW: Initialize background animations
+    animateBackgroundImages();
+    
+    console.log('🎮 Singapore National Day Adventure loaded!');
+    console.log('🎯 Game designed for Lower Secondary students');
+    console.log('🎨 Cute and Vibrant aesthetic with role-playing elements');
+    console.log('🎵 Audio system ready - click to enable');
+    console.log('🖼️ Background images animated for vibrant Singapore theme');
+});

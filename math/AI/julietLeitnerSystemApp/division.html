@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Division — Leitner Maths</title>
+<link rel="stylesheet" href="styles.css">
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <a href="index.html" class="back-btn" aria-label="Back to home">🏠</a>
+    <div style="flex:1">
+      <h1>➗ Division</h1>
+      <div style="font-size:.8rem;color:var(--muted)">Milestones 4, 5, 8, 9 · Factual Fluency</div>
+    </div>
+    <div class="pack-chips" id="packChips"></div>
+  </div>
+
+  <!-- Divisor filter -->
+  <div style="background:var(--surface);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)">
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:10px;font-weight:600;">Filter by divisor (or practise all):</div>
+    <div class="table-selector" id="tableSelector"></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-labels">
+      <span id="progLabel">Card 0 of 0</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+    <div class="card-scene" id="cardScene" style="cursor:default" aria-live="polite">
+    <div class="card-container" id="cardContainer">
+      <div class="card-face card-front">
+        <div class="card-milestone" id="cardMilestone">Milestone 1</div>
+        <div class="card-pack-badge" id="cardPackBadge">Pack A</div>
+        <button class="listen-btn card-listen-btn" id="btnSpeakQuestion" type="button" aria-label="Hear question">&#128266;</button>
+        <div class="card-question" id="cardQuestion">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="answer-feedback" id="answerFeedback"></div>
+
+  <div class="answer-input-wrap" id="answerInputWrap">
+    <input class="answer-input" id="answerInput" type="text" inputmode="numeric"
+           placeholder="Type your answer…" autocomplete="off" aria-label="Type your answer">
+    <button class="answer-submit-btn" id="btnSubmit" type="button">Check ✔</button>
+  </div>
+
+  <button class="hint-request-btn" id="btnHint" type="button">💡 I need a hint</button>
+
+  <div class="hint-panel" id="hintPanel" style="display:none"></div>
+  <div class="misconception-tip" id="miscTip" style="display:none"></div>
+
+  <div class="response-buttons" id="responseButtons" style="display:none">
+    <button class="btn btn-primary" id="btnNext">Next card →</button>
+  </div>
+
+    <div id="emptyState" style="display:none;text-align:center;padding:32px 16px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);max-width:520px;margin:0 auto 16px;">
+    <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+    <h2 style="margin-bottom:8px;">No cards due today!</h2>
+    <p style="color:var(--muted);margin-bottom:18px;">Pack A is always active. Pack B on Tue &amp; Thu. Pack C on Friday.</p>
+    <a href="index.html" class="btn btn-primary">Back to Home</a>
+  </div>
+
+  <div class="session-complete" id="sessionComplete" style="display:none">
+    <div style="font-size:3rem;margin-bottom:12px">🌟</div>
+    <h2>Session Complete!</h2>
+    <p id="sessionSummary"></p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+      <button class="btn btn-outline" id="btnRestart">↻ Restart</button>
+      <a href="index.html" class="btn btn-primary">🏠 Home</a>
+    </div>
+    <div class="reflection-panel" id="reflectionPanel">
+      <h3>✍️ Before you go — quick reflection</h3>
+      <div class="reflection-q">
+        <label>How did you feel during practice today?</label>
+        <div class="reflection-faces" role="group" aria-label="Feeling during practice">
+          <button class="reflection-face-btn" data-val="great"   type="button">😊</button>
+          <button class="reflection-face-btn" data-val="okay"    type="button">😐</button>
+          <button class="reflection-face-btn" data-val="tricky"  type="button">😟</button>
+          <button class="reflection-face-btn" data-val="hard"    type="button">😤</button>
+        </div>
+      </div>
+      <div class="reflection-q">
+        <label>What was tricky? (optional)</label>
+        <textarea class="reflection-text" id="reflectTricky" rows="2" placeholder="e.g. I found a step hard…"></textarea>
+      </div>
+      <div class="reflection-q">
+        <label>What will you try next time?</label>
+        <textarea class="reflection-text" id="reflectNext" rows="2" placeholder="e.g. I will use the hint first…"></textarea>
+      </div>
+      <button class="reflection-save-btn" id="btnSaveReflection" type="button">💾 Save reflection</button>
+      <div class="reflection-saved" id="reflectSaved">✅ Saved — great thinking!</div>
+    </div>
+  </div>
+
+  <div class="box-move-overlay" id="boxMoveOverlay">
+    <div class="box-move-card">
+      <div class="box-label">Card levelling up! 🎉</div>
+      <h3 id="boxMoveQuestion"></h3>
+      <div class="box-row">
+        <div class="box-pill from" id="boxFrom"></div>
+        <div class="box-move-next">→</div>
+        <div class="box-pill to" id="boxTo"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pack-visualiser" id="packVis"></div>
+
+  <div class="analytics-panel no-print">
+    <div class="analytics-header" id="analyticsHeader" role="button" aria-expanded="false" tabindex="0">
+      <h3>📊 Analytics &amp; Action Log</h3>
+      <span class="analytics-toggle-icon" id="analyticsIcon">▼</span>
+    </div>
+    <div class="analytics-body" id="analyticsBody">
+      <div class="analytics-tabs">
+        <button class="analytics-tab active" data-tab="actions">⚡ Actions</button>
+        <button class="analytics-tab"        data-tab="quiz">🧪 Quiz Results</button>
+      </div>
+      <div id="panelActions" class="log-container">
+        <div style="color:var(--muted);font-size:.8rem;padding:8px 0">Actions will appear here as you practise.</div>
+      </div>
+      <div id="panelQuiz" style="display:none;overflow-x:auto">
+        <table class="quiz-table"><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct</th><th>Result</th><th>Pack</th></tr></thead>
+        <tbody id="quizBody"></tbody></table>
+        <div style="color:var(--muted);font-size:.8rem;padding:10px 12px" id="quizEmpty">Quiz results will appear here.</div>
+      </div>
+      <div class="analytics-controls">
+        <button class="btn btn-sm btn-danger" id="btnClearLog">🗑️ Clear Log</button>
+        <span class="analytics-device" id="deviceLabel"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using Claude Sonnet 4.6 &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a> &nbsp;|&nbsp;
+    <a href="https://www.iwant2study.moe.edu.sg" target="_blank" rel="noopener">iwant2study.moe.edu.sg</a>
+    &nbsp;|&nbsp; <span id="lastMod" style="color:var(--muted);font-size:.75rem"></span>
+  </div>
+  <script>document.getElementById('lastMod').textContent = 'Last updated: ' + new Date(document.lastModified).toLocaleString('en-SG', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});</script>
+</div>
+
+<script src="leitner-engine.js"></script>
+<script src="backend-client.js"></script>
+<script>
+(function () {
+  const TOPIC = 'division';
+  const engine = LeitnerEngine.init();
+
+  let sessionCards = [], retryCounts = {}, idx = 0, attemptNum = 0, correct = 0, quizCount = 0;
+  let answered = false;
+
+  const cardScene       = document.getElementById('cardScene');
+  const cardQuestion    = document.getElementById('cardQuestion');
+  const cardPackBadge   = document.getElementById('cardPackBadge');
+  const hintPanel       = document.getElementById('hintPanel');
+  const miscTip         = document.getElementById('miscTip');
+  const responseButtons = document.getElementById('responseButtons');
+  const emptyState      = document.getElementById('emptyState');
+  const sessionComplete = document.getElementById('sessionComplete');
+  const progressFill    = document.getElementById('progressFill');
+  const packVis         = document.getElementById('packVis');
+  const answerInput     = document.getElementById('answerInput');
+  const answerFeedback  = document.getElementById('answerFeedback');
+  const answerInputWrap = document.getElementById('answerInputWrap');
+  const btnHint         = document.getElementById('btnHint');
+  const boxOverlay      = document.getElementById('boxMoveOverlay');
+  const panelActions    = document.getElementById('panelActions');
+  const panelQuiz       = document.getElementById('panelQuiz');
+  const quizBody        = document.getElementById('quizBody');
+  const quizEmpty       = document.getElementById('quizEmpty');
+
+  function init() {
+    document.getElementById('deviceLabel').textContent = '🖥 Input: ' + engine.inputType;
+    updatePackChips();
+    updatePackVis();
+    const saved = engine.loadPracticeSession(TOPIC);
+    if (saved) {
+      sessionCards = saved.cards;
+      retryCounts  = saved.retryCounts || {};
+      idx          = saved.idx || 0;
+      correct      = saved.correct || 0;
+      engine.logAction('Resumed division session at card ' + (idx + 1) + ' of ' + sessionCards.length);
+    } else {
+      idx = 0; correct = 0; retryCounts = {};
+      sessionCards = engine.getPracticeSessionCards(TOPIC);
+      for (let i = sessionCards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [sessionCards[i], sessionCards[j]] = [sessionCards[j], sessionCards[i]];
+      }
+      saveSessionState();
+    }
+    if (!sessionCards.length) {
+      emptyState.style.display = 'block';
+      cardScene.style.display  = 'none';
+      answerInputWrap.style.display = 'none';
+      btnHint.style.display    = 'none';
+      return;
+    }
+    showCard();
+  }
+
+  function saveSessionState() {
+    engine.savePracticeSession(TOPIC, { cards: sessionCards, idx, correct, retryCounts });
+  }
+
+  function updatePackChips() {
+    const el = document.getElementById('packChips'); el.innerHTML = '';
+    engine.getTodayPacks().forEach(p => {
+      const c = document.createElement('span');
+      c.className = 'pack-chip ' + p;
+      c.textContent = 'Pack ' + p;
+      el.appendChild(c);
+    });
+  }
+
+  function updatePackVis() {
+    const counts = engine.getPackCounts(TOPIC);
+    packVis.innerHTML = '';
+    ['A','B','C'].forEach(p => {
+      const box = document.createElement('div');
+      box.className = 'pack-box ' + p;
+      box.innerHTML = '<div class="pack-label">Pack ' + p + '</div>'
+        + '<div class="pack-count">' + counts[p] + '</div>'
+        + '<div class="pack-schedule">' + LeitnerEngine.PACK_SCHEDULE[p] + '</div>';
+      packVis.appendChild(box);
+    });
+  }
+
+  function showCard() {
+    if (idx >= sessionCards.length) { showComplete(); return; }
+    const card = sessionCards[idx];
+    answered = false; attemptNum = 0;
+    cardQuestion.textContent  = card.question;
+    cardPackBadge.textContent = 'Pack ' + card.pack;
+    if (document.getElementById('cardMilestone'))
+      document.getElementById('cardMilestone').textContent = 'Milestone ' + card.milestone;
+    cardScene.style.display       = 'block';
+    sessionComplete.style.display = 'none';
+    answerInputWrap.style.display = 'flex';
+    btnHint.style.display         = 'block';
+    responseButtons.style.display = 'none';
+    answerInput.value             = '';
+    answerInput.className         = 'answer-input';
+    answerFeedback.className      = 'answer-feedback';
+    answerFeedback.textContent    = '';
+    hintPanel.style.display       = 'none';
+    hintPanel.innerHTML           = '';
+    miscTip.style.display         = 'none';
+    const tip = engine.getMisconceptionTip(card);
+    if (tip) miscTip.textContent = tip;
+    updateProgress();
+    engine.logAction('🃏 Card shown: ' + card.question, { pack: card.pack, hintLevel: card.hintLevel });
+    setTimeout(() => answerInput.focus(), 60);
+  }
+
+  function updateProgress() {
+    const pct = sessionCards.length ? Math.round(((idx + 1) / sessionCards.length) * 100) : 0;
+    progressFill.style.width = pct + '%';
+    document.getElementById('progLabel').textContent = 'Card ' + Math.min(idx + 1, sessionCards.length) + ' of ' + sessionCards.length;
+    document.getElementById('progPct').textContent   = pct + '%';
+  }
+
+  function showHint() {
+    const card = sessionCards[idx];
+    const hint = engine.getHintHTML(card);
+    hintPanel.innerHTML = hint || '<p style="color:var(--muted);font-size:.9rem">No hint available. Try your best!</p>';
+    hintPanel.style.display = 'block';
+    if (miscTip.textContent) miscTip.style.display = 'flex';
+    btnHint.style.display = 'none';
+    engine.logAction('💡 Hint requested: ' + card.question);
+  }
+
+  const PACK_LABEL = { A: 'Box 1 (Pack A)', B: 'Box 2 (Pack B)', C: '🏆 Mastery (Pack C)' };
+  function showBoxMove(card, fromPack, toPack) {
+    if (!toPack || toPack === fromPack) return;
+    document.getElementById('boxMoveQuestion').textContent = card.question + ' = ' + card.answer;
+    document.getElementById('boxFrom').innerHTML = '<strong>' + PACK_LABEL[fromPack] + '</strong>';
+    document.getElementById('boxFrom').className = 'box-pill from';
+    document.getElementById('boxTo').innerHTML   = '<strong>' + PACK_LABEL[toPack] + '</strong>';
+    document.getElementById('boxTo').className   = 'box-pill to' + (toPack === 'C' ? ' mastery' : '');
+    boxOverlay.classList.add('show');
+    setTimeout(() => boxOverlay.classList.remove('show'), 1800);
+  }
+
+  function submitAnswer() {
+    if (answered) { advanceCard(); return; }
+    const card = sessionCards[idx];
+    const raw  = answerInput.value.trim();
+    if (!raw) { answerInput.focus(); return; }
+    const isCorrect = raw.toLowerCase() === String(card.answer).toLowerCase();
+    answered = true; attemptNum++;
+    engine.recordFactAttempt(card.id, isCorrect);
+    const prevPack = card.pack;
+    engine.evaluateCard(card.id, isCorrect, raw);
+    addQuizRow(card.question, raw, card.answer, isCorrect, card.pack);
+    if (isCorrect) {
+      correct++;
+      answerInput.className      = 'answer-input correct-border';
+      answerFeedback.textContent = '✅ Correct! ' + card.question + ' = ' + card.answer;
+      answerFeedback.className   = 'answer-feedback correct-fb';
+      cardScene.classList.add('correct-pulse');
+      setTimeout(() => cardScene.classList.remove('correct-pulse'), 600);
+      if (card.pack !== prevPack) showBoxMove(card, prevPack, card.pack);
+      engine.logAction('✅ Correct — ' + card.question);
+    } else {
+      answerInput.className      = 'answer-input wrong-border';
+      answerFeedback.textContent = '❌ Not quite. Check the hint below, then try again!';
+      answerFeedback.className   = 'answer-feedback wrong-fb';
+      cardScene.classList.add('shake');
+      setTimeout(() => cardScene.classList.remove('shake'), 450);
+      if (hintPanel.style.display === 'none') showHint();
+      retryCounts[card.id] = (retryCounts[card.id] || 0) + 1;
+      if (retryCounts[card.id] <= 1) sessionCards.push(card);
+      engine.logAction('❌ Wrong — ' + card.question + ' (student: ' + raw + ')');
+    }
+    answerInputWrap.style.display = 'none';
+    btnHint.style.display         = 'none';
+    responseButtons.style.display = 'flex';
+    document.getElementById('btnNext').textContent = isCorrect ? 'Next card →' : 'Try again on next round →';
+    saveSessionState(); updatePackVis();
+  }
+
+  function advanceCard() { idx++; saveSessionState(); updatePackVis(); showCard(); }
+
+  function showComplete() {
+    cardScene.style.display       = 'none';
+    answerInputWrap.style.display = 'none';
+    btnHint.style.display         = 'none';
+    responseButtons.style.display = 'none';
+    hintPanel.style.display       = 'none';
+    miscTip.style.display         = 'none';
+    sessionComplete.style.display = 'block';
+    engine.clearPracticeSession(TOPIC);
+    const total = sessionCards.length;
+    document.getElementById('sessionSummary').textContent =
+      'You answered ' + total + ' cards. ' + correct + ' correct (' + Math.round(correct / total * 100) + '%). Keep it up, ' + engine.student.name + '!';
+    updatePackVis();
+    engine.logAction('🏁 Session complete — ' + correct + '/' + total + ' correct');
+    engine.awardGameProgress({ correct, total });
+    if (window.LeitnerCloud) window.LeitnerCloud.logActivity('session_complete', TOPIC, correct, total);
+  }
+
+  function addQuizRow(q, sa, ca, ok, pack) {
+    quizEmpty.style.display = 'none'; quizCount++;
+    const tr = document.createElement('tr');
+    tr.className = ok ? 'qcorrect' : 'qwrong';
+    tr.innerHTML = '<td>' + quizCount + '</td><td>' + q + '</td><td>' + sa + '</td>'
+      + '<td>' + ca + '</td><td>' + (ok ? '✅' : '❌') + '</td><td>' + pack + '</td>';
+    quizBody.prepend(tr);
+    if (quizBody.children.length > 80) quizBody.lastChild.remove();
+  }
+
+  // ── Controls ───────────────────────────────────────────────
+  document.getElementById('btnSpeakQuestion').addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (sessionCards[idx]) engine.speakCard(sessionCards[idx], false);
+  });
+  engine.addTouchButton(btnHint, showHint);
+  answerInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitAnswer(); });
+  engine.addTouchButton(document.getElementById('btnSubmit'), submitAnswer);
+  engine.addTouchButton(document.getElementById('btnNext'),    advanceCard);
+  engine.addTouchButton(document.getElementById('btnRestart'), () => { engine.clearPracticeSession(TOPIC); idx = 0; correct = 0; init(); });
+
+  // ── Reflection ─────────────────────────────────────────────
+  document.querySelectorAll('.reflection-face-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.reflection-face-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  document.getElementById('btnSaveReflection').addEventListener('click', () => {
+    const feeling = document.querySelector('.reflection-face-btn.selected');
+    const data = {
+      topic: TOPIC,
+      feeling: feeling ? feeling.dataset.val : null,
+      tricky: document.getElementById('reflectTricky').value,
+      next:   document.getElementById('reflectNext').value,
+      date:   new Date().toISOString()
+    };
+    const log = JSON.parse(localStorage.getItem('leitner_reflections') || '[]');
+    log.push(data);
+    localStorage.setItem('leitner_reflections', JSON.stringify(log));
+    document.getElementById('reflectSaved').classList.add('show');
+    engine.logAction('✍️ Reflection saved');
+  });
+
+  // ── Analytics panel ────────────────────────────────────────
+  const analyticsHeader = document.getElementById('analyticsHeader');
+  const analyticsBody   = document.getElementById('analyticsBody');
+  const analyticsIcon   = document.getElementById('analyticsIcon');
+  engine.addTouchButton(analyticsHeader, () => {
+    const open = analyticsBody.classList.toggle('open');
+    analyticsIcon.classList.toggle('open', open);
+    analyticsHeader.setAttribute('aria-expanded', open);
+  });
+
+  document.querySelectorAll('.analytics-tab').forEach(tab => {
+    engine.addTouchButton(tab, () => {
+      document.querySelectorAll('.analytics-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      panelActions.style.display = tab.dataset.tab === 'actions' ? 'block' : 'none';
+      panelQuiz.style.display    = tab.dataset.tab === 'quiz'    ? 'block' : 'none';
+    });
+  });
+
+  engine.addTouchButton(document.getElementById('btnClearLog'), () => {
+    engine.clearLog();
+    panelActions.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:8px 0">Log cleared.</div>';
+    quizBody.innerHTML = ''; quizEmpty.style.display = 'block'; quizCount = 0;
+  });
+
+  document.addEventListener('leitner:log', e => {
+    const ph = panelActions.querySelector('div');
+    if (ph && ph.textContent.includes('appear here')) ph.remove();
+    const row = document.createElement('div'); row.className = 'log-entry';
+    row.innerHTML = '<span class="log-time">' + e.detail.time + '</span><span>' + e.detail.description + '</span>';
+    panelActions.prepend(row);
+    if (panelActions.children.length > 80) panelActions.lastChild.remove();
+  });
+
+  document.addEventListener('leitner:quiz', e => {
+    quizEmpty.style.display = 'none'; quizCount++;
+    const d = e.detail;
+    const tr = document.createElement('tr'); tr.className = d.correct ? 'qcorrect' : 'qwrong';
+    tr.innerHTML = '<td>' + quizCount + '</td><td>' + d.question + '</td><td>' + d.studentAnswer + '</td>'
+      + '<td>' + d.correctAnswer + '</td><td>' + (d.correct ? '✅' : '❌') + '</td>'
+      + '<td>' + (d.data && d.data.pack ? d.data.pack : '') + '</td>';
+    quizBody.prepend(tr);
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+/* ============================================
+   SHADOW FORMATION VIRTUAL LAB - STYLES
+   ============================================
+   
+   This stylesheet defines the visual appearance
+   of the interactive shadow formation simulation.
+   Optimized for iframe and full-screen viewing.
+*/
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+}
+
+/* Main container - responsive for iframe and full screen */
+.container {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Adjust height based on viewport context */
+@media (max-height: 500px) {
+    .container {
+        height: 90vh;
+    }
+}
+
+@media (min-height: 500px) {
+    .container {
+        height: auto;
+    }
+}
+
+/* FULLPAGE (new tab) mode: width 100%, height 90vh */
+body.fullpage .container {
+    max-width: none;
+    width: 100%;
+    height: 90vh;
+}
+
+body.fullpage .canvas-wrapper {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+}
+
+/* ============================================
+   CONTROL PANEL
+   ============================================
+   Compact layout for buttons and selectors
+*/
+
+.control-panel {
+    background: linear-gradient(to right, #f5f7fa, #c3cfe2);
+    padding: 12px 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    border-bottom: 2px solid #e0e0e0;
+    min-height: 50px;
+}
+
+.control-btn {
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+    height: fit-content;
+}
+
+.control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.control-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Selector group for object type */
+.selector-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.selector-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+}
+
+.selector-group select {
+    padding: 6px 10px;
+    border: 2px solid #667eea;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.selector-group select:hover {
+    border-color: #764ba2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.selector-group select:focus {
+    outline: none;
+    border-color: #764ba2;
+    box-shadow: 0 0 8px rgba(118, 75, 162, 0.3);
+}
+
+/* Info icon */
+.info-icon {
+    width: 24px;
+    height: 24px;
+    background: #667eea;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: help;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+}
+
+.info-icon:hover {
+    background: #764ba2;
+    transform: scale(1.1);
+}
+
+/* ============================================
+   CANVAS AREA
+   ============================================
+   SVG canvas for the simulation
+*/
+
+.canvas-wrapper {
+    background: linear-gradient(to bottom, #f0f4f8, #e8ecf1);
+    position: relative;
+    overflow: hidden;
+    /* Explicit height so SVG height:100% resolves to a definite value */
+    height: 450px;
+}
+
+.simulation-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: white;
+    cursor: grab;
+}
+
+.simulation-canvas:active {
+    cursor: grabbing;
+}
+
+/* ============================================
+   LIGHT SOURCE
+   ============================================
+   Point light emitter
+*/
+
+.light-source {
+    fill: #FFD700;
+    stroke: #FFA500;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+    cursor: grab;
+    transition: filter 0.3s ease;
+}
+
+.light-source:hover {
+    filter: drop-shadow(0 0 12px rgba(255, 215, 0, 1));
+}
+
+.light-source:active {
+    cursor: grabbing;
+}
+
+/* ============================================
+   LIGHT RAYS
+   ============================================
+   Tangent rays from light source
+*/
+
+.light-rays line {
+    stroke: rgba(255, 215, 0, 0.6);
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+    opacity: 0.8;
+}
+
+/* ============================================
+   OBJECTS (Sphere and Cube)
+   ============================================
+   Opaque objects casting shadows
+*/
+
+.object {
+    fill: #FF6B6B;
+    stroke: #C92A2A;
+    stroke-width: 2;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.object:hover {
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
+    opacity: 0.95;
+}
+
+.object:active {
+    cursor: grabbing;
+}
+
+.object.sphere {
+    rx: 40;
+    ry: 40;
+}
+
+.object.cube {
+    rx: 4;
+    ry: 4;
+}
+
+/* ============================================
+   SCREEN
+   ============================================
+   Right-side screen for shadow projection
+*/
+
+.screen {
+    fill: #E8F4F8;
+    stroke: #2C3E50;
+    stroke-width: 3;
+    filter: drop-shadow(-4px 0 8px rgba(0, 0, 0, 0.15));
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.screen:hover {
+    fill: #D0E8F2;
+    filter: drop-shadow(-4px 0 12px rgba(0, 0, 0, 0.25));
+}
+
+.screen:active {
+    cursor: grabbing;
+}
+
+/* ============================================
+   SHADOW
+   ============================================
+   Shadow projection on screen
+*/
+
+.shadow-group polygon {
+    fill: rgba(0, 0, 0, 0.4);
+    stroke: rgba(0, 0, 0, 0.6);
+    stroke-width: 1;
+}
+
+/* ============================================
+   BOUNDARY GUIDES
+   ============================================
+   Visual guides for dragging boundaries
+*/
+
+.boundary-guide {
+    stroke: #CCCCCC;
+    stroke-width: 1;
+    stroke-dasharray: 3, 3;
+    opacity: 0.5;
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================
+   Center tooltip for information display
+*/
+
+.tooltip {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 280px;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.tooltip.visible {
+    opacity: 1;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================
+   Adjustments for different screen sizes
+*/
+
+@media (max-width: 480px) {
+    .control-panel {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .control-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .selector-group {
+        gap: 6px;
+    }
+
+    .selector-group label {
+        font-size: 12px;
+    }
+
+    .selector-group select {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+
+    .canvas-wrapper {
+        min-height: 300px;
+    }
+}
+
+@media (max-height: 600px) {
+    .control-panel {
+        padding: 8px 12px;
+        min-height: 45px;
+    }
+
+    .control-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .canvas-wrapper {
+        min-height: 300px;
+    }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================
+   Focus states and keyboard navigation
+*/
+
+button:focus,
+select:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    body {
+        background: white;
+    }
+
+    .container {
+        box-shadow: none;
+        max-width: 100%;
+    }
+}

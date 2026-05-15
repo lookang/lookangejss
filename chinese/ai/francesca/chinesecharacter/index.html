@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉字变身魔法 - 互动升级版</title>
+    <style>
+        :root {
+            --bg-color: #f0f8ff;
+            --card-bg: #ffffff;
+            --primary-color: #FF6B6B;
+            --secondary-color: #4ECDC4;
+            --accent-color: #FF9F43;
+            --text-color: #2C3E50;
+            --shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: "YouYuan", "Rounded Mplus 1c", "Microsoft YaHei", sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#e6f2ff 15%, transparent 16%), radial-gradient(#e6f2ff 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            user-select: none; /* 防止点击太快选中文字 */
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-shadow: 2px 2px 0px #ffecec;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* 主舞台 */
+        .stage-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            border-radius: 25px;
+            padding: 30px 10px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            border: 5px solid #fff;
+            min-height: 300px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+            transform: scale(0.9);
+            cursor: pointer; /* 鼠标变手型，提示可点击 */
+            flex: 1;
+            position: relative;
+        }
+
+        /* 提示可以点击的动效 */
+        .step:not(.active):hover {
+            opacity: 0.6;
+            transform: scale(0.95);
+            background-color: rgba(0,0,0,0.02);
+            border-radius: 15px;
+        }
+
+        .step.active {
+            opacity: 1;
+            transform: scale(1.1);
+            cursor: default;
+        }
+
+        .step-label {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text-color);
+            background: #eee;
+            padding: 5px 15px;
+            border-radius: 15px;
+            white-space: nowrap;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            opacity: 0.5;
+            padding: 0 10px;
+        }
+
+        /* SVG 样式 */
+        svg {
+            width: 100%;
+            max-width: 120px;
+            height: 120px;
+            overflow: visible;
+        }
+
+        /* 绘画描边动画 */
+        .draw-path {
+            fill: none;
+            stroke: #333;
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 2s ease-in-out;
+        }
+
+        .active .draw-path {
+            stroke-dashoffset: 0;
+            animation: drawColor 2s forwards;
+        }
+
+        /* 现代汉字书写动画 */
+        .hanzi-path {
+            fill: none;
+            stroke: var(--primary-color);
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-dasharray: 500;
+            stroke-dashoffset: 500;
+        }
+
+        .active .hanzi-path {
+            animation: writeHanzi 2.5s ease-out forwards;
+        }
+
+        @keyframes writeHanzi {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* 控制区 */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 800px;
+        }
+
+        .btn {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.3rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 5px 0 #3dbdb4;
+            transition: all 0.1s;
+            min-width: 100px;
+        }
+
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #3dbdb4;
+        }
+
+        /* 功能按钮特殊样式 */
+        .btn-action {
+            font-weight: bold;
+            min-width: 160px;
+        }
+
+        .btn-play {
+            background: var(--primary-color);
+            box-shadow: 0 5px 0 #e05555;
+        }
+        .btn-play:active { box-shadow: 0 0 0 #e05555; }
+
+        .btn-next {
+            background: var(--accent-color);
+            box-shadow: 0 5px 0 #E08025;
+        }
+        .btn-next:active { box-shadow: 0 0 0 #E08025; }
+
+        .btn-disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: translateY(5px);
+        }
+
+        /* 手机适配 */
+        @media (max-width: 600px) {
+            .stage-container {
+                flex-direction: column;
+                height: auto;
+                padding: 20px 0;
+            }
+            .arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+            svg {
+                height: 80px;
+                width: 80px;
+            }
+        }
+
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+    <h1>✨ 汉字变身魔法 ✨</h1>
+    <p class="subtitle">可以点击灰色的方块，或者点击“下一步”！</p>
+
+    <!-- 演示舞台 -->
+    <div class="stage-container" id="stage">
+        <!-- 1. 象形图 (画) -->
+        <div class="step" id="step-pic" onclick="manualReveal(1)">
+            <svg viewBox="0 0 100 100" id="svg-pic">
+                <!-- 动态插入内容 -->
+            </svg>
+            <div class="step-label">1. 画一画</div>
+        </div>
+
+        <div class="arrow">➜</div>
+
+        <!-- 2. 甲骨文 -->
+        <div class="step" id="step-oracle" onclick="manualReveal(2)">
+            <svg viewBox="0 0 100 100" id="svg-oracle">
+                <!-- 动态插入内容 -->
+            </svg>
+            <div class="step-label">2. 甲骨文</div>
+        </div>
+
+        <div class="arrow">➜</div>
+
+        <!-- 3. 现代汉字 -->
+        <div class="step" id="step-modern" onclick="manualReveal(3)">
+            <svg viewBox="0 0 100 100" id="svg-modern">
+                <!-- 动态插入内容 -->
+            </svg>
+            <div class="step-label">3. 现代字</div>
+        </div>
+    </div>
+
+    <!-- 功能控制区 -->
+    <div class="controls">
+        <button class="btn btn-action btn-play" onclick="playEvolution()">🎬 自动演示</button>
+        <button class="btn btn-action btn-next" onclick="nextStep()">➡️ 下一步</button>
+    </div>
+
+    <!-- 字卡选择区 -->
+    <div class="controls">
+        <button class="btn" onclick="loadChar('sun')">🌞 日</button>
+        <button class="btn" onclick="loadChar('moon')">🌙 月</button>
+        <button class="btn" onclick="loadChar('mountain')">⛰️ 山</button>
+        <button class="btn" onclick="loadChar('water')">💧 水</button>
+        <button class="btn" style="background:#FF9F43; box-shadow:0 5px 0 #E08025;" onclick="loadChar('fire')">🔥 火</button>
+        <button class="btn" style="background:#2ecc71; box-shadow:0 5px 0 #27ae60;" onclick="loadChar('tree')">🌲 木</button>
+    </div>
+
+    <script>
+        // --- 核心数据库 ---
+        const charData = {
+            'sun': {
+                sound: '日',
+                explain: '圆圆的太阳，中间有个光点',
+                pic: `<circle cx="50" cy="50" r="35" class="draw-path" style="stroke:orange;" /><circle cx="50" cy="50" r="5" fill="orange" />
+                      <line x1="50" y1="5" x2="50" y2="15" stroke="orange" stroke-width="3"/>
+                      <line x1="50" y1="85" x2="50" y2="95" stroke="orange" stroke-width="3"/>
+                      <line x1="5" y1="50" x2="15" y2="50" stroke="orange" stroke-width="3"/>
+                      <line x1="85" y1="50" x2="95" y2="50" stroke="orange" stroke-width="3"/>`,
+                oracle: `<path d="M50,15 A35,35 0 1,0 50,85 A35,35 0 1,0 50,15 M50,45 L50,55" class="draw-path" style="stroke:#555;" />`,
+                modern: `<path d="M20,10 L20,90 M20,10 L80,10 L80,90 L20,90 M20,50 L80,50" class="hanzi-path" />`
+            },
+            'moon': {
+                sound: '月',
+                explain: '弯弯的月牙',
+                pic: `<path d="M30,10 Q90,50 30,90 Q60,50 30,10" class="draw-path" style="stroke:#FFD700;" />
+                      <circle cx="70" cy="25" r="3" fill="gold" />
+                      <circle cx="60" cy="70" r="2" fill="gold" />`,
+                oracle: `<path d="M30,10 C80,30 80,70 30,90 C50,70 50,30 30,10 M50,40 L60,45" class="draw-path" style="stroke:#555;" />`,
+                modern: `<path d="M25,10 C25,80 20,90 10,95 M25,10 L75,10 L75,85 C75,90 70,90 65,85 M25,35 L75,35 M25,60 L75,60" class="hanzi-path" />`
+            },
+            'mountain': {
+                sound: '山',
+                explain: '起伏的高山',
+                pic: `<path d="M5,90 L30,40 L55,90 L80,20 L95,90 Z" class="draw-path" style="stroke:#8B4513;" fill="#DEB887" fill-opacity="0.3" />`,
+                oracle: `<path d="M10,80 L10,40 L30,80 L50,10 L70,80 L90,40 L90,80 L10,80" class="draw-path" style="stroke:#555;" />`,
+                modern: `<path d="M50,10 L50,85 L10,85 L10,30 M50,85 L90,85 L90,30" class="hanzi-path" />`
+            },
+            'water': {
+                sound: '水',
+                explain: '流动的水波',
+                pic: `<path d="M10,25 Q30,10 50,25 T90,25 M10,50 Q30,35 50,50 T90,50 M10,75 Q30,60 50,75 T90,75" class="draw-path" style="stroke:#1E90FF;" />
+                      <circle cx="20" cy="15" r="2" fill="#87CEEB" />
+                      <circle cx="80" cy="85" r="2" fill="#87CEEB" />`,
+                oracle: `<path d="M50,10 Q30,30 50,50 T50,90 M20,30 Q30,50 20,70 M80,30 Q70,50 80,70" class="draw-path" style="stroke:#555;" />`,
+                modern: `<path d="M50,10 L50,80 C50,90 40,95 35,90 M15,40 L30,50 C30,20 30,20 10,10 M85,20 L65,50 L90,90" class="hanzi-path" />`
+            },
+            'fire': {
+                sound: '火',
+                explain: '熊熊燃烧的火焰',
+                pic: `<path d="M20,80 Q50,95 80,80 L70,90 M30,90 L80,80" class="draw-path" style="stroke:#8B4513; stroke-width:4;" />
+                      <path d="M30,75 Q20,40 40,30 Q50,10 60,30 Q80,40 70,75" class="draw-path" style="stroke:#FF4500; fill:#FFA500; fill-opacity:0.4;" />
+                      <path d="M45,70 L45,40" class="draw-path" style="stroke:#FFD700; stroke-width:2;" />`,
+                oracle: `<path d="M30,80 Q20,50 50,20 Q80,50 70,80 M30,60 L20,40 M70,60 L80,40" class="draw-path" style="stroke:#555;" />`,
+                modern: `<path d="M20,40 Q25,50 30,60 M80,40 Q75,50 70,60 M50,20 C40,50 20,80 10,90 M50,20 C60,50 80,80 90,90" class="hanzi-path" />`
+            },
+            'tree': {
+                sound: '木',
+                explain: '大树，上面是树枝，下面是树根',
+                pic: `<line x1="50" y1="80" x2="50" y2="30" class="draw-path" style="stroke:#5D4037; stroke-width:8;" />
+                      <path d="M50,30 L30,10 M50,30 L70,10 M50,50 L20,40 M50,50 L80,40" class="draw-path" style="stroke:#228B22; stroke-width:4;" />
+                      <path d="M50,80 L30,95 M50,80 L70,95" class="draw-path" style="stroke:#5D4037; stroke-width:4;" />`,
+                oracle: `<line x1="50" y1="10" x2="50" y2="90" class="draw-path" style="stroke:#555;" />
+                      <line x1="50" y1="30" x2="20" y2="10" class="draw-path" style="stroke:#555;" />
+                      <line x1="50" y1="30" x2="80" y2="10" class="draw-path" style="stroke:#555;" />
+                      <line x1="50" y1="70" x2="20" y2="90" class="draw-path" style="stroke:#555;" />
+                      <line x1="50" y1="70" x2="80" y2="90" class="draw-path" style="stroke:#555;" />`,
+                modern: `<path d="M10,35 L90,35 M50,10 L50,90 M50,35 C40,60 20,85 10,90 M50,35 C60,60 80,85 90,90" class="hanzi-path" />`
+            }
+        };
+
+        let currentChar = 'sun';
+        let currentStepLevel = 1; // 1: 画, 2: 甲骨文, 3: 现代
+        let animTimeouts = []; // 存储动画计时器，用于清除
+
+        window.onload = () => {
+            loadChar('sun');
+        };
+
+        // --- 核心逻辑 ---
+
+        function clearAnim() {
+            animTimeouts.forEach(t => clearTimeout(t));
+            animTimeouts = [];
+        }
+
+        function loadChar(charKey) {
+            playClickSound();
+            clearAnim();
+            currentChar = charKey;
+            const data = charData[charKey];
+            
+            // 重置界面
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            
+            // 填充内容
+            document.getElementById('svg-pic').innerHTML = data.pic;
+            document.getElementById('svg-oracle').innerHTML = data.oracle;
+            document.getElementById('svg-modern').innerHTML = data.modern;
+            
+            // 初始化状态：只显示第一步
+            currentStepLevel = 1;
+            document.getElementById('step-pic').classList.add('active');
+            
+            // 语音介绍
+            speak(data.sound + "，" + data.explain);
+        }
+
+        // 手动点击“下一步”
+        function nextStep() {
+            clearAnim(); // 停止自动播放
+            
+            if (currentStepLevel < 3) {
+                currentStepLevel++;
+                activateStep(currentStepLevel);
+            } else {
+                // 已经到了最后一步，重播读音和特效
+                playSuccessSound();
+                speak(charData[currentChar].sound);
+                // 简单的抖动效果提示已结束
+                const btn = document.querySelector('.btn-next');
+                btn.style.transform = 'scale(1.1)';
+                setTimeout(() => btn.style.transform = 'scale(1)', 100);
+            }
+        }
+
+        // 直接点击方块
+        function manualReveal(stepLevel) {
+            // 如果点击的是下一步（比如当前是1，点击了2），则前进
+            if (stepLevel === currentStepLevel + 1) {
+                clearAnim();
+                currentStepLevel = stepLevel;
+                activateStep(stepLevel);
+            } 
+            // 如果点击的是当前的或者以前的，就重播一下声音
+            else if (stepLevel <= currentStepLevel) {
+                playClickSound();
+                if(stepLevel === 3) speak(charData[currentChar].sound);
+            }
+        }
+
+        function activateStep(level) {
+            if (level === 2) {
+                document.getElementById('step-oracle').classList.add('active');
+                playPopSound();
+            } else if (level === 3) {
+                document.getElementById('step-modern').classList.add('active');
+                playSuccessSound();
+                setTimeout(() => speak(charData[currentChar].sound), 300);
+            }
+        }
+
+        // 自动播放模式
+        function playEvolution() {
+            playClickSound();
+            clearAnim();
+            
+            // 重置到第一步
+            document.getElementById('step-oracle').classList.remove('active');
+            document.getElementById('step-modern').classList.remove('active');
+            currentStepLevel = 1;
+
+            // 计划任务
+            let t1 = setTimeout(() => {
+                currentStepLevel = 2;
+                document.getElementById('step-oracle').classList.add('active');
+                playPopSound();
+            }, 1500);
+
+            let t2 = setTimeout(() => {
+                currentStepLevel = 3;
+                document.getElementById('step-modern').classList.add('active');
+                playSuccessSound();
+                speak(charData[currentChar].sound);
+            }, 3000);
+            
+            animTimeouts.push(t1, t2);
+        }
+
+        // --- 音频系统 ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playClickSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playPopSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function playSuccessSound() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            const now = audioCtx.currentTime;
+            osc.frequency.setValueAtTime(523.25, now); 
+            osc.frequency.setValueAtTime(659.25, now + 0.1); 
+            osc.frequency.setValueAtTime(783.99, now + 0.2); 
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.5);
+            osc.start();
+            osc.stop(now + 0.5);
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.8; 
+                utterance.pitch = 1.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+    </script>
+</body>
+</html>

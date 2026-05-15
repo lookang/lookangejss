@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Word Problems — Leitner Maths</title>
+<link rel="stylesheet" href="styles.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S9EWRY1CPJ');</script>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <a href="index.html" class="back-btn" aria-label="Back to home">🏠</a>
+    <div style="flex:1">
+      <h1>📝 Word Problems</h1>
+      <div style="font-size:.8rem;color:var(--muted)">Milestones 2 &amp; 6 · AI-generated problems</div>
+    </div>
+    <div class="pack-chips">
+      <span class="pack-chip A">Pack A</span>
+      <span class="pack-chip B">Pack B</span>
+      <span class="pack-chip C">Pack C</span>
+    </div>
+  </div>
+
+  <!-- Milestone selector -->
+  <div style="background:var(--surface);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)">
+    <div style="font-size:.85rem;color:var(--muted);margin-bottom:10px;font-weight:600;">Select milestone level:</div>
+    <div class="wp-milestone-row" id="milestoneRow">
+      <button class="milestone-select-btn active" data-m="2">M2 · Add &amp; Sub</button>
+      <button class="milestone-select-btn" data-m="6">M6 · Mult &amp; Div</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="stat-card" style="flex:1;min-width:80px;padding:10px">
+      <div class="stat-value" id="statDone" style="font-size:1.6rem">0</div>
+      <div class="stat-label">Done</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:80px;padding:10px">
+      <div class="stat-value" id="statRight" style="font-size:1.6rem;color:var(--correct)">0</div>
+      <div class="stat-label">Correct</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:80px;padding:10px">
+      <div class="stat-value" id="statWrong" style="font-size:1.6rem;color:var(--wrong)">0</div>
+      <div class="stat-label">Try again</div>
+    </div>
+    <div class="stat-card" style="flex:1;min-width:80px;padding:10px">
+      <div class="stat-value" id="statPct" style="font-size:1.6rem;color:#8b5cf6">—</div>
+      <div class="stat-label">Accuracy</div>
+    </div>
+  </div>
+
+  <!-- Word problem card -->
+  <div class="wp-card" id="wpCard">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span id="wpType" style="font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:100px;background:#dbeafe;color:#1e40af">Loading…</span>
+      <span id="wpHintBadge" style="font-size:.72rem;padding:3px 8px;border-radius:100px;background:#fef9c3;color:#92400e;display:none">💡 Hint available</span>
+    </div>
+    <div class="wp-question" id="wpQuestion">Generating a problem for you…</div>
+
+    <div class="wp-input-row">
+      <input type="number" id="wpInput" class="wp-answer-input" placeholder="?" min="0" max="9999"
+             inputmode="numeric" pattern="[0-9]*" aria-label="Your answer">
+      <button class="btn btn-primary" id="btnCheck" style="min-width:110px">✔ Check</button>
+      <button class="btn btn-outline btn-sm" id="btnSkip">Skip ▶</button>
+    </div>
+
+    <div class="wp-feedback" id="wpFeedback" style="display:none"></div>
+
+    <!-- Hint panel (progressive) -->
+    <div class="hint-panel" id="wpHintPanel" style="display:none;margin-top:12px;margin-left:0;margin-right:0"></div>
+
+    <!-- Number sentence revealed after answer -->
+    <div id="wpSentence" style="display:none;margin-top:12px;padding:10px 14px;background:#f0fdf4;border-radius:8px;font-size:.95rem;font-weight:600;color:#15803d">
+      Number sentence: <span id="wpSentenceText"></span>
+    </div>
+  </div>
+
+  <!-- Next / Hint buttons -->
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">
+    <button class="btn btn-outline" id="btnHint">💡 Show Hint</button>
+    <button class="btn btn-primary" id="btnNext">Next Problem ▶</button>
+  </div>
+
+  <!-- Analytics Panel -->
+  <div class="analytics-panel no-print">
+    <div class="analytics-header" id="analyticsHeader" role="button" aria-expanded="false" tabindex="0">
+      <h3>📊 Analytics &amp; Action Log</h3>
+      <span class="analytics-toggle-icon" id="analyticsIcon">▼</span>
+    </div>
+    <div class="analytics-body" id="analyticsBody">
+      <div class="analytics-tabs">
+        <button class="analytics-tab active" data-tab="actions">⚡ Actions</button>
+        <button class="analytics-tab"        data-tab="quiz">🧪 Quiz Results</button>
+      </div>
+      <div id="panelActions" class="log-container">
+        <div style="color:var(--muted);font-size:.8rem;padding:8px 0">Actions will appear here as you practise.</div>
+      </div>
+      <div id="panelQuiz" style="display:none;overflow-x:auto">
+        <table class="quiz-table">
+          <thead><tr><th>#</th><th>Question (short)</th><th>Your answer</th><th>Correct</th><th>Result</th><th>Attempt</th></tr></thead>
+          <tbody id="quizBody"></tbody>
+        </table>
+        <div style="color:var(--muted);font-size:.8rem;padding:10px 12px" id="quizEmpty">Quiz results will appear here.</div>
+      </div>
+      <div class="analytics-controls">
+        <button class="btn btn-sm btn-danger" id="btnClearLog">🗑️ Clear Log</button>
+        <span class="analytics-device" id="deviceLabel"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using Claude Sonnet 4.6 &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a>
+  </div>
+</div>
+
+<script src="leitner-engine.js"></script>
+<script>
+(function () {
+  const engine = LeitnerEngine.init();
+
+  let currentProblem = null;
+  let activeMilestone = 2;
+  let hintLevel = 3;       // starts with most hints; decreases as student gets correct
+  let sessionDone = 0, sessionRight = 0, sessionWrong = 0;
+  let attemptNum = 0, quizCount = 0, answered = false;
+
+  // DOM
+  const wpQuestion   = document.getElementById('wpQuestion');
+  const wpType       = document.getElementById('wpType');
+  const wpHintBadge  = document.getElementById('wpHintBadge');
+  const wpInput      = document.getElementById('wpInput');
+  const wpFeedback   = document.getElementById('wpFeedback');
+  const wpHintPanel  = document.getElementById('wpHintPanel');
+  const wpSentence   = document.getElementById('wpSentence');
+  const wpSentenceT  = document.getElementById('wpSentenceText');
+  const btnCheck     = document.getElementById('btnCheck');
+  const btnSkip      = document.getElementById('btnSkip');
+  const btnHint      = document.getElementById('btnHint');
+  const btnNext      = document.getElementById('btnNext');
+  const analyticsBody= document.getElementById('analyticsBody');
+  const analyticsIcon= document.getElementById('analyticsIcon');
+  const panelActions = document.getElementById('panelActions');
+  const panelQuiz    = document.getElementById('panelQuiz');
+  const quizBody     = document.getElementById('quizBody');
+  const quizEmpty    = document.getElementById('quizEmpty');
+
+  const TYPE_COLORS = {
+    addition:       { bg:'#dbeafe', color:'#1e40af', label:'➕ Addition' },
+    subtraction:    { bg:'#ede9fe', color:'#5b21b6', label:'➖ Subtraction' },
+    multiplication: { bg:'#fef3c7', color:'#92400e', label:'✖️ Multiplication' },
+    division:       { bg:'#fee2e2', color:'#991b1b', label:'➗ Division' },
+    mixed:          { bg:'#d1fae5', color:'#065f46', label:'🔀 Mixed' },
+  };
+
+  // ── Milestone selector ─────────────────────────────────────
+  document.querySelectorAll('.milestone-select-btn').forEach(btn => {
+    engine.addTouchButton(btn, () => {
+      document.querySelectorAll('.milestone-select-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeMilestone = parseInt(btn.dataset.m);
+      engine.logAction('📚 Milestone changed to M' + activeMilestone);
+      nextProblem();
+    });
+  });
+
+  // ── Generate & display problem ─────────────────────────────
+  function nextProblem() {
+    currentProblem = engine.generateWordProblem(activeMilestone);
+    answered = false; attemptNum = 0;
+
+    wpQuestion.textContent = currentProblem.question;
+    const tc = TYPE_COLORS[currentProblem.type] || TYPE_COLORS.addition;
+    wpType.textContent = tc.label;
+    wpType.style.background = tc.bg;
+    wpType.style.color = tc.color;
+
+    wpInput.value = '';
+    wpFeedback.style.display = 'none';
+    wpFeedback.className = 'wp-feedback';
+    wpHintPanel.style.display = 'none';
+    wpSentence.style.display = 'none';
+    wpHintBadge.style.display = hintLevel > 0 ? 'inline-flex' : 'none';
+
+    btnHint.disabled = false;
+    btnCheck.disabled = false;
+
+    wpInput.focus();
+    engine.logAction('📝 Word problem shown (M' + activeMilestone + ', ' + currentProblem.type + ')', { question: currentProblem.question.slice(0, 60) });
+  }
+
+  // ── Hint ───────────────────────────────────────────────────
+  engine.addTouchButton(btnHint, () => {
+    if (!currentProblem) return;
+    let hintHTML = '';
+    const h = currentProblem.hintData;
+
+    if (hintLevel === 3) {
+      hintHTML = `<div class="hint-text">💡 Key numbers in the problem: <strong>${h.numbers.join(', ')}</strong></div>
+                  <div class="hint-text">Operation to use: <strong>${h.operation}</strong></div>`;
+    } else if (hintLevel === 2) {
+      hintHTML = `<div class="hint-text">💡 Operation: <strong>${h.operation}</strong></div>`;
+    } else if (hintLevel === 1) {
+      hintHTML = `<div class="hint-text">💡 Write a number sentence first, then solve it.</div>`;
+    } else {
+      hintHTML = `<div class="hint-text">💡 Try your best! You can do it.</div>`;
+    }
+
+    wpHintPanel.innerHTML = hintHTML;
+    wpHintPanel.style.display = 'block';
+    engine.logAction('💡 Hint shown at level ' + hintLevel + ' — ' + h.operation);
+  });
+
+  // ── Check answer ───────────────────────────────────────────
+  engine.addTouchButton(btnCheck, checkAnswer);
+  wpInput.addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+
+  function checkAnswer() {
+    if (answered || !currentProblem) return;
+    const raw = wpInput.value.trim();
+    if (!raw) { wpInput.focus(); return; }
+    const studentAns = parseInt(raw, 10);
+    const correctAns = parseInt(currentProblem.answer, 10);
+    const isCorrect  = studentAns === correctAns;
+    attemptNum++;
+
+    wpFeedback.style.display = 'block';
+    if (isCorrect) {
+      answered = true;
+      sessionDone++; sessionRight++;
+      wpFeedback.className = 'wp-feedback correct';
+      wpFeedback.innerHTML = '✅ Correct! Well done, ' + engine.student.name + '!';
+      wpSentenceT.textContent = currentProblem.sentence;
+      wpSentence.style.display = 'block';
+      btnCheck.disabled = true;
+      if (hintLevel > 0 && attemptNum === 1) hintLevel = Math.max(0, hintLevel - 1); // reduce hints on first-try correct
+      engine.logAction('✅ Correct answer: ' + correctAns + ' (attempt ' + attemptNum + ')');
+    } else {
+      sessionWrong++;
+      wpFeedback.className = 'wp-feedback wrong';
+      wpFeedback.innerHTML = '❌ Not quite. Your answer: <strong>' + studentAns + '</strong>. Try again!';
+      if (hintLevel < 3) hintLevel = Math.min(3, hintLevel + 1); // bump hints on wrong
+      wpInput.value = '';
+      wpInput.focus();
+      engine.logAction('❌ Wrong answer: ' + studentAns + ' (correct: ' + correctAns + ', attempt ' + attemptNum + ')');
+    }
+
+    // Quiz log
+    addQuizRow(currentProblem.question.slice(0, 50) + '…', String(studentAns), String(correctAns), isCorrect, attemptNum);
+    updateStats();
+  }
+
+  // ── Skip ───────────────────────────────────────────────────
+  engine.addTouchButton(btnSkip, () => {
+    if (!currentProblem) return;
+    engine.logAction('⏭ Problem skipped');
+    if (!answered) { sessionDone++; sessionWrong++; updateStats(); }
+    nextProblem();
+  });
+
+  // ── Next ───────────────────────────────────────────────────
+  engine.addTouchButton(btnNext, nextProblem);
+
+  // ── Stats ──────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('statDone').textContent  = sessionDone;
+    document.getElementById('statRight').textContent = sessionRight;
+    document.getElementById('statWrong').textContent = sessionWrong;
+    const pct = sessionDone ? Math.round((sessionRight / sessionDone) * 100) : '—';
+    document.getElementById('statPct').textContent   = sessionDone ? pct + '%' : '—';
+  }
+
+  function addQuizRow(q, sa, ca, ok, att) {
+    quizEmpty.style.display = 'none'; quizCount++;
+    const tr = document.createElement('tr'); tr.className = ok ? 'qcorrect' : 'qwrong';
+    tr.innerHTML = `<td>${quizCount}</td><td style="max-width:180px;word-break:break-word">${q}</td><td>${sa}</td><td>${ca}</td><td>${ok ? '✅' : '❌'}</td><td>${att}</td>`;
+    quizBody.prepend(tr); if (quizBody.children.length > 100) quizBody.lastChild.remove();
+  }
+
+  // ── Analytics panel ────────────────────────────────────────
+  const analyticsHeader = document.getElementById('analyticsHeader');
+  engine.addTouchButton(analyticsHeader, () => {
+    const open = analyticsBody.classList.toggle('open');
+    analyticsIcon.classList.toggle('open', open);
+    analyticsHeader.setAttribute('aria-expanded', open);
+  });
+
+  document.querySelectorAll('.analytics-tab').forEach(tab => {
+    engine.addTouchButton(tab, () => {
+      document.querySelectorAll('.analytics-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      panelActions.style.display = tab.dataset.tab === 'actions' ? 'block' : 'none';
+      panelQuiz.style.display    = tab.dataset.tab === 'quiz'    ? 'block' : 'none';
+    });
+  });
+
+  engine.addTouchButton(document.getElementById('btnClearLog'), () => {
+    engine.clearLog();
+    panelActions.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:8px 0">Log cleared.</div>';
+    quizBody.innerHTML = ''; quizEmpty.style.display = 'block'; quizCount = 0;
+  });
+
+  document.addEventListener('leitner:log', e => {
+    const ph = panelActions.querySelector('div');
+    if (ph && ph.textContent.includes('appear here')) ph.remove();
+    const row = document.createElement('div'); row.className = 'log-entry';
+    row.innerHTML = `<span class="log-time">${e.detail.time}</span><span>${e.detail.description}</span>`;
+    panelActions.prepend(row); if (panelActions.children.length > 100) panelActions.lastChild.remove();
+  });
+
+  document.getElementById('deviceLabel').textContent = '🖥 Input: ' + engine.inputType;
+
+  // ── Start ──────────────────────────────────────────────────
+  nextProblem();
+})();
+</script>
+</body>
+</html>

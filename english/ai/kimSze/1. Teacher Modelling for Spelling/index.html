@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Watch Me Spell</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background-color: #f8f8ff;
+    }
+    h1 {
+      color: #333;
+    }
+    .box-container {
+      display: flex;
+      justify-content: center;
+      margin: 30px 0;
+    }
+    .box {
+      width: 60px;
+      height: 60px;
+      border: 2px solid #000;
+      font-size: 36px;
+      line-height: 60px;
+      text-align: center;
+      margin: 0 10px;
+      background-color: #f0f0f0;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #instruction {
+      font-size: 20px;
+      margin-top: 20px;
+      min-height: 50px;
+    }
+  </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+<h1>Watch Me Spell Some Words</h1>
+<p>Remember how I do it. You will have to do it later!</p>
+
+<div class="box-container">
+  <div class="box" id="box0"></div>
+  <div class="box" id="box1"></div>
+  <div class="box" id="box2"></div>
+</div>
+
+<div>
+  <button onclick="nextStep()">▶️ Next Step</button>
+</div>
+
+<div id="instruction"></div>
+
+<script>
+const synth = window.speechSynthesis;
+
+const spellSteps = [
+  // MAP
+  {text: "The word is map. A map shows places.", speak: "The word is map. A map shows places."},
+  {text: "Say it again: map.", speak: "Map."},
+  {text: "First sound: /m/", speak: "First sound: mm."},
+  {text: "Second sound: /a/", speak: "Second sound: air."},
+  {text: "Third sound: /p/", speak: "Third sound: puh."},
+  {text: "First sound /m/. Letter M.", speak: "First sound mm. Letter M.", place: {box: 0, letter: "M"}},
+  {text: "Second sound /a/. Letter A.", speak: "Second sound air. Letter A.", place: {box: 1, letter: "A"}},
+  {text: "Third sound /p/. Letter P.", speak: "Third sound puh. Letter P.", place: {box: 2, letter: "P"}},
+  {text: "I blend and check: /m/ /a/ /p/. Map.", speak: "I blend and check: m a p. Map."},
+  {text: "I spell this word in the syllable cell: map.", speak: "I spell this word in the syllable cell: map."},
+
+  // HOT
+  {text: "The word is hot. The soup is hot.", speak: "The word is hot. The soup is hot."},
+  {text: "Say it again: hot.", speak: "Hot."},
+  {text: "First sound: /h/", speak: "First sound: huh."},
+  {text: "Second sound: /o/", speak: "Second sound: aw."},
+  {text: "Third sound: /t/", speak: "Third sound: tuh."},
+  {text: "First sound /h/. Letter H.", speak: "First sound huh. Letter H.", place: {box: 0, letter: "H"}},
+  {text: "Second sound /o/. Letter O.", speak: "Second sound aw. Letter O.", place: {box: 1, letter: "O"}},
+  {text: "Third sound /t/. Letter T.", speak: "Third sound tuh. Letter T.", place: {box: 2, letter: "T"}},
+  {text: "I blend and check: /h/ /o/ /t/. Hot.", speak: "I blend and check: h o t. Hot."},
+  {text: "I spell this word in the syllable cell: hot.", speak: "I spell this word in the syllable cell: hot."}
+];
+
+let currentStep = 0;
+
+function speakText(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  synth.cancel(); // Cancel any previous speech
+  synth.speak(utter);
+}
+
+function nextStep() {
+  if (currentStep >= spellSteps.length) {
+    document.getElementById("instruction").textContent = "✅ All spelling steps completed.";
+    speakText("You have watched me spell all the words. Well done!");
+    return;
+  }
+
+  const step = spellSteps[currentStep];
+  document.getElementById("instruction").textContent = step.text;
+  speakText(step.speak);
+
+  // Fill specific box with letter
+  if (step.place) {
+    document.getElementById(`box${step.place.box}`).textContent = step.place.letter;
+  }
+
+  // Clear boxes when starting a new word
+  if (step.text.startsWith("The word is")) {
+    for (let i = 0; i < 3; i++) {
+      document.getElementById(`box${i}`).textContent = "";
+    }
+  }
+
+  currentStep++;
+}
+</script>
+
+</body>
+</html>

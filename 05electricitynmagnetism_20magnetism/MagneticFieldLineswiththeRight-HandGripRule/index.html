@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensures mobile-friendly scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Magnetic Field Lines with Directional Arrows (Improved Spacing)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="tex-mml-chtml.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+      width: 100%;
+    }
+    .control-panel {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background-color: #ddd;
+      gap: 10px;
+      flex-wrap: wrap; /* allow wrapping on smaller screens */
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .control-panel label {
+      font-weight: bold;
+    }
+    
+    /* Purple slider track */
+    .control-panel input[type="range"] {
+      width: 150px;
+      -webkit-appearance: none; /* remove default styling */
+      background: #800080;       /* purple slider background */
+      height: 6px;              /* track thickness */
+      border-radius: 3px;
+      outline: none;
+      margin: 0 5px;
+    }
+    /* For WebKit/Blink */
+    .control-panel input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      border: 2px solid #800080;
+      cursor: pointer;
+      margin-top: -5px; /* center the thumb on the track */
+    }
+    /* For Firefox */
+    .control-panel input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      border: 2px solid #800080;
+      cursor: pointer;
+    }
+    
+    #myCanvas {
+      display: block;
+      margin: 0 auto;
+      background-color: white;
+      border: 1px solid #ccc;
+      width: 100%; 
+      height: auto; 
+    }
+    
+    .hand-images {
+      display: flex;
+      justify-content: center;
+      margin: 10px 0;
+      flex-wrap: wrap; /* wrap images on very small screens */
+    }
+    .hand-images img {
+      width: 250px;
+      display: none; /* hidden by default unless current>0 or current<0 */
+      border: 1px solid #aaa;
+      margin: 0 10px;
+    }
+    
+    @media (max-width: 480px) {
+      .control-panel {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .control-panel input[type="range"] {
+        width: 100px;
+      }
+      .hand-images img {
+        width: 100px; 
+        margin-top: 10px;
+      }
+    }
+    
+    .credit {
+      text-align: center;
+      font-size: 0.9em;
+      color: #555;
+      margin: 10px 0;
+    }
+    
+    .description {
+      margin: 20px auto;
+      width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+      padding: 15px;
+      font-family: sans-serif;
+      font-size: 1em;
+      line-height: 1.6;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      color: #333;
+    }
+    .description h2 {
+      font-size: 1.4em;
+      color: #800080; 
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .description p {
+      margin: 10px 0;
+    }
+    
+    .control-buttons button {
+      width: 20vw;
+      padding: 10px 15px;
+      font-size: 1rem;
+      background-color: #800080;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .control-buttons button:hover {
+      background-color: #993399;
+    }
+  </style>
+</head>
+<body>
+  <h2 class="control-title">Magnetic Field Lines with Directional Arrows (Improved Spacing)</h2>
+  
+  <div class="control-panel">
+    <label for="currentSlider">Current (I):</label>
+    <input type="range" id="currentSlider" min="-5" max="5" step="1" value="0">
+    <span id="currentValue">0</span>
+    
+    <div class="control-buttons">
+      <button id="playPauseBtn">Play</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
+  
+  <div class="hand-images">
+    <img id="leftHandImg" src="UpImage.png" alt="Up Right-Hand Rule" />
+    <img id="rightHandImg" src="DownImage.png" alt="Down Right-Hand Rule" />
+  </div>
+  
+  <canvas id="myCanvas" width="700" height="500"></canvas>
+  
+  <div class="description">
+    <h2>Using the Right-Hand Grip Rule</h2>
+    <p>
+      An electric current generates a magnetic field. The <strong>right-hand grip rule</strong> is a helpful mnemonic 
+      to determine the direction of the magnetic field produced by the current. Point the thumb of your right hand 
+      in the direction of the electric current; your fingers will then curl in the direction of the circular 
+      magnetic field lines.
+    </p>
+    <p>
+      Here, the spacing of the field lines is improved to reflect that the field strength 
+      \( B = \mu_0 I / (2\pi r) \) is higher near the wire (so lines appear more densely packed). As \(I\) increases, 
+      more lines appear overall, and their spacing near the wire is tighter, indicating a stronger magnetic field.
+    </p>
+  </div>
+  
+  <div class="credit">Created by weelookang@gmail.com, modified for better realism</div>
+  
+  <script>
+    // -------------------------------------------------------------------
+    // DOM references
+    // -------------------------------------------------------------------
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const currentSlider = document.getElementById('currentSlider');
+    const currentValueSpan = document.getElementById('currentValue');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const leftHandImg = document.getElementById('leftHandImg');
+    const rightHandImg = document.getElementById('rightHandImg');
+
+    // -------------------------------------------------------------------
+    // Simulation variables
+    // -------------------------------------------------------------------
+    let current = 0;       // I in [-5,5]
+    let isPlaying = false; // Are we auto-bouncing the current?
+    let direction = 1;     // For bouncing I between -5 and +5
+    let animationFrameId = null;
+
+    // Physical constant (vacuum permeability)
+    const mu0 = 4 * Math.PI * 1e-7;
+
+    // -------------------------------------------------------------------
+    // Utility: update displayed current
+    // -------------------------------------------------------------------
+    function updateCurrentDisplay(val) {
+      currentValueSpan.textContent = val;
+    }
+
+    // -------------------------------------------------------------------
+    // Show/hide images (for up/down current)
+    // -------------------------------------------------------------------
+    function updateHandImages() {
+      if (current > 0) {
+        leftHandImg.style.display = 'block';  // current upward
+        rightHandImg.style.display = 'none';
+      } else if (current < 0) {
+        leftHandImg.style.display = 'none';
+        rightHandImg.style.display = 'block'; // current downward
+      } else {
+        leftHandImg.style.display = 'none';
+        rightHandImg.style.display = 'none';
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Slider event
+    // -------------------------------------------------------------------
+    function handleSliderChange() {
+      current = parseInt(currentSlider.value, 10);
+      updateCurrentDisplay(current);
+      updateHandImages();
+    }
+
+    // -------------------------------------------------------------------
+    // Draw wire + arrow in the center, plus label "I"
+    // -------------------------------------------------------------------
+    function drawWireAndArrow() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      // Wire
+      ctx.beginPath();
+      ctx.moveTo(centerX, 0);
+      ctx.lineTo(centerX, canvas.height);
+      ctx.strokeStyle = '#800080'; // purple
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Label "I" near the center
+      ctx.fillStyle = '#800080';
+      ctx.font = '16px sans-serif';
+      ctx.fillText("I", centerX + 8, centerY - 10);
+
+      // Arrow for current direction
+      ctx.beginPath();
+      ctx.strokeStyle = '#800080';
+      ctx.lineWidth = 2;
+      if (current > 0) {
+        // arrow up
+        ctx.moveTo(centerX, centerY + 20);
+        ctx.lineTo(centerX, centerY - 20);
+        ctx.moveTo(centerX, centerY - 20);
+        ctx.lineTo(centerX - 5, centerY - 10);
+        ctx.moveTo(centerX, centerY - 20);
+        ctx.lineTo(centerX + 5, centerY - 10);
+      } else if (current < 0) {
+        // arrow down
+        ctx.moveTo(centerX, centerY - 20);
+        ctx.lineTo(centerX, centerY + 20);
+        ctx.moveTo(centerX, centerY + 20);
+        ctx.lineTo(centerX - 5, centerY + 10);
+        ctx.moveTo(centerX, centerY + 20);
+        ctx.lineTo(centerX + 5, centerY + 10);
+      } else {
+        // If current=0, just a short vertical line
+        ctx.moveTo(centerX, centerY - 10);
+        ctx.lineTo(centerX, centerY + 10);
+      }
+      ctx.stroke();
+    }
+
+    // -------------------------------------------------------------------
+    // Draw circular/elliptical field lines for a given current
+    // - Number of lines depends on |I| so that stronger current => more lines
+    // - Radii are placed in a geometric progression to reflect 1/r behavior
+    // - Arrows placed to indicate direction (use signFactor)
+    // -------------------------------------------------------------------
+    function drawFieldLines() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const absI = Math.abs(current);
+      
+      // If current = 0 => no field lines
+      if (absI < 1e-12) return;
+
+      // Decide direction for arrowheads:
+      //   I>0 => field lines appear to circle clockwise (viewed from above),
+      //          so we reverse the normal anti-clockwise direction => signFactor = -1
+      //   I<0 => anti-clockwise => signFactor = +1
+      const signFactor = (current > 0) ? -1 : +1;
+
+      // 1) Decide how many lines to draw: e.g. from 3 (min) up to ~13 (max)
+      //    or pick any formula that you like. We'll do something simple:
+      const lineCount = 3 + Math.floor(2 * absI);
+      //    For I=0 => 3 lines, for I=5 => 3+10=13 lines, etc.
+
+      // 2) We'll define r_min and r_max so that the outermost lines fit on the canvas
+      //    but still show a dense region near the wire. Adjust to taste.
+      const rMin = 30;                   // near the wire
+      const rMax = Math.min(canvas.width, canvas.height) * 0.45; // near edges
+
+      // 3) Generate an array of radii in geometric progression:
+      //    r_i = rMin * (rMax/rMin)^(i/(lineCount-1)), for i=0..lineCount-1
+      //    This puts lines closer near rMin, reflecting how B~1/r is largest near the wire.
+      let radii = [];
+      if (lineCount === 1) {
+        // Just one line => use midpoint
+        radii.push(0.5 * (rMin + rMax));
+      } else {
+        for (let i = 0; i < lineCount; i++) {
+          const fraction = i / (lineCount - 1);
+          const r = rMin * Math.exp(fraction * Math.log(rMax / rMin));
+          radii.push(r);
+        }
+      }
+
+      // 4) Draw each ellipse and put arrowheads
+      ctx.strokeStyle = '#ff9900';
+      ctx.lineWidth = 2;
+
+      radii.forEach(r => {
+        // Ellipse to mimic "3D" => smaller y radius
+        const rx = r;
+        const ry = r * 0.4;
+
+        ctx.beginPath();
+        ctx.ellipse(centerX, centerY, rx, ry, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Add arrowheads along each ellipse
+        drawArrowsOnEllipse(centerX, centerY, rx, ry, signFactor);
+      });
+    }
+
+    // -------------------------------------------------------------------
+    // Draw arrowheads on an ellipse to indicate direction of the field
+    // -------------------------------------------------------------------
+    function drawArrowsOnEllipse(cx, cy, rx, ry, signFactor) {
+      // Choose how many arrowheads per ellipse
+      const arrowCount = 6;
+      for (let i = 0; i < arrowCount; i++) {
+        const t = i * (2 * Math.PI / arrowCount);
+
+        // Point on ellipse (parametric)
+        const x = cx + rx * Math.cos(t);
+        const y = cy + ry * Math.sin(t);
+
+        // Tangent direction for an ellipse parameterized as:
+        //   X(t) = rx cos t,  Y(t) = ry sin t
+        //   derivative => dX/dt = -rx sin t, dY/dt = ry cos t
+        // signFactor flips it from anticlockwise to clockwise or vice versa
+        let dx = -rx * Math.sin(t) * signFactor;
+        let dy =  ry * Math.cos(t) * signFactor;
+
+        // Angle for the arrow head
+        const arrowAngle = Math.atan2(dy, dx);
+
+        // Draw a small arrow at (x, y), rotated to arrowAngle
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(arrowAngle);
+        ctx.beginPath();
+        ctx.moveTo(-5, -3);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-5, 3);
+        ctx.strokeStyle = '#ff9900';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Main draw
+    // -------------------------------------------------------------------
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawWireAndArrow();
+      drawFieldLines();
+    }
+
+    // -------------------------------------------------------------------
+    // Animation loop (auto-bouncing current if Play is pressed)
+    // -------------------------------------------------------------------
+    function animate() {
+      draw();
+
+      if (isPlaying) {
+        current += direction * 0.05;
+        if (current > 5) {
+          current = 5;
+          direction = -1;
+        } else if (current < -5) {
+          current = -5;
+          direction = 1;
+        }
+        // Snap the slider to an integer when it crosses
+        currentSlider.value = Math.round(current);
+        updateCurrentDisplay(Math.round(current));
+        updateHandImages();
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    // Start
+    function start() {
+      if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    }
+    // Stop (unused here)
+    function stop() {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // Event listeners
+    // -------------------------------------------------------------------
+    currentSlider.addEventListener('input', () => {
+      handleSliderChange();
+      draw();
+    });
+
+    playPauseBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
+      updateHandImages();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      current = 0;
+      currentSlider.value = 0;
+      updateCurrentDisplay(0);
+      direction = 1;
+      updateHandImages();
+    });
+
+    // -------------------------------------------------------------------
+    // Initialize
+    // -------------------------------------------------------------------
+    updateCurrentDisplay(current);
+    updateHandImages();
+    
+    // Make canvas responsive
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetWidth * 0.7; // Maintain aspect ratio
+      draw();
+    }
+    
+    // Resize on load and when window size changes
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    start(); // begin animation
+  </script>
+</body>
+</html>

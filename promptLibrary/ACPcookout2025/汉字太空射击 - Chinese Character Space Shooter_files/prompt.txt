@@ -1,0 +1,219 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“汉字太空射击 – Chinese Character Space Shooter”** game where students practice recognising common Chinese characters by shooting the correct character asteroids in space.
+
+TARGET AUDIENCE:
+- Primary 3 Chinese Language (approx. ages 8–9)
+
+INTERACTIVE REQUIREMENTS:
+- Full-screen (or container-filling) **canvas-based space shooter** game.
+- Player controls a **spaceship** at the bottom of the screen that can move and shoot upwards.
+- **Asteroids** fall from the top of the screen, each displaying a single Chinese character (汉字).
+- A **question panel** shows the **target character** plus its English meaning and Hanyu Pinyin.
+- The learner’s goal: **shoot only the asteroids that match the target character**.
+- UI overlay elements:
+  - Score display (得分) with star indicators for combo.
+  - Lives display (生命) using hearts.
+  - Level display (等级) with a progress bar.
+  - Question text: “找到这个字: X”.
+  - Question meaning and pinyin: “Meaning (pinyin)”.
+- Game state screens:
+  - In-game HUD.
+  - **Game Over** overlay showing final score, accuracy, and max combo, with buttons to restart and view leaderboard.
+- Additional modals:
+  - **Help** modal (游戏帮助) explaining controls, goals, and scoring.
+  - **Leaderboard** modal showing local best scores.
+- Audio feedback and background effects:
+  - Simple sound effects for shooting, correct hit, wrong hit, level up, and game over.
+  - Option to toggle sound on/off.
+- Self-contained HTML + CSS + JavaScript (no external game engines).
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Works on desktop (keyboard + mouse) and mobile (touch controls, auto-shoot).
+
+SPECIFIC REQUIREMENTS:
+
+Character content
+- Use a fixed set of **common characters** appropriate for Primary 3, each with:
+  - `char`: the Chinese character (e.g., "水", "火", "木", "金", "土", "人", etc.).
+  - `meaning`: English gloss (e.g., "Water", "Fire", "Wood").
+  - `pinyin`: Hanyu Pinyin with tone marks (e.g., "shuǐ", "huǒ").
+- Example list (as in the current implementation):
+  - 水 (Water, shuǐ)
+  - 火 (Fire, huǒ)
+  - 木 (Wood, mù)
+  - 金 (Gold, jīn)
+  - 土 (Earth, tǔ)
+  - 人 (Person, rén)
+  - 大 (Big, dà)
+  - 小 (Small, xiǎo)
+  - 上 (Up, shàng)
+  - 下 (Down, xià)
+  - 左 (Left, zuǒ)
+  - 右 (Right, yòu)
+  - 中 (Middle, zhōng)
+  - 日 (Sun, rì)
+  - 月 (Moon, yuè)
+  - 山 (Mountain, shān)
+  - 川 (River, chuān)
+  - 田 (Field, tián)
+  - 口 (Mouth, kǒu)
+  - 手 (Hand, shǒu)
+
+Question system
+- At any time, there is one **current question**:
+  - Randomly select a character entry from the list.
+  - Display: `找到这个字: <char>` in the question text panel.
+  - Display the character’s meaning and pinyin in a smaller sub-line (e.g., `Gold (jīn)`).
+- When a correct asteroid is shot, generate a **new question**.
+
+Asteroids
+- Asteroids represent candidate answers and fall from the top of the canvas:
+  - Each asteroid has:
+    - Position (x, y).
+    - Size (e.g., 60×60 px).
+    - Falling speed based on level.
+    - A Chinese character (from the list).
+    - A flag `isCorrect` indicating whether it matches the current question’s character.
+  - Use an **approx. 30% chance** that a spawned asteroid is correct; the rest are incorrect (different from the current character).
+- Visual design:
+  - Circular, shaded asteroid shape.
+  - Different colours for correct vs incorrect asteroids (e.g., blue-ish for correct, grey for incorrect).
+  - Character rendered in white in the centre.
+  - Slight rotation and rotation animation for visual interest.
+- Behaviour:
+  - Asteroids fall with increasing speed as level increases.
+  - If a **correct** asteroid passes off the bottom of the canvas without being hit, the player loses a life.
+
+Spaceship and controls
+- The spaceship is drawn near the bottom of the canvas and can move within bounds.
+- Controls on desktop:
+  - **Arrow keys / WASD** to move (left/right, optionally up/down).
+  - **Spacebar** to shoot bullets upward.
+  - **ESC** to pause/continue the game.
+- Controls on mobile:
+  - A **touch area** below or overlaid on the canvas.
+  - Drag/move finger horizontally; spaceship moves to follow the touch x-position.
+  - Game performs **auto-shooting** at intervals on mobile (no need for tap to shoot each time).
+
+Bullets and collision
+- Bullets are simple rectangles fired from the spaceship’s nose.
+- On shoot:
+  - Create a bullet travelling upwards at fixed speed.
+  - Play a shoot sound.
+- Collision detection:
+  - Check bullet vs asteroid rectangles.
+  - When collision detected:
+    - Remove bullet and asteroid.
+    - Increment `totalAnswers` counter.
+    - If `asteroid.isCorrect`:
+      - Treat as **correct answer**.
+    - Else, treat as **wrong answer**.
+
+Scoring, combo, and level
+- Maintain:
+  - `score` (starting at 0).
+  - `combo` (consecutive correct hits).
+  - `maxCombo` (highest combo achieved this run).
+  - `correctAnswers` and `totalAnswers` (for accuracy).
+- Correct hit:
+  - `correctAnswers++`, `combo++`, `maxCombo = max(maxCombo, combo)`.
+  - Score gain base: +10 points plus a small **combo bonus** (e.g., +2 per combo step).
+  - Show a **"连击" power-up notification** when combo ≥ 3, with text like `连击 x3!`.
+  - Play a positive “correct” sound.
+  - Generate a new question.
+  - Check whether to **level up** (e.g., score >= level × 100).
+- Wrong hit or missing a correct asteroid:
+  - `combo` reset to 0.
+  - Reduce score slightly for wrong shots (e.g., −5, floor at 0).
+  - Lose a life if miss a correct asteroid or on certain wrong events.
+  - Play an error sound.
+- Level system:
+  - `level` starts at 1.
+  - When `score` crosses certain thresholds, `level++`.
+  - On level up:
+    - Show power-up notification: `等级提升! 等级 <level>`.
+    - Increase difficulty: shorten asteroid spawn intervals and/or increase fall speeds.
+    - Play a “level up” sound.
+
+Lives and hearts
+- Player starts with **3 hearts** (lives).
+- Lives are shown as heart icons (❤️) in the UI.
+- On losing a life, visually mark one heart as lost (e.g., greyed or with a `lost` class).
+- When lives reach 0:
+  - Trigger **Game Over**.
+
+Particles and visual feedback
+- When an asteroid is destroyed (hit by a bullet):
+  - Spawn a small particle explosion at the collision point.
+  - Use greenish particles for correct hits; red for wrong.
+  - Particles move outward and fade out over time.
+- Background:
+  - A simple **animated starfield** drawn each frame (flickering / moving stars).
+- Spaceship and bullet visuals:
+  - Stylised triangular spaceship with body, window, and engine glow.
+  - Bullets with glow effect.
+
+Game states and UI
+- States: `playing`, `paused`, `gameOver`.
+- Status bar at top:
+  - Score (得分) numeric label.
+  - Stars area showing combo (small ⭐ icons for high combo).
+  - Lives (生命) hearts.
+  - Level (等级) numeric label plus progress bar (progress towards next level). Progress can be based on `score % 100`.
+- Question panel:
+  - Shows the current target character, meaning, and pinyin.
+- Controls area:
+  - Pause button (⏸️ / ▶️ toggle).
+  - Sound toggle button (🔊/🔇).
+  - Help button (❓) to open the help modal.
+- **Game Over overlay**:
+  - Final score.
+  - Accuracy (%) = `correctAnswers / totalAnswers × 100`.
+  - Max combo.
+  - Buttons: “重新开始” (Restart) and “排行榜” (Leaderboard).
+
+Help and leaderboard
+- Help modal (`游戏帮助`):
+  - Explains the **goal** (射击带有正确汉字的小行星).
+  - Explains **controls** for PC (arrow keys, space, ESC) and mobile (touch to move, auto-shoot).
+  - Explains **scoring rules** (correct +10 + combo, wrong −5, lose life, etc.).
+- Leaderboard:
+  - Save entries to `localStorage` under a game-specific key (e.g., `chineseSpaceShooterLeaderboard`).
+  - Each entry includes: score, level, accuracy, date.
+  - Show top 10 scores sorted by score descending.
+  - Leaderboard modal shows rank, level, accuracy, score, and date.
+
+Sound design
+- Implement sounds using Web Audio API (oscillator + gain node):
+  - `shoot`: short blip.
+  - `correct`: positive short melody.
+  - `wrong`: low descending tone.
+  - `levelup`: ascending sequence.
+  - `gameover`: longer, descending tone.
+- Sound can be turned on/off with a **sound toggle button**, updating its icon.
+
+Game loop and performance
+- Use `requestAnimationFrame` for the main loop:
+  - Compute `deltaTime` each frame.
+  - If state is `playing`:
+    - Update game state (positions, spawns, collisions, particles).
+  - Always render the frame (including pause overlay when paused).
+- Auto-shoot on mobile: occasionally call `shoot()` when game is playing and `isMobile`.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Recognise and read a set of common Chinese characters by sight.
+  - Link each character to its meaning and pinyin.
+  - Strengthen character recognition through repeated exposure in a game context.
+- The game should encourage **fast, accurate recognition** rather than random shooting, via combo rewards and penalties for mistakes.
+
+INTERACTION FEATURES TO INCLUDE:
+- Real-time action game feel with canvas rendering.
+- Keyboard, mouse, and touch controls.
+- Clear status indicators (score, lives, level, progress, combo stars).
+- Help guidance and accessible controls for both PC and mobile.
+- Leaderboard using local storage for repeated practice and motivation.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

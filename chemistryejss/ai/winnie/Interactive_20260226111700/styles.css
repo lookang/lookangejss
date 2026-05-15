@@ -1,0 +1,793 @@
+/* ===== RESET AND BASE STYLES ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow: hidden;
+    touch-action: pan-y;
+}
+
+/* ===== MAIN CONTAINER ===== */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 800px;
+    background: #f5f7fa;
+    position: relative;
+    gap: 8px;
+    padding: 8px;
+}
+
+/* Responsive height for standalone view */
+@media (min-width: 768px) and (min-height: 600px) {
+    body:not(.iframe-mode) .main-container {
+        height: 90vh;
+    }
+}
+
+/* ===== PANEL LAYOUTS ===== */
+.top-panel {
+    flex: 0 0 75%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.bottom-section {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.center-panel {
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ===== PANEL HEADERS ===== */
+.panel-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 10px;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.panel-header-title {
+    flex: 1;
+    text-align: center;
+}
+
+.info-icon-spacer {
+    width: 24px;
+    visibility: hidden;
+}
+
+.workspace-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 10px;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+/* Enhanced info icon with better tooltip styling */
+.info-icon {
+    cursor: help;
+    margin-right: 8px;
+    font-size: 16px;
+    transition: transform 0.2s ease;
+}
+
+.info-icon:hover {
+    transform: scale(1.2);
+}
+
+/* ===== BUTTONS ===== */
+.control-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-height: 32px;
+    touch-action: manipulation;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.workspace-controls {
+    display: flex;
+    gap: 6px;
+}
+
+/* ===== ELEMENT CARDS ===== */
+.element-cards-container {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    align-content: start; /* rows stack from top; don't stretch to fill height */
+}
+
+/* Card styling — width is now controlled by the CSS grid */
+.element-card {
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    touch-action: none;
+    transition: all 0.3s ease;
+    min-width: 0;       /* let the grid column set the width */
+    min-height: 245px;  /* default (Level 4) */
+    user-select: none;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    overflow: visible;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+/* NEW MODIFICATION: Changed workspace cards to horizontal rectangles showing symbols */
+.workspace-card {
+    position: absolute;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: move;
+    touch-action: none;
+    /* MODIFIED: Changed to horizontal rectangle dimensions */
+    min-width: 120px;
+    max-width: 120px;
+    min-height: 50px;
+    max-height: 50px;
+    user-select: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    /* MODIFIED: Center content horizontally */
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+/* NEW: Active/selected workspace card */
+.workspace-card.active {
+    z-index: 10;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.6);
+    transform: scale(1.05);
+}
+
+/* Decorative pattern overlay */
+.element-card::before,
+.workspace-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.element-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
+}
+
+.element-card.dragging,
+.workspace-card.dragging {
+    opacity: 0.7;
+    transform: rotate(5deg) scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.element-card.classified {
+    opacity: 0.5;
+    border-style: dashed;
+    filter: grayscale(0.3);
+}
+
+.element-identifier {
+    font-size: 22px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 2px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+/* MODIFIED: Adjusted identifier size for horizontal workspace cards */
+.workspace-card .element-identifier {
+    font-size: 20px;
+    margin-bottom: 0;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.element-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+/* MODIFIED: Hide name in workspace cards */
+.workspace-card .element-name {
+    display: none;
+}
+
+/* Click indicator on element cards */
+.element-card::after {
+    content: '🔍';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 14px;
+    opacity: 0.7;
+    filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+/* NEW: MODIFIED - Adjusted X button for horizontal workspace cards */
+.workspace-card::after {
+    content: '✕';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 12px;
+    opacity: 0.8;
+    filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+    background: rgba(229, 62, 62, 0.9);
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.workspace-card::after:hover {
+    background: rgba(197, 48, 48, 1);
+    transform: scale(1.15);
+}
+
+.element-properties-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-top: 0;
+    flex: 1;
+    overflow: visible;
+}
+
+/* MODIFIED: Hide properties grid in workspace cards */
+.workspace-card .element-properties-grid {
+    display: none;
+}
+
+.element-property {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.4;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 5px 7px;
+    border-radius: 3px;
+    backdrop-filter: blur(5px);
+}
+
+.property-label {
+    font-weight: 700;
+    color: rgba(255, 255, 255, 1);
+    text-transform: uppercase;
+    font-size: 8.5px;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.property-value {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+/* ===== MODAL STYLES ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+#modalElementDetails {
+    margin-top: 10px;
+}
+
+.modal-element-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #667eea;
+}
+
+.modal-element-identifier {
+    font-size: 48px;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.modal-element-name {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.modal-element-appearance {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+    padding: 10px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+    grid-column: 1 / -1;
+}
+
+.modal-properties-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.modal-property-item {
+    background: #f7fafc;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.modal-property-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #764ba2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.modal-property-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* ===== NEW: FREEFORM WORKSPACE STYLES ===== */
+/* MODIFIED: Freeform workspace replaces classification groups */
+/* NEW MODIFICATION: Always show scrollbar on right side for vertical scrolling */
+.freeform-workspace {
+    flex: 1;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow-y: scroll; /* MODIFIED: Always show vertical scrollbar */
+    position: relative;
+    background: #f8f9fa;
+    background-image: 
+        linear-gradient(rgba(102, 126, 234, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(102, 126, 234, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    /* NEW: Start with smaller height, will expand dynamically as cards are added */
+    min-height: 100%; /* Fill available space */
+}
+
+/* NEW: Instructions text in empty workspace */
+.workspace-instructions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #a0aec0;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Hide instructions when workspace has cards */
+.freeform-workspace.has-cards .workspace-instructions {
+    display: none;
+}
+
+/* ===== SCROLLBAR STYLING ===== */
+/* MODIFIED: Enhanced scrollbar styling for better visibility */
+.element-cards-container::-webkit-scrollbar,
+.freeform-workspace::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+    width: 12px; /* MODIFIED: Wider scrollbar for better visibility */
+    height: 6px;
+}
+
+.element-cards-container::-webkit-scrollbar-track,
+.freeform-workspace::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track {
+    background: #e2e8f0; /* MODIFIED: Slightly darker track */
+    border-radius: 6px;
+}
+
+.element-cards-container::-webkit-scrollbar-thumb,
+.freeform-workspace::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+    background: #667eea; /* MODIFIED: Themed color for better visibility */
+    border-radius: 6px;
+    border: 2px solid #e2e8f0; /* MODIFIED: Border for better definition */
+}
+
+.element-cards-container::-webkit-scrollbar-thumb:hover,
+.freeform-workspace::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #764ba2; /* MODIFIED: Darker on hover */
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .top-panel {
+        flex: 0 0 auto; /* auto-size based on grid content */
+    }
+
+    .bottom-section {
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .center-panel {
+        flex: 1;
+        min-height: 300px;
+    }
+
+    /* Card width is set by the grid; no fixed width needed on mobile */
+
+    /* MODIFIED: Adjusted workspace cards for mobile - slightly smaller horizontal rectangles */
+    .workspace-card {
+        min-width: 100px;
+        max-width: 100px;
+        min-height: 45px;
+        max-height: 45px;
+        padding: 6px 12px;
+    }
+
+    .workspace-card .element-identifier {
+        font-size: 18px;
+    }
+
+    .control-btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 8px 12px;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .modal-properties-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== LEVEL SELECTOR ===== */
+.level-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #eef2ff;
+    border-bottom: 1px solid #dde4ff;
+    flex-shrink: 0;
+}
+
+.level-selector-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #764ba2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.level-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 10px;
+    border: 2px solid #c3cef8;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 72px;
+    touch-action: manipulation;
+}
+
+.level-btn:hover {
+    border-color: #667eea;
+    background: #f0f3ff;
+    transform: translateY(-1px);
+}
+
+.level-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+.level-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: #667eea;
+    line-height: 1.2;
+}
+
+.level-btn.active .level-num {
+    color: white;
+}
+
+.level-desc {
+    font-size: 9px;
+    font-weight: 500;
+    color: #764ba2;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.level-btn.active .level-desc {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ===== CARD HEIGHT BY LEVEL ===== */
+/* At Level 1, with 4 rows × 110px + 3 × 8px gaps = 464px — fits in ~505px cards area
+   on screens ≥ ~760px wide (5 cols), giving a true all-in-one-view experience.
+   Higher levels use progressively taller cards and scroll vertically. */
+body[data-level="1"] .element-card { min-height: 0; height: 110px; padding: 8px 10px; }
+body[data-level="2"] .element-card { min-height: 0; height: 165px; }
+body[data-level="3"] .element-card { min-height: 0; height: 210px; }
+body[data-level="4"] .element-card { min-height: 0; height: 245px; }
+
+/* ===== SAMPLE ANSWER MODAL ===== */
+.sa-modal-content {
+    max-width: 700px;
+    width: 95%;
+    max-height: 85vh;
+}
+
+.sa-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid #667eea;
+}
+
+.sa-section {
+    margin-bottom: 28px;
+}
+
+.sa-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 6px;
+}
+
+.sa-section-desc {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: #f0f3ff;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+    line-height: 1.5;
+}
+
+.sa-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sa-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.sa-group-label {
+    flex-shrink: 0;
+    width: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 4px;
+}
+
+.sa-group-label strong {
+    font-size: 13px;
+    color: #333;
+}
+
+.sa-group-label span {
+    font-size: 10px;
+    color: #764ba2;
+    font-weight: 600;
+}
+
+.sa-group-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+}
+
+.sa-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.3;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    min-width: 58px;
+    text-align: center;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.sa-card small {
+    font-weight: 400;
+    font-size: 8px;
+    opacity: 0.92;
+}
+
+/* ===== ACCESSIBILITY ===== */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .element-card,
+    .workspace-card {
+        border-width: 3px;
+    }
+}

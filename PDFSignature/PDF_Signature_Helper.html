@@ -1,0 +1,823 @@
+<![DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PDF Signature Helper — Add PNG to All Pages</title>
+
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+
+<!-- Library loader: prefer local files, fall back to CDN -->
+<script>
+  (function () {
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function loadLibs() {
+      // pdf-lib (prefer local, fallback if global missing)
+      try {
+        await loadScript("vendor/pdf-lib/pdf-lib.min.js");
+      } catch {}
+      if (typeof window.PDFLib === "undefined") {
+        await loadScript("https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js");
+      }
+      // pdf.js core (prefer local, fallback if global missing)
+      try {
+        await loadScript("vendor/pdfjs/pdf.min.js");
+      } catch {}
+      if (typeof window.pdfjsLib === "undefined") {
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+      }
+      // Record worker locations (selection is done at runtime with timeout-based fallback)
+      try {
+        if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+          window.__PDFJS_LOCAL_WORKER__ = "vendor/pdfjs/pdf.worker.min.js";
+          window.__PDFJS_CDN_WORKER__ =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          // workerSrc will be selected at render time to avoid hangs if local worker is placeholder
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    window.libsReady = loadLibs();
+  })();
+</script>
+
+<style>
+  :root {
+    --bg: #0b0f19;
+    --panel: #111827;
+    --muted: #9aa3b2;
+    --text: #e5e7eb;
+    --accent: #60a5fa;  /* blue */
+    --accent-2: #34d399; /* green */
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --card: #0f172a;
+    --border: #1f2937;
+
+    --odd: #1c2a40;
+    --even: #133226;
+    --chip: #0e1b32;
+  }
+  html, body {
+    margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap {
+    max-width: 1100px; margin: 24px auto; padding: 16px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.25rem; margin: 0; }
+  .card {
+    background: linear-gradient(180deg, #0f172a, #0b1320);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .grid-3 {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+  label { font-size: .9rem; color: var(--muted); display: block; margin-bottom: 6px; }
+  input[type="file"] {
+    width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed var(--border);
+    background: #0a1220; color: var(--text); font-size: 16px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    appearance: none; border: 1px solid var(--border); background: #101826; color: var(--text);
+    padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 16px;
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+  }
+  .btn:hover { background: #0d1524; }
+  .btn:active { transform: translateY(1px); }
+
+/* Select-style combobox for visibility */
+  .select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    padding-right: 42px;
+    border-radius: 14px;
+    border: 2px solid #93c5fd; /* light blue border */
+    background: linear-gradient(180deg, #1e3a8a, #1e40af); /* brighter fill for strong contrast */
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 3px rgba(59,130,246,.35); /* raised + ring */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath fill='%23ffffff' d='M5.23 7.97a1 1 0 0 1 1.41 0L10 11.33l3.36-3.36a1 1 0 0 1 1.41 1.41l-4.07 4.07a1.5 1.5 0 0 1-2.12 0L5.23 9.38a1 1 0 0 1 0-1.41z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    transition: box-shadow .2s ease, background .2s ease, transform .06s ease;
+  }
+  .select:hover {
+    background: linear-gradient(180deg, #3553a8, #2a47a0);
+    box-shadow: 0 3px 14px rgba(0,0,0,.5), 0 0 0 3px rgba(59,130,246,.55);
+    transform: translateY(1px);
+  }
+  .select:focus, .select:focus-visible {
+    outline: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,.55), 0 0 0 4px rgba(59,130,246,.75);
+  }
+  /* Theme variants for scope */
+  .select.theme-odd {
+    border-color: #93c5fd;
+    background: linear-gradient(180deg, #1e3a8a, #1e40af);
+    box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 3px rgba(59,130,246,.45);
+  }
+  .select.theme-even {
+    border-color: #6ee7b7;
+    background: linear-gradient(180deg, #0f5132, #0b3d26);
+    box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 3px rgba(16,185,129,.45);
+  }
+  .select.theme-all {
+    border-color: #93c5fd;
+    background: linear-gradient(180deg, #1e3a8a, #1e40af);
+    box-shadow: 0 2px 10px rgba(0,0,0,.45), 0 0 0 3px rgba(59,130,246,.35);
+  }
+
+  .btn.primary { background: var(--accent); border-color: transparent; color: #081020; }
+  .btn.green { background: var(--accent-2); border-color: transparent; color: #032014; }
+  .btn.warn { background: var(--warn); border-color: transparent; color: #1f1300; }
+  .hint { color: var(--muted); font-size: .9rem; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+  }
+
+  /* Preview area */
+  .preview-wrap {
+    position: relative; width: 100%; min-height: 420px;
+    background: #0b1221; border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+  }
+  canvas#pdfCanvas { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+  /* Odd/Even scope ribbon overlay for clarity */
+  .scope-ribbon {
+    position: absolute; top: 10px; right: 10px;
+    padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; letter-spacing: .4px;
+    border: 1px solid #17233a; background: var(--chip); color: #cfe4ff; box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    z-index: 5; display: none;
+  }
+  .scope-ribbon.odd { background: rgba(96,165,250,.2); color: #9bd0ff; border-color: rgba(96,165,250,.45); }
+  .scope-ribbon.even { background: rgba(52,211,153,.2); color: #aaf0d2; border-color: rgba(52,211,153,.45); }
+
+  /* Draggable signature overlay */
+  .sig-overlay {
+    position: absolute; left: 0; top: 0; pointer-events: none; /* container */
+  }
+  .sig {
+    position: absolute; left: 50px; top: 50px; width: 180px; user-select: none;
+    cursor: move; pointer-events: auto; border: 1px dashed rgba(255,255,255,.25); border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.35);
+    background: transparent; transform-origin: top left; touch-action: none;
+  }
+  .sig img { display: block; width: 100%; height: auto; }
+  .handle {
+    position: absolute; right: -10px; bottom: -10px; width: 20px; height: 20px;
+    background: var(--accent); border-radius: 50%; border: 2px solid #0b0f19; cursor: nwse-resize;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+    touch-action: none;
+  }
+  .ghost {
+    outline: 2px dashed rgba(96,165,250,.6); outline-offset: 2px;
+  }
+
+  .controls { display: grid; gap: 12px; }
+  .range-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  input[type="range"] { width: 100%; }
+  .kbd {
+    padding: 2px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px;
+    background: #0b1221; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #cbd5e1; font-size: .8rem;
+  }
+  footer { margin-top: 18px; color: var(--muted); font-size: .9rem; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #0e1b32; border: 1px solid #17233a; }
+
+  /* Scope badge next to selector */
+  .scope-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px;
+    border: 1px solid #17233a; background: #0e1b32; color: #cfe4ff;
+  }
+  .scope-badge.odd { background: rgba(96,165,250,.15); border-color: rgba(96,165,250,.35); color: #9bd0ff; }
+  .scope-badge.even { background: rgba(52,211,153,.15); border-color: rgba(52,211,153,.35); color: #aaf0d2; }
+  .scope-badge.all { background: rgba(148,163,184,.15); border-color: rgba(148,163,184,.35); color: #e2e8f0; }
+
+  /* Mobile optimizations */
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) {
+    header h1 { font-size: 1.05rem; }
+    .preview-wrap { min-height: 360px; }
+    .btn { padding: 14px 18px; font-size: 16px; }
+    .handle { width: 24px; height: 24px; right: -12px; bottom: -12px; }
+    .row { gap: 8px; }
+  }
+
+  /* Larger touch-friendly range thumbs */
+  input[type="range"] {
+    -webkit-appearance: none; height: 4px; background: #1b2437; border-radius: 999px; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #0b0f19; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #0b0f19; box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">No upload — runs locally</div>
+    <h1>PDF Signature Helper — Add PNG Signature to All Pages</h1>
+  </header>
+
+  <div class="card">
+    <div class="grid">
+      <div class="panel">
+        <label>PDF file</label>
+        <input id="pdfInput" type="file" accept="application/pdf" />
+        <div style="height:10px"></div>
+        <label>Signature image (PNG with transparent background preferred)</label>
+        <input id="imgInput" type="file" accept="image/png,image/*" />
+        <div style="height:10px"></div>
+
+        <div class="controls">
+          <div class="range-row">
+            <label>Signature width (as % of page width)</label>
+            <input id="widthPct" type="range" min="5" max="60" value="20" />
+            <span id="widthPctVal">20%</span>
+          </div>
+          <div class="range-row">
+            <label>Opacity</label>
+            <input id="opacity" type="range" min="20" max="100" value="100" />
+            <span id="opacityVal">100%</span>
+          </div>
+
+          <div class="row" style="align-items:center">
+            <div style="display:grid; gap:6px;">
+              <label>Apply to pages</label>
+              <select id="applyScope" class="btn select theme-all" style="min-width:220px;" title="Tap to change which pages are affected">
+                <option value="all" selected>All pages</option>
+                <option value="odd">Odd pages only</option>
+                <option value="even">Even pages only</option>
+              </select>
+            </div>
+            <span id="scopeBadge" class="scope-badge all">Scope: All pages</span>
+          </div>
+
+          <div class="hint" id="scopeHint">
+            Current scope will apply to all pages. Change above to target only odd or even pages.
+          </div>
+
+          <div class="row">
+            <button id="anchorBR" class="btn">Snap to bottom-right</button>
+            <button id="center" class="btn">Center</button>
+            <button id="fitLine" class="btn">Fit line height</button>
+            <span class="hint">Drag the signature to position. Hold <span class="kbd">Ctrl</span>/<span class="kbd">Alt</span> while resizing to free-resize (default locks aspect).</span>
+          </div>
+          <div class="row">
+            <button id="reset" class="btn warn">Reset overlay</button>
+            <button id="export" class="btn primary">Generate signed PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <label>Preview (Page 1)</label>
+        <div class="preview-wrap" id="previewWrap">
+          <div id="scopeRibbon" class="scope-ribbon">Scope: All pages</div>
+          <canvas id="pdfCanvas"></canvas>
+          <div class="sig-overlay" id="sigOverlay" hidden>
+            <div class="sig" id="sigBox" style="opacity:1;">
+              <img id="sigImg" alt="Signature" />
+              <div class="handle" id="handle"></div>
+            </div>
+          </div>
+        </div>
+        <div class="hint" style="margin-top:8px;">
+          Coordinates & scaling will be applied proportionally to your chosen <b>scope</b> across the entire PDF (works with different page sizes/orientation).
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div>
+        Notes: This tool uses <span class="kbd">pdf-lib</span> to write and <span class="kbd">pdf.js</span> to preview.
+        Libraries load from local <span class="kbd">/vendor</span> when available, with a safe fallback to CDN. No files are uploaded.
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        Made by <b>lookang</b>, using <b>ChatGPT5</b> on <b>Visual Code Studio</b>, <b>Cline Bot Extension</b>.
+        More resources: <a href="https://sg.iwant2study.org/ospsg/index.php/related-sites" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: underline;">https://sg.iwant2study.org/ospsg/index.php/related-sites</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+(async function main() {
+  // Ensure libraries are loaded (local first, then CDN)
+  try { await window.libsReady; } catch {}
+  if (!window.PDFLib) {
+    alert("Failed to load pdf-lib.");
+    return;
+  }
+  if (!window.pdfjsLib) {
+    alert("Failed to load pdf.js.");
+    return;
+  }
+
+  // Elements
+  const pdfInput   = document.getElementById("pdfInput");
+  const imgInput   = document.getElementById("imgInput");
+  const canvas     = document.getElementById("pdfCanvas");
+  const ctx        = canvas.getContext("2d");
+  const overlay    = document.getElementById("sigOverlay");
+  const sigBox     = document.getElementById("sigBox");
+  const sigImg     = document.getElementById("sigImg");
+  const handle     = document.getElementById("handle");
+  const widthPct   = document.getElementById("widthPct");
+  const widthPctVal= document.getElementById("widthPctVal");
+  const opacityInp = document.getElementById("opacity");
+  const opacityVal = document.getElementById("opacityVal");
+  const anchorBR   = document.getElementById("anchorBR");
+  const centerBtn  = document.getElementById("center");
+  const fitLineBtn = document.getElementById("fitLine");
+  const resetBtn   = document.getElementById("reset");
+  const exportBtn  = document.getElementById("export");
+  const previewWrap= document.getElementById("previewWrap");
+  const applyScope = document.getElementById("applyScope");
+  const scopeBadge = document.getElementById("scopeBadge");
+  const scopeRibbon= document.getElementById("scopeRibbon");
+
+  // State
+  let pdfArrayBuffer = null;
+  let firstPageViewport = null;
+  let page1SizePx = { w: 0, h: 0 }; // canvas display size in pixels
+  let page1SizePt = { w: 0, h: 0 }; // PDF points (72 dpi)
+  let imgNatural = { w: 0, h: 0 };
+  let drag = { active: false, dx: 0, dy: 0 };
+  let resize = { active: false, startW: 0, startH: 0, startX: 0, startY: 0 };
+  let aspect = 1;
+  let sigImageBytes = null;
+
+  // Helpers
+  function clamp(n, min, max) { return Math.min(Math.max(n, min), max); }
+  function setSigOpacity(pct){
+    const o = clamp(pct, 20, 100) / 100;
+    sigBox.style.opacity = o.toString();
+    opacityVal.textContent = Math.round(o*100) + "%";
+  }
+  function updateWidthPctLabel(){
+    widthPctVal.textContent = widthPct.value + "%";
+  }
+
+  function placeSigByWidthPercent(pct){
+    if (!page1SizePx.w) return;
+    const newW = Math.round((pct/100) * page1SizePx.w);
+    const newH = Math.round(newW / aspect);
+    sigBox.style.width = newW + "px";
+    // height auto via image
+  }
+
+  function snapToBottomRight(margin = 24){
+    if (!page1SizePx.w || !page1SizePx.h) return;
+    const rect = sigBox.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    const x = page1SizePx.w - w - margin;
+    const y = page1SizePx.h - h - margin;
+    sigBox.style.left = x + "px";
+    sigBox.style.top  = y + "px";
+  }
+
+  function snapCenter(){
+    const rect = sigBox.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    const x = (page1SizePx.w - w)/2;
+    const y = (page1SizePx.h - h)/2;
+    sigBox.style.left = x + "px";
+    sigBox.style.top  = y + "px";
+  }
+
+  function fitLineHeight(px = 28){
+    const newH = px;
+    const newW = Math.round(newH * aspect);
+    sigBox.style.width = newW + "px";
+  }
+
+  function enableOverlay(){
+    overlay.hidden = false;
+    // overlay should match canvas position/size
+    const rect = canvas.getBoundingClientRect();
+    const parentRect = previewWrap.getBoundingClientRect();
+    overlay.style.left = (rect.left - parentRect.left) + "px";
+    overlay.style.top  = (rect.top - parentRect.top) + "px";
+    overlay.style.width= rect.width + "px";
+    overlay.style.height= rect.height + "px";
+  }
+
+  function refreshOverlayBox(){
+    enableOverlay();
+  }
+
+  // Scope UI
+  function setScopeUI() {
+    const v = applyScope.value;
+    scopeBadge.classList.remove("odd","even","all");
+    scopeRibbon.classList.remove("odd","even");
+    applyScope.classList.remove("theme-odd","theme-even","theme-all");
+    if (v === "odd") {
+      scopeBadge.classList.add("odd");
+      applyScope.classList.add("theme-odd");
+      scopeBadge.textContent = "Scope: Odd pages";
+      scopeRibbon.textContent = "Applying to Odd pages";
+      scopeRibbon.style.display = "inline-flex";
+      scopeRibbon.classList.add("odd");
+      document.querySelector(".preview-wrap").style.background = "linear-gradient(180deg, var(--odd), #0b1221)";
+      document.getElementById("scopeHint").textContent = "Current scope will apply to odd-numbered pages only (1, 3, 5, ...).";
+    } else if (v === "even") {
+      scopeBadge.classList.add("even");
+      applyScope.classList.add("theme-even");
+      scopeBadge.textContent = "Scope: Even pages";
+      scopeRibbon.textContent = "Applying to Even pages";
+      scopeRibbon.style.display = "inline-flex";
+      scopeRibbon.classList.add("even");
+      document.querySelector(".preview-wrap").style.background = "linear-gradient(180deg, var(--even), #0b1221)";
+      document.getElementById("scopeHint").textContent = "Current scope will apply to even-numbered pages only (2, 4, 6, ...).";
+    } else {
+      scopeBadge.classList.add("all");
+      applyScope.classList.add("theme-all");
+      scopeBadge.textContent = "Scope: All pages";
+      scopeRibbon.style.display = "none";
+      document.querySelector(".preview-wrap").style.background = "#0b1221";
+      document.getElementById("scopeHint").textContent = "Current scope will apply to all pages. Change above to target only odd or even pages.";
+    }
+  }
+
+  applyScope.addEventListener("change", setScopeUI);
+  setScopeUI();
+
+  // PDF.js worker selection with timeout-based fallback (try CDN first for reliability)
+  async function getPdfForPreview(data) {
+    const tryWithWorker = async (workerSrc, timeoutMs) => {
+      if (workerSrc && pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+        try { pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc; } catch {}
+      }
+      const task = pdfjsLib.getDocument({ data });
+      return await Promise.race([
+        task.promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("pdfjs worker timeout")), timeoutMs))
+      ]);
+    };
+
+    try {
+      // Prefer CDN worker (most reliable when opening from file://)
+      return await tryWithWorker(window.__PDFJS_CDN_WORKER__, 3000);
+    } catch (e1) {
+      // Fallback to local worker if provided
+      try {
+        return await tryWithWorker(window.__PDFJS_LOCAL_WORKER__, 6000);
+      } catch (e2) {
+        console.error("pdf.js worker failed. CDN error:", e1, "Local error:", e2);
+        throw e2 || e1;
+      }
+    }
+  }
+
+  // Load PDF and render first page
+  async function loadPdfForPreview(file){
+    const buf = await file.arrayBuffer();
+    // Keep a copy for export
+    pdfArrayBuffer = buf.slice(0);
+    const pdf = await getPdfForPreview(buf);
+    const page = await pdf.getPage(1);
+
+    // scale to fit width responsively
+    const targetW = Math.min(900, previewWrap.clientWidth - 20);
+    const unscaled = page.getViewport({ scale: 1 });
+    const scale = targetW / unscaled.width;
+    const viewport = page.getViewport({ scale });
+
+    firstPageViewport = viewport;
+    page1SizePx = { w: Math.floor(viewport.width), h: Math.floor(viewport.height) };
+    page1SizePt = { w: unscaled.width, h: unscaled.height }; // in points
+
+    canvas.width = page1SizePx.w;
+    canvas.height= page1SizePx.h;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    refreshOverlayBox();
+  }
+
+  // Load image
+  async function loadSignatureImage(file){
+    const buf = await file.arrayBuffer();
+    sigImageBytes = buf.slice(0);
+
+    const url = URL.createObjectURL(file);
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        imgNatural.w = img.naturalWidth;
+        imgNatural.h = img.naturalHeight;
+        aspect = imgNatural.w / imgNatural.h;
+        sigImg.src = url;
+
+        // initial size = 20% width
+        placeSigByWidthPercent(parseInt(widthPct.value, 10));
+        sigBox.style.left = "50px";
+        sigBox.style.top  = "50px";
+        enableOverlay();
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  // Map overlay pixel coords to PDF points (for an arbitrary page)
+  function overlayToPdfCoords(pageWidthPt, pageHeightPt){
+    const boxRect = sigBox.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+
+    const xPx = boxRect.left - overlayRect.left;
+    const yPx = boxRect.top  - overlayRect.top;
+    const wPx = boxRect.width;
+    const hPx = boxRect.height;
+
+    // normalized relative to page1 display
+    const nx = xPx / page1SizePx.w;
+    const ny = yPx / page1SizePx.h;
+    const nw = wPx / page1SizePx.w;
+    const nh = hPx / page1SizePx.h;
+
+    // map to this page's size in points
+    const drawW = nw * pageWidthPt;
+    const drawH = nh * pageHeightPt;
+
+    const leftPt = nx * pageWidthPt;
+    // HTML overlay origin is top-left; PDF origin is bottom-left
+    const topFromTopPt = ny * pageHeightPt;
+    const bottomPt = pageHeightPt - topFromTopPt - drawH;
+
+    return { x: leftPt, y: bottomPt, w: drawW, h: drawH };
+  }
+
+  // Drag / Resize handlers (mouse)
+  sigBox.addEventListener("mousedown", (e) => {
+    if (e.target === handle) return;
+    drag.active = true;
+    sigBox.classList.add("ghost");
+    const rect = sigBox.getBoundingClientRect();
+    drag.dx = e.clientX - rect.left;
+    drag.dy = e.clientY - rect.top;
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!drag.active) return;
+    const overlayRect = overlay.getBoundingClientRect();
+    let x = e.clientX - overlayRect.left - drag.dx;
+    let y = e.clientY - overlayRect.top - drag.dy;
+
+    const rect = sigBox.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    x = clamp(x, 0, overlayRect.width - w);
+    y = clamp(y, 0, overlayRect.height - h);
+
+    sigBox.style.left = x + "px";
+    sigBox.style.top  = y + "px";
+  });
+  document.addEventListener("mouseup", () => {
+    drag.active = false;
+    sigBox.classList.remove("ghost");
+    resize.active = false;
+  });
+
+  handle.addEventListener("mousedown", (e) => {
+    resize.active = true;
+    const rect = sigBox.getBoundingClientRect();
+    resize.startW = rect.width;
+    resize.startH = rect.height;
+    resize.startX = e.clientX;
+    resize.startY = e.clientY;
+    sigBox.classList.add("ghost");
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!resize.active) return;
+    const dx = e.clientX - resize.startX;
+    const dy = e.clientY - resize.startY;
+    const lockAspect = !e.ctrlKey && !e.altKey; // Ctrl/Alt to free-resize
+    if (lockAspect) {
+      const sign = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+      const newW = clamp(resize.startW + sign, 24, overlay.clientWidth);
+      const newH = Math.round(newW / aspect);
+      sigBox.style.width = newW + "px";
+    } else {
+      const newW = clamp(resize.startW + dx, 24, overlay.clientWidth);
+      sigBox.style.width = newW + "px";
+    }
+  });
+
+  // Touch support (mobile)
+  sigBox.addEventListener("touchstart", (e) => {
+    if (e.target === handle) return; // resize handled below
+    const t = e.touches[0];
+    drag.active = true;
+    sigBox.classList.add("ghost");
+    const rect = sigBox.getBoundingClientRect();
+    drag.dx = t.clientX - rect.left;
+    drag.dy = t.clientY - rect.top;
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!drag.active) return;
+    const t = e.touches[0];
+    const overlayRect = overlay.getBoundingClientRect();
+    let x = t.clientX - overlayRect.left - drag.dx;
+    let y = t.clientY - overlayRect.top - drag.dy;
+
+    const rect = sigBox.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    x = clamp(x, 0, overlayRect.width - w);
+    y = clamp(y, 0, overlayRect.height - h);
+
+    sigBox.style.left = x + "px";
+    sigBox.style.top  = y + "px";
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener("touchend", () => {
+    if (drag.active || resize.active) {
+      sigBox.classList.remove("ghost");
+    }
+    drag.active = false;
+    resize.active = false;
+  });
+
+  handle.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    resize.active = true;
+    const rect = sigBox.getBoundingClientRect();
+    resize.startW = rect.width;
+    resize.startH = rect.height;
+    resize.startX = t.clientX;
+    resize.startY = t.clientY;
+    sigBox.classList.add("ghost");
+    e.preventDefault();
+    e.stopPropagation();
+  }, { passive: false });
+
+  document.addEventListener("touchmove", (e) => {
+    if (!resize.active) return;
+    const t = e.touches[0];
+    const dx = t.clientX - resize.startX;
+    const dy = t.clientY - resize.startY;
+    // On mobile, default to locked aspect; use two-finger to free-resize
+    const lockAspect = (e.touches.length < 2);
+    if (lockAspect) {
+      const sign = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+      const newW = clamp(resize.startW + sign, 24, overlay.clientWidth);
+      sigBox.style.width = newW + "px";
+    } else {
+      const newW = clamp(resize.startW + dx, 24, overlay.clientWidth);
+      sigBox.style.width = newW + "px";
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  // UI bindings
+  opacityInp.addEventListener("input", () => setSigOpacity(parseInt(opacityInp.value,10)));
+  widthPct.addEventListener("input", () => { updateWidthPctLabel(); placeSigByWidthPercent(parseInt(widthPct.value,10)); });
+  anchorBR.addEventListener("click", (e) => { e.preventDefault(); snapToBottomRight(); });
+  centerBtn.addEventListener("click", (e) => { e.preventDefault(); snapCenter(); });
+  fitLineBtn.addEventListener("click", (e) => { e.preventDefault(); fitLineHeight(28); });
+  resetBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!imgNatural.w) return;
+    placeSigByWidthPercent(20);
+    sigBox.style.left = "50px";
+    sigBox.style.top  = "50px";
+    setSigOpacity(parseInt(opacityInp.value,10));
+  });
+
+  window.addEventListener("resize", () => {
+    // re-render canvas to new width
+    if (!pdfArrayBuffer || !firstPageViewport) return;
+    loadPdfForPreview(new File([pdfArrayBuffer], "tmp.pdf", { type: "application/pdf" }))
+      .then(() => {
+        // maintain same normalized placement & widthPct
+        placeSigByWidthPercent(parseInt(widthPct.value,10));
+      });
+  });
+
+  // File inputs
+  pdfInput.addEventListener("change", async () => {
+    const f = pdfInput.files?.[0];
+    if (!f) return;
+    try {
+      await loadPdfForPreview(f);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to render PDF preview. The pdf.js worker may be blocked by the browser. Ensure network access for the CDN worker or install the local worker as described in vendor/README.txt.");
+    }
+  });
+
+  imgInput.addEventListener("change", async () => {
+    const f = imgInput.files?.[0];
+    if (!f) return;
+    await loadSignatureImage(f);
+    setSigOpacity(parseInt(opacityInp.value,10));
+    updateWidthPctLabel();
+  });
+
+  // Export: burn signature into every page
+  document.getElementById("export").addEventListener("click", async () => {
+    try {
+      if (!pdfArrayBuffer) { alert("Please choose a PDF first."); return; }
+      if (!sigImg.src) { alert("Please choose a PNG signature image."); return; }
+
+      const { PDFDocument } = PDFLib;
+      const pdfDoc = await PDFDocument.load(pdfArrayBuffer, { updateMetadata: false });
+
+      const bytes = sigImageBytes;
+      if (!bytes || bytes.byteLength === 0) { alert("Signature bytes unavailable. Please select the image again."); return; }
+      const imgData = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes;
+
+      let embedded;
+      try {
+        embedded = await pdfDoc.embedPng(imgData);
+      } catch {
+        embedded = await pdfDoc.embedJpg(imgData);
+      }
+
+      const opacity = clamp(parseInt(opacityInp.value, 10), 20, 100) / 100;
+      enableOverlay();
+
+      const pages = pdfDoc.getPages();
+      const scope = (applyScope && applyScope.value) ? applyScope.value : "all";
+      for (let i = 0; i < pages.length; i++) {
+        const p = pages[i];
+        const pageNum = i + 1;
+        if (scope === "odd" && pageNum % 2 === 0) continue;
+        if (scope === "even" && pageNum % 2 === 1) continue;
+
+        const { width: pw, height: ph } = p.getSize(); // points
+        let { x, y, w, h } = overlayToPdfCoords(pw, ph);
+
+        // Clamp and enforce minimum size
+        w = Math.max(2, Math.min(w, pw));
+        h = Math.max(2, Math.min(h, ph));
+        x = Math.max(0, Math.min(x, pw - w));
+        y = Math.max(0, Math.min(y, ph - h));
+
+        p.drawImage(embedded, {
+          x, y, width: w, height: h,
+          opacity
+        });
+      }
+
+      const out = await pdfDoc.save({ updateFieldAppearances: false });
+      const blob = new Blob([out], { type: "application/pdf" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      a.download = `signed-${ts}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate signed PDF. See console for details.");
+    }
+  });
+})();</script>
+</body>
+</html>]

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>3D Shapes and Nets</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #controls {
+            padding: 10px;
+            background-color: #f0f0f0;
+            flex-shrink: 0;
+        }
+        #canvasContainer {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        #rendererContainer {
+            flex: 1;
+            border: 1px solid #ccc;
+            position: relative;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+        #netCanvas {
+            width: 400px;
+            flex-shrink: 0;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <button id="prismButton">Prism</button>
+    <button id="pyramidButton">Pyramid</button>
+    <button id="cuboidButton">Cuboid</button>
+</div>
+<div id="canvasContainer">
+    <div id="rendererContainer"></div>
+    <canvas id="netCanvas"></canvas>
+</div>
+
+<script type="module">
+    import * as THREE from 'https://cdn.skypack.dev/three@0.152.0';
+    import { OrbitControls } from 'https://cdn.skypack.dev/three@0.152.0/examples/jsm/controls/OrbitControls.js';
+
+    // Base Shape class
+    class Shape {
+        constructor(name) {
+            this.name = name;
+        }
+
+        create3DShape() {
+            // Override in subclass
+        }
+
+        drawNet(ctx) {
+            // Override in subclass
+        }
+    }
+
+    // Prism class
+    class Prism extends Shape {
+        constructor() {
+            super('Prism');
+        }
+
+        create3DShape() {
+            const geometry = new THREE.CylinderGeometry(1, 1, 2, 3);
+            const material = new THREE.MeshNormalMaterial({ flatShading: true });
+            return new THREE.Mesh(geometry, material);
+        }
+
+        drawNet(ctx) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+
+            const x = 50;
+            const y = 200;
+            const side = 80;
+
+            // Draw rectangles
+            for (let i = 0; i < 3; i++) {
+                ctx.strokeRect(x + i * side, y, side, side);
+            }
+
+            // Draw triangles
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + side / 2, y - side);
+            ctx.lineTo(x + side, y);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x + 2 * side, y);
+            ctx.lineTo(x + 2.5 * side, y - side);
+            ctx.lineTo(x + 3 * side, y);
+            ctx.closePath();
+            ctx.stroke();
+        }
+    }
+
+    // Pyramid class
+    class Pyramid extends Shape {
+        constructor() {
+            super('Pyramid');
+        }
+
+        create3DShape() {
+            const geometry = new THREE.ConeGeometry(1, 2, 4);
+            const material = new THREE.MeshNormalMaterial({ flatShading: true });
+            return new THREE.Mesh(geometry, material);
+        }
+
+        drawNet(ctx) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+
+            const x = 150;
+            const y = 100;
+            const side = 80;
+
+            // Draw base square
+            ctx.strokeRect(x, y, side, side);
+
+            // Draw triangles on each side
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + side / 2, y - side);
+            ctx.lineTo(x + side, y);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x + side, y);
+            ctx.lineTo(x + side + side, y + side / 2);
+            ctx.lineTo(x + side, y + side);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x + side, y + side);
+            ctx.lineTo(x + side / 2, y + side + side);
+            ctx.lineTo(x, y + side);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x, y + side);
+            ctx.lineTo(x - side, y + side / 2);
+            ctx.lineTo(x, y);
+            ctx.closePath();
+            ctx.stroke();
+        }
+    }
+
+    // Cuboid class
+    class Cuboid extends Shape {
+        constructor() {
+            super('Cuboid');
+        }
+
+        create3DShape() {
+            const geometry = new THREE.BoxGeometry(2, 1, 1);
+            const material = new THREE.MeshNormalMaterial({ flatShading: true });
+            return new THREE.Mesh(geometry, material);
+        }
+
+        drawNet(ctx) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+
+            const x = 50;
+            const y = 50;
+            const width = 80;
+            const height = 40;
+
+            // Draw 4 rectangles in a row
+            for (let i = 0; i < 4; i++) {
+                ctx.strokeRect(x + i * width, y + height, width, height);
+            }
+
+            // Draw side rectangles
+            ctx.strokeRect(x + width, y, width, height);
+            ctx.strokeRect(x + width, y + 2 * height, width, height);
+        }
+    }
+
+    // Initialize shapes
+    const shapes = {
+        'Prism': new Prism(),
+        'Pyramid': new Pyramid(),
+        'Cuboid': new Cuboid()
+    };
+
+    let currentShape = shapes['Prism'];
+
+    // 3D Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xffffff);
+
+    const rendererContainer = document.getElementById('rendererContainer');
+
+    const camera = new THREE.PerspectiveCamera(
+        45,
+        rendererContainer.clientWidth / rendererContainer.clientHeight,
+        0.1,
+        100
+    );
+    camera.position.set(4, 4, 4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(rendererContainer.clientWidth, rendererContainer.clientHeight);
+    rendererContainer.appendChild(renderer.domElement);
+
+    // Orbit Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.update();
+
+    // Add light
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 10, 7.5);
+    scene.add(light);
+
+    // Add current shape to scene
+    let shapeMesh = currentShape.create3DShape();
+    scene.add(shapeMesh);
+
+    // Canvas for net
+    const canvas = document.getElementById('netCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Resize canvas to fit container
+    function resizeCanvas() {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        currentShape.drawNet(ctx);
+    }
+    resizeCanvas();
+
+    // Handle window resize
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+        renderer.setSize(rendererContainer.clientWidth, rendererContainer.clientHeight);
+        camera.aspect = rendererContainer.clientWidth / rendererContainer.clientHeight;
+        camera.updateProjectionMatrix();
+
+        resizeCanvas();
+    }
+
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // Shape selection buttons
+    document.getElementById('prismButton').addEventListener('click', () => {
+        switchShape('Prism');
+    });
+
+    document.getElementById('pyramidButton').addEventListener('click', () => {
+        switchShape('Pyramid');
+    });
+
+    document.getElementById('cuboidButton').addEventListener('click', () => {
+        switchShape('Cuboid');
+    });
+
+    function switchShape(shapeName) {
+        // Remove the old shape from the scene
+        scene.remove(shapeMesh);
+
+        // Update current shape
+        currentShape = shapes[shapeName];
+
+        // Add the new shape to the scene
+        shapeMesh = currentShape.create3DShape();
+        scene.add(shapeMesh);
+
+        // Redraw the net
+        currentShape.drawNet(ctx);
+    }
+</script>
+
+</body>
+</html>

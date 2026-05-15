@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interactive Unit Circle Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            touch-action: none;
+        }
+
+        .controls {
+            display: grid;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .value-display {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+
+        .value-display div {
+            margin: 5px 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button, .toggle-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            min-width: 44px;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .toggle-btn.active {
+            background: #764ba2;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            min-height: 44px;
+            padding: 5px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .problem-generator {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .problem-text {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .solution-area {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .hint-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .hint-box.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .math-keyboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .math-key {
+            padding: 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.1em;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .math-key:hover {
+            background: #e0e0e0;
+        }
+
+        .math-key:active {
+            background: #d0d0d0;
+        }
+
+        .input-display {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 50px;
+            font-size: 1.2em;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+
+        .analytics-panel {
+            grid-column: 1 / -1;
+            background: #e8f4f8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 10px;
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .analytics-header h3 {
+            color: #17a2b8;
+            font-size: 1.2em;
+        }
+
+        .log-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .log-entry {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #17a2b8;
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        .log-action {
+            color: #333;
+            flex: 1;
+        }
+
+        .collapse-btn {
+            background: #17a2b8;
+        }
+
+        .collapse-btn:hover {
+            background: #138496;
+        }
+
+        .analytics-panel.collapsed .log-container {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .explanation-box h4 {
+            color: #155724;
+            margin-bottom: 8px;
+        }
+
+        .explanation-box p {
+            color: #155724;
+            line-height: 1.6;
+        }
+
+        .special-angles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .angle-btn {
+            padding: 10px;
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .angle-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .subtitle {
+                font-size: 1em;
+            }
+
+            canvas {
+                max-width: 100%;
+                height: auto !important;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button, .toggle-btn, .angle-btn, .math-key {
+                width: 100%;
+            }
+
+            .special-angles {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .analytics-panel {
+                margin-top: 20px;
+            }
+        }
+
+        .info-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #17a2b8;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.8em;
+            cursor: help;
+            margin-left: 5px;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.85em;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Interactive Unit Circle Explorer</h1>
+            <p class="subtitle">Discover the beauty of trigonometry through interactive exploration</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Unit Circle Panel -->
+            <div class="panel">
+                <h2>Unit Circle Visualization</h2>
+                <canvas id="unitCircle" width="400" height="400"></canvas>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="angleSlider">Angle: <span id="angleValue">0°</span></label>
+                        <input type="range" id="angleSlider" min="0" max="360" value="0" step="1">
+                    </div>
+
+                    <div class="button-group">
+                        <button id="degRadToggle" class="toggle-btn active">Degrees</button>
+                        <button id="resetBtn">Reset</button>
+                    </div>
+
+                    <div class="special-angles">
+                        <button class="angle-btn" data-angle="0">0°</button>
+                        <button class="angle-btn" data-angle="30">30°</button>
+                        <button class="angle-btn" data-angle="45">45°</button>
+                        <button class="angle-btn" data-angle="60">60°</button>
+                        <button class="angle-btn" data-angle="90">90°</button>
+                        <button class="angle-btn" data-angle="120">120°</button>
+                        <button class="angle-btn" data-angle="135">135°</button>
+                        <button class="angle-btn" data-angle="150">150°</button>
+                        <button class="angle-btn" data-angle="180">180°</button>
+                        <button class="angle-btn" data-angle="210">210°</button>
+                        <button class="angle-btn" data-angle="225">225°</button>
+                        <button class="angle-btn" data-angle="240">240°</button>
+                        <button class="angle-btn" data-angle="270">270°</button>
+                        <button class="angle-btn" data-angle="300">300°</button>
+                        <button class="angle-btn" data-angle="315">315°</button>
+                        <button class="angle-btn" data-angle="330">330°</button>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showProjections" checked>
+                            Show Projections
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showTriangle" checked>
+                            Show Triangle
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showGrid" checked>
+                            Show Grid
+                        </label>
+                    </div>
+                </div>
+
+                <div class="value-display">
+                    <div><strong>Angle:</strong> <span id="displayAngle">0°</span></div>
+                    <div><strong>sin θ:</strong> <span id="displaySin">0</span></div>
+                    <div><strong>cos θ:</strong> <span id="displayCos">1</span></div>
+                    <div><strong>tan θ:</strong> <span id="displayTan">0</span></div>
+                    <div id="exactValue" style="color: #28a745; font-weight: 600;"></div>
+                </div>
+
+                <div class="explanation-box">
+                    <h4>💡 Understanding the Unit Circle</h4>
+                    <p>The unit circle has radius 1. Any point on the circle is at (cos θ, sin θ). The x-coordinate gives cos θ, and the y-coordinate gives sin θ. Drag the point or use the slider to explore!</p>
+                </div>
+            </div>
+
+            <!-- Graphs Panel -->
+            <div class="panel">
+                <h2>Trigonometric Graphs</h2>
+                <canvas id="sinGraph" width="400" height="200"></canvas>
+                <canvas id="cosGraph" width="400" height="200" style="margin-top: 10px;"></canvas>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="amplitudeSlider">Amplitude: <span id="ampValue">1</span></label>
+                        <input type="range" id="amplitudeSlider" min="0.5" max="3" value="1" step="0.1">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="phaseSlider">Phase Shift: <span id="phaseValue">0°</span></label>
+                        <input type="range" id="phaseSlider" min="-180" max="180" value="0" step="5">
+                    </div>
+
+                    <div class="explanation-box">
+                        <h4>📊 Graph Transformations</h4>
+                        <p><strong>Amplitude</strong> controls the height of the wave. <strong>Phase shift</strong> moves the graph left or right. Notice how the current angle is marked on both graphs!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Triangle View Panel -->
+            <div class="panel">
+                <h2>Right Triangle (SOH-CAH-TOA)</h2>
+                <canvas id="triangleCanvas" width="400" height="300"></canvas>
+
+                <div class="value-display">
+                    <div><strong>Opposite:</strong> <span id="triOpposite">0</span></div>
+                    <div><strong>Adjacent:</strong> <span id="triAdjacent">1</span></div>
+                    <div><strong>Hypotenuse:</strong> 1 (unit circle)</div>
+                    <hr style="margin: 8px 0;">
+                    <div><strong>sin θ = O/H:</strong> <span id="triSin">0/1 = 0</span></div>
+                    <div><strong>cos θ = A/H:</strong> <span id="triCos">1/1 = 1</span></div>
+                    <div><strong>tan θ = O/A:</strong> <span id="triTan">0/1 = 0</span></div>
+                </div>
+
+                <div class="explanation-box">
+                    <h4>📐 SOH-CAH-TOA Connection</h4>
+                    <p>This triangle is formed by the angle in the unit circle. <strong>Sin = Opposite/Hypotenuse</strong>, <strong>Cos = Adjacent/Hypotenuse</strong>, <strong>Tan = Opposite/Adjacent</strong>. All measurements sync with the unit circle above!</p>
+                </div>
+            </div>
+
+            <!-- Problem Generator Panel -->
+            <div class="panel">
+                <h2>Practice Problems</h2>
+                <div class="problem-generator">
+                    <div class="problem-text" id="problemText">Click "New Problem" to start!</div>
+                    <div class="button-group">
+                        <button id="newProblemBtn">New Problem</button>
+                        <button id="showHintBtn">Show Hint</button>
+                        <button id="showSolutionBtn">Show Solution</button>
+                    </div>
+                </div>
+
+                <div class="hint-box" id="hintBox">
+                    <strong>💭 Hint:</strong> <span id="hintText"></span>
+                </div>
+
+                <div class="solution-area" id="solutionArea" style="display: none;">
+                    <h4 style="color: #28a745;">✓ Solution:</h4>
+                    <div id="solutionSteps"></div>
+                    <div id="whyExplanation" style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 6px;">
+                        <strong>🤔 Why?</strong>
+                        <p id="whyText"></p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <h4>Your Answer:</h4>
+                    <div class="input-display" id="inputDisplay">Type using keyboard below...</div>
+                    <div class="math-keyboard">
+                        <button class="math-key" data-key="1">1</button>
+                        <button class="math-key" data-key="2">2</button>
+                        <button class="math-key" data-key="3">3</button>
+                        <button class="math-key" data-key="/">÷</button>
+                        <button class="math-key" data-key="4">4</button>
+                        <button class="math-key" data-key="5">5</button>
+                        <button class="math-key" data-key="6">6</button>
+                        <button class="math-key" data-key="*">×</button>
+                        <button class="math-key" data-key="7">7</button>
+                        <button class="math-key" data-key="8">8</button>
+                        <button class="math-key" data-key="9">9</button>
+                        <button class="math-key" data-key="-">−</button>
+                        <button class="math-key" data-key="0">0</button>
+                        <button class="math-key" data-key=".">.</button>
+                        <button class="math-key" data-key="√">√</button>
+                        <button class="math-key" data-key="+">+</button>
+                        <button class="math-key" data-key="(">(</button>
+                        <button class="math-key" data-key=")">)</button>
+                        <button class="math-key" data-key="π">π</button>
+                        <button class="math-key" data-key="clear">CLR</button>
+                    </div>
+                    <button id="checkAnswerBtn" style="width: 100%; margin-top: 10px;">Check Answer</button>
+                    <div id="feedbackBox" style="margin-top: 10px; padding: 12px; border-radius: 8px; display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Analytics Panel -->
+            <div class="analytics-panel" id="analyticsPanel">
+                <div class="analytics-header">
+                    <h3>📊 Learning Analytics - Action Log</h3>
+                    <div class="button-group">
+                        <button id="clearLogBtn" style="padding: 8px 16px;">Clear Log</button>
+                        <button id="collapseAnalyticsBtn" class="collapse-btn" style="padding: 8px 16px;">Collapse</button>
+                    </div>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">
+                        <span class="log-time">t=0s</span>
+                        <span class="log-action">🚀 Interactive session started</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let angle = 0;
+        let useDegrees = true;
+        let amplitude = 1;
+        let phaseShift = 0;
+        let startTime = Date.now();
+        let currentProblem = null;
+        let userInput = "";
+        let seedValue = 12345;
+
+        // Canvas contexts
+        const unitCircleCanvas = document.getElementById('unitCircle');
+        const unitCircleCtx = unitCircleCanvas.getContext('2d');
+        const sinGraphCanvas = document.getElementById('sinGraph');
+        const sinGraphCtx = sinGraphCanvas.getContext('2d');
+        const cosGraphCanvas = document.getElementById('cosGraph');
+        const cosGraphCtx = cosGraphCanvas.getContext('2d');
+        const triangleCanvas = document.getElementById('triangleCanvas');
+        const triangleCtx = triangleCanvas.getContext('2d');
+
+        // Make canvases responsive
+        function resizeCanvases() {
+            const isMobile = window.innerWidth < 768;
+            const size = isMobile ? Math.min(window.innerWidth - 60, 400) : 400;
+            
+            unitCircleCanvas.width = size;
+            unitCircleCanvas.height = size;
+            sinGraphCanvas.width = size;
+            cosGraphCanvas.width = size;
+            triangleCanvas.width = size;
+            
+            drawAll();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // Analytics functions
+        function logAction(action, details = '') {
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            let icon = '⚡';
+            if (action.includes('Slider')) icon = '🎚️';
+            if (action.includes('Button')) icon = '🔘';
+            if (action.includes('Toggle')) icon = '🔄';
+            if (action.includes('Drag')) icon = '👆';
+            if (action.includes('Problem')) icon = '📝';
+            if (action.includes('Answer')) icon = '✍️';
+            
+            entry.innerHTML = `
+                <span class="log-time">t=${elapsed}s</span>
+                <span class="log-action">${icon} ${action}${details ? ': ' + details : ''}</span>
+            `;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Unit Circle Drawing
+        function drawUnitCircle() {
+            const canvas = unitCircleCanvas;
+            const ctx = unitCircleCtx;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 40;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid if enabled
+            if (document.getElementById('showGrid').checked) {
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = -1; i <= 1; i += 0.5) {
+                    ctx.moveTo(centerX + i * radius, centerY - radius - 10);
+                    ctx.lineTo(centerX + i * radius, centerY + radius + 10);
+                    ctx.moveTo(centerX - radius - 10, centerY + i * radius);
+                    ctx.lineTo(centerX + radius + 10, centerY + i * radius);
+                }
+                ctx.stroke();
+            }
+
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - radius - 10, centerY);
+            ctx.lineTo(centerX + radius + 10, centerY);
+            ctx.moveTo(centerX, centerY - radius - 10);
+            ctx.lineTo(centerX, centerY + radius + 10);
+            ctx.stroke();
+
+            // Axis labels
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.fillText('x (cos θ)', centerX + radius - 30, centerY - 10);
+            ctx.fillText('y (sin θ)', centerX + 10, centerY - radius + 20);
+
+            // Draw unit circle
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+
+            // Calculate point on circle
+            const radAngle = angle * Math.PI / 180;
+            const x = Math.cos(radAngle);
+            const y = Math.sin(radAngle);
+            const pointX = centerX + x * radius;
+            const pointY = centerY - y * radius;
+
+            // Draw projections if enabled
+            if (document.getElementById('showProjections').checked) {
+                // Vertical projection (sin)
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(pointX, pointY);
+                ctx.lineTo(pointX, centerY);
+                ctx.stroke();
+
+                // Horizontal projection (cos)
+                ctx.strokeStyle = '#3498db';
+                ctx.beginPath();
+                ctx.moveTo(pointX, pointY);
+                ctx.lineTo(centerX, pointY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Labels
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText('sin θ', pointX + 5, (pointY + centerY) / 2);
+                ctx.fillStyle = '#3498db';
+                ctx.fillText('cos θ', (pointX + centerX) / 2 - 15, pointY - 5);
+            }
+
+            // Draw triangle if enabled
+            if (document.getElementById('showTriangle').checked && angle !== 90 && angle !== 270) {
+                ctx.strokeStyle = '#9b59b6';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(pointX, centerY);
+                ctx.lineTo(pointX, pointY);
+                ctx.lineTo(centerX, centerY);
+                ctx.stroke();
+            }
+
+            // Draw radius line
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(pointX, pointY);
+            ctx.stroke();
+
+            // Draw angle arc
+            ctx.strokeStyle = '#f39c12';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.2, 0, -radAngle, true);
+            ctx.stroke();
+
+            // Draw point on circle
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Point coordinates
+            ctx.fillStyle = '#2ecc71';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(`(${x.toFixed(3)}, ${y.toFixed(3)})`, pointX + 15, pointY - 10);
+        }
+
+        // Draw sine graph
+        function drawSineGraph() {
+            const canvas = sinGraphCanvas;
+            const ctx = sinGraphCtx;
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw axes
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+
+            // Draw sine wave
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x < width; x++) {
+                const theta = (x / width) * 4 * Math.PI;
+                const y = centerY - amplitude * Math.sin(theta + phaseShift * Math.PI / 180) * (height / 3);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Mark current angle
+            const radAngle = angle * Math.PI / 180;
+            const currentX = (radAngle / (4 * Math.PI)) * width;
+            const currentY = centerY - amplitude * Math.sin(radAngle + phaseShift * Math.PI / 180) * (height / 3);
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('y = sin(x)', 10, 20);
+        }
+
+        // Draw cosine graph
+        function drawCosineGraph() {
+            const canvas = cosGraphCanvas;
+            const ctx = cosGraphCtx;
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw axes
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+
+            // Draw cosine wave
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x < width; x++) {
+                const theta = (x / width) * 4 * Math.PI;
+                const y = centerY - amplitude * Math.cos(theta + phaseShift * Math.PI / 180) * (height / 3);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Mark current angle
+            const radAngle = angle * Math.PI / 180;
+            const currentX = (radAngle / (4 * Math.PI)) * width;
+            const currentY = centerY - amplitude * Math.cos(radAngle + phaseShift * Math.PI / 180) * (height / 3);
+            
+            ctx.fillStyle = '#3498db';
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('y = cos(x)', 10, 20);
+        }
+
+        // Draw triangle view
+        function drawTriangleView() {
+            const canvas = triangleCanvas;
+            const ctx = triangleCtx;
+            const width = canvas.width;
+            const height = canvas.height;
+            const scale = Math.min(width, height) * 0.35;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const radAngle = angle * Math.PI / 180;
+            const actualAngle = angle % 360;
+            
+            // Adjust for quadrants
+            let displayAngle = actualAngle;
+            let quadrant = Math.floor(actualAngle / 90);
+            let referenceAngle = actualAngle % 90;
+            
+            if (quadrant === 1) referenceAngle = 90 - referenceAngle;
+            else if (quadrant === 2) referenceAngle = actualAngle - 180;
+            else if (quadrant === 3) referenceAngle = 270 - actualAngle;
+
+            const refRad = Math.abs(referenceAngle) * Math.PI / 180;
+            
+            const opposite = Math.abs(Math.sin(radAngle)) * scale;
+            const adjacent = Math.abs(Math.cos(radAngle)) * scale;
+            const hypotenuse = scale;
+
+            // Position triangle
+            const startX = width / 2 - adjacent / 2;
+            const startY = height - 50;
+
+            // Draw triangle
+            ctx.strokeStyle = '#9b59b6';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(startX + adjacent, startY);
+            ctx.lineTo(startX + adjacent, startY - opposite);
+            ctx.lineTo(startX, startY);
+            ctx.stroke();
+
+            // Label sides
+            ctx.fillStyle = '#e74c3c';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('Opposite', startX + adjacent + 10, startY - opposite / 2);
+            
+            ctx.fillStyle = '#3498db';
+            ctx.fillText('Adjacent', startX + adjacent / 2 - 30, startY + 20);
+            
+            ctx.fillStyle = '#2ecc71';
+            const hypMidX = startX + adjacent / 2 - 15;
+            const hypMidY = startY - opposite / 2 - 15;
+            ctx.fillText('Hypotenuse = 1', hypMidX, hypMidY);
+
+            // Draw angle arc
+            ctx.strokeStyle = '#f39c12';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(startX, startY, 30, -Math.PI / 2, -Math.PI / 2 - refRad, true);
+            ctx.stroke();
+
+            ctx.fillStyle = '#f39c12';
+            ctx.fillText('θ', startX - 20, startY - 35);
+
+            // Update values
+            const sinVal = Math.sin(radAngle);
+            const cosVal = Math.cos(radAngle);
+            const tanVal = Math.tan(radAngle);
+
+            document.getElementById('triOpposite').textContent = sinVal.toFixed(4);
+            document.getElementById('triAdjacent').textContent = cosVal.toFixed(4);
+            document.getElementById('triSin').textContent = `${sinVal.toFixed(4)}/1 = ${sinVal.toFixed(4)}`;
+            document.getElementById('triCos').textContent = `${cosVal.toFixed(4)}/1 = ${cosVal.toFixed(4)}`;
+            
+            if (Math.abs(cosVal) < 0.0001) {
+                document.getElementById('triTan').textContent = 'undefined';
+            } else {
+                document.getElementById('triTan').textContent = `${sinVal.toFixed(4)}/${cosVal.toFixed(4)} = ${tanVal.toFixed(4)}`;
+            }
+
+            // Quadrant info
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            const quadrantNames = ['I (0-90°)', 'II (90-180°)', 'III (180-270°)', 'IV (270-360°)'];
+            ctx.fillText(`Quadrant: ${quadrantNames[quadrant]}`, 10, 25);
+        }
+
+        // Update all displays
+        function updateDisplays() {
+            const radAngle = angle * Math.PI / 180;
+            const sinVal = Math.sin(radAngle);
+            const cosVal = Math.cos(radAngle);
+            const tanVal = Math.tan(radAngle);
+
+            // Update angle display
+            if (useDegrees) {
+                document.getElementById('angleValue').textContent = angle.toFixed(0) + '°';
+                document.getElementById('displayAngle').textContent = angle.toFixed(0) + '°';
+            } else {
+                const radians = (angle * Math.PI / 180).toFixed(3);
+                document.getElementById('angleValue').textContent = radians + ' rad';
+                document.getElementById('displayAngle').textContent = radians + ' rad';
+            }
+
+            // Update trig values
+            document.getElementById('displaySin').textContent = sinVal.toFixed(4);
+            document.getElementById('displayCos').textContent = cosVal.toFixed(4);
+            
+            if (Math.abs(cosVal) < 0.0001) {
+                document.getElementById('displayTan').textContent = 'undefined';
+            } else {
+                document.getElementById('displayTan').textContent = tanVal.toFixed(4);
+            }
+
+            // Show exact values for special angles
+            const exactValue = getExactValue(angle);
+            const exactDiv = document.getElementById('exactValue');
+            if (exactValue) {
+                exactDiv.textContent = `✨ Exact: ${exactValue}`;
+                exactDiv.style.display = 'block';
+            } else {
+                exactDiv.style.display = 'none';
+            }
+        }
+
+        // Get exact values for special angles
+        function getExactValue(deg) {
+            const specialAngles = {
+                0: 'sin(0°) = 0, cos(0°) = 1',
+                30: 'sin(30°) = 1/2, cos(30°) = √3/2',
+                45: 'sin(45°) = √2/2, cos(45°) = √2/2',
+                60: 'sin(60°) = √3/2, cos(60°) = 1/2',
+                90: 'sin(90°) = 1, cos(90°) = 0',
+                120: 'sin(120°) = √3/2, cos(120°) = -1/2',
+                135: 'sin(135°) = √2/2, cos(135°) = -√2/2',
+                150: 'sin(150°) = 1/2, cos(150°) = -√3/2',
+                180: 'sin(180°) = 0, cos(180°) = -1',
+                210: 'sin(210°) = -1/2, cos(210°) = -√3/2',
+                225: 'sin(225°) = -√2/2, cos(225°) = -√2/2',
+                240: 'sin(240°) = -√3/2, cos(240°) = -1/2',
+                270: 'sin(270°) = -1, cos(270°) = 0',
+                300: 'sin(300°) = -√3/2, cos(300°) = 1/2',
+                315: 'sin(315°) = -√2/2, cos(315°) = √2/2',
+                330: 'sin(330°) = -1/2, cos(330°) = √3/2',
+                360: 'sin(360°) = 0, cos(360°) = 1'
+            };
+            return specialAngles[deg % 360] || null;
+        }
+
+        // Draw all canvases
+        function drawAll() {
+            drawUnitCircle();
+            drawSineGraph();
+            drawCosineGraph();
+            drawTriangleView();
+            updateDisplays();
+        }
+
+        // Event listeners
+        document.getElementById('angleSlider').addEventListener('input', (e) => {
+            angle = parseFloat(e.target.value);
+            drawAll();
+            logAction('Slider moved', `Angle set to ${angle.toFixed(0)}°`);
+        });
+
+        document.getElementById('degRadToggle').addEventListener('click', (e) => {
+            useDegrees = !useDegrees;
+            e.target.textContent = useDegrees ? 'Degrees' : 'Radians';
+            e.target.classList.toggle('active');
+            updateDisplays();
+            logAction('Toggle clicked', `Switched to ${useDegrees ? 'Degrees' : 'Radians'}`);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            angle = 0;
+            amplitude = 1;
+            phaseShift = 0;
+            document.getElementById('angleSlider').value = 0;
+            document.getElementById('amplitudeSlider').value = 1;
+            document.getElementById('phaseSlider').value = 0;
+            document.getElementById('ampValue').textContent = '1';
+            document.getElementById('phaseValue').textContent = '0°';
+            drawAll();
+            logAction('Button clicked', 'Reset all values');
+        });
+
+        document.getElementById('amplitudeSlider').addEventListener('input', (e) => {
+            amplitude = parseFloat(e.target.value);
+            document.getElementById('ampValue').textContent = amplitude.toFixed(1);
+            drawSineGraph();
+            drawCosineGraph();
+            logAction('Slider moved', `Amplitude set to ${amplitude.toFixed(1)}`);
+        });
+
+        document.getElementById('phaseSlider').addEventListener('input', (e) => {
+            phaseShift = parseFloat(e.target.value);
+            document.getElementById('phaseValue').textContent = phaseShift.toFixed(0) + '°';
+            drawSineGraph();
+            drawCosineGraph();
+            logAction('Slider moved', `Phase shift set to ${phaseShift.toFixed(0)}°`);
+        });
+
+        // Special angle buttons
+        document.querySelectorAll('.angle-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                angle = parseFloat(e.target.dataset.angle);
+                document.getElementById('angleSlider').value = angle;
+                drawAll();
+                logAction('Button clicked', `Special angle ${angle}° selected`);
+            });
+        });
+
+        // Checkboxes
+        ['showProjections', 'showTriangle', 'showGrid'].forEach(id => {
+            document.getElementById(id).addEventListener('change', (e) => {
+                drawUnitCircle();
+                logAction('Toggle clicked', `${id.replace('show', '')} ${e.target.checked ? 'enabled' : 'disabled'}`);
+            });
+        });
+
+        // Dragging on unit circle
+        let isDragging = false;
+
+        function getAngleFromPoint(clientX, clientY) {
+            const rect = unitCircleCanvas.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const dx = clientX - centerX;
+            const dy = centerY - clientY;
+            let angleRad = Math.atan2(dy, dx);
+            let angleDeg = angleRad * 180 / Math.PI;
+            if (angleDeg < 0) angleDeg += 360;
+            return angleDeg;
+        }
+
+        unitCircleCanvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            angle = getAngleFromPoint(e.clientX, e.clientY);
+            document.getElementById('angleSlider').value = angle;
+            drawAll();
+        });
+
+        unitCircleCanvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                angle = getAngleFromPoint(e.clientX, e.clientY);
+                document.getElementById('angleSlider').value = angle;
+                drawAll();
+            }
+        });
+
+        unitCircleCanvas.addEventListener('mouseup', () => {
+            if (isDragging) {
+                logAction('Drag completed', `Angle dragged to ${angle.toFixed(0)}°`);
+            }
+            isDragging = false;
+        });
+
+        // Touch events for mobile
+        unitCircleCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            const touch = e.touches[0];
+            angle = getAngleFromPoint(touch.clientX, touch.clientY);
+            document.getElementById('angleSlider').value = angle;
+            drawAll();
+        });
+
+        unitCircleCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDragging) {
+                const touch = e.touches[0];
+                angle = getAngleFromPoint(touch.clientX, touch.clientY);
+                document.getElementById('angleSlider').value = angle;
+                drawAll();
+            }
+        });
+
+        unitCircleCanvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (isDragging) {
+                logAction('Drag completed (touch)', `Angle dragged to ${angle.toFixed(0)}°`);
+            }
+            isDragging = false;
+        });
+
+        // Seeded random number generator
+        function seededRandom() {
+            seedValue = (seedValue * 9301 + 49297) % 233280;
+            return seedValue / 233280;
+        }
+
+        // Problem generator
+        const problemTypes = [
+            {
+                generate: () => {
+                    const angles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+                    const angle = angles[Math.floor(seededRandom() * angles.length)];
+                    const funcs = ['sin', 'cos', 'tan'];
+                    const func = funcs[Math.floor(seededRandom() * funcs.length)];
+                    return {
+                        question: `What is ${func}(${angle}°)?`,
+                        hint: `Look at the unit circle at ${angle}°. Remember: sin is the y-coordinate, cos is the x-coordinate.`,
+                        solution: calculateTrigValue(func, angle),
+                        steps: [
+                            `Locate ${angle}° on the unit circle`,
+                            `The point on the circle is at (cos ${angle}°, sin ${angle}°)`,
+                            `${func}(${angle}°) = ${calculateTrigValue(func, angle)}`
+                        ],
+                        why: `At ${angle}°, the point on the unit circle has specific coordinates based on the special triangle ratios or circle symmetry. The ${func} function gives us the ${func === 'sin' ? 'y-coordinate' : func === 'cos' ? 'x-coordinate' : 'ratio of y/x'}.`,
+                        answer: calculateTrigValue(func, angle)
+                    };
+                }
+            },
+            {
+                generate: () => {
+                    const quadrant = Math.floor(seededRandom() * 4) + 1;
+                    const funcs = ['sin', 'cos', 'tan'];
+                    const func = funcs[Math.floor(seededRandom() * funcs.length)];
+                    const signs = {
+                        1: {sin: '+', cos: '+', tan: '+'},
+                        2: {sin: '+', cos: '-', tan: '-'},
+                        3: {sin: '-', cos: '-', tan: '+'},
+                        4: {sin: '-', cos: '+', tan: '-'}
+                    };
+                    return {
+                        question: `In which quadrant(s) is ${func}(θ) positive?`,
+                        hint: `Remember ASTC (All Students Take Calculus): Q1-All positive, Q2-Sin positive, Q3-Tan positive, Q4-Cos positive`,
+                        solution: getPositiveQuadrants(func),
+                        steps: [
+                            `Use ASTC rule to determine signs in each quadrant`,
+                            `Quadrant I: All trig functions are positive`,
+                            `Quadrant II: Only sin is positive`,
+                            `Quadrant III: Only tan is positive`,
+                            `Quadrant IV: Only cos is positive`,
+                            `Therefore, ${func} is positive in: ${getPositiveQuadrants(func)}`
+                        ],
+                        why: `The signs of trig functions depend on the signs of x and y coordinates in each quadrant. ${func === 'sin' ? 'Sin (y-coordinate) is positive when above x-axis (Q1, Q2)' : func === 'cos' ? 'Cos (x-coordinate) is positive when right of y-axis (Q1, Q4)' : 'Tan (y/x) is positive when both have same sign (Q1, Q3)'}.`,
+                        answer: getPositiveQuadrants(func)
+                    };
+                }
+            },
+            {
+                generate: () => {
+                    const angle1 = [30, 45, 60][Math.floor(seededRandom() * 3)];
+                    const angle2 = 180 - angle1;
+                    return {
+                        question: `Compare sin(${angle1}°) and sin(${angle2}°). Are they equal?`,
+                        hint: `Look at the symmetry of the unit circle. Points at ${angle1}° and ${angle2}° have the same height (y-coordinate).`,
+                        solution: 'Yes, they are equal',
+                        steps: [
+                            `${angle1}° is in Quadrant I, ${angle2}° is in Quadrant II`,
+                            `Both angles have the same reference angle: ${angle1}°`,
+                            `sin(${angle1}°) = ${Math.sin(angle1 * Math.PI / 180).toFixed(4)}`,
+                            `sin(${angle2}°) = ${Math.sin(angle2 * Math.PI / 180).toFixed(4)}`,
+                            `They are equal!`
+                        ],
+                        why: `Sine represents the y-coordinate on the unit circle. Due to symmetry, angles that are supplements (add to 180°) have the same y-coordinate, so their sine values are equal. This is why sin(θ) = sin(180° - θ).`,
+                        answer: 'equal'
+                    };
+                }
+            }
+        ];
+
+        function calculateTrigValue(func, angle) {
+            const rad = angle * Math.PI / 180;
+            let val;
+            if (func === 'sin') val = Math.sin(rad);
+            else if (func === 'cos') val = Math.cos(rad);
+            else val = Math.tan(rad);
+            
+            if (Math.abs(val) < 0.0001) return '0';
+            if (Math.abs(val - 1) < 0.0001) return '1';
+            if (Math.abs(val + 1) < 0.0001) return '-1';
+            if (Math.abs(val - 0.5) < 0.0001) return '1/2';
+            if (Math.abs(val + 0.5) < 0.0001) return '-1/2';
+            if (Math.abs(val - Math.sqrt(2)/2) < 0.0001) return '√2/2';
+            if (Math.abs(val + Math.sqrt(2)/2) < 0.0001) return '-√2/2';
+            if (Math.abs(val - Math.sqrt(3)/2) < 0.0001) return '√3/2';
+            if (Math.abs(val + Math.sqrt(3)/2) < 0.0001) return '-√3/2';
+            return val.toFixed(4);
+        }
+
+        function getPositiveQuadrants(func) {
+            if (func === 'sin') return 'Quadrants I and II';
+            if (func === 'cos') return 'Quadrants I and IV';
+            if (func === 'tan') return 'Quadrants I and III';
+        }
+
+        document.getElementById('newProblemBtn').addEventListener('click', () => {
+            const problemType = problemTypes[Math.floor(seededRandom() * problemTypes.length)];
+            currentProblem = problemType.generate();
+            document.getElementById('problemText').textContent = currentProblem.question;
+            document.getElementById('hintBox').classList.remove('show');
+            document.getElementById('solutionArea').style.display = 'none';
+            document.getElementById('feedbackBox').style.display = 'none';
+            userInput = '';
+            document.getElementById('inputDisplay').textContent = 'Type using keyboard below...';
+            logAction('Problem generated', currentProblem.question);
+        });
+
+        document.getElementById('showHintBtn').addEventListener('click', () => {
+            if (currentProblem) {
+                document.getElementById('hintText').textContent = currentProblem.hint;
+                document.getElementById('hintBox').classList.add('show');
+                logAction('Hint requested', 'Hint displayed');
+            }
+        });
+
+        document.getElementById('showSolutionBtn').addEventListener('click', () => {
+            if (currentProblem) {
+                const stepsHTML = currentProblem.steps.map((step, i) => 
+                    `<div style="margin: 8px 0;"><strong>Step ${i + 1}:</strong> ${step}</div>`
+                ).join('');
+                document.getElementById('solutionSteps').innerHTML = stepsHTML;
+                document.getElementById('whyText').textContent = currentProblem.why;
+                document.getElementById('solutionArea').style.display = 'block';
+                logAction('Solution revealed', 'Full solution with explanation shown');
+            }
+        });
+
+        // Math keyboard
+        document.querySelectorAll('.math-key').forEach(key => {
+            key.addEventListener('click', (e) => {
+                const value = e.target.dataset.key;
+                if (value === 'clear') {
+                    userInput = '';
+                } else {
+                    userInput += value;
+                }
+                document.getElementById('inputDisplay').textContent = userInput || 'Type using keyboard below...';
+                logAction('Answer input', `Typed: ${value}`);
+            });
+        });
+
+        document.getElementById('checkAnswerBtn').addEventListener('click', () => {
+            if (!currentProblem || !userInput) return;
+            
+            const feedback = document.getElementById('feedbackBox');
+            const normalized = userInput.toLowerCase().replace(/\s/g, '');
+            const answer = String(currentProblem.answer).toLowerCase().replace(/\s/g, '');
+            
+            if (normalized.includes(answer) || answer.includes(normalized)) {
+                feedback.style.background = '#d4edda';
+                feedback.style.borderLeft = '4px solid #28a745';
+                feedback.style.color = '#155724';
+                feedback.innerHTML = '<strong>✓ Correct!</strong> Well done! ' + currentProblem.why;
+                logAction('Answer checked', '✓ Correct answer');
+            } else {
+                feedback.style.background = '#f8d7da';
+                feedback.style.borderLeft = '4px solid #dc3545';
+                feedback.style.color = '#721c24';
+                feedback.innerHTML = '<strong>✗ Not quite.</strong> Try again or check the hint!';
+                logAction('Answer checked', '✗ Incorrect answer');
+            }
+            feedback.style.display = 'block';
+        });
+
+        // Analytics controls
+        document.getElementById('clearLogBtn').addEventListener('click', () => {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = '<div class="log-entry"><span class="log-time">t=0s</span><span class="log-action">📊 Log cleared - new session started</span></div>';
+            startTime = Date.now();
+        });
+
+        document.getElementById('collapseAnalyticsBtn').addEventListener('click', () => {
+            const panel = document.getElementById('analyticsPanel');
+            const btn = document.getElementById('collapseAnalyticsBtn');
+            panel.classList.toggle('collapsed');
+            btn.textContent = panel.classList.contains('collapsed') ? 'Expand' : 'Collapse';
+        });
+
+        // Initial draw
+        drawAll();
+        logAction('Page loaded', 'All visualizations initialized');
+    </script>
+</body>
+</html>

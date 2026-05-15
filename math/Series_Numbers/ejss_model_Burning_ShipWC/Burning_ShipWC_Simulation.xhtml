@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mandelbrot set Burning Ship Fractal</title>
+    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function Burning_ShipWC(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var n; // EjsS Model.Variables.Var Table.n
+  var data; // EjsS Model.Variables.Var Table.data
+  var reMin; // EjsS Model.Variables.Var Table.reMin
+  var reMax; // EjsS Model.Variables.Var Table.reMax
+  var imMin; // EjsS Model.Variables.Var Table.imMin
+  var imMax; // EjsS Model.Variables.Var Table.imMax
+  var k; // EjsS Model.Variables.Var Table.k
+  var m; // EjsS Model.Variables.Var Table.m
+
+  var font; // EjsS Model.Variables.VariableWC.font
+  var palette; // EjsS Model.Variables.VariableWC.palette
+
+  var firstPointTaken; // EjsS Model.Variables.Interaction.firstPointTaken
+  var x; // EjsS Model.Variables.Interaction.x
+  var y; // EjsS Model.Variables.Interaction.y
+  var re1; // EjsS Model.Variables.Interaction.re1
+  var im1; // EjsS Model.Variables.Interaction.im1
+  var dx; // EjsS Model.Variables.Interaction.dx
+  var dy; // EjsS Model.Variables.Interaction.dy
+
+  _model.getOdes = function() { return []; };
+
+  _model.removeEvents = function(){
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      n : n,
+      data : data,
+      reMin : reMin,
+      reMax : reMax,
+      imMin : imMin,
+      imMax : imMax,
+      k : k,
+      m : m,
+      font : font,
+      palette : palette,
+      firstPointTaken : firstPointTaken,
+      x : x,
+      y : y,
+      re1 : re1,
+      im1 : im1,
+      dx : dx,
+      dy : dy
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.data != "undefined") data = json.data;
+    if(typeof json.reMin != "undefined") reMin = json.reMin;
+    if(typeof json.reMax != "undefined") reMax = json.reMax;
+    if(typeof json.imMin != "undefined") imMin = json.imMin;
+    if(typeof json.imMax != "undefined") imMax = json.imMax;
+    if(typeof json.k != "undefined") k = json.k;
+    if(typeof json.m != "undefined") m = json.m;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.palette != "undefined") palette = json.palette;
+    if(typeof json.firstPointTaken != "undefined") firstPointTaken = json.firstPointTaken;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.re1 != "undefined") re1 = json.re1;
+    if(typeof json.im1 != "undefined") im1 = json.im1;
+    if(typeof json.dx != "undefined") dx = json.dx;
+    if(typeof json.dy != "undefined") dy = json.dy;
+  };
+
+  _model._inputAndPublicParameters = ["n",  "data",  "reMin",  "reMax",  "imMin",  "imMax",  "k",  "m",  "font",  "palette",  "firstPointTaken",  "x",  "y",  "re1",  "im1",  "dx",  "dy"]; 
+
+  _model._outputAndPublicParameters = ["n",  "data",  "reMin",  "reMax",  "imMin",  "imMax",  "k",  "m",  "font",  "palette",  "firstPointTaken",  "x",  "y",  "re1",  "im1",  "dx",  "dy"];
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["Init Page"] = true;
+  });
+
+  _model.addToReset(function() {
+    n = 400; // EjsS Model.Variables.Var Table.n
+    data = new Array(n); // EjsS Model.Variables.Var Table.data
+    (function () {
+      var _i0,_i1;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Var Table.data
+        data[_i0] = [];
+        for (_i1=0; _i1<n; _i1+=1) {  // EjsS Model.Variables.Var Table.data
+          data[_i0][_i1] = 0;  // EjsS Model.Variables.Var Table.data
+        }
+      }
+    }());
+    reMin = -1.5; // EjsS Model.Variables.Var Table.reMin
+    reMax = 1.5; // EjsS Model.Variables.Var Table.reMax
+    imMin = -1.5; // EjsS Model.Variables.Var Table.imMin
+    imMax = 1.5; // EjsS Model.Variables.Var Table.imMax
+    k = 0; // EjsS Model.Variables.Var Table.k
+    m = 0; // EjsS Model.Variables.Var Table.m
+  });
+
+  _model.addToReset(function() {
+    font = "normal normal 1.5vw"; // EjsS Model.Variables.VariableWC.font
+    palette = "green"; // EjsS Model.Variables.VariableWC.palette
+  });
+
+  _model.addToReset(function() {
+    firstPointTaken = false; // EjsS Model.Variables.Interaction.firstPointTaken
+    re1 = 0; // EjsS Model.Variables.Interaction.re1
+    im1 = 0; // EjsS Model.Variables.Interaction.im1
+    dx = 1; // EjsS Model.Variables.Interaction.dx
+    dy = 1; // EjsS Model.Variables.Interaction.dy
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function computeSet () {  // > CustomCode.Computations:1
+    for (var i=0; i<n; i++) {  // > CustomCode.Computations:2
+      var im = -imMin - (imMax - imMin)*i/(n-1);  // > CustomCode.Computations:3
+      for (var ix=0; ix<n; ix++) {  // > CustomCode.Computations:4
+        var re = reMin + (reMax - reMin)*ix/(n-1);  // > CustomCode.Computations:5
+        data[ix][i] = 400*(-128 + iteration(re, im) + 1408)/2550;  // > CustomCode.Computations:6
+        // scaling down the array values to [0,1], and multiplying by 200  // > CustomCode.Computations:7
+        // to get values in [0,200]  // > CustomCode.Computations:8
+      }  // > CustomCode.Computations:9
+    }  // > CustomCode.Computations:10
+  }  // > CustomCode.Computations:11
+  function iteration (re, im) {  // > CustomCode.Computations:12
+    var count = -128;  // > CustomCode.Computations:13
+    var a = k, b = m, temp1 = k;  // > CustomCode.Computations:14
+    while (count<127) {  // > CustomCode.Computations:15
+      temp1 = a; // so b does not used the changed value of a  // > CustomCode.Computations:16
+      a = Math.abs(a)*Math.abs(a) - Math.abs(b)*Math.abs(b) + re;  // > CustomCode.Computations:17
+      b = 2*Math.abs(temp1)*Math.abs(b) + im;  // > CustomCode.Computations:18
+      if (a*a + b*b > 4.0) {  // > CustomCode.Computations:19
+        break;  // > CustomCode.Computations:20
+      }  // > CustomCode.Computations:21
+      count++;  // > CustomCode.Computations:22
+    }  // > CustomCode.Computations:23
+    return 10*count;  // > CustomCode.Computations:24
+  }  // > CustomCode.Computations:25
+
+  function mouseDragged (point) {  // > CustomCode.Interaction:1
+    if (firstPointTaken) {  // > CustomCode.Interaction:2
+      dx = point[0] - re1;  // > CustomCode.Interaction:3
+      dy = im1 - point[1];  // > CustomCode.Interaction:4
+    } else {  // > CustomCode.Interaction:5
+      re1 = point[0];  // > CustomCode.Interaction:6
+      im1 = point[1];  // > CustomCode.Interaction:7
+      dy = 0;  // > CustomCode.Interaction:8
+      dx = dy;  // > CustomCode.Interaction:9
+      firstPointTaken = true;  // > CustomCode.Interaction:10
+    }  // > CustomCode.Interaction:11
+  }  // > CustomCode.Interaction:12
+  function mousePressed () {  // > CustomCode.Interaction:13
+    firstPointTaken = false;  // > CustomCode.Interaction:14
+  }  // > CustomCode.Interaction:15
+  function mouseReleased (point) {  // > CustomCode.Interaction:16
+    firstPointTaken = false;  // > CustomCode.Interaction:17
+    reMin = re1;  // > CustomCode.Interaction:18
+    reMax = re1 + dx;  // > CustomCode.Interaction:19
+    imMin = im1 - dy;  // > CustomCode.Interaction:20
+    imMax = im1;  // > CustomCode.Interaction:21
+    computeSet();  // > CustomCode.Interaction:22
+  }  // > CustomCode.Interaction:23
+  function origin () {  // > CustomCode.Interaction:24
+    firstPointTaken = false;  // > CustomCode.Interaction:25
+    reMin = -2;  // > CustomCode.Interaction:26
+    reMax = 1.0;  // > CustomCode.Interaction:27
+    imMin = -1.5;  // > CustomCode.Interaction:28
+    imMax = 1.5;  // > CustomCode.Interaction:29
+    computeSet();  // > CustomCode.Interaction:30
+  }  // > CustomCode.Interaction:31
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    k = 0;  // > Initialization.Init Page:1
+    m = 0;  // > Initialization.Init Page:2
+    computeSet();  // > Initialization.Init Page:3
+    origin();  // > Initialization.Init Page:4
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "SImulation View", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new Burning_ShipWC_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.zoLabel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'zoLabel'
+          _view.reField.linkProperty("Value",  function() { return k; }, function(_v) { k = _v; } ); // SImulation View linking property 'Value' for element 'reField'
+          _view.reField.setAction("OnChange", function(_data,_info) {
+  computeSet();
+
+}); // SImulation View setting action 'OnChange' for element 'reField'
+          _view.reField.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'reField'
+          _view.plus.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'plus'
+          _view.imField.linkProperty("Value",  function() { return m; }, function(_v) { m = _v; } ); // SImulation View linking property 'Value' for element 'imField'
+          _view.imField.setAction("OnChange", function(_data,_info) {
+  computeSet();
+
+}); // SImulation View setting action 'OnChange' for element 'imField'
+          _view.imField.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'imField'
+          _view.iLabel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'iLabel'
+          _view.palette.linkProperty("Value",  function() { return palette; }, function(_v) { palette = _v; } ); // SImulation View linking property 'Value' for element 'palette'
+          _view.palette.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'palette'
+          _view.resetButton.setAction("OnClick", _reset); // SImulation View setting action 'OnClick' for element 'resetButton'
+          _view.resetButton.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // SImulation View linking property 'Font' for element 'resetButton'
+          _view.plottingPanel.linkProperty("MaximumY",  function() { return imMax; }, function(_v) { imMax = _v; } ); // SImulation View linking property 'MaximumY' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnDrag", mouseDragged); // SImulation View setting action 'OnDrag' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MaximumX",  function() { return reMax; }, function(_v) { reMax = _v; } ); // SImulation View linking property 'MaximumX' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnRelease", mouseReleased); // SImulation View setting action 'OnRelease' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumX",  function() { return reMin; }, function(_v) { reMin = _v; } ); // SImulation View linking property 'MinimumX' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumY",  function() { return imMin; }, function(_v) { imMin = _v; } ); // SImulation View linking property 'MinimumY' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnPress", mousePressed); // SImulation View setting action 'OnPress' for element 'plottingPanel'
+          _view.byteRaster.linkProperty("Palette",  function() { return palette; }, function(_v) { palette = _v; } ); // SImulation View linking property 'Palette' for element 'byteRaster'
+          _view.byteRaster.linkProperty("SizeX",  function() { return reMax - reMin; } ); // SImulation View linking property 'SizeX' for element 'byteRaster'
+          _view.byteRaster.linkProperty("X",  function() { return reMin; }, function(_v) { reMin = _v; } ); // SImulation View linking property 'X' for element 'byteRaster'
+          _view.byteRaster.linkProperty("Y",  function() { return imMin; }, function(_v) { imMin = _v; } ); // SImulation View linking property 'Y' for element 'byteRaster'
+          _view.byteRaster.linkProperty("Data",  function() { return data; }, function(_v) { data = _v; } ); // SImulation View linking property 'Data' for element 'byteRaster'
+          _view.byteRaster.linkProperty("SizeY",  function() { return imMax - imMin; } ); // SImulation View linking property 'SizeY' for element 'byteRaster'
+          _view.rectangle.setAction("OnRelease", mouseReleased); // SImulation View setting action 'OnRelease' for element 'rectangle'
+          _view.rectangle.linkProperty("SizeX",  function() { return dx; }, function(_v) { dx = _v; } ); // SImulation View linking property 'SizeX' for element 'rectangle'
+          _view.rectangle.linkProperty("X",  function() { return re1; }, function(_v) { re1 = _v; } ); // SImulation View linking property 'X' for element 'rectangle'
+          _view.rectangle.linkProperty("Y",  function() { return im1; }, function(_v) { im1 = _v; } ); // SImulation View linking property 'Y' for element 'rectangle'
+          _view.rectangle.linkProperty("Visibility",  function() { return firstPointTaken; }, function(_v) { firstPointTaken = _v; } ); // SImulation View linking property 'Visibility' for element 'rectangle'
+          _view.rectangle.linkProperty("SizeY",  function() { return dy; }, function(_v) { dy = _v; } ); // SImulation View linking property 'SizeY' for element 'rectangle'
+          _view.c.linkProperty("X",  function() { return k; }, function(_v) { k = _v; } ); // SImulation View linking property 'X' for element 'c'
+          _view.c.linkProperty("Y",  function() { return m; }, function(_v) { m = _v; } ); // SImulation View linking property 'Y' for element 'c'
+          _view.c.setAction("OnDrag", function(_data,_info) {
+  computeSet();
+
+}); // SImulation View setting action 'OnDrag' for element 'c'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function Burning_ShipWC_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = Burning_ShipWC_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+  _view._addDescriptionPage('Introduction','./Burning_ShipWC_Intro_1.html');
+  _view._addDescriptionPage('Extension','./Burning_ShipWC_Intro_2.html');
+  _view._addDescriptionPage('Authors','./Burning_ShipWC_Intro_3.html');
+
+  return _view;
+} // end of main function
+
+function Burning_ShipWC_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"controlPanel", _view._topFrame) // EJsS HtmlView.SImulation View: declaration of element 'controlPanel'
+      .setProperty("Display","inline-flex") // EJsS HtmlView.SImulation View: setting property 'Display' for element 'controlPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"zoLabel", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'zoLabel'
+      .setProperty("Background","rgba(255,128,255,1)") // EJsS HtmlView.SImulation View: setting property 'Background' for element 'zoLabel'
+      .setProperty("Text","z₀ = ") // EJsS HtmlView.SImulation View: setting property 'Text' for element 'zoLabel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"reField", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'reField'
+      .setProperty("Width","5vw") // EJsS HtmlView.SImulation View: setting property 'Width' for element 'reField'
+      .setProperty("Format","k = 0.00") // EJsS HtmlView.SImulation View: setting property 'Format' for element 'reField'
+      .setProperty("Editable",true) // EJsS HtmlView.SImulation View: setting property 'Editable' for element 'reField'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"plus", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'plus'
+      .setProperty("Background","rgba(255,128,255,1)") // EJsS HtmlView.SImulation View: setting property 'Background' for element 'plus'
+      .setProperty("Text"," + ") // EJsS HtmlView.SImulation View: setting property 'Text' for element 'plus'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"imField", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'imField'
+      .setProperty("Width","5vw") // EJsS HtmlView.SImulation View: setting property 'Width' for element 'imField'
+      .setProperty("Format","m = 0.00") // EJsS HtmlView.SImulation View: setting property 'Format' for element 'imField'
+      .setProperty("Editable",true) // EJsS HtmlView.SImulation View: setting property 'Editable' for element 'imField'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"iLabel", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'iLabel'
+      .setProperty("Background","rgba(255,128,255,1)") // EJsS HtmlView.SImulation View: setting property 'Background' for element 'iLabel'
+      .setProperty("Text","i") // EJsS HtmlView.SImulation View: setting property 'Text' for element 'iLabel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.textField,"palette", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'palette'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.controlPanel) // EJsS HtmlView.SImulation View: declaration of element 'resetButton'
+      .setProperty("Tooltip","Reset the simulation") // EJsS HtmlView.SImulation View: setting property 'Tooltip' for element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.SImulation View: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view._topFrame) // EJsS HtmlView.SImulation View: declaration of element 'panel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.panel) // EJsS HtmlView.SImulation View: declaration of element 'plottingPanel'
+      .setProperty("Height","90vh") // EJsS HtmlView.SImulation View: setting property 'Height' for element 'plottingPanel'
+      .setProperty("Width","90vw") // EJsS HtmlView.SImulation View: setting property 'Width' for element 'plottingPanel'
+      .setProperty("Gutters",[0,0,0,0]) // EJsS HtmlView.SImulation View: setting property 'Gutters' for element 'plottingPanel'
+      .setProperty("ShowAreaRectangle",false) // EJsS HtmlView.SImulation View: setting property 'ShowAreaRectangle' for element 'plottingPanel'
+      .setProperty("EnabledZooming",true) // EJsS HtmlView.SImulation View: setting property 'EnabledZooming' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.SImulation View: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("SquareAspect",true) // EJsS HtmlView.SImulation View: setting property 'SquareAspect' for element 'plottingPanel'
+      .setProperty("EnabledDragging","ENABLED_ANY") // EJsS HtmlView.SImulation View: setting property 'EnabledDragging' for element 'plottingPanel'
+      .setProperty("TRMessage","Burning Ship Fractal") // EJsS HtmlView.SImulation View: setting property 'TRMessage' for element 'plottingPanel'
+      .setProperty("GridYShow",false) // EJsS HtmlView.SImulation View: setting property 'GridYShow' for element 'plottingPanel'
+      .setProperty("AutoScaleY",false) // EJsS HtmlView.SImulation View: setting property 'AutoScaleY' for element 'plottingPanel'
+      .setProperty("AutoScaleX",false) // EJsS HtmlView.SImulation View: setting property 'AutoScaleX' for element 'plottingPanel'
+      .setProperty("GridXShow",false) // EJsS HtmlView.SImulation View: setting property 'GridXShow' for element 'plottingPanel'
+      .setProperty("TLMessage","Zoom in for more details!") // EJsS HtmlView.SImulation View: setting property 'TLMessage' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.byteRaster,"byteRaster", _view.plottingPanel) // EJsS HtmlView.SImulation View: declaration of element 'byteRaster'
+      .setProperty("RelativePosition","SOUTH_WEST") // EJsS HtmlView.SImulation View: setting property 'RelativePosition' for element 'byteRaster'
+      .setProperty("NumColors",50) // EJsS HtmlView.SImulation View: setting property 'NumColors' for element 'byteRaster'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"rectangle", _view.plottingPanel) // EJsS HtmlView.SImulation View: declaration of element 'rectangle'
+      .setProperty("FillColor","rgba(200,220,208,128)") // EJsS HtmlView.SImulation View: setting property 'FillColor' for element 'rectangle'
+      .setProperty("RelativePosition","NORTH_WEST") // EJsS HtmlView.SImulation View: setting property 'RelativePosition' for element 'rectangle'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.SImulation View: setting property 'ShapeType' for element 'rectangle'
+      .setProperty("LineColor","white") // EJsS HtmlView.SImulation View: setting property 'LineColor' for element 'rectangle'
+      .setProperty("LineWidth",3) // EJsS HtmlView.SImulation View: setting property 'LineWidth' for element 'rectangle'
+      .setProperty("DrawFill",false) // EJsS HtmlView.SImulation View: setting property 'DrawFill' for element 'rectangle'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"c", _view.plottingPanel) // EJsS HtmlView.SImulation View: declaration of element 'c'
+      .setProperty("FillColor","white") // EJsS HtmlView.SImulation View: setting property 'FillColor' for element 'c'
+      .setProperty("SizeX",0.03) // EJsS HtmlView.SImulation View: setting property 'SizeX' for element 'c'
+      .setProperty("ShapeType","ELLIPSE") // EJsS HtmlView.SImulation View: setting property 'ShapeType' for element 'c'
+      .setProperty("LineColor","white") // EJsS HtmlView.SImulation View: setting property 'LineColor' for element 'c'
+      .setProperty("SizeY",0.03) // EJsS HtmlView.SImulation View: setting property 'SizeY' for element 'c'
+      .setProperty("EnabledPosition","ENABLED_ANY") // EJsS HtmlView.SImulation View: setting property 'EnabledPosition' for element 'c'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"html", _view._topFrame) // EJsS HtmlView.SImulation View: declaration of element 'html'
+      .setProperty("Html","The Burning Ship Fractal<br />  The Burning Ship fractal consists of points, c, in the complex plane that obey the following rule<br />  Start with the complex number z = a + ib where a and b are real numbers.<br />  Generate a new complex number, z', by taking the absolute value of both the real and imaginary parts before squaring the resulting complex number, and adding the result to c. z' = (|Re(z)| + |Im(z)|*i)^2 + c.<br />  Repeat steps 1 and 2. If the complex number z goes toward infinity, then the starting point, c, is not a member of the Mandelbrot set. All numbers that remain bounded are members of the set.<br />  It can be shown that if the magnitude of z is greater than 2 , then z will approach infinity. The code assumes that the number c is in the set if |z| > 2 after 256 iterations. In order to show how rapidly a number fails the test, we color the pixel corresponding to the number of iterations.<br />") // EJsS HtmlView.SImulation View: setting property 'Html' for element 'html'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Mandelbrot set Burning Ship Fractal<br />
+     <img alt="Logo" src="Burning_ShipWC/BurningShipWCthumb.png" />
+      </p>
+      <p>
+      <img alt="author image" src="01authorlookang50x50.png" />
+      <img alt="author image" src="01authorPacoEsquembre2011.png" />
+      <img alt="author image" src="01authorwc_icon.png" />
+ Dieter Roess - WEH- Foundation; Tan Wei Chiong; Loo Kang Wee; Francisco Esquembre; Wolfgang Christian
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2018, Dieter Roess - WEH- Foundation; Tan Wei Chiong; Loo Kang Wee; Francisco Esquembre; Wolfgang Christian.</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new Burning_ShipWC("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

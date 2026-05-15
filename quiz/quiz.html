@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Capitals Quiz</title>
+
+  <!-- Google Analytics -->
+  <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+
+  <!-- Google AdSense -->
+  <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <style>
+    /* Basic Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    #quiz-container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #007acc;
+    }
+
+    .question {
+      margin-bottom: 20px;
+    }
+
+    .question h3 {
+      margin-bottom: 10px;
+    }
+
+    .answers {
+      list-style-type: none;
+    }
+
+    .answers li {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      cursor: pointer;
+    }
+
+    input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    #submit {
+      display: block;
+      background-color: #007acc;
+      color: #fff;
+      border: none;
+      padding: 15px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+      max-width: 300px;
+      margin: 20px auto;
+      border-radius: 5px;
+    }
+
+    #submit:hover {
+      background-color: #005999;
+    }
+
+    #results {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 20px;
+    }
+
+    /* Fireworks Animation */
+    .firework {
+      position: relative;
+      width: 0;
+      height: 0;
+      margin: 10px auto;
+    }
+
+    .firework span {
+      position: absolute;
+      width: 4px;
+      height: 20px;
+      background: gold;
+      border-radius: 2px;
+      transform-origin: bottom center;
+      animation: explode 0.6s ease-out forwards;
+    }
+
+    /* Position the 5 lines at different angles */
+    .firework span:nth-child(1) { transform: rotate(0deg); }
+    .firework span:nth-child(2) { transform: rotate(72deg); }
+    .firework span:nth-child(3) { transform: rotate(144deg); }
+    .firework span:nth-child(4) { transform: rotate(216deg); }
+    .firework span:nth-child(5) { transform: rotate(288deg); }
+
+    /* Animate only the translateY and scaleY */
+    .firework span {
+      animation: explode 0.6s ease-out forwards;
+    }
+
+    @keyframes explode {
+      from {
+        opacity: 1;
+        transform: rotate(var(--rotate-angle)) translateY(0) scaleY(1);
+      }
+      to {
+        opacity: 0;
+        transform: rotate(var(--rotate-angle)) translateY(-50px) scaleY(0.5);
+      }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      body {
+        font-size: 18px;
+      }
+
+      #submit {
+        font-size: 18px;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="quiz-container">
+    <h1>World Capitals Quiz</h1>
+    <div id="quiz"></div>
+    <button id="submit">Submit Quiz</button>
+    <div id="results"></div>
+    <!-- Credit Line -->
+    <p style="text-align: center; margin-top: 20px;">Credits: Created by weelookang@gmail.com</p>
+  </div>
+
+  <script>
+    // Array of quiz questions
+    const quizQuestions = [
+      {
+        question: "What is the capital of France?",
+        answers: {
+          a: "Paris",
+          b: "Rome",
+          c: "Madrid",
+          d: "Berlin"
+        },
+        correctAnswer: "a"
+      },
+      {
+        question: "What is the capital of Japan?",
+        answers: {
+          a: "Seoul",
+          b: "Tokyo",
+          c: "Beijing",
+          d: "Bangkok"
+        },
+        correctAnswer: "b"
+      },
+      {
+        question: "What is the capital of Canada?",
+        answers: {
+          a: "Toronto",
+          b: "Ottawa",
+          c: "Vancouver",
+          d: "Montreal"
+        },
+        correctAnswer: "b"
+      },
+      {
+        question: "What is the capital of Australia?",
+        answers: {
+          a: "Sydney",
+          b: "Melbourne",
+          c: "Canberra",
+          d: "Perth"
+        },
+        correctAnswer: "c"
+      },
+      {
+        question: "What is the capital of Brazil?",
+        answers: {
+          a: "Rio de Janeiro",
+          b: "São Paulo",
+          c: "Brasília",
+          d: "Salvador"
+        },
+        correctAnswer: "c"
+      }
+    ];
+
+    // Function to build the quiz
+    function buildQuiz() {
+      const quizContainer = document.getElementById('quiz');
+      const output = [];
+
+      quizQuestions.forEach((currentQuestion, questionNumber) => {
+        const answers = [];
+        for (let letter in currentQuestion.answers) {
+          answers.push(
+            `<li>
+              <label>
+                <input type="radio" name="question${questionNumber}" value="${letter}">
+                ${letter.toUpperCase()}: ${currentQuestion.answers[letter]}
+              </label>
+            </li>`
+          );
+        }
+
+        output.push(
+          `<div class="question">
+            <h3>Q${questionNumber + 1}. ${currentQuestion.question}</h3>
+            <ul class="answers">
+              ${answers.join('')}
+            </ul>
+          </div>`
+        );
+      });
+
+      quizContainer.innerHTML = output.join('');
+    }
+
+    // Function to show the results
+    function showResults() {
+      const answerContainers = document.querySelectorAll('.answers');
+      let numCorrect = 0;
+
+      // Remove previous fireworks
+      const previousFireworks = document.querySelectorAll('.firework');
+      previousFireworks.forEach(firework => firework.remove());
+
+      quizQuestions.forEach((currentQuestion, questionNumber) => {
+        const answerContainer = answerContainers[questionNumber];
+        const selector = `input[name=question${questionNumber}]:checked`;
+        const userAnswerElem = answerContainer.querySelector(selector);
+        const userAnswer = userAnswerElem ? userAnswerElem.value : undefined;
+
+        // Reset the question color
+        answerContainer.parentElement.style.color = '#333';
+
+        if (userAnswer === currentQuestion.correctAnswer) {
+          numCorrect++;
+          // Correct answer styling
+          answerContainer.parentElement.style.color = 'green';
+
+          // Create a firework animation
+          const fireworkDiv = document.createElement('div');
+          fireworkDiv.classList.add('firework');
+
+          // Create 5 spark spans
+          for(let i = 1; i <= 5; i++) {
+            const spark = document.createElement('span');
+            spark.style.setProperty('--rotate-angle', `${(i - 1) * 72}deg`);
+            fireworkDiv.appendChild(spark);
+          }
+
+          answerContainer.parentElement.appendChild(fireworkDiv);
+
+        } else if (userAnswer) {
+          // Incorrect answer styling
+          answerContainer.parentElement.style.color = 'red';
+        } else {
+          // No answer selected
+          answerContainer.parentElement.style.color = 'orange';
+        }
+      });
+
+      const resultsContainer = document.getElementById('results');
+      resultsContainer.innerHTML = `<p>You got ${numCorrect} out of ${quizQuestions.length} correct!</p>`;
+
+      // Check if all answers are correct
+      if (numCorrect === quizQuestions.length) {
+        resultsContainer.innerHTML += `<p>Congratulations! You answered all questions correctly!</p>`;
+        // Optionally, disable the submit button
+        // document.getElementById('submit').disabled = true;
+      }
+    }
+
+    // Event listener for submit button
+    document.getElementById('submit').addEventListener('click', showResults);
+
+    // Build the quiz on page load
+    buildQuiz();
+  </script>
+</body>
+</html>

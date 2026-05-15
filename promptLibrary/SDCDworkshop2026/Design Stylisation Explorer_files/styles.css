@@ -1,0 +1,527 @@
+/* ===== GLOBAL STYLES ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== MAIN CONTAINER ===== */
+/* Adapts height based on whether it's in iframe or standalone */
+#mainContainer {
+    width: 100%;
+    height: 450px; /* Default for iframe */
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* If opened in new tab, use 90vh */
+body.standalone #mainContainer {
+    height: 90vh;
+}
+
+/* ===== TOOLTIP FOR HEADER ===== */
+.tooltip {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    max-width: 90%;
+    text-align: center;
+}
+
+#interactiveArea:hover ~ #headerTooltip {
+    opacity: 1;
+}
+
+/* ===== INTERACTIVE AREA ===== */
+#interactiveArea {
+    flex: 1;
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ===== CANVAS CONTAINER ===== */
+#canvasContainer {
+    flex: 1.5;
+    position: relative;
+    background: #f5f5f5;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    min-width: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#mainCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+}
+
+.hover-indicator {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+#canvasContainer:hover .hover-indicator {
+    opacity: 1;
+}
+
+/* ===== CONTROL PANEL ===== */
+#controlPanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding-right: 5px;
+    min-width: 200px;
+}
+
+/* Custom scrollbar for control panel */
+#controlPanel::-webkit-scrollbar {
+    width: 6px;
+}
+
+#controlPanel::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#controlPanel::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+#controlPanel::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ===== CONTROL GROUPS ===== */
+.control-group {
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+}
+
+.control-group:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.control-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+/* ===== BUTTON GROUPS ===== */
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.style-btn {
+    flex: 1 1 auto;
+    min-width: 70px;
+    padding: 8px 10px;
+    background: #ffffff;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-height: 44px; /* Touch-friendly */
+}
+
+.style-btn:hover {
+    background: #f0f0f0;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+}
+
+.style-btn:active {
+    transform: translateY(0);
+}
+
+.style-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* ===== SLIDERS ===== */
+.slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* ===== CHECKBOXES ===== */
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+    min-height: 44px; /* Touch-friendly */
+    padding: 5px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 6px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.action-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    min-height: 44px; /* Touch-friendly */
+    white-space: nowrap;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.control-group:last-of-type {
+    display: flex;
+    gap: 8px;
+}
+
+/* ===== SCORE DISPLAY ===== */
+#scoreDisplay {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-around;
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.score-label {
+    font-size: 11px;
+    opacity: 0.9;
+}
+
+.score-item span:last-child {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* ===== COLLAPSIBLE PANELS ===== */
+#learningPanel,
+#analyticsPanel {
+    background: #f9f9f9;
+    border-top: 2px solid #ddd;
+    transition: max-height 0.3s ease;
+}
+
+#learningPanel.collapsed #learningContent,
+#analyticsPanel.collapsed #analyticsContent {
+    display: none;
+}
+
+.toggle-btn {
+    width: 100%;
+    padding: 10px;
+    background: #667eea;
+    color: white;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.3s ease;
+    min-height: 44px; /* Touch-friendly */
+}
+
+.toggle-btn:hover {
+    background: #5568d3;
+}
+
+.panel-content {
+    padding: 15px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #333;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.panel-content h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #667eea;
+}
+
+.panel-content ul {
+    margin-left: 20px;
+    margin-bottom: 10px;
+}
+
+.panel-content li {
+    margin-bottom: 6px;
+}
+
+.panel-content strong {
+    color: #764ba2;
+}
+
+/* ===== ANALYTICS SPECIFIC STYLES ===== */
+#analyticsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#analyticsHeader h3 {
+    font-size: 14px;
+    color: #667eea;
+    margin: 0;
+}
+
+.clear-btn {
+    padding: 6px 12px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    min-height: 32px;
+}
+
+.clear-btn:hover {
+    background: #ee5a52;
+}
+
+#analyticsLog {
+    max-height: 150px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.log-entry {
+    padding: 8px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    border-left: 4px solid #667eea;
+    background: #f5f5f5;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.log-entry .timestamp {
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.log-entry .action {
+    font-weight: 600;
+    color: #333;
+}
+
+.log-entry .details {
+    color: #555;
+    margin-top: 2px;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    #interactiveArea {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    #canvasContainer {
+        min-height: 200px;
+        flex: none;
+    }
+
+    #controlPanel {
+        flex: none;
+        max-height: none;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .style-btn {
+        width: 100%;
+    }
+
+    #scoreDisplay {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .control-label {
+        font-size: 12px;
+    }
+
+    .style-btn,
+    .action-btn {
+        font-size: 11px;
+        padding: 8px;
+    }
+
+    .panel-content {
+        font-size: 12px;
+    }
+}
+
+/* ===== ACCESSIBILITY ===== */
+button:focus,
+input:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    #analyticsPanel,
+    #learningPanel {
+        display: block !important;
+    }
+
+    .collapsed {
+        max-height: none !important;
+    }
+}

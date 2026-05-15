@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <title>🌸 Menstrual Cycle Explorer 🌸</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #fdf2f8 0%, #faf5ff 100%);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            color: #6b7280;
+        }
+
+        .card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .btn-play { background: #10b981; color: white; }
+        .btn-play:hover { background: #059669; }
+        .btn-pause { background: #ef4444; color: white; }
+        .btn-pause:hover { background: #dc2626; }
+        .btn-reset { background: #6b7280; color: white; }
+        .btn-reset:hover { background: #4b5563; }
+        .btn-info { background: #3b82f6; color: white; width: 100%; justify-content: center; }
+        .btn-info:hover { background: #2563eb; }
+        .btn-calculate { background: #059669; color: white; }
+        .btn-calculate:hover { background: #047857; }
+
+        .select-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .select-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .select-group select {
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: white;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+        @media (max-width: 1024px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        /* Cycle Calendar */
+        .cycle-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .day-cell {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .day-cell:hover { transform: scale(1.1); }
+        .day-cell.current { 
+            transform: scale(1.2); 
+            box-shadow: 0 0 0 3px #3b82f6;
+        }
+
+        .day-menstrual { background: #fecaca; color: #991b1b; }
+        .day-follicular { background: #bbf7d0; color: #065f46; }
+        .day-ovulation { background: #fde68a; color: #92400e; }
+        .day-luteal { background: #ddd6fe; color: #5b21b6; }
+        .day-premenstrual { background: #c4b5fd; color: #4c1d95; }
+
+        /* Phase Info */
+        .phase-info {
+            text-align: center;
+        }
+
+        .day-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+
+        .phase-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            color: white;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .phase-description {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        /* Status Panel */
+        .status-content {
+            text-align: center;
+        }
+
+        .fertility-emoji {
+            font-size: 4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .fertility-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            color: white;
+            font-weight: 500;
+            font-size: 1.125rem;
+            margin-bottom: 1rem;
+        }
+
+        .hormone-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .hormone-card {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            border: 2px solid;
+        }
+
+        .hormone-card.oestrogen {
+            background: #dbeafe;
+            border-color: #93c5fd;
+        }
+
+        .hormone-card.progesterone {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+
+        .hormone-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .hormone-label.oestrogen { color: #1d4ed8; }
+        .hormone-label.progesterone { color: #dc2626; }
+
+        .hormone-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .hormone-value.oestrogen { color: #1e40af; }
+        .hormone-value.progesterone { color: #b91c1c; }
+
+        /* Chart */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+
+        /* Legend */
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+        }
+
+        /* Date Calculator */
+        .date-input-group {
+            margin-bottom: 1rem;
+        }
+
+        .date-input-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .date-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+        }
+
+        .date-input:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+        }
+
+        .calculated-dates {
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+
+        .date-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .date-result:last-child { border-bottom: none; }
+
+        .date-label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .date-value {
+            font-weight: 600;
+        }
+
+        .date-menstrual { color: #dc2626; }
+        .date-fertile { color: #d97706; }
+        .date-ovulation { color: #f59e0b; }
+        .date-luteal { color: #7c3aed; }
+
+        /* Visual Calendar */
+        .calendar-container {
+            display: none;
+        }
+
+        .calendar-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .nav-btn {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #374151;
+            transition: background-color 0.2s;
+        }
+
+        .nav-btn:hover { background: #e5e7eb; }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        .calendar-day-header {
+            background: #f3f4f6;
+            padding: 8px 4px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            color: #9ca3af;
+            position: relative;
+            padding: 2px;
+        }
+
+        .calendar-day.current-month {
+            background: white;
+            color: #374151;
+        }
+
+        .phase-label {
+            font-size: 0.5rem;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1;
+            margin-top: 1px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .calendar-day.today { box-shadow: 0 0 0 2px #2563eb; }
+
+        .calendar-day.cycle-menstrual {
+            background: #fecaca !important;
+            color: #991b1b !important;
+            font-weight: 600;
+            border: 2px solid #dc2626;
+        }
+
+        .calendar-day.cycle-follicular {
+            background: #bbf7d0 !important;
+            color: #065f46 !important;
+            font-weight: 600;
+            border: 2px solid #10b981;
+        }
+
+        .calendar-day.cycle-ovulation {
+            background: #fde68a !important;
+            color: #92400e !important;
+            font-weight: 600;
+            border: 2px solid #f59e0b;
+        }
+
+        .calendar-day.cycle-luteal {
+            background: #ddd6fe !important;
+            color: #5b21b6 !important;
+            font-weight: 600;
+            border: 2px solid #8b5cf6;
+        }
+
+        .calendar-day.cycle-premenstrual {
+            background: #c4b5fd !important;
+            color: #4c1d95 !important;
+            font-weight: 600;
+            border: 2px solid #6b21b6;
+        }
+
+        .calendar-day.cycle-menstrual .phase-label { color: #7f1d1d; }
+        .calendar-day.cycle-follicular .phase-label { color: #064e3b; }
+        .calendar-day.cycle-ovulation .phase-label { color: #78350f; }
+        .calendar-day.cycle-luteal .phase-label { color: #4c1d95; }
+        .calendar-day.cycle-premenstrual .phase-label { color: #3730a3; }
+
+        /* Learning Panel */
+        .learning-panel {
+            display: none;
+        }
+
+        .learning-panel.show {
+            display: block;
+        }
+
+        .learning-content h3 {
+            font-size: 1.125rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .learning-content ul {
+            font-size: 0.875rem;
+            color: #374151;
+            list-style: none;
+        }
+
+        .learning-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        .date-instruction {
+            color: #6b7280;
+            font-style: italic;
+            text-align: center;
+            margin: 0;
+        }
+
+        /* Quiz Mode Styles */
+        .quiz-answer-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .quiz-answer-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .quiz-result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .quiz-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .quiz-correct {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .quiz-incorrect {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .quiz-score {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #0c4a6e;
+        }
+
+        .quiz-try-info {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+        }
+
+        .quiz-try-active {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            color: #0c4a6e;
+        }
+
+        .quiz-try-revealed {
+            background: #f0fdf4;
+            border: 1px solid #10b981;
+            color: #064e3b;
+        }
+
+        .quiz-try-perfect {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌸 Menstrual Cycle Explorer 🌸</h1>
+            <p>Interactive simulation of hormone changes and cycle phases</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="card">
+            <div class="controls">
+                <div class="control-group">
+                    <button id="playPauseBtn" class="btn btn-play">
+                        <span>▶</span>
+                        <span id="playText">Play</span>
+                    </button>
+                    
+                    <button id="resetBtn" class="btn btn-reset">
+                        <span>↻</span>
+                        <span>Reset</span>
+                    </button>
+                </div>
+
+                <div class="control-group">
+                    <div class="select-group">
+                        <label>Cycle Length:</label>
+                        <select id="cycleLengthSelect">
+                            <option value="28" selected>28 days</option>
+                            <option value="32">32 days</option>
+                            <option value="35">35 days</option>
+                        </select>
+                    </div>
+
+                    <div class="select-group">
+                        <label>Speed:</label>
+                        <select id="speedSelect">
+                            <option value="1000">Slow</option>
+                            <option value="500" selected>Normal</option>
+                            <option value="250">Fast</option>
+                        </select>
+                    </div>
+
+                    <div class="select-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="quizModeToggle" style="margin: 0;">
+                            <span>Quiz Mode</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-2">
+            <!-- Cycle Calendar -->
+            <div class="card">
+                <h2 class="card-title">Cycle Calendar</h2>
+                <div id="cycleGrid" class="cycle-grid"></div>
+                
+                <div class="phase-info">
+                    <div class="day-number">Day <span id="currentDayDisplay">1</span></div>
+                    <div id="phaseBadge" class="phase-badge">Menstruation/Follicular</div>
+                    <div id="phaseDescription" class="phase-description">Shedding of uterine lining & follicle development begins</div>
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="card">
+                <h2 class="card-title">Current Status</h2>
+                
+                <div class="status-content">
+                    <div id="fertilityEmoji" class="fertility-emoji">🌙</div>
+                    <div id="fertilityBadge" class="fertility-badge">Infertile Phase</div>
+
+                    <div class="hormone-grid">
+                        <div class="hormone-card oestrogen">
+                            <div class="hormone-label oestrogen">Oestrogen Level</div>
+                            <div class="hormone-value oestrogen" id="oestrogenValue">15 pg/mL</div>
+                            <div style="font-size: 0.75rem; color: #1e40af; margin-top: 0.5rem; font-style: italic;">
+                                Causes thickening of uterine lining
+                            </div>
+                        </div>
+                        
+                        <div class="hormone-card progesterone">
+                            <div class="hormone-label progesterone">Progesterone Level</div>
+                            <div class="hormone-value progesterone" id="progesteroneValue">10 ng/mL</div>
+                            <div style="font-size: 0.75rem; color: #b91c1c; margin-top: 0.5rem; font-style: italic;">
+                                Maintains uterine lining
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="infoBtn" class="btn btn-info">
+                        <span>ℹ</span>
+                        <span id="infoText">Show Learning Info</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Phase Legend -->
+        <div class="card">
+            <h2 class="card-title">Phase Legend</h2>  
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fecaca;"></div>
+                    <span>Menstruation/Follicular</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #bbf7d0;"></div>
+                    <span>Follicular Phase</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fde68a;"></div>
+                    <span>Ovulation (1 day)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ddd6fe;"></div>
+                    <span>Luteal Phase</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #c4b5fd;"></div>
+                    <span>Pre-menstrual Phase</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Mode Panel -->
+        <div id="quizPanel" class="card" style="display: none;">
+            <h2 class="card-title">🧠 Quiz Mode</h2>
+            <div class="grid grid-2">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: #374151;">Question</h3>
+                    <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem;">
+                        <p id="quizQuestion" style="font-size: 1rem; font-weight: 500; color: #0c4a6e; margin: 0;">
+                            Loading question...
+                        </p>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">Your Answers:</h4>
+                        
+                        <div class="quiz-answer-group">
+                            <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">Start of Period:</label>
+                            <input type="date" id="quizPeriodStart" class="date-input">
+                        </div>
+                        
+                        <div class="quiz-answer-group">
+                            <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">Ovulation Date:</label>
+                            <input type="date" id="quizOvulation" class="date-input">
+                        </div>
+                        
+                        <div class="quiz-answer-group">
+                            <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">End of Luteal Phase:</label>
+                            <input type="date" id="quizLutealEnd" class="date-input">
+                        </div>
+                        
+                        <div class="quiz-answer-group">
+                            <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">Fertile Period Start:</label>
+                            <input type="date" id="quizFertileStart" class="date-input">
+                        </div>
+                        
+                        <div class="quiz-answer-group">
+                            <label style="font-size: 0.875rem; font-weight: 500; color: #374151;">Fertile Period End:</label>
+                            <input type="date" id="quizFertileEnd" class="date-input">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="submitQuizBtn" class="btn btn-calculate">Submit Answers</button>
+                        <button id="newQuestionBtn" class="btn btn-reset">New Question</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: #374151;">Results</h3>
+                    <div id="quizResults" style="background: #f9fafb; border-radius: 0.5rem; padding: 1rem; border: 1px solid #e5e7eb; min-height: 200px;">
+                        <div style="text-align: center; color: #6b7280; font-style: italic; margin: 0;">
+                            <p>Complete your answers and click "Submit Answers" to see results.</p>
+                            <p style="margin-top: 0.5rem; font-size: 0.875rem;">You have 3 tries before the correct answers are revealed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Calculator -->
+        <div class="card">
+            <h2 class="card-title">📅 Date Calculator</h2>
+            <div class="grid grid-2">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: #374151;">Input Known Date</h3>
+                    <div class="date-input-group">
+                        <label>
+                            <input type="radio" name="dateType" value="cycleStart" checked>
+                            <span>Start of cycle (first day of period)</span>
+                        </label>
+                        <input type="date" id="cycleStartDate" class="date-input">
+                    </div>
+                    
+                    <div class="date-input-group">
+                        <label>
+                            <input type="radio" name="dateType" value="ovulation">
+                            <span>Ovulation date</span>
+                        </label>
+                        <input type="date" id="ovulationDate" class="date-input" disabled>
+                    </div>
+                    
+                    <button id="calculateBtn" class="btn btn-calculate">Calculate Dates</button>
+                </div>
+                
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: #374151;">Your Cycle Dates</h3>
+                    <div id="calculatedDates" class="calculated-dates">
+                        <p class="date-instruction">Select a known date and click "Calculate Dates" to see your cycle calendar.</p>
+                    </div>
+                    
+                    <div id="visualCalendar" class="calendar-container">
+                        <div class="calendar-navigation">
+                            <button id="prevMonth" class="nav-btn">‹</button>
+                            <span id="currentMonthYear" style="font-weight: 600; min-width: 120px; text-align: center;">January 2025</span>
+                            <button id="nextMonth" class="nav-btn">›</button>
+                        </div>
+                        <div class="calendar-header">
+                            <div class="calendar-day-header">S</div>
+                            <div class="calendar-day-header">M</div>
+                            <div class="calendar-day-header">T</div>
+                            <div class="calendar-day-header">W</div>
+                            <div class="calendar-day-header">T</div>
+                            <div class="calendar-day-header">F</div>
+                            <div class="calendar-day-header">S</div>
+                        </div>
+                        <div id="calendarDays" class="calendar-grid"></div>
+                        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b7280; text-align: center;">
+                            Navigate months to see future cycles
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hormone Chart -->
+        <div class="card">
+            <h2 class="card-title">Hormone Levels Throughout Cycle</h2>
+            <div class="chart-container">
+                <canvas id="hormoneChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Learning Panel -->
+        <div id="learningPanel" class="card learning-panel">
+            <h2 class="card-title">🧠 Learning Corner</h2>
+            <div class="grid grid-3 learning-content">
+                <div>
+                    <h3 style="color: #db2777;">🌸 Oestrogen</h3>
+                    <ul>
+                        <li>• Rises gradually during follicular phase</li>
+                        <li>• Peaks just BEFORE ovulation (~100 pg/mL)</li>
+                        <li>• Drops at ovulation to ~45 pg/mL</li>
+                        <li>• Small secondary rise in luteal phase (~65 pg/mL)</li>
+                        <li>• Sharp pre-menstrual drop</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 style="color: #7c3aed;">🟣 Progesterone</h3>
+                    <ul>
+                        <li>• Completely flat during period & follicular (~10 ng/mL)</li>
+                        <li>• Rises dramatically AFTER ovulation</li>
+                        <li>• Broad sustained peak in luteal phase (~95 ng/mL)</li>
+                        <li>• Always higher than oestrogen in luteal phase</li>
+                        <li>• Sharp pre-menstrual drop triggers period</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 style="color: #059669;">🌱 Cycle Phases</h3>
+                    <ul>
+                        <li>• <strong>Menstrual/Follicular:</strong> Days 1-5, shedding + development begins</li>
+                        <li>• <strong>Follicular:</strong> Days 6 to ovulation-1, follicle development</li>
+                        <li>• <strong>Ovulation:</strong> 1 day only (cycle length - 14), egg release</li>
+                        <li>• <strong>Luteal:</strong> 14 days after ovulation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Credits -->
+        <div style="text-align: center; margin-top: 2rem; padding: 1rem; color: #6b7280; font-size: 0.875rem; border-top: 1px solid #e5e7eb;">
+            Made by <strong>James Kua</strong> and <strong>Tan Xiang Yeow</strong>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let cycleLength = 28;
+        let currentDay = 1;
+        let isPlaying = false;
+        let speed = 500;
+        let showInfo = false;
+        let intervalId = null;
+        let chart = null;
+        let currentViewingMonth = new Date();
+        let calculatedCycleDates = null;
+        let currentQuiz = null;
+        let isQuizMode = false;
+        let quizTryCount = 0;
+
+        // DOM elements
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const playText = document.getElementById('playText');
+        const cycleLengthSelect = document.getElementById('cycleLengthSelect');
+        const speedSelect = document.getElementById('speedSelect');
+        const cycleGrid = document.getElementById('cycleGrid');
+        const currentDayDisplay = document.getElementById('currentDayDisplay');
+        const phaseBadge = document.getElementById('phaseBadge');
+        const phaseDescription = document.getElementById('phaseDescription');
+        const fertilityEmoji = document.getElementById('fertilityEmoji');
+        const fertilityBadge = document.getElementById('fertilityBadge');
+        const oestrogenValue = document.getElementById('oestrogenValue');
+        const progesteroneValue = document.getElementById('progesteroneValue');
+        const infoBtn = document.getElementById('infoBtn');
+        const infoText = document.getElementById('infoText');
+        const learningPanel = document.getElementById('learningPanel');
+        const cycleStartDate = document.getElementById('cycleStartDate');
+        const ovulationDate = document.getElementById('ovulationDate');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const calculatedDates = document.getElementById('calculatedDates');
+        const visualCalendar = document.getElementById('visualCalendar');
+        const prevMonthBtn = document.getElementById('prevMonth');
+        const nextMonthBtn = document.getElementById('nextMonth');
+        const currentMonthYear = document.getElementById('currentMonthYear');
+        const calendarDays = document.getElementById('calendarDays');
+        const dateTypeRadios = document.querySelectorAll('input[name="dateType"]');
+        
+        // Quiz mode elements
+        const quizModeToggle = document.getElementById('quizModeToggle');
+        const quizPanel = document.getElementById('quizPanel');
+        const quizQuestion = document.getElementById('quizQuestion');
+        const quizPeriodStart = document.getElementById('quizPeriodStart');
+        const quizOvulation = document.getElementById('quizOvulation');
+        const quizLutealEnd = document.getElementById('quizLutealEnd');
+        const quizFertileStart = document.getElementById('quizFertileStart');
+        const quizFertileEnd = document.getElementById('quizFertileEnd');
+        const submitQuizBtn = document.getElementById('submitQuizBtn');
+        const newQuestionBtn = document.getElementById('newQuestionBtn');
+        const quizResults = document.getElementById('quizResults');
+
+        // Calculate hormone levels
+        function getHormoneData() {
+            const data = [];
+            const ovulationDay = cycleLength - 14;
+            
+            for (let day = 1; day <= cycleLength; day++) {
+                let oestrogen, progesterone;
+                
+                if (day <= 5) {
+                    oestrogen = 15;
+                } else if (day < ovulationDay) {
+                    const follicularLength = ovulationDay - 5;
+                    const t = (day - 5) / follicularLength;
+                    oestrogen = 15 + 85 * Math.pow(t, 1.2);
+                } else if (day === ovulationDay) {
+                    oestrogen = 40;
+                } else if (day <= ovulationDay + 6) {
+                    const lutealDay = day - ovulationDay;
+                    const t = lutealDay / 6;
+                    oestrogen = 40 + 25 * Math.sin(t * Math.PI);
+                } else if (day <= cycleLength - 3) {
+                    const remainingDays = (cycleLength - 3) - (ovulationDay + 6);
+                    const t = (day - ovulationDay - 6) / remainingDays;
+                    oestrogen = 65 - 25 * t;
+                } else {
+                    const preMenstrualDay = day - (cycleLength - 2);
+                    oestrogen = 40 - 25 * (preMenstrualDay / 3);
+                }
+                
+                if (day <= ovulationDay) {
+                    progesterone = 10;
+                } else if (day <= ovulationDay + 2) {
+                    const lutealDay = day - ovulationDay;
+                    progesterone = 10 + (lutealDay * 30);
+                } else if (day <= ovulationDay + 10) {
+                    const lutealDay = day - ovulationDay;
+                    const t = (lutealDay - 2) / 8;
+                    progesterone = 70 + 25 * Math.sin(t * Math.PI * 0.8);
+                } else if (day <= cycleLength - 3) {
+                    progesterone = 90;
+                } else {
+                    const preMenstrualDay = day - (cycleLength - 2);
+                    progesterone = 90 - 80 * (preMenstrualDay / 3);
+                }
+
+                data.push({
+                    day,
+                    oestrogen: Math.round(Math.max(10, oestrogen) * 10) / 10,
+                    progesterone: Math.round(Math.max(8, progesterone) * 10) / 10,
+                });
+            }
+            return data;
+        }
+
+        // Get current phase
+        function getCurrentPhase() {
+            const ovulationDay = cycleLength - 14;
+            
+            if (currentDay >= 1 && currentDay <= 5) {
+                return { name: 'Menstruation/Follicular', color: '#ef4444', description: 'Shedding of uterine lining & follicle development begins' };
+            } else if (currentDay >= 6 && currentDay < ovulationDay) {
+                return { name: 'Follicular Phase', color: '#10b981', description: 'Oestrogen rises, follicle develops' };
+            } else if (currentDay === ovulationDay) {
+                return { name: 'Ovulation', color: '#f59e0b', description: 'Egg release - peak fertility' };
+            } else if (currentDay > ovulationDay && currentDay <= cycleLength - 3) {
+                return { name: 'Luteal Phase', color: '#8b5cf6', description: 'Progesterone dominates, prepares for pregnancy' };
+            } else {
+                return { name: 'Pre-menstrual Phase', color: '#6b21b6', description: 'Hormone levels drop, preparing for next cycle' };
+            }
+        }
+
+        // Get fertility status
+        function getFertilityStatus() {
+            const ovulationDay = cycleLength - 14;
+            const fertileStart = ovulationDay - 4;
+            const fertileEnd = ovulationDay + 1;
+            
+            if (currentDay >= fertileStart && currentDay <= fertileEnd) {
+                return { status: 'Fertile Window', color: '#f59e0b', emoji: '🌟' };
+            } else {
+                return { status: 'Infertile Phase', color: '#6b7280', emoji: '🌙' };
+            }
+        }
+
+        // Update cycle grid
+        function updateCycleGrid() {
+            const ovulationDay = cycleLength - 14;
+            
+            cycleGrid.innerHTML = '';
+            for (let day = 1; day <= cycleLength; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'day-cell';
+                dayCell.textContent = day;
+                
+                if (day >= 1 && day <= 5) {
+                    dayCell.classList.add('day-menstrual');
+                } else if (day >= 6 && day < ovulationDay) {
+                    dayCell.classList.add('day-follicular');
+                } else if (day === ovulationDay) {
+                    dayCell.classList.add('day-ovulation');
+                } else if (day > ovulationDay && day <= cycleLength - 3) {
+                    dayCell.classList.add('day-luteal');
+                } else {
+                    dayCell.classList.add('day-premenstrual');
+                }
+                
+                if (day === currentDay) {
+                    dayCell.classList.add('current');
+                }
+                
+                dayCell.addEventListener('click', () => {
+                    currentDay = day;
+                    updateDisplay();
+                });
+                
+                cycleGrid.appendChild(dayCell);
+            }
+        }
+
+        // Update all displays
+        function updateDisplay() {
+            const hormoneData = getHormoneData();
+            const currentPhase = getCurrentPhase();
+            const fertilityStatus = getFertilityStatus();
+            const currentHormones = hormoneData[currentDay - 1];
+
+            updateCycleGrid();
+
+            currentDayDisplay.textContent = currentDay;
+            phaseBadge.textContent = currentPhase.name;
+            phaseBadge.style.backgroundColor = currentPhase.color;
+            phaseDescription.textContent = currentPhase.description;
+
+            fertilityEmoji.textContent = fertilityStatus.emoji;
+            fertilityBadge.textContent = fertilityStatus.status;
+            fertilityBadge.style.backgroundColor = fertilityStatus.color;
+
+            oestrogenValue.textContent = `${currentHormones.oestrogen} pg/mL`;
+            progesteroneValue.textContent = `${currentHormones.progesterone} ng/mL`;
+
+            updateChart();
+        }
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('hormoneChart').getContext('2d');
+            const hormoneData = getHormoneData();
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hormoneData.map(d => d.day),
+                    datasets: [{
+                        label: 'Oestrogen',
+                        data: hormoneData.map(d => d.oestrogen),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.3
+                    }, {
+                        label: 'Progesterone',
+                        data: hormoneData.map(d => d.progesterone),
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Days' } },
+                        y: { title: { display: true, text: 'Hormone levels' }, min: 0, max: 130 }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y;
+                                    const unit = label === 'Oestrogen' ? 'pg/mL' : 'ng/mL';
+                                    return `${label}: ${value} ${unit}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart
+        function updateChart() {
+            if (!chart) return;
+            
+            const ovulationDay = cycleLength - 14;
+            
+            chart.options.plugins.annotation = {
+                annotations: {
+                    currentDay: {
+                        type: 'line',
+                        xMin: currentDay,
+                        xMax: currentDay,
+                        borderColor: '#2563eb',
+                        borderWidth: 3,
+                        borderDash: [5, 5]
+                    },
+                    ovulation: {
+                        type: 'line',
+                        xMin: ovulationDay,
+                        xMax: ovulationDay,
+                        borderColor: '#999999',
+                        borderWidth: 2,
+                        borderDash: [8, 4]
+                    }
+                }
+            };
+            
+            chart.update('none');
+        }
+
+        // Animation controls
+        function togglePlayPause() {
+            if (isPlaying) {
+                clearInterval(intervalId);
+                isPlaying = false;
+                playPauseBtn.className = 'btn btn-play';
+                playPauseBtn.innerHTML = '<span>▶</span><span>Play</span>';
+            } else {
+                intervalId = setInterval(() => {
+                    currentDay = currentDay >= cycleLength ? 1 : currentDay + 1;
+                    updateDisplay();
+                }, speed);
+                isPlaying = true;
+                playPauseBtn.className = 'btn btn-pause';
+                playPauseBtn.innerHTML = '<span>⏸</span><span>Pause</span>';
+            }
+        }
+
+        function resetSimulation() {
+            clearInterval(intervalId);
+            isPlaying = false;
+            currentDay = 1;
+            playPauseBtn.className = 'btn btn-play';
+            playPauseBtn.innerHTML = '<span>▶</span><span>Play</span>';
+            updateDisplay();
+        }
+
+        function toggleInfo() {
+            showInfo = !showInfo;
+            if (showInfo) {
+                learningPanel.classList.add('show');
+                infoText.textContent = 'Hide Learning Info';
+            } else {
+                learningPanel.classList.remove('show');
+                infoText.textContent = 'Show Learning Info';
+            }
+        }
+
+        // Date calculator functions
+        function handleDateTypeChange() {
+            const selectedType = document.querySelector('input[name="dateType"]:checked').value;
+            if (selectedType === 'cycleStart') {
+                cycleStartDate.disabled = false;
+                ovulationDate.disabled = true;
+                ovulationDate.value = '';
+            } else {
+                cycleStartDate.disabled = true;
+                ovulationDate.disabled = false;
+                cycleStartDate.value = '';
+            }
+        }
+
+        function calculateCycleDates() {
+            const selectedType = document.querySelector('input[name="dateType"]:checked').value;
+            let startDate, ovulationDateValue;
+
+            if (selectedType === 'cycleStart') {
+                if (!cycleStartDate.value) {
+                    alert('Please select the start date of your cycle');
+                    return;
+                }
+                const dateParts = cycleStartDate.value.split('-');
+                startDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                
+                ovulationDateValue = new Date(startDate);
+                ovulationDateValue.setDate(startDate.getDate() + (cycleLength - 15));
+            } else {
+                if (!ovulationDate.value) {
+                    alert('Please select your ovulation date');
+                    return;
+                }
+                const dateParts = ovulationDate.value.split('-');
+                ovulationDateValue = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                
+                startDate = new Date(ovulationDateValue);
+                const ovulationDay = cycleLength - 14;
+                startDate.setDate(ovulationDateValue.getDate() - (ovulationDay - 1));
+            }
+
+            const menstruationStart = new Date(startDate);
+            const menstruationEnd = new Date(startDate);
+            menstruationEnd.setDate(startDate.getDate() + 4);
+
+            const fertileStart = new Date(ovulationDateValue);
+            fertileStart.setDate(ovulationDateValue.getDate() - 4);
+            const fertileEnd = new Date(ovulationDateValue);
+            fertileEnd.setDate(ovulationDateValue.getDate() + 1);
+
+            const lutealStart = new Date(ovulationDateValue);
+            lutealStart.setDate(ovulationDateValue.getDate() + 1);
+            const lutealEnd = new Date(startDate);
+            lutealEnd.setDate(startDate.getDate() + cycleLength - 1);
+
+            displayCycleDates({
+                menstruationStart,
+                menstruationEnd,
+                fertileStart,
+                fertileEnd,
+                ovulation: ovulationDateValue,
+                lutealStart,
+                lutealEnd
+            });
+        }
+
+        function displayCycleDates(dates) {
+            const formatDate = (date) => {
+                return date.toLocaleDateString('en-GB', { 
+                    weekday: 'short', 
+                    day: 'numeric', 
+                    month: 'short' 
+                });
+            };
+
+            const formatDateRange = (start, end) => {
+                return `${formatDate(start)} - ${formatDate(end)}`;
+            };
+
+            calculatedDates.innerHTML = `
+                <div class="date-result">
+                    <span class="date-label">🔴 Menstruation:</span>
+                    <span class="date-value date-menstrual">${formatDateRange(dates.menstruationStart, dates.menstruationEnd)}</span>
+                </div>
+                <div class="date-result">
+                    <span class="date-label">🌟 Fertile Window:</span>
+                    <span class="date-value date-fertile">${formatDateRange(dates.fertileStart, dates.fertileEnd)}</span>
+                </div>
+                <div class="date-result">
+                    <span class="date-label">🥚 Ovulation:</span>
+                    <span class="date-value date-ovulation">${formatDate(dates.ovulation)}</span>
+                </div>
+                <div class="date-result">
+                    <span class="date-label">🟣 Luteal Phase:</span>
+                    <span class="date-value date-luteal">${formatDateRange(dates.lutealStart, dates.lutealEnd)}</span>
+                </div>
+            `;
+
+            calculatedCycleDates = dates;
+            currentViewingMonth = new Date(dates.menstruationStart);
+            currentViewingMonth.setDate(1);
+            currentViewingMonth.setHours(0, 0, 0, 0);
+
+            visualCalendar.style.display = 'block';
+            updateCalendarView();
+        }
+
+        function updateCalendarView() {
+            if (!calculatedCycleDates) return;
+
+            currentMonthYear.textContent = currentViewingMonth.toLocaleDateString('en-GB', { 
+                month: 'long', 
+                year: 'numeric' 
+            });
+
+            generateVisualCalendar();
+        }
+
+        function generateMultipleCycles(firstCycleStart) {
+            const cycles = [];
+            let cycleStart = new Date(firstCycleStart);
+            cycleStart.setHours(0, 0, 0, 0);
+            
+            // Generate 6 cycles before
+            for (let i = 6; i >= 1; i--) {
+                const prevCycleStart = new Date(cycleStart);
+                prevCycleStart.setDate(cycleStart.getDate() - (i * cycleLength));
+                
+                const prevCycleEnd = new Date(prevCycleStart);
+                prevCycleEnd.setDate(prevCycleStart.getDate() + cycleLength - 1);
+                
+                cycles.push({
+                    start: new Date(prevCycleStart),
+                    end: new Date(prevCycleEnd)
+                });
+            }
+            
+            // Generate 12 cycles from start date
+            for (let i = 0; i < 12; i++) {
+                const currentCycleStart = new Date(cycleStart);
+                currentCycleStart.setDate(cycleStart.getDate() + (i * cycleLength));
+                
+                const currentCycleEnd = new Date(currentCycleStart);
+                currentCycleEnd.setDate(currentCycleStart.getDate() + cycleLength - 1);
+                
+                cycles.push({
+                    start: new Date(currentCycleStart),
+                    end: new Date(currentCycleEnd)
+                });
+            }
+            
+            return cycles;
+        }
+
+        function generateVisualCalendar() {
+            const monthStart = new Date(currentViewingMonth.getFullYear(), currentViewingMonth.getMonth(), 1);
+            const monthEnd = new Date(currentViewingMonth.getFullYear(), currentViewingMonth.getMonth() + 1, 0);
+            
+            const firstDayOfWeek = monthStart.getDay();
+            const calendarStart = new Date(monthStart);
+            calendarStart.setDate(monthStart.getDate() - firstDayOfWeek);
+            
+            const lastDayOfWeek = monthEnd.getDay();
+            const calendarEnd = new Date(monthEnd);
+            calendarEnd.setDate(monthEnd.getDate() + (6 - lastDayOfWeek));
+            
+            const allCycles = generateMultipleCycles(calculatedCycleDates.menstruationStart);
+            
+            calendarDays.innerHTML = '';
+            
+            const currentDay = new Date(calendarStart);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            while (currentDay <= calendarEnd) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.textContent = currentDay.getDate();
+                dayElement.appendChild(dayNumber);
+                
+                if (currentDay.getMonth() === currentViewingMonth.getMonth()) {
+                    dayElement.classList.add('current-month');
+                }
+                
+                const normalizedCurrentDay = new Date(currentDay);
+                normalizedCurrentDay.setHours(0, 0, 0, 0);
+                
+                if (normalizedCurrentDay.getTime() === today.getTime()) {
+                    dayElement.classList.add('today');
+                }
+                
+                const dayTime = new Date(currentDay);
+                dayTime.setHours(0, 0, 0, 0);
+                
+                for (const cycle of allCycles) {
+                    if (dayTime.getTime() >= cycle.start.getTime() && dayTime.getTime() <= cycle.end.getTime()) {
+                        const daysDiff = Math.floor((dayTime.getTime() - cycle.start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+                        const ovulationDay = cycleLength - 14;
+                        
+                        const phaseLabel = document.createElement('div');
+                        phaseLabel.className = 'phase-label';
+                        
+                        if (daysDiff >= 1 && daysDiff <= 5) {
+                            dayElement.classList.add('cycle-menstrual');
+                            phaseLabel.textContent = 'Menstruation';
+                        } else if (daysDiff >= 6 && daysDiff < ovulationDay) {
+                            dayElement.classList.add('cycle-follicular');
+                            phaseLabel.textContent = 'Follicular';
+                        } else if (daysDiff === ovulationDay) {
+                            dayElement.classList.add('cycle-ovulation');
+                            phaseLabel.textContent = 'Ovulation';
+                        } else if (daysDiff > ovulationDay && daysDiff <= cycleLength - 3) {
+                            dayElement.classList.add('cycle-luteal');
+                            phaseLabel.textContent = 'Luteal';
+                        } else {
+                            dayElement.classList.add('cycle-premenstrual');
+                            phaseLabel.textContent = 'Luteal';
+                        }
+                        
+                        dayElement.appendChild(phaseLabel);
+                        break;
+                    }
+                }
+                
+                calendarDays.appendChild(dayElement);
+                currentDay.setDate(currentDay.getDate() + 1);
+            }
+        }
+
+        function goToPreviousMonth() {
+            currentViewingMonth.setMonth(currentViewingMonth.getMonth() - 1);
+            updateCalendarView();
+        }
+
+        function goToNextMonth() {
+            currentViewingMonth.setMonth(currentViewingMonth.getMonth() + 1);
+            updateCalendarView();
+        }
+
+        // Quiz functions
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function parseDateFromInput(dateString) {
+            if (!dateString) return null;
+            const parts = dateString.split('-');
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        }
+
+        function datesAreEqual(date1, date2) {
+            if (!date1 || !date2) return false;
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+
+        function generateQuizQuestion() {
+            const cycleLengths = [28, 32, 35];
+            const quizCycleLength = cycleLengths[Math.floor(Math.random() * cycleLengths.length)];
+            
+            const today = new Date();
+            const randomDays = Math.floor(Math.random() * 60) + 30;
+            const cycleStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() + randomDays);
+            
+            const ovulationDate = new Date(cycleStart);
+            ovulationDate.setDate(cycleStart.getDate() + (quizCycleLength - 15));
+            
+            const lutealEnd = new Date(cycleStart);
+            lutealEnd.setDate(cycleStart.getDate() + quizCycleLength - 1);
+            
+            const fertileStart = new Date(ovulationDate);
+            fertileStart.setDate(ovulationDate.getDate() - 4);
+            const fertileEnd = new Date(ovulationDate);
+            fertileEnd.setDate(ovulationDate.getDate() + 1);
+            
+            const questionTypes = [
+                { type: 'periodStart', givenDate: cycleStart, text: 'first day of menstruation' },
+                { type: 'ovulation', givenDate: ovulationDate, text: 'ovulation' },
+                { type: 'lutealEnd', givenDate: lutealEnd, text: 'end of luteal phase' }
+            ];
+            
+            const chosenQuestion = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+            
+            return {
+                cycleLength: quizCycleLength,
+                givenType: chosenQuestion.type,
+                givenDate: chosenQuestion.givenDate,
+                givenText: chosenQuestion.text,
+                correctAnswers: {
+                    periodStart: cycleStart,
+                    ovulation: ovulationDate,
+                    lutealEnd: lutealEnd,
+                    fertileStart: fertileStart,
+                    fertileEnd: fertileEnd
+                }
+            };
+        }
+
+        function displayQuizQuestion(quiz) {
+            const formatDate = (date) => {
+                return date.toLocaleDateString('en-GB', { 
+                    weekday: 'long',
+                    day: 'numeric', 
+                    month: 'long',
+                    year: 'numeric'
+                });
+            };
+            
+            quizQuestion.textContent = `Given a ${quiz.cycleLength}-day menstrual cycle where the ${quiz.givenText} occurs on ${formatDate(quiz.givenDate)}, calculate the following dates:`;
+            
+            quizPeriodStart.value = '';
+            quizOvulation.value = '';
+            quizLutealEnd.value = '';
+            quizFertileStart.value = '';
+            quizFertileEnd.value = '';
+            
+            quizResults.innerHTML = `
+                <div style="text-align: center; color: #6b7280; font-style: italic; margin: 0;">
+                    <p>Complete your answers and click "Submit Answers" to see results.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.875rem;">You have 3 tries before the correct answers are revealed.</p>
+                </div>
+            `;
+        }
+
+        function checkQuizAnswers() {
+            if (!currentQuiz) return;
+            
+            if (quizTryCount >= 3) {
+                generateNewQuizQuestion();
+                return;
+            }
+            
+            quizTryCount++;
+            
+            const userAnswers = {
+                periodStart: parseDateFromInput(quizPeriodStart.value),
+                ovulation: parseDateFromInput(quizOvulation.value),
+                lutealEnd: parseDateFromInput(quizLutealEnd.value),
+                fertileStart: parseDateFromInput(quizFertileStart.value),
+                fertileEnd: parseDateFromInput(quizFertileEnd.value)
+            };
+            
+            const formatDate = (date) => {
+                return date.toLocaleDateString('en-GB', { 
+                    day: 'numeric', 
+                    month: 'short'
+                });
+            };
+            
+            let correct = 0;
+            let total = 5;
+            let results = '';
+            
+            const checks = [
+                { key: 'periodStart', label: 'Start of Period' },
+                { key: 'ovulation', label: 'Ovulation Date' },
+                { key: 'lutealEnd', label: 'End of Luteal Phase' },
+                { key: 'fertileStart', label: 'Fertile Period Start' },
+                { key: 'fertileEnd', label: 'Fertile Period End' }
+            ];
+            
+            checks.forEach(check => {
+                const userAnswer = userAnswers[check.key];
+                const correctAnswer = currentQuiz.correctAnswers[check.key];
+                const isCorrect = datesAreEqual(userAnswer, correctAnswer);
+                
+                if (isCorrect) correct++;
+                
+                if (quizTryCount >= 3) {
+                    results += `
+                        <div class="quiz-result-item">
+                            <span style="font-weight: 500;">${check.label}:</span>
+                            <span class="${isCorrect ? 'quiz-correct' : 'quiz-incorrect'}">
+                                ${isCorrect ? '✓' : '✗'} ${formatDate(correctAnswer)}
+                                ${!isCorrect && userAnswer ? ` (You: ${formatDate(userAnswer)})` : ''}
+                            </span>
+                        </div>
+                    `;
+                } else {
+                    results += `
+                        <div class="quiz-result-item">
+                            <span style="font-weight: 500;">${check.label}:</span>
+                            <span class="${isCorrect ? 'quiz-correct' : 'quiz-incorrect'}">
+                                ${isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                            </span>
+                        </div>
+                    `;
+                }
+            });
+            
+            const score = Math.round((correct / total) * 100);
+            const scoreColor = score >= 80 ? '#059669' : score >= 60 ? '#d97706' : '#dc2626';
+            
+            let scoreText = '';
+            let tryText = '';
+            let tryClass = 'quiz-try-active';
+            
+            if (quizTryCount >= 3) {
+                scoreText = `Final Score: ${correct}/${total} (${score}%)`;
+                tryText = 'Answers revealed below';
+                tryClass = 'quiz-try-revealed';
+                submitQuizBtn.textContent = 'Next Question';
+            } else {
+                scoreText = `Try ${quizTryCount}/3: ${correct}/${total} (${score}%)`;
+                if (score === 100) {
+                    tryText = 'Perfect! Well done! Moving to next question...';
+                    tryClass = 'quiz-try-perfect';
+                    setTimeout(() => {
+                        generateNewQuizQuestion();
+                    }, 2000);
+                } else {
+                    tryText = `${3 - quizTryCount} tries remaining`;
+                    tryClass = 'quiz-try-active';
+                }
+            }
+            
+            quizResults.innerHTML = `
+                <div class="quiz-score" style="border-color: ${scoreColor}; background: ${score >= 80 ? '#f0fdf4' : score >= 60 ? '#fffbeb' : '#fef2f2'}; color: ${scoreColor};">
+                    ${scoreText}
+                </div>
+                <div class="quiz-try-info ${tryClass}">
+                    ${tryText}
+                </div>
+                ${results}
+            `;
+        }
+
+        function toggleQuizMode() {
+            isQuizMode = quizModeToggle.checked;
+            
+            if (isQuizMode) {
+                quizPanel.style.display = 'block';
+                generateNewQuizQuestion();
+            } else {
+                quizPanel.style.display = 'none';
+            }
+        }
+
+        function generateNewQuizQuestion() {
+            currentQuiz = generateQuizQuestion();
+            quizTryCount = 0;
+            submitQuizBtn.textContent = 'Submit Answers';
+            displayQuizQuestion(currentQuiz);
+        }
+
+        // Event listeners
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        resetBtn.addEventListener('click', resetSimulation);
+        infoBtn.addEventListener('click', toggleInfo);
+        calculateBtn.addEventListener('click', calculateCycleDates);
+        prevMonthBtn.addEventListener('click', goToPreviousMonth);
+        nextMonthBtn.addEventListener('click', goToNextMonth);
+        
+        quizModeToggle.addEventListener('change', toggleQuizMode);
+        submitQuizBtn.addEventListener('click', checkQuizAnswers);
+        newQuestionBtn.addEventListener('click', generateNewQuizQuestion);
+
+        dateTypeRadios.forEach(radio => {
+            radio.addEventListener('change', handleDateTypeChange);
+        });
+
+        cycleLengthSelect.addEventListener('change', (e) => {
+            clearInterval(intervalId);
+            isPlaying = false;
+            cycleLength = parseInt(e.target.value);
+            currentDay = 1;
+            playPauseBtn.className = 'btn btn-play';
+            playPauseBtn.innerHTML = '<span>▶</span><span>Play</span>';
+            
+            chart.destroy();
+            initChart();
+            updateDisplay();
+            
+            if (calculatedCycleDates) {
+                const selectedType = document.querySelector('input[name="dateType"]:checked').value;
+                if ((selectedType === 'cycleStart' && cycleStartDate.value) || 
+                    (selectedType === 'ovulation' && ovulationDate.value)) {
+                    calculateCycleDates();
+                }
+            }
+        });
+
+        speedSelect.addEventListener('change', (e) => {
+            speed = parseInt(e.target.value);
+            if (isPlaying) {
+                clearInterval(intervalId);
+                intervalId = setInterval(() => {
+                    currentDay = currentDay >= cycleLength ? 1 : currentDay + 1;
+                    updateDisplay();
+                }, speed);
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updateDisplay();
+            handleDateTypeChange();
+        });
+    </script>
+</body>
+</html>

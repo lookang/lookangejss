@@ -1,0 +1,162 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Singapore Air Quality Data Visualization”** that lets students explore simulated PSI and pollutant data for different regions of Singapore over several years, using a map and time-series charts.
+
+TARGET AUDIENCE:
+- Upper Primary / Lower Secondary Geography / Science (approx. ages 11–14)
+
+INTERACTIVE REQUIREMENTS:
+- Central layout with two main panels:
+  - **Map panel**: clickable Singapore regions (North, Central, East, West, South) coloured by current PSI level.
+  - **Chart panel**: time-series graph showing PSI and pollutant trends over time for selected regions.
+- Top **control panel** including:
+  - Year filter dropdown (All, 2019–2023).
+  - Season filter dropdown (All, Dry, Wet, Inter-monsoon).
+  - **Compare Regions** toggle button (single vs multi-region view).
+  - **Data** button to download the filtered dataset as CSV.
+- **Pollutant toggles** for overlaying multiple lines on the chart:
+  - PM2.5
+  - PM10
+  - Ozone (O₃)
+- **Time slider** to scrub through the dataset and update:
+  - Current date label.
+  - Map region colours (based on PSI at that date).
+  - Region info panel (if open).
+- Detailed **region info panel** showing current PSI, pollutant breakdown, weather data, and basic statistics for the selected region.
+- **Significant event markers** on the chart that can be clicked to reveal more information in an event popup.
+- Tooltips on hover over map regions.
+- Self-contained HTML, CSS, and JavaScript (no external libraries), using canvas for charts and SVG for the map.
+- **MOBILE-RESPONSIVE**:
+  - Layout adapts to smaller screens; map and chart remain readable.
+
+SPECIFIC REQUIREMENTS:
+
+Data model
+- Use simulated but realistic weekly PSI data from 2019–2023 for each region:
+  - Regions: North, Central, East, West, South.
+- For each region and date (weekly time step):
+  - `date` (Date object).
+  - `psi` (integer).
+  - `pm25` (μg/m³), `pm10` (μg/m³), `ozone` (μg/m³).
+  - `weather`: rainfall (mm), wind speed (km/h), wind direction (N/NE/…/NW), humidity (%).
+- PSI generation logic should include:
+  - Baseline levels.
+  - Seasonal variation (higher in dry season, lower in wet).
+  - Regional differences (e.g., slightly higher PSI in West/central industrial/urban areas).
+  - Occasional spikes to represent haze events.
+
+Significant events
+- Define a set of **significant haze/air quality events** with:
+  - `date` (e.g., 2019-09-15, 2020-03-20, 2021-08-10).
+  - `title` (e.g., Indonesian Forest Fires, COVID-19 Lockdown Effect).
+  - `description` (short description of cause/effect).
+  - `regions` affected (array of region names).
+  - `impact` (e.g., schools reduce outdoor activities).
+- On the chart, draw a special marker (larger/red point) on data points that correspond to these events for affected regions.
+- Clicking these markers opens an **event popup** with detailed info.
+
+Map panel
+- SVG map representing five regions as polygons or rectangles:
+  - Each region element has:
+    - Class `.region` plus dynamic PSI-based class (good/moderate/unhealthy/hazardous).
+    - `id` matching lowercase region name (e.g., `id="north"`).
+    - `data-region="North"` etc.
+    - Human-readable `title` describing the region.
+- Colour each region based on the **current** PSI value (from filtered data at the slider’s current time index):
+  - PSI 0–50: green (`good`).
+  - 51–100: yellow/orange (`moderate`).
+  - 101–200: red (`unhealthy`).
+  - >200: deep red/purple (`hazardous`).
+- Include a **PSI legend** showing colour bands and ranges.
+- On region hover:
+  - Show a tooltip with region name, current PSI, status, and hint “Click for details”.
+- On region click:
+  - In normal mode: select that region as the **current region**, update chart and region info.
+  - In compare mode: add/remove region to/from `selectedRegions` (up to 3 visible at once) and update chart.
+
+Control panel
+- **Year filter**:
+  - Dropdown with All, 2019, 2020, 2021, 2022, 2023.
+  - Filters data for both map colours and chart.
+- **Season filter**:
+  - Dropdown with All, Dry (Feb–Apr), Wet (Nov–Jan), Inter-monsoon (May–Oct).
+  - Filters data by month.
+- **Compare Regions** button:
+  - Toggles `compareMode` boolean.
+  - In compare mode: button text changes (e.g., “Exit Compare”), visual style changes; `selectedRegions` is used to populate chart.
+  - In single-region mode: revert to showing only the `currentRegion` (default Central if none selected).
+- **Data download** button:
+  - Exports the **filtered data** as CSV with columns: Region, Date, PSI, PM2.5, PM10, Ozone, Rainfall, Wind Speed, Wind Direction, Humidity.
+
+Chart panel
+- Use `<canvas>` to draw a **multi-line time-series chart**:
+  - X-axis: time (from earliest to latest date in filtered data).
+  - Y-axis: PSI levels (scaled to cover up to at least the maximum PSI, with grid at key levels 0, 50, 100, 150, 200, 250+).
+- Draw background grid lines and axis labels (`PSI Level`, `Time Period`).
+- For each selected region:
+  - Draw a coloured line representing PSI over time.
+  - Draw small circular markers at each data point.
+  - Use distinct colours per region (e.g., blue, red, teal, etc.).
+- Pollutant toggles (PM2.5, PM10, Ozone):
+  - When toggled on, overlay additional lines or separate representation as needed.
+  - When toggled off, hide those overlays.
+- **Time indicator**:
+  - Vertical dashed line at the date corresponding to the current time slider index.
+
+Time slider
+- Range corresponds to indices into the (filtered) data sequence (e.g., 0–59 for last 60 time steps).
+- Changing the slider:
+  - Updates `currentTimeIndex`.
+  - Updates current date label (`#currentDate`).
+  - Recalculates map region colours based on PSI at that index.
+  - Updates region info panel (if open).
+
+Region info panel
+- Side panel showing details for the selected region (if any):
+  - Title: “<Region> Region”.
+  - Current reading:
+    - PSI value with colour-coded background class (good/moderate/unhealthy/hazardous).
+    - Health advice text based on PSI level.
+  - Pollutant breakdown (current point’s PM2.5, PM10, ozone).
+  - Weather conditions (rainfall, wind speed/direction, humidity).
+  - Statistics:
+    - Average PSI over filtered time span.
+    - Number of data points.
+    - Trend (Increasing/Decreasing/Stable) based on comparison of recent vs older averages.
+- Close button (×) hides the panel.
+
+Event popup
+- When an event marker is clicked on the chart:
+  - Show a popup overlay with:
+    - Event title
+    - Date
+    - Affected regions
+    - Description of event
+    - Impact on Singapore’s air quality or public activities
+- Close button (×) hides the popup.
+
+Tooltips and responsiveness
+- Global tooltip element for map region hover; position it near the cursor.
+- On window resize:
+  - Redraw chart (recalculate dimensions, rerender axes and data lines).
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Interpret PSI and pollutant data from both a map and a time-series chart.
+  - Recognise how air quality varies by **region** and **time** in Singapore.
+  - Relate air quality changes to **seasonal patterns**, **weather**, and **significant events** (e.g., haze episodes, lockdowns).
+  - Understand PSI categories and basic health advisories for different levels.
+- The interactive should promote **data literacy** by encouraging exploration of filters and comparative views.
+
+INTERACTION FEATURES TO INCLUDE:
+- Clickable regional map with dynamic colouring and tooltips.
+- Multi-region comparison on the chart.
+- Year and season filters.
+- Pollutant toggles for deeper exploration.
+- Time slider to scrub through the data.
+- Downloadable CSV for further analysis in spreadsheets.
+- Region info and event popups for context and explanation.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

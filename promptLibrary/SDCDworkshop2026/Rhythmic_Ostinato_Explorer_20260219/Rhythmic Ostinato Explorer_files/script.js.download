@@ -1,0 +1,570 @@
+// ============================================================================
+// RHYTHMIC OSTINATO EXPLORER - Interactive Music Learning Tool
+// ============================================================================
+// This application allows students to create and layer rhythmic patterns
+// using various percussion instruments to explore polyrhythmic textures.
+// Built with Web Audio API for sound generation.
+// MODIFIED: Added tempo numerical input, envelope controls (cutoff/resonance)
+// ============================================================================
+
+// ============================================================================
+// AUDIO CONTEXT AND SOUND GENERATION
+// ============================================================================
+
+// Initialize Web Audio API context
+let audioContext;
+let masterGainNode;
+
+// Initialize audio context on first user interaction (required by browsers)
+function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        masterGainNode = audioContext.createGain();
+        masterGainNode.connect(audioContext.destination);
+        masterGainNode.gain.value = 0.7;
+    }
+}
+
+// Percussion instrument sound definitions using Web Audio API
+// Each instrument has specific frequency, decay, and filter characteristics
+const instrumentSounds = {
+    kick: { freq: 150, decay: 0.5, type: 'sine', filter: 'lowpass' },
+    snare: { freq: 200, decay: 0.15, type: 'triangle', filter: 'highpass', noise: true },
+    hihat: { freq: 8000, decay: 0.05, type: 'square', filter: 'highpass', noise: true },
+    clap: { freq: 1000, decay: 0.1, type: 'square', noise: true },
+    conga: { freq: 300, decay: 0.3, type: 'sine', filter: 'bandpass' },
+    bongo: { freq: 400, decay: 0.25, type: 'sine', filter: 'bandpass' },
+    tambourine: { freq: 3000, decay: 0.2, type: 'square', noise: true },
+    cowbell: { freq: 800, decay: 0.3, type: 'square', filter: 'bandpass' },
+    shaker: { freq: 5000, decay: 0.1, type: 'square', noise: true },
+    triangle: { freq: 2000, decay: 0.4, type: 'sine', filter: 'highpass' },
+    woodblock: { freq: 1200, decay: 0.08, type: 'square', filter: 'bandpass' },
+    claves: { freq: 2500, decay: 0.06, type: 'square', filter: 'highpass' }
+};
+
+// MODIFIED: Generate and play percussion sound with envelope controls (cutoff, resonance)
+function playSound(instrument, volume = 0.7, cutoff = 5000, resonance = 1) {
+    initAudioContext();
+    
+    const sound = instrumentSounds[instrument];
+    if (!sound) return;
+    
+    const now = audioContext.currentTime;
+    
+    // Create oscillator for tonal component
+    const oscillator = audioContext.createOscillator();
+    oscillator.type = sound.type;
+    oscillator.frequency.setValueAtTime(sound.freq, now);
+    
+    // Create gain envelope for amplitude shaping
+    const gainNode = audioContext.createGain();
+    gainNode.gain.setValueAtTime(volume * 0.5, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + sound.decay);
+    
+    // Add noise component for realistic percussion
+    let noiseNode = null;
+    if (sound.noise) {
+        noiseNode = createNoiseBuffer();
+        const noiseGain = audioContext.createGain();
+        noiseGain.gain.setValueAtTime(volume * 0.3, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + sound.decay);
+        noiseNode.connect(noiseGain);
+        noiseGain.connect(masterGainNode);
+        noiseNode.start(now);
+        noiseNode.stop(now + sound.decay);
+    }
+    
+    // MODIFIED: Apply filter with user-controlled cutoff and resonance
+    if (sound.filter) {
+        const filter = audioContext.createBiquadFilter();
+        filter.type = sound.filter;
+        // Use user-defined cutoff frequency
+        filter.frequency.setValueAtTime(cutoff, now);
+        // Use user-defined resonance (Q factor)
+        filter.Q.setValueAtTime(resonance, now);
+        oscillator.connect(filter);
+        filter.connect(gainNode);
+    } else {
+        oscillator.connect(gainNode);
+    }
+    
+    gainNode.connect(masterGainNode);
+    
+    // Start and stop oscillator
+    oscillator.start(now);
+    oscillator.stop(now + sound.decay);
+}
+
+// Create white noise buffer for percussion sounds
+function createNoiseBuffer() {
+    const bufferSize = audioContext.sampleRate * 0.5;
+    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const output = buffer.getChannelData(0);
+    
+    for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioContext.createBufferSource();
+    noise.buffer = buffer;
+    return noise;
+}
+
+// ============================================================================
+// APPLICATION STATE MANAGEMENT
+// ============================================================================
+
+// MODIFIED: Global state object includes envelope parameters for each track
+const state = {
+    tempo: 120,              // Beats per minute (now extends beyond 180)
+    patternLength: 4,        // Number of beats in pattern (4, 8, or 16)
+    currentBeat: 0,          // Current beat position in playback
+    isPlaying: false,        // Master playback state
+    intervalId: null,        // Timer ID for beat scheduling
+    tracks: []               // Array of track objects
+};
+
+// MODIFIED: Initialize track data structure with envelope parameters
+function initializeTracks() {
+    const trackElements = document.querySelectorAll('.track');
+    state.tracks = Array.from(trackElements).map((trackEl, index) => ({
+        element: trackEl,
+        index: index,
+        instrument: trackEl.querySelector('.instrument-select').value,
+        pattern: new Array(state.patternLength).fill(false),
+        isPlaying: false,
+        volume: 0.7,
+        cutoff: 5000,        // Filter cutoff frequency
+        resonance: 1         // Filter resonance (Q factor)
+    }));
+}
+
+// ============================================================================
+// PATTERN GRID RENDERING
+// ============================================================================
+
+// Render pattern grid for all tracks based on current pattern length
+function renderPatternGrids() {
+    state.tracks.forEach(track => {
+        const grid = track.element.querySelector('.pattern-grid');
+        grid.innerHTML = '';
+        
+        // Update grid layout class based on pattern length
+        grid.className = 'pattern-grid';
+        if (state.patternLength === 8) {
+            grid.classList.add('beats-8');
+        } else if (state.patternLength === 16) {
+            grid.classList.add('beats-16');
+        }
+        
+        // Resize pattern array if needed
+        if (track.pattern.length !== state.patternLength) {
+            const newPattern = new Array(state.patternLength).fill(false);
+            for (let i = 0; i < Math.min(track.pattern.length, state.patternLength); i++) {
+                newPattern[i] = track.pattern[i];
+            }
+            track.pattern = newPattern;
+        }
+        
+        // Create grid cells
+        for (let i = 0; i < state.patternLength; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'grid-cell';
+            cell.dataset.beat = i;
+            if (track.pattern[i]) {
+                cell.classList.add('active');
+            }
+            
+            // Add click handler for toggling beats
+            cell.addEventListener('click', () => toggleBeat(track.index, i));
+            
+            grid.appendChild(cell);
+        }
+    });
+}
+
+// MODIFIED: Toggle beat with envelope parameters
+function toggleBeat(trackIndex, beatIndex) {
+    const track = state.tracks[trackIndex];
+    track.pattern[beatIndex] = !track.pattern[beatIndex];
+    
+    // Update visual state
+    const cell = track.element.querySelectorAll('.grid-cell')[beatIndex];
+    cell.classList.toggle('active');
+    
+    // Play sound preview when activating a beat with current envelope settings
+    if (track.pattern[beatIndex]) {
+        playSound(track.instrument, track.volume, track.cutoff, track.resonance);
+    }
+    
+    updateInfoText(`Pattern updated for ${track.instrument}`);
+}
+
+// ============================================================================
+// PLAYBACK ENGINE
+// ============================================================================
+
+// Start playback for all active tracks
+function startPlayback() {
+    if (state.isPlaying) return;
+    
+    initAudioContext();
+    state.isPlaying = true;
+    state.currentBeat = 0;
+    
+    // Calculate interval based on tempo (convert BPM to milliseconds)
+    const beatDuration = (60 / state.tempo) * 1000;
+    
+    // Update UI
+    document.getElementById('play-all-btn').textContent = '⏸ Pause All';
+    updateInfoText('Playing all tracks...');
+    
+    // Start beat loop
+    playBeat();
+    state.intervalId = setInterval(playBeat, beatDuration);
+}
+
+// Stop playback
+function stopPlayback() {
+    state.isPlaying = false;
+    
+    if (state.intervalId) {
+        clearInterval(state.intervalId);
+        state.intervalId = null;
+    }
+    
+    // Reset visual indicators
+    document.querySelectorAll('.beat-indicator').forEach(indicator => {
+        indicator.classList.remove('active');
+    });
+    
+    document.querySelectorAll('.grid-cell').forEach(cell => {
+        cell.classList.remove('playing');
+    });
+    
+    document.getElementById('play-all-btn').textContent = '▶ Play All';
+    updateInfoText('Playback stopped');
+}
+
+// MODIFIED: Execute single beat with envelope parameters
+function playBeat() {
+    // Update metronome visual
+    document.querySelectorAll('.beat-indicator').forEach((indicator, index) => {
+        if (index === state.currentBeat % 4) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    });
+    
+    // Play sounds for each track with envelope settings
+    state.tracks.forEach(track => {
+        if (track.isPlaying && track.pattern[state.currentBeat]) {
+            playSound(track.instrument, track.volume, track.cutoff, track.resonance);
+            
+            // Visual feedback on grid
+            const cells = track.element.querySelectorAll('.grid-cell');
+            cells[state.currentBeat].classList.add('playing');
+            setTimeout(() => {
+                cells[state.currentBeat].classList.remove('playing');
+            }, 100);
+        }
+    });
+    
+    // Advance to next beat
+    state.currentBeat = (state.currentBeat + 1) % state.patternLength;
+}
+
+// Toggle individual track playback
+function toggleTrackPlayback(trackIndex) {
+    const track = state.tracks[trackIndex];
+    track.isPlaying = !track.isPlaying;
+    
+    const btn = track.element.querySelector('.play-track-btn');
+    btn.classList.toggle('playing');
+    
+    // If master playback is not running, start it
+    if (track.isPlaying && !state.isPlaying) {
+        startPlayback();
+    }
+    
+    // If no tracks are playing, stop master playback
+    const anyPlaying = state.tracks.some(t => t.isPlaying);
+    if (!anyPlaying && state.isPlaying) {
+        stopPlayback();
+    }
+}
+
+// ============================================================================
+// PRESET PATTERNS FROM WORLD MUSIC TRADITIONS
+// ============================================================================
+
+const presetPatterns = {
+    african: [
+        { instrument: 'kick', pattern: [1,0,0,1,0,0,1,0] },
+        { instrument: 'conga', pattern: [0,0,1,0,0,1,0,0] },
+        { instrument: 'shaker', pattern: [1,1,1,1,1,1,1,1] },
+        { instrument: 'cowbell', pattern: [1,0,1,0,1,0,1,0] }
+    ],
+    latin: [
+        { instrument: 'claves', pattern: [1,0,0,1,0,0,1,0,0,1,0,1,0,0,0,0] },
+        { instrument: 'conga', pattern: [1,0,0,0,1,0,1,0,0,0,1,0,0,0,0,0] },
+        { instrument: 'bongo', pattern: [0,0,1,0,0,0,1,0,1,0,0,0,1,0,0,0] },
+        { instrument: 'cowbell', pattern: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0] }
+    ],
+    indian: [
+        { instrument: 'woodblock', pattern: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0] },
+        { instrument: 'triangle', pattern: [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0] },
+        { instrument: 'tambourine', pattern: [1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1] },
+        { instrument: 'clap', pattern: [0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1] }
+    ],
+    brazilian: [
+        { instrument: 'kick', pattern: [1,0,0,0,1,0,0,0] },
+        { instrument: 'snare', pattern: [0,0,1,0,0,0,1,0] },
+        { instrument: 'shaker', pattern: [1,0,1,0,1,0,1,0] },
+        { instrument: 'tambourine', pattern: [1,1,1,1,1,1,1,1] }
+    ],
+    'middle-eastern': [
+        { instrument: 'kick', pattern: [1,0,0,1,0,0,1,0] },
+        { instrument: 'snare', pattern: [0,0,1,0,0,1,0,1] },
+        { instrument: 'tambourine', pattern: [1,0,1,1,0,1,1,0] },
+        { instrument: 'triangle', pattern: [0,1,0,1,0,1,0,1] }
+    ]
+};
+
+// Load preset pattern into tracks
+function loadPreset(presetName) {
+    const preset = presetPatterns[presetName];
+    if (!preset) return;
+    
+    // Stop playback first
+    stopPlayback();
+    
+    // Determine required pattern length
+    const maxLength = Math.max(...preset.map(p => p.pattern.length));
+    if (maxLength > state.patternLength) {
+        // Update pattern length if needed
+        if (maxLength <= 8) {
+            setPatternLength(8);
+        } else {
+            setPatternLength(16);
+        }
+    }
+    
+    // Apply preset to tracks
+    preset.forEach((presetTrack, index) => {
+        if (index < state.tracks.length) {
+            const track = state.tracks[index];
+            
+            // Set instrument
+            const select = track.element.querySelector('.instrument-select');
+            select.value = presetTrack.instrument;
+            track.instrument = presetTrack.instrument;
+            
+            // Set pattern
+            track.pattern = new Array(state.patternLength).fill(false);
+            presetTrack.pattern.forEach((beat, i) => {
+                if (i < state.patternLength) {
+                    track.pattern[i] = beat === 1;
+                }
+            });
+        }
+    });
+    
+    // Re-render grids
+    renderPatternGrids();
+    updateInfoText(`Loaded ${presetName} preset pattern`);
+}
+
+// ============================================================================
+// CONTROL HANDLERS
+// ============================================================================
+
+// MODIFIED: Update tempo with validation for extended range (30-300 BPM)
+function setTempo(newTempo) {
+    // Validate tempo range
+    newTempo = Math.max(30, Math.min(300, newTempo));
+    
+    state.tempo = newTempo;
+    
+    // Update both input and slider
+    document.getElementById('tempo-input').value = newTempo;
+    document.getElementById('tempo-slider').value = newTempo;
+    
+    // Restart playback with new tempo if currently playing
+    if (state.isPlaying) {
+        stopPlayback();
+        startPlayback();
+    }
+}
+
+// Update pattern length
+function setPatternLength(length) {
+    state.patternLength = length;
+    
+    // Update button states
+    document.querySelectorAll('.length-btn').forEach(btn => {
+        if (parseInt(btn.dataset.length) === length) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Re-render grids
+    renderPatternGrids();
+    
+    // Reset playback position
+    state.currentBeat = 0;
+    
+    updateInfoText(`Pattern length set to ${length} beats`);
+}
+
+// Clear all patterns
+function clearAllPatterns() {
+    stopPlayback();
+    
+    state.tracks.forEach(track => {
+        track.pattern.fill(false);
+        track.isPlaying = false;
+        track.element.querySelector('.play-track-btn').classList.remove('playing');
+    });
+    
+    renderPatternGrids();
+    updateInfoText('All patterns cleared');
+}
+
+// Update info text display
+function updateInfoText(text) {
+    document.getElementById('info-text').textContent = text;
+}
+
+// ============================================================================
+// EVENT LISTENERS SETUP
+// ============================================================================
+
+function setupEventListeners() {
+    // MODIFIED: Tempo numerical input
+    document.getElementById('tempo-input').addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        if (!isNaN(value)) {
+            setTempo(value);
+        }
+    });
+    
+    // MODIFIED: Tempo slider with extended range
+    document.getElementById('tempo-slider').addEventListener('input', (e) => {
+        setTempo(parseInt(e.target.value));
+    });
+    
+    // Pattern length buttons
+    document.querySelectorAll('.length-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setPatternLength(parseInt(btn.dataset.length));
+        });
+    });
+    
+    // Preset selector
+    document.getElementById('preset-select').addEventListener('change', (e) => {
+        if (e.target.value) {
+            loadPreset(e.target.value);
+            e.target.value = ''; // Reset selector
+        }
+    });
+    
+    // Master controls
+    document.getElementById('play-all-btn').addEventListener('click', () => {
+        if (state.isPlaying) {
+            stopPlayback();
+        } else {
+            // Activate all tracks
+            state.tracks.forEach(track => {
+                track.isPlaying = true;
+                track.element.querySelector('.play-track-btn').classList.add('playing');
+            });
+            startPlayback();
+        }
+    });
+    
+    document.getElementById('stop-all-btn').addEventListener('click', () => {
+        stopPlayback();
+        state.tracks.forEach(track => {
+            track.isPlaying = false;
+            track.element.querySelector('.play-track-btn').classList.remove('playing');
+        });
+    });
+    
+    document.getElementById('clear-all-btn').addEventListener('click', clearAllPatterns);
+    
+    // MODIFIED: Track-specific controls including envelope parameters
+    state.tracks.forEach((track, index) => {
+        // Play/stop button
+        track.element.querySelector('.play-track-btn').addEventListener('click', () => {
+            toggleTrackPlayback(index);
+        });
+        
+        // Instrument selector with envelope parameters
+        track.element.querySelector('.instrument-select').addEventListener('change', (e) => {
+            track.instrument = e.target.value;
+            playSound(track.instrument, track.volume, track.cutoff, track.resonance); // Preview sound
+            updateInfoText(`Changed to ${track.instrument}`);
+        });
+        
+        // Volume slider
+        const volumeSlider = track.element.querySelector('.volume-slider');
+        const volumeValue = track.element.querySelector('.volume-value');
+        
+        volumeSlider.addEventListener('input', (e) => {
+            track.volume = parseInt(e.target.value) / 100;
+            volumeValue.textContent = e.target.value + '%';
+        });
+        
+        // MODIFIED: Cutoff frequency slider
+        const cutoffSlider = track.element.querySelector('.cutoff-slider');
+        const cutoffValue = track.element.querySelector('.cutoff-value');
+        
+        cutoffSlider.addEventListener('input', (e) => {
+            track.cutoff = parseInt(e.target.value);
+            cutoffValue.textContent = e.target.value + 'Hz';
+            // Preview sound with new cutoff
+            playSound(track.instrument, track.volume, track.cutoff, track.resonance);
+        });
+        
+        // MODIFIED: Resonance slider
+        const resonanceSlider = track.element.querySelector('.resonance-slider');
+        const resonanceValue = track.element.querySelector('.resonance-value');
+        
+        resonanceSlider.addEventListener('input', (e) => {
+            track.resonance = parseFloat(e.target.value);
+            resonanceValue.textContent = e.target.value;
+            // Preview sound with new resonance
+            playSound(track.instrument, track.volume, track.cutoff, track.resonance);
+        });
+    });
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+// Initialize application when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize tracks
+    initializeTracks();
+    
+    // Render initial pattern grids
+    renderPatternGrids();
+    
+    // Setup all event listeners
+    setupEventListeners();
+    
+    // Initial info message
+    updateInfoText('Click grid cells to create patterns. Layer multiple tracks to build polyrhythms.');
+    
+    // Initialize audio context on first user interaction
+    document.body.addEventListener('click', initAudioContext, { once: true });
+});
+
+// ============================================================================
+// END OF APPLICATION
+// ============================================================================

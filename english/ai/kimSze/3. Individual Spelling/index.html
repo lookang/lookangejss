@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Elkonin Box Spelling - Individual Practice</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f0f8ff;
+    padding: 20px;
+  }
+  h1 {
+    margin-bottom: 0;
+  }
+  #instruction {
+    font-size: 20px;
+    margin: 10px 0 20px;
+  }
+  .counter-container, .box-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .counter {
+    width: 50px;
+    height: 50px;
+    background: #e63946;
+    border-radius: 50%;
+    margin: 0 8px;
+    cursor: grab;
+  }
+  .box, .counter-slot {
+    width: 70px;
+    height: 70px;
+    border: 3px solid #1d3557;
+    margin: 0 10px;
+    font-size: 40px;
+    line-height: 70px;
+    background: #f1faee;
+    user-select: none;
+  }
+  #message {
+    font-size: 22px;
+    margin-top: 20px;
+    height: 40px;
+    color: green;
+    font-weight: bold;
+  }
+  button {
+    padding: 10px 18px;
+    font-size: 18px;
+    margin: 10px 5px;
+  }
+</style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+<h1>Spell the Word Using Elkonin Boxes</h1>
+<div id="instruction">Click "Next" to hear the word and instructions.</div>
+
+<div>
+  <button id="prevBtn" onclick="previousStep()" disabled>Back</button>
+  <button id="nextBtn" onclick="nextStep()">Next</button>
+  <button id="checkBtn" onclick="checkSpelling()" disabled>Check Spelling</button>
+  <button id="resetBtn" onclick="resetSpelling()">Reset</button>
+</div>
+
+<h3>Sound Tracking - Place Counters</h3>
+<div class="counter-container" id="counters"></div>
+<div class="box-container" id="soundBoxes"></div>
+
+<h3>Spelling Boxes</h3>
+<div class="box-container" id="letterBoxes"></div>
+
+<div id="message"></div>
+
+<script>
+const words = [
+  {
+    word: 'hid',
+    meaning: 'I hid behind the tree.',
+    sounds: ['/h/', '/i/', '/d/'],
+    letters: ['h', 'i', 'd']
+  },
+  {
+    word: 'cut',
+    meaning: 'I cut the paper with scissors.',
+    sounds: ['/c/', '/u/', '/t/'],
+    letters: ['c', 'u', 't']
+  }
+];
+
+let wordIndex = 0;
+let step = 0;
+
+const countersContainer = document.getElementById('counters');
+const soundBoxesContainer = document.getElementById('soundBoxes');
+const letterBoxesContainer = document.getElementById('letterBoxes');
+const instruction = document.getElementById('instruction');
+const message = document.getElementById('message');
+const nextBtn = document.getElementById('nextBtn');
+const prevBtn = document.getElementById('prevBtn');
+const checkBtn = document.getElementById('checkBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+function setupGame() {
+  // Clear containers
+  countersContainer.innerHTML = '';
+  soundBoxesContainer.innerHTML = '';
+  letterBoxesContainer.innerHTML = '';
+  message.textContent = '';
+  checkBtn.disabled = true;
+
+  // Create counters (3 red circles)
+  for(let i=0; i<3; i++){
+    const counter = document.createElement('div');
+    counter.classList.add('counter');
+    counter.setAttribute('draggable', true);
+    counter.id = 'counter' + i;
+    counter.addEventListener('dragstart', drag);
+    countersContainer.appendChild(counter);
+  }
+
+  // Create empty sound boxes (drop zones)
+  for(let i=0; i<3; i++){
+    const box = document.createElement('div');
+    box.classList.add('counter-slot');
+    box.id = 'soundBox' + i;
+    box.addEventListener('dragover', allowDrop);
+    box.addEventListener('drop', drop);
+    soundBoxesContainer.appendChild(box);
+  }
+
+  // Create empty letter boxes (to type letters)
+  for(let i=0; i<3; i++){
+    const letterBox = document.createElement('div');
+    letterBox.classList.add('box');
+    letterBox.id = 'letterBox' + i;
+    letterBox.setAttribute('contenteditable', true);
+    letterBox.spellcheck = false;
+    letterBox.addEventListener('input', onLetterInput);
+    letterBoxesContainer.appendChild(letterBox);
+  }
+}
+
+function speak(text){
+  const utterance = new SpeechSynthesisUtterance(text);
+  speechSynthesis.cancel(); // Cancel any ongoing speech
+  speechSynthesis.speak(utterance);
+}
+
+function nextStep(){
+  message.textContent = '';
+  prevBtn.disabled = false;
+
+  if(step === 0){
+    // Say word and meaning - no showing the word
+    speak(`The word is: ${words[wordIndex].word}. ${words[wordIndex].meaning}. Repeat the word.`);
+    instruction.textContent = "Listen carefully and repeat the word aloud.";
+  } else if(step >=1 && step <=3){
+    // Ask to track sounds, prompt each sound with placement of counters
+    instruction.textContent = `Track the sounds: Place a counter for sound ${step} - ${words[wordIndex].sounds[step-1]}`;
+    speak(`Place a counter for sound ${step}: ${words[wordIndex].sounds[step-1]}`);
+  } else if(step === 4){
+    instruction.textContent = "Now spell the sounds by typing letters in the boxes.";
+    speak("Now spell the sounds by typing the letters.");
+    checkBtn.disabled = false;
+  } else if(step === 5){
+    instruction.textContent = "Blend the sounds and check if your spelling is correct by pressing 'Check Spelling'.";
+    speak("Blend the sounds and check your spelling.");
+    checkBtn.disabled = false;
+  } else if(step === 6){
+    // Finished spelling current word
+    if(wordIndex < words.length -1){
+      wordIndex++;
+      step = -1;
+      setupGame();
+      instruction.textContent = "Click Next to start next word.";
+    } else {
+      instruction.textContent = "Well done! You have spelled all words.";
+      speak("Well done! You have spelled all words. Success!");
+      nextBtn.disabled = true;
+      prevBtn.disabled = true;
+      checkBtn.disabled = true;
+      resetBtn.disabled = false;
+    }
+  }
+  step++;
+  updateButtons();
+}
+
+function previousStep(){
+  if(step > 1) {
+    step -= 2; // Go back two to repeat previous step (to sync with nextStep increment)
+    message.textContent = '';
+    if(step < 1) step = 1;
+    updateButtons();
+    nextStep();
+  }
+}
+
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
+function drag(ev) {
+  ev.dataTransfer.setData("text", ev.target.id);
+}
+
+function drop(ev) {
+  ev.preventDefault();
+  const data = ev.dataTransfer.getData("text");
+  const counter = document.getElementById(data);
+
+  if(ev.target.classList.contains('counter-slot') && ev.target.childElementCount === 0){
+    ev.target.appendChild(counter);
+  }
+}
+
+function onLetterInput(e){
+  // Force lowercase letter and max 1 character per box
+  let val = e.target.innerText.toLowerCase();
+  if(val.length > 1){
+    val = val.charAt(0);
+    e.target.innerText = val;
+    placeCaretAtEnd(e.target);
+  }
+  if(val && !val.match(/[a-z]/)){
+    e.target.innerText = '';
+  }
+}
+
+function placeCaretAtEnd(el) {
+  el.focus();
+  if (typeof window.getSelection != "undefined"
+      && typeof document.createRange != "undefined") {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
+function checkSpelling(){
+  let correct = true;
+  for(let i=0; i<3; i++){
+    const letterBox = document.getElementById('letterBox'+i);
+    const letter = letterBox.innerText.toLowerCase();
+    if(letter !== words[wordIndex].letters[i]){
+      correct = false;
+      message.style.color = 'red';
+      message.textContent = `Try again! Check letter ${i+1}.`;
+      return;
+    }
+  }
+  message.style.color = 'green';
+  message.textContent = "Success! Well done!";
+  speak("Success! Well done!");
+  // Automatically advance to next word step after short delay
+  setTimeout(() => {
+    nextStep();
+  }, 2000);
+}
+
+function resetSpelling(){
+  message.textContent = '';
+  // Move all counters back to counters container
+  for(let i=0; i<3; i++){
+    const counter = document.getElementById('counter'+i);
+    countersContainer.appendChild(counter);
+  }
+  // Clear letter boxes
+  for(let i=0; i<3; i++){
+    const letterBox = document.getElementById('letterBox'+i);
+    letterBox.innerText = '';
+  }
+}
+
+function updateButtons(){
+  prevBtn.disabled = (step <= 1 && wordIndex === 0);
+  nextBtn.disabled = (step > 6 && wordIndex === words.length-1);
+}
+
+window.onload = () => {
+  setupGame();
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,549 @@
+/* ===================================
+   GLOBAL STYLES & RESET
+   =================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+}
+
+/* ===================================
+   MAIN CONTAINER
+   Adapts height based on context (iframe vs standalone)
+   =================================== */
+
+#game-container {
+    width: 100%;
+    height: 450px; /* Default for iframe */
+    max-width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Standalone mode - uses viewport height */
+@media (min-height: 600px) {
+    body:not(.iframe-mode) #game-container {
+        height: 90vh;
+    }
+}
+
+/* ===================================
+   INFO ICON & TOOLTIP
+   Saves vertical space by hiding header
+   =================================== */
+
+.info-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 1000;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.info-icon:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+}
+
+.tooltip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    max-width: 80%;
+    text-align: center;
+    z-index: 2000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: opacity 0.3s ease;
+}
+
+.tooltip.hidden {
+    display: none;
+}
+
+/* ===================================
+   STATS BAR
+   Shows score, level, and timer
+   =================================== */
+
+#stats-bar {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================
+   PROGRESS BAR
+   Visual indicator of level progress
+   =================================== */
+
+#progress-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+#progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+}
+
+/* ===================================
+   GAME AREA
+   Main content area for all screens
+   =================================== */
+
+#game-area {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    overflow: hidden;
+}
+
+/* ===================================
+   SCREEN MANAGEMENT
+   All screens are positioned absolutely and toggled
+   =================================== */
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.screen.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* ===================================
+   START SCREEN
+   =================================== */
+
+.welcome-content {
+    text-align: center;
+    color: white;
+    animation: fadeInUp 0.6s ease;
+}
+
+.emoji-large {
+    font-size: 60px;
+    margin-bottom: 15px;
+    animation: bounce 1s infinite;
+}
+
+.welcome-content h1 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.welcome-content p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+/* ===================================
+   BUTTONS
+   Optimized for touch and mouse interaction
+   Min height 44px for accessibility
+   =================================== */
+
+.primary-btn {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================
+   QUESTION SCREEN
+   =================================== */
+
+.question-content {
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+.question-text {
+    font-size: 36px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 25px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+}
+
+/* ===================================
+   ANSWER GRID
+   2x2 grid of answer options
+   =================================== */
+
+#answer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.answer-btn {
+    background: white;
+    color: #667eea;
+    border: 3px solid transparent;
+    padding: 18px;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.answer-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    border-color: #667eea;
+}
+
+.answer-btn:active {
+    transform: translateY(0);
+}
+
+/* Answer button states */
+.answer-btn.correct {
+    background: #22c55e;
+    color: white;
+    border-color: #16a34a;
+    animation: correctPulse 0.5s ease;
+}
+
+.answer-btn.incorrect {
+    background: #ef4444;
+    color: white;
+    border-color: #dc2626;
+    animation: shake 0.5s ease;
+}
+
+.answer-btn.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* ===================================
+   FEEDBACK MESSAGES
+   Immediate feedback for answers
+   =================================== */
+
+.feedback {
+    font-size: 18px;
+    font-weight: bold;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.feedback.hidden {
+    display: none;
+}
+
+.feedback.correct {
+    background: #22c55e;
+    color: white;
+}
+
+.feedback.incorrect {
+    background: #ef4444;
+    color: white;
+}
+
+/* ===================================
+   LEVEL UP SCREEN
+   =================================== */
+
+.celebration-content {
+    text-align: center;
+    color: white;
+    animation: zoomIn 0.5s ease;
+}
+
+.celebration-content h2 {
+    font-size: 36px;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.celebration-content p {
+    font-size: 18px;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+/* ===================================
+   GAME OVER SCREEN
+   =================================== */
+
+.gameover-content {
+    text-align: center;
+    color: white;
+    animation: fadeInUp 0.6s ease;
+}
+
+.gameover-content h2 {
+    font-size: 32px;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+#final-stats {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+#final-stats p {
+    font-size: 18px;
+    margin: 8px 0;
+}
+
+#final-stats span {
+    font-weight: bold;
+    color: #fbbf24;
+}
+
+/* ===================================
+   ENCOURAGEMENT MESSAGES
+   Appear during gameplay for motivation
+   =================================== */
+
+.encouragement {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(251, 191, 36, 0.95);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 20px;
+    font-weight: bold;
+    z-index: 1500;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: popIn 0.5s ease;
+    pointer-events: none;
+}
+
+.encouragement.hidden {
+    display: none;
+}
+
+/* ===================================
+   ANIMATIONS
+   Enhance user experience and provide feedback
+   =================================== */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes correctPulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-10px);
+    }
+    75% {
+        transform: translateX(10px);
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   Optimize for smaller screens
+   =================================== */
+
+@media (max-width: 480px) {
+    .question-text {
+        font-size: 28px;
+        padding: 12px;
+    }
+    
+    .answer-btn {
+        font-size: 20px;
+        padding: 15px;
+        min-height: 55px;
+    }
+    
+    .welcome-content h1 {
+        font-size: 26px;
+    }
+    
+    .emoji-large {
+        font-size: 50px;
+    }
+}
+
+/* ===================================
+   ACCESSIBILITY
+   Ensure touch targets meet minimum size
+   =================================== */
+
+@media (pointer: coarse) {
+    .answer-btn {
+        min-height: 60px;
+        min-width: 60px;
+    }
+    
+    .primary-btn {
+        min-height: 48px;
+        padding: 16px 40px;
+    }
+}

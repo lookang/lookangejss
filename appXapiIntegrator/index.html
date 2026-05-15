@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>xAPI Integrator for SLS Interactive Response Question "Scorable" HTML5 (Static, client-side)</title>
+  <link rel="icon" href="data:,">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f6f8fb;
+      color: #222;
+    }
+
+    .card {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    fieldset {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    legend {
+      padding: 0 8px;
+      color: #374151;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .danger {
+      color: #b91c1c;
+    }
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="file"] {
+      padding: 8px;
+    }
+
+    button {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #145ca7;
+    }
+
+    .box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    ul {
+      margin: 8px 0 0 22px;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: #6b7280;
+    }
+
+    .drop-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 10px 12px;
+      text-align: center;
+      background: #f9fafb;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .drop-zone:hover {
+      border-color: #1976d2;
+      background: #eff6ff;
+    }
+
+    .drop-zone.drag-over {
+      border-color: #1976d2;
+      background: #eff6ff;
+      transform: scale(1.02);
+    }
+
+    .drop-zone-content {
+      pointer-events: none;
+    }
+
+    .file-button {
+      background: #1976d2;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-block;
+      transition: background 0.2s;
+    }
+
+    .file-button:hover {
+      background: #145ca7;
+    }
+
+    .file-label {
+      cursor: pointer;
+    }
+
+    .file-name {
+      margin-top: 12px;
+      color: #059669;
+      font-weight: 600;
+      min-height: 20px;
+    }
+
+    pre {
+      background: #0b1020;
+      color: #e5e7eb;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      border: 1px solid #1f2937;
+    }
+
+    a.download {
+      text-decoration: none;
+      background: #059669;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    a.download:hover {
+      background: #047857;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>xAPI Integrator for SLS Interactive Response Question "Scorable" HTML5</h1>
+    <p class="hint">
+      Upload an interactive ZIP (must contain <code>index.html</code>). This static tool will inject the working xAPI
+      libraries and wiring in-browser, then give you a ready-to-upload ZIP. No server required.
+    </p>
+
+    <fieldset style="margin-top:16px;">
+      <legend>Upload</legend>
+      <div id="dropZone" class="drop-zone">
+        <div class="drop-zone-content">
+          <svg width="48" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="margin: 0 auto 6px; display: block; color: #6b7280;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <p style="margin: 0 0 4px; font-weight: 600; color: #374151;">Drag and drop your ZIP file here</p>
+          <p style="margin: 0 0 6px; color: #6b7280; font-size: 0.9rem;">or</p>
+          <label class="file-label">
+            <input id="zipInput" type="file" accept=".zip" style="display: none;" />
+            <span class="file-button">Browse Files</span>
+          </label>
+          <p id="fileName" class="file-name"></p>
+        </div>
+      </div>
+      <p class="hint">The resulting ZIP will keep <code>index.html</code> at the root of the content folder and add
+        <code>lib/xapiwrapper.min.js</code> + <code>lib/xAPI.js</code>. CSP-blocked GA/AdSense scripts will be removed
+        by default (unless you check "Keep Google Analytics/AdSense scripts" below).
+      </p>
+    </fieldset>
+
+    <fieldset style="margin-top:16px;">
+      <legend>Mode</legend>
+      <div class="row">
+        <label><input type="radio" name="mode" value="timeline" checked /> Timeline (adds generic action logging +
+          fallback "Save to SLS" button)</label>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label><input type="radio" name="mode" value="quiz" /> Quiz (comprehensive quiz analytics with question
+          tracking)</label>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label><input type="radio" name="mode" value="minimal" /> Minimal (only injects xAPI libs and a basic save
+          helper)</label>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label><input type="radio" name="mode" value="ai" /> Experimental AI (generate custom xAPI wiring using your own
+          API key)</label>
+      </div>
+      <p class="hint">
+        <strong>Timeline mode:</strong> Tracks button clicks, select changes, canvas drags, and auto-saves on Pause.
+        Adds a floating "Save to SLS" button.<br>
+        <strong>Quiz mode:</strong> Specialized for quizzes/assessments. Tracks each question attempt, answer
+        selections, time per question, navigation patterns, and calculates scores. Provides detailed student performance
+        analytics.<br>
+        <strong>Minimal mode:</strong> Only injects xAPI libraries without additional tracking.<br>
+        <strong>Experimental AI:</strong> Uses your own AI API key at integration-time (not in SLS) to generate a custom
+        JavaScript snippet that can hook up your variables and scoring rules.
+      </p>
+    </fieldset>
+
+    <fieldset id="aiSettings" style="margin-top:16px; display:none;">
+      <legend>🤖 AI-Powered Auto-Fix (Experimental)</legend>
+      <p class="hint">
+        <strong>NEW:</strong> AI automatically diagnoses issues in your content and generates fixes!<br>
+        This mode calls an OpenAI-compatible chat completion API <em>from your browser</em> while generating the
+        ZIP.<br>
+        Your API key is used only client-side and is <strong>not</strong> written into the exported ZIP or sent to SLS.
+      </p>
+      <div class="box" style="margin-top:12px; background:#eff6ff; border-color:#3b82f6;">
+        <strong style="color:#1e40af;">✨ AI Diagnostics Features:</strong>
+        <ul style="margin:8px 0 0 20px; color:#1e3a8a;">
+          <li>Detects missing score tracking</li>
+          <li>Finds broken feedback displays</li>
+          <li>Identifies missing event handlers</li>
+          <li>Auto-generates fix code</li>
+          <li>Explains what it fixed</li>
+        </ul>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label>
+          API key:
+          <input id="aiApiKey" type="password" placeholder="sk-..." style="min-width:260px; padding:4px 6px;" />
+        </label>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label>
+          Model:
+          <select id="aiModel" style="min-width:220px; padding:4px 6px;">
+            <option value="gpt-4.1-mini">Default (OpenAI) - gpt-4.1-mini</option>
+            <option value="gemini-3-pro">Gemini 3 Pro</option>
+            <option value="gpt-5.1">ChatGPT 5.1</option>
+            <option value="claude-4.5-sonnet">Claude 4.5 Sonnet</option>
+            <option value="custom">Custom (enter manually below)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label>
+          Custom model ID:
+          <input id="aiModelCustom" type="text" placeholder="e.g. gpt-4.1, my-proxy-model"
+            style="min-width:220px; padding:4px 6px; display:none;" />
+        </label>
+        <span class="hint">Used only when "Custom" is selected above.</span>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label style="flex-direction:column; align-items:flex-start; width:100%;">
+          Author instructions to AI:
+          <textarea id="aiInstruction" rows="4"
+            style="width:100%; margin-top:4px; padding:6px 8px; font-family:inherit;"
+            placeholder="Describe your variables, marks logic (e.g. 'marks = 10 when score >= 80'), and what you want stored to SLS. The AI will return a JS snippet that uses window.storeState(...) and the already-injected xAPI libs."></textarea>
+        </label>
+      </div>
+      <p class="hint danger">
+        This is experimental. Please review the generated snippet inside your integrated <code>index.html</code> before
+        deploying to production SLS.
+      </p>
+    </fieldset>
+
+    <fieldset style="margin-top:16px;">
+      <legend>Options</legend>
+      <div class="row">
+        <label>
+          <input type="checkbox" id="openInNewTab" name="openInNewTab" checked />
+          Open in New Tab (Launch activity in a popup, keep SLS connection in parent)
+        </label>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label>
+          <input type="checkbox" id="keepAnalytics" name="keepAnalytics" />
+          Keep Google Analytics/AdSense scripts (do not remove CSP-blocked scripts)
+        </label>
+      </div>
+      <p class="hint">
+        <strong>Keep Google Analytics:</strong> By default, CSP-blocked scripts (GA, AdSense) are removed. Check to keep
+        them.<br>
+        <strong>Open in New Tab:</strong> Creates a launcher page. When clicked, the activity opens in a new tab/window
+        but sends data back to the original tab to communicate with SLS.
+      </p>
+    </fieldset>
+
+    <div style="margin-top:16px;" class="actions">
+      <button id="integrateBtn" type="button">Integrate</button>
+      <a id="downloadLink" class="download" href="#" style="display:none">Download ZIP</a>
+      <span class="muted" id="statusText"></span>
+    </div>
+
+    <div style="margin-top:16px;">
+      <details>
+        <summary><strong>How it works (expand)</strong></summary>
+        <ul>
+          <li>Unzips your upload entirely in the browser (JSZip)</li>
+          <li>Finds the folder containing <code>index.html</code> (root, single subfolder, or shallow search)</li>
+          <li>Removes CSP-blocked GA/AdSense scripts</li>
+          <li>Injects <code><script src="./lib/xapiwrapper.min.js"></script></code> and
+            <code><script src="./lib/xAPI.js"></script></code> into your content’s head if missing
+          </li>
+          <li>(This page itself loads vendor files from <code>./vendor/*.js</code>)</li>
+          <li>Optionally injects a small instrumentation snippet (Timeline mode)</li>
+          <li>Adds vendored xAPI libs into <code>lib/</code> in the ZIP</li>
+          <li>Re-zips and offers a download</li>
+        </ul>
+        <p class="hint">Note: To load vendor libraries, this page should be served over HTTP(S). Opening via file:// may
+          block fetch of local vendor files.</p>
+      </details>
+    </div>
+
+    <div style="margin-top:16px;">
+      <strong>Requirements from SLS:</strong>
+      <ul>
+        <li>Launch URL must include: <code>endpoint</code>, <code>auth</code>, <code>agent</code> (or
+          <code>actor</code>), <code>stateId</code>, <code>activityId</code>
+        </li>
+        <li>auth is Base64 of <code>key:secret</code>; the library prepends “Basic ” automatically</li>
+        <li>agent/actor must be URL-encoded JSON (e.g.,
+          <code>encodeURIComponent(JSON.stringify({ mbox: "mailto:student@example.com" }))</code>)
+        </li>
+      </ul>
+      <p class="danger" style="margin-top:8px;">If these parameters are not present at launch, xAPI calls will be
+        skipped by the integrated app.</p>
+    </div>
+
+    <div style="margin-top:16px;">
+      <details>
+        <summary><strong>Log</strong></summary>
+        <pre id="log"></pre>
+      </details>
+    </div>
+  </div>
+
+  <!-- JSZip (CDN with local fallback) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>window.JSZip || document.write('<script src="./vendor/jszip.min.js"><\\/script>');</script>
+  <!-- Client-side integrator -->
+  <script src="./app.js"></script>
+</body>
+
+</html>

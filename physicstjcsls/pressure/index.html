@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluid Pressure & Container Shape Simulation</title>
+    <meta name="description" content="Interactive fluid pressure simulation comparing pressure-depth relationships in different container shapes.">
+    <link rel="canonical" href="https://physicstjc.github.io/sls/pressure/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Fluid Pressure Simulation">
+    <meta property="og:description" content="Interactive fluid pressure simulation comparing pressure-depth relationships in different container shapes.">
+    <meta property="og:url" content="https://physicstjc.github.io/sls/pressure/">
+    <meta property="og:image" content="https://physicstjc.github.io/sls/pressure/pressure.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="800">
+    <meta property="og:image:alt" content="Preview image of the Fluid Pressure simulation">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Fluid Pressure Simulation">
+    <meta name="twitter:description" content="Interactive fluid pressure simulation comparing pressure-depth relationships in different container shapes.">
+    <meta name="twitter:image" content="https://physicstjc.github.io/sls/pressure/pressure.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        /* Neobrutalist theme */
+        :root {
+            --ink: #111111;
+            --paper: #fffdf7;
+            --bg: #ffe06b;
+            --panel: #ffffff;
+            --teal: #39d2c0;
+            --orange: #ff8f3f;
+            --pink: #ff5ca8;
+            --blue: #4a8dff;
+            --accent: #ffb347;
+            --border: 3px solid var(--ink);
+        }
+
+        body {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) -14px 0/28px 28px,
+                linear-gradient(225deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) -14px 0/28px 28px,
+                linear-gradient(315deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) 0 0/28px 28px,
+                linear-gradient(45deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) 0 0/28px 28px,
+                var(--bg);
+            font-family: "Trebuchet MS", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            line-height: 1.6;
+            margin: 0;
+            padding: 14px;
+        }
+
+        .main-container {
+            max-width: 960px;
+            margin: 12px auto;
+            background: var(--paper);
+            padding: 16px;
+            border-radius: 0;
+            border: 4px solid var(--ink);
+            box-shadow: 10px 10px 0 var(--ink);
+            position: relative;
+            padding-top: 56px;
+        }
+
+        .sim-layout {
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            gap: 14px;
+            align-items: center;
+            max-height: 480px;
+        }
+
+        #topTitleBar {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            right: 1px;
+            background: var(--accent);
+            border-bottom: var(--border);
+            border-radius: 0;
+            padding: 6px 10px;
+            z-index: 3;
+        }
+
+        #topTitleBar h1 {
+            margin: 0;
+            color: var(--ink);
+            font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+            line-height: 1.1;
+            font-weight: 700;
+        }
+
+        .canvas-wrap {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            min-height: 480px;
+            width: 100%;
+        }
+
+        .calc-overlay {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(92%, 560px);
+            background: rgba(255, 255, 255, 0.94);
+            border: 3px solid var(--ink);
+            box-shadow: 4px 4px 0 var(--ink);
+            padding: 8px 12px;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .calc-formula {
+            font-size: 0.84rem;
+            color: #222;
+            line-height: 1.3;
+            font-weight: 700;
+        }
+
+        .calc-depth {
+            margin-top: 4px;
+            font-size: 0.78rem;
+            color: #444;
+        }
+
+        canvas {
+            background-color: #f6fbff;
+            border: 4px solid var(--ink);
+            border-radius: 0;
+            cursor: crosshair;
+            width: 100%;
+            max-width: 100%;
+            min-height: 480px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 6px 6px 0 var(--ink);
+            touch-action: none;
+        }
+
+        .control-group {
+            background: var(--panel);
+            border: 3px solid var(--ink);
+            border-radius: 0;
+            padding: 15px;
+            margin-top: 15px;
+            box-shadow: 4px 4px 0 var(--ink);
+        }
+
+        .control-label {
+            font-weight: 600;
+            color: var(--ink);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 10px;
+            cursor: pointer;
+            background: var(--teal);
+            border: 2px solid var(--ink);
+            border-radius: 0;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 0;
+            background: var(--pink);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -9px;
+            border: 2px solid var(--ink);
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        .btn-reset {
+            background-color: var(--blue);
+            color: var(--ink);
+            padding: 8px 16px;
+            border-radius: 0;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85rem;
+            border: 3px solid var(--ink);
+            box-shadow: 4px 4px 0 var(--ink);
+        }
+
+        .btn-reset:hover {
+            background-color: var(--orange);
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+
+        .info-box {
+            background-color: #fff4db;
+            border: 3px solid var(--ink);
+            padding: 15px;
+            font-size: 0.9rem;
+            color: var(--ink);
+            box-shadow: 4px 4px 0 var(--ink);
+            height: 100%;
+            overflow: auto;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .checkbox-container input {
+            accent-color: var(--orange);
+        }
+
+        .legend-block {
+            margin-top: 14px;
+        }
+
+        @media (max-width: 980px) {
+            .sim-layout {
+                grid-template-columns: 1fr;
+                max-height: none;
+            }
+
+            .main-container {
+                padding: 16px;
+            }
+
+            canvas {
+                min-height: 0;
+            }
+
+            .canvas-wrap {
+                min-height: 0;
+            }
+
+            .info-box {
+                height: auto;
+            }
+
+            #topTitleBar {
+                position: static;
+                margin-bottom: 12px;
+            }
+
+            .main-container {
+                padding-top: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <header id="topTitleBar" aria-label="Simulation top title bar">
+            <h1>Hydrostatic Pressure</h1>
+        </header>
+
+        <div class="sim-layout">
+            <aside class="info-box" id="infoBox">
+                <div class="control-group mt-0">
+                    <span class="control-label">Liquid Level & Density</span>
+                    <div class="space-y-4">
+                        <div>
+                            <span style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 4px;">Liquid Level</span>
+                            <input type="range" id="waterLevelSlider" min="50" max="350" value="300">
+                        </div>
+                        <div>
+                            <span style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 4px;">Density</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="range" id="densitySlider" min="500" max="2000" step="50" value="1000" style="flex: 1;">
+                                <span id="densityValue" style="font-size: 0.85rem; color: var(--ink); min-width: 95px;">1000 kg/m³</span>
+                            </div>
+                        </div>
+                        <button id="resetBtn" class="btn-reset w-full">Reset Simulation</button>
+                    </div>
+                </div>
+
+                <div class="legend-block">
+                    <strong>Legend:</strong> Red arrows show wall normal force from molecule collisions. Pressure rises with depth and density.
+                    <div class="mt-3 space-y-2">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="showMolecules" checked>
+                            <span>Show Molecules</span>
+                        </label>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="showPressureGauges" checked>
+                            <span>Show Pressure Gauges</span>
+                        </label>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="canvas-wrap">
+                <div class="calc-overlay" aria-live="polite">
+                    <div class="calc-depth">$P = P_{atm} + h \rho g$</div>
+                    <div id="pressureFormula" class="calc-formula">P = 101300 + (h × 1000 × 9.81) Pa</div>
+                    <div id="depthValue" class="calc-depth">Probe depth h = 0.00 m</div>
+                </div>
+                <canvas id="simCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const showMoleculesCheck = document.getElementById('showMolecules');
+        const showPressureGaugesCheck = document.getElementById('showPressureGauges');
+        const waterLevelSlider = document.getElementById('waterLevelSlider');
+        const densitySlider = document.getElementById('densitySlider');
+        const densityValue = document.getElementById('densityValue');
+        const pressureFormula = document.getElementById('pressureFormula');
+        const depthValue = document.getElementById('depthValue');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const CONTAINER_BOTTOM = 450;
+        const CONTAINER_TOP = 100;
+        const P_ATM = 101300;
+        const G = 9.81;
+        const CANVAS_MAX_WIDTH = 960;
+        const CANVAS_HEIGHT = 480;
+        const BASE_DENSITY = 1000; // Reference density in kg/m^3 (water)
+        const BASE_MOLECULES = 2500; // Reference molecule count at base density and max volume
+
+        function calculateVolume(liquidHeight) {
+            // Calculate volume of trapezoidal container filled to given height
+            // Top width at surface varies with height, bottom width is constant
+            const surfaceY = CONTAINER_BOTTOM - liquidHeight;
+            const topWidth = 400 - 2 * (surfaceY - CONTAINER_TOP) / 7;
+            const bottomWidth = 300;
+            // Volume approximation (trapezoid)
+            return liquidHeight * (topWidth + bottomWidth) / 2;
+        }
+
+        function calculateNumMolecules(density, liquidHeight) {
+            // numMolecules is proportional to density and volume
+            const maxVolume = calculateVolume(350); // Max container volume
+            const currentVolume = calculateVolume(liquidHeight);
+            const volumeFraction = currentVolume / maxVolume;
+            const relativeDensity = density / BASE_DENSITY;
+            return Math.round(BASE_MOLECULES * relativeDensity * volumeFraction);
+        }
+
+        function updatePressureFormulaLabel() {
+            pressureFormula.textContent = `P = 101300 + (h × ${currentDensity.toFixed(0)} × 9.81) Pa`;
+        }
+
+        function centerContainer() {
+            const containerWidth = 400; // Fixed container width
+            const centerX = canvas.width / 2;
+            nodes[0].x = centerX - containerWidth / 2;  // tl
+            nodes[1].x = centerX + containerWidth / 2;  // tr
+            nodes[2].x = centerX + containerWidth / 2 - 50; // br (slightly narrower at bottom)
+            nodes[3].x = centerX - containerWidth / 2 + 50; // bl (slightly narrower at bottom)
+            probe.x = centerX;
+        }
+
+        function resize() {
+            const containerWidth = canvas.parentElement.clientWidth;
+            canvas.width = Math.max(320, Math.min(containerWidth, CANVAS_MAX_WIDTH));
+            canvas.height = CANVAS_HEIGHT;
+            centerContainer();
+        }
+
+        let waterHeight = 300; 
+        let molecules = [];
+        let collisionEffects = [];
+        let currentDensity = BASE_DENSITY;
+        let numMolecules = BASE_MOLECULES;
+        let draggingElement = null;
+
+        let nodes = [
+            { x: 240, y: 100, id: 'tl' }, 
+            { x: 640, y: 100, id: 'tr' }, 
+            { x: 590, y: CONTAINER_BOTTOM, id: 'br' }, 
+            { x: 290, y: CONTAINER_BOTTOM, id: 'bl' }  
+        ];
+
+        let probe = {
+            x: 440,
+            y: 350,
+            radius: 12
+        };
+
+        window.addEventListener('resize', resize);
+        resize();
+        centerContainer(); // Center nodes after canvas is sized
+        const defaultNodes = JSON.parse(JSON.stringify(nodes));
+        const defaultProbe = JSON.parse(JSON.stringify(probe));
+
+        function addForceVector(x, y, nx, ny) {
+            // High frequency display
+            if (Math.random() > 0.12) return; 
+            collisionEffects.push({ x, y, nx, ny, life: 1.0 });
+        }
+
+        function getXAtY(y, p1, p2) {
+            return p1.x + (y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y);
+        }
+
+        function getInwardNormal(pTop, pBottom, isLeftWall) {
+            const dx = pBottom.x - pTop.x;
+            const dy = pBottom.y - pTop.y;
+            const mag = Math.sqrt(dx*dx + dy*dy);
+            if (isLeftWall) {
+                return { nx: dy / mag, ny: -dx / mag };
+            } else {
+                return { nx: -dy / mag, ny: dx / mag };
+            }
+        }
+
+        class Molecule {
+            constructor(index) {
+                this.index = index;
+                this.radius = 2.5;
+                this.init();
+            }
+
+            init() {
+                const surfaceY = CONTAINER_BOTTOM - waterHeight;
+                this.y = surfaceY + Math.random() * waterHeight;
+                const lx = getXAtY(this.y, nodes[0], nodes[3]);
+                const rx = getXAtY(this.y, nodes[1], nodes[2]);
+                this.x = lx + Math.random() * (rx - lx);
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = (Math.random() - 0.5) * 3;
+            }
+
+            update() {
+                const surfaceY = CONTAINER_BOTTOM - waterHeight;
+
+                // True random Brownian motion — equal kick in all directions
+                this.vx += (Math.random() - 0.5) * 1.2;
+                this.vy += (Math.random() - 0.5) * 1.2;
+
+                this.vx *= 0.88;
+                this.vy *= 0.88;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                const lx = getXAtY(this.y, nodes[0], nodes[3]);
+                const rx = getXAtY(this.y, nodes[1], nodes[2]);
+
+                // Left Wall Collision 
+                if (this.x < lx + this.radius + 1.5) { 
+                    if (this.x < lx + this.radius) {
+                        this.x = lx + this.radius;
+                        this.vx = Math.abs(this.vx) * 0.7;
+                    }
+                    const norm = getInwardNormal(nodes[0], nodes[3], true);
+                    addForceVector(lx, this.y, norm.nx, norm.ny);
+                }
+                
+                // Right Wall Collision
+                if (this.x > rx - this.radius - 1.5) {
+                    if (this.x > rx - this.radius) {
+                        this.x = rx - this.radius;
+                        this.vx = -Math.abs(this.vx) * 0.7;
+                    }
+                    const norm = getInwardNormal(nodes[1], nodes[2], false);
+                    addForceVector(rx, this.y, norm.nx, norm.ny);
+                }
+
+                // Top/Bottom
+                if (this.y < surfaceY + this.radius) {
+                    this.y = surfaceY + this.radius;
+                    this.vy *= -0.5;
+                }
+                if (this.y > CONTAINER_BOTTOM - this.radius - 1.5) {
+                    if (this.y > CONTAINER_BOTTOM - this.radius) {
+                        this.y = CONTAINER_BOTTOM - this.radius;
+                        this.vy = -Math.abs(this.vy) * 0.7;
+                    }
+                    addForceVector(this.x, CONTAINER_BOTTOM, 0, -1); 
+                }
+
+                // Probe Collision
+                const dx = this.x - probe.x;
+                const dy = this.y - probe.y;
+                const distSq = dx*dx + dy*dy;
+                const minDist = probe.radius + this.radius;
+                if (distSq < (minDist + 1) * (minDist + 1)) {
+                    const dist = Math.sqrt(distSq);
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    if (dist < minDist) {
+                        this.x = probe.x + nx * minDist;
+                        this.y = probe.y + ny * minDist;
+                        const dot = this.vx * nx + this.vy * ny;
+                        this.vx -= 1.6 * dot * nx;
+                        this.vy -= 1.6 * dot * ny;
+                    }
+                    addForceVector(probe.x + nx * probe.radius, probe.y + ny * probe.radius, nx, ny);
+                }
+            }
+
+            draw() {
+                ctx.moveTo(this.x + this.radius, this.y);
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            }
+        }
+
+        function spawnMolecules() {
+            molecules = [];
+            for (let i = 0; i < numMolecules; i++) {
+                molecules.push(new Molecule(i));
+            }
+        }
+        spawnMolecules();
+
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', drag);
+        window.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrag(e.touches[0]); });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); drag(e.touches[0]); });
+        window.addEventListener('touchend', endDrag);
+
+        function getCanvasPoint(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function isPointInsideLiquid(px, py) {
+            const surfaceY = CONTAINER_BOTTOM - waterHeight;
+            if (py < surfaceY || py > CONTAINER_BOTTOM) {
+                return false;
+            }
+
+            const lx = getXAtY(py, nodes[0], nodes[3]);
+            const rx = getXAtY(py, nodes[1], nodes[2]);
+            return px >= lx && px <= rx;
+        }
+
+        function startDrag(e) {
+            const { x: mouseX, y: mouseY } = getCanvasPoint(e);
+            if (Math.sqrt((mouseX - probe.x)**2 + (mouseY - probe.y)**2) < probe.radius + 15) {
+                draggingElement = { type: 'probe' };
+                return;
+            }
+            for (const node of nodes) {
+                if (Math.sqrt((mouseX - node.x)**2 + (mouseY - node.y)**2) < 25) {
+                    draggingElement = { type: 'node', target: node };
+                    break;
+                }
+            }
+        }
+
+        function drag(e) {
+            if (!draggingElement) return;
+            const { x: mx, y: my } = getCanvasPoint(e);
+            if (draggingElement.type === 'node') {
+                const node = draggingElement.target;
+                const minX = 50;
+                const maxX = canvas.width - 50;
+                
+                if (node.id === 'tl') {
+                    // Top-left: must stay left of top-right, with minimum gap
+                    node.x = Math.max(minX, Math.min(mx, nodes[1].x - 100));
+                    node.y = 100;
+                } else if (node.id === 'tr') {
+                    // Top-right: must stay right of top-left, with minimum gap
+                    node.x = Math.min(maxX, Math.max(mx, nodes[0].x + 100));
+                    node.y = 100;
+                } else if (node.id === 'bl') {
+                    // Bottom-left: must stay left of bottom-right, with minimum gap
+                    node.x = Math.max(minX, Math.min(mx, nodes[2].x - 50));
+                    node.y = CONTAINER_BOTTOM;
+                } else if (node.id === 'br') {
+                    // Bottom-right: must stay right of bottom-left, with minimum gap
+                    node.x = Math.min(maxX, Math.max(mx, nodes[3].x + 50));
+                    node.y = CONTAINER_BOTTOM;
+                }
+                // Recalculate molecules when container shape changes
+                numMolecules = calculateNumMolecules(currentDensity, parseInt(waterLevelSlider.value));
+                spawnMolecules();
+            } else if (draggingElement.type === 'probe') {
+                probe.x = Math.max(50, Math.min(canvas.width - 50, mx));
+                probe.y = Math.max(50, Math.min(CONTAINER_BOTTOM, my));
+            }
+        }
+
+        function endDrag() { draggingElement = null; }
+
+        waterLevelSlider.addEventListener('input', () => {
+            numMolecules = calculateNumMolecules(currentDensity, parseInt(waterLevelSlider.value));
+            spawnMolecules();
+        });
+
+        densitySlider.addEventListener('input', () => {
+            currentDensity = parseFloat(densitySlider.value);
+            densityValue.textContent = `${currentDensity.toFixed(0)} kg/m³`;
+            updatePressureFormulaLabel();
+            numMolecules = calculateNumMolecules(currentDensity, parseInt(waterLevelSlider.value));
+            spawnMolecules();
+        });
+
+        resetBtn.onclick = () => {
+            nodes = JSON.parse(JSON.stringify(defaultNodes));
+            probe = JSON.parse(JSON.stringify(defaultProbe));
+            centerContainer();
+            waterLevelSlider.value = 300;
+            densitySlider.value = BASE_DENSITY;
+            currentDensity = BASE_DENSITY;
+            densityValue.textContent = `${BASE_DENSITY.toFixed(0)} kg/m³`;
+            updatePressureFormulaLabel();
+            numMolecules = calculateNumMolecules(currentDensity, 300);
+            spawnMolecules();
+        };
+
+        function drawContainer() {
+            const surfaceY = CONTAINER_BOTTOM - waterHeight;
+            const ltx = getXAtY(surfaceY, nodes[0], nodes[3]);
+            const rtx = getXAtY(surfaceY, nodes[1], nodes[2]);
+            
+            ctx.beginPath();
+            ctx.moveTo(ltx, surfaceY);
+            ctx.lineTo(rtx, surfaceY);
+            ctx.lineTo(nodes[2].x, nodes[2].y);
+            ctx.lineTo(nodes[3].x, nodes[3].y);
+            ctx.fillStyle = '#f0f9ff';
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(nodes[0].x, nodes[0].y);
+            ctx.lineTo(nodes[3].x, nodes[3].y);
+            ctx.lineTo(nodes[2].x, nodes[2].y);
+            ctx.lineTo(nodes[1].x, nodes[1].y);
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(ltx, surfaceY);
+            ctx.lineTo(rtx, surfaceY);
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function calculatePressureAtY(y) {
+            const surfaceY = CONTAINER_BOTTOM - waterHeight;
+            const h = Math.max(0, y - surfaceY) / 10;
+            const hydrostaticComponent = h * currentDensity * G;
+            return Math.round(P_ATM + hydrostaticComponent);
+        }
+
+        function calculateDepthAtY(y) {
+            const surfaceY = CONTAINER_BOTTOM - waterHeight;
+            return Math.max(0, y - surfaceY) / 10;
+        }
+
+        function calculateProbePressure(x, y) {
+            if (!isPointInsideLiquid(x, y)) {
+                return P_ATM.toFixed(1);
+            }
+            return calculatePressureAtY(y);
+        }
+
+        function drawForceVectors() {
+            for (let i = collisionEffects.length - 1; i >= 0; i--) {
+                const f = collisionEffects[i];
+                ctx.strokeStyle = `rgba(231, 76, 60, ${f.life})`;
+                ctx.lineWidth = 3; 
+                
+                const arrowLength = 22; 
+                const headSize = 7;
+                
+                ctx.beginPath();
+                ctx.moveTo(f.x, f.y);
+                const ex = f.x + f.nx * arrowLength;
+                const ey = f.y + f.ny * arrowLength;
+                ctx.lineTo(ex, ey);
+                
+                const angle = Math.atan2(f.ny, f.nx);
+                ctx.lineTo(ex - headSize * Math.cos(angle - Math.PI / 6), ey - headSize * Math.sin(angle - Math.PI / 6));
+                ctx.moveTo(ex, ey);
+                ctx.lineTo(ex - headSize * Math.cos(angle + Math.PI / 6), ey - headSize * Math.sin(angle + Math.PI / 6));
+                ctx.stroke();
+                
+                f.life -= 0.05; 
+                if (f.life <= 0) collisionEffects.splice(i, 1);
+            }
+        }
+
+        function drawGauges() {
+            if (!showPressureGaugesCheck.checked) return;
+            [250, 350, 440].forEach(cy => {
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(50, cy); ctx.lineTo(canvas.width - 50, cy);
+                ctx.strokeStyle = '#bdc3c7';
+                ctx.stroke();
+                ctx.setLineDash([]);
+                const press = calculatePressureAtY(cy);
+                ctx.fillStyle = '#7f8c8d';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${press.toLocaleString()} Pa`, 60, cy - 6);
+            });
+        }
+
+        updatePressureFormulaLabel();
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            waterHeight = parseInt(waterLevelSlider.value);
+
+            drawContainer();
+
+            if (showMoleculesCheck.checked) {
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(52, 152, 219, 0.45)';
+                molecules.forEach(m => {
+                    m.update();
+                    m.draw();
+                });
+                ctx.fill();
+                drawForceVectors(); 
+            }
+
+            drawGauges();
+            
+            // Probe
+            const surfaceY = CONTAINER_BOTTOM - waterHeight;
+            const probeInLiquid = isPointInsideLiquid(probe.x, probe.y);
+            const press = calculateProbePressure(probe.x, probe.y);
+            const probeDepth = calculateDepthAtY(probe.y);
+            depthValue.textContent = `Probe depth h = ${probeDepth.toFixed(2)} m`;
+            ctx.beginPath();
+            ctx.arc(probe.x, probe.y, probe.radius, 0, Math.PI * 2);
+            ctx.fillStyle = probeInLiquid ? '#2ecc71' : '#f1c40f';
+            ctx.fill();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${press.toLocaleString()} Pa`, probe.x, probe.y - 22);
+            
+            // Handles
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#f39c12';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        window.onload = function() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+            animate();
+        };
+    </script>
+</body>
+</html>

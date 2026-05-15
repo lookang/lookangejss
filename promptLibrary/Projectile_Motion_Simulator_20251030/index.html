@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projectile Motion Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<style id="aiz-footer-style">
+#aiz-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2147483000;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto; /* keep links clickable */
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  color: #222;
+}
+#aiz-footer p {
+  margin: 0;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+#aiz-footer a { color: #0b69ff; text-decoration: underline; }
+</style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main control panel -->
+        <div class="control-panel">
+            <!-- Title with tooltip -->
+            <div class="panel-header" title="Explore how initial velocity, angle, and gravity affect projectile motion">
+                ⚙️ Simulation Controls
+            </div>
+
+            <!-- Input controls section -->
+            <div class="controls-section">
+                <!-- MODIFIED: Velocity and Angle in inline-flex row -->
+                <div class="control-row">
+                    <div class="control-group">
+                        <div class="label-row">
+                            <label for="velocity-slider">Initial Velocity (m/s)</label>
+                            <span class="value-display" id="velocity-value">20</span>
+                        </div>
+                        <input type="range" id="velocity-slider" min="5" max="50" value="20" class="slider">
+                        <div class="slider-labels">
+                            <span>5</span>
+                            <span>50</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="label-row">
+                            <label for="angle-slider">Launch Angle (°)</label>
+                            <span class="value-display" id="angle-value">45</span>
+                        </div>
+                        <input type="range" id="angle-slider" min="0" max="90" value="45" class="slider">
+                        <div class="slider-labels">
+                            <span>0°</span>
+                            <span>90°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODIFIED: Gravity and Height in inline-flex row -->
+                <div class="control-row">
+                    <div class="control-group">
+                        <div class="label-row">
+                            <label for="gravity-slider">Gravity (m/s²)</label>
+                            <span class="value-display" id="gravity-value">9.8</span>
+                        </div>
+                        <input type="range" id="gravity-slider" min="1" max="20" value="9.8" step="0.1" class="slider">
+                        <div class="slider-labels">
+                            <span>1</span>
+                            <span>20</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="label-row">
+                            <label for="height-slider">Initial Height (m)</label>
+                            <span class="value-display" id="height-value">0</span>
+                        </div>
+                        <input type="range" id="height-slider" min="0" max="50" value="0" class="slider">
+                        <div class="slider-labels">
+                            <span>0</span>
+                            <span>50</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Air Resistance Checkbox -->
+                <div class="control-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="air-resistance-checkbox">
+                        <span>Include Air Resistance</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="button-group">
+                <button id="launch-button" class="btn btn-primary">Launch</button>
+                <button id="reset-button" class="btn btn-secondary">Reset</button>
+                <button id="pause-button" class="btn btn-secondary" style="display:none;">Pause</button>
+            </div>
+
+            <!-- Results display -->
+            <div class="results-section" id="results-section" style="display:none;">
+                <div class="result-item">
+                    <span class="result-label">Max Height:</span>
+                    <span class="result-value" id="max-height">0</span>
+                    <span class="result-unit">m</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Range:</span>
+                    <span class="result-value" id="range">0</span>
+                    <span class="result-unit">m</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Time of Flight:</span>
+                    <span class="result-value" id="time-flight">0</span>
+                    <span class="result-unit">s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Impact Velocity:</span>
+                    <span class="result-value" id="impact-velocity">0</span>
+                    <span class="result-unit">m/s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization area -->
+        <div class="visualization-area">
+            <!-- Canvas for trajectory -->
+            <canvas id="trajectory-canvas"></canvas>
+            
+            <!-- Info tooltip -->
+            <div class="info-tooltip" id="info-tooltip" style="display:none;">
+                <span id="tooltip-text"></span>
+            </div>
+        </div>
+
+        <!-- Graph section -->
+        <div class="graph-section">
+            <div class="graph-container">
+                <canvas id="height-graph"></canvas>
+                <div class="graph-label">Height vs Time (m)</div>
+            </div>
+            <div class="graph-container">
+                <canvas id="velocity-graph"></canvas>
+                <div class="graph-label">Velocity vs Time (m/s)</div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FF6B6B;"></div>
+                <span>Trajectory</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4ECDC4;"></div>
+                <span>Velocity Vector</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFE66D;"></div>
+                <span>Launch Point</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+<footer id="aiz-footer" role="contentinfo"><p id="generated-footer-credit">Made by lookang, using Gemini 2.5 Pro. For more resources: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light</a></p></footer>
+</body>
+</html>

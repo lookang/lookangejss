@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Achievements — Leitner Maths</title>
+<link rel="stylesheet" href="styles.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S9EWRY1CPJ');</script>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <a href="index.html" class="back-btn" aria-label="Back to home">🏠</a>
+    <div style="flex:1">
+      <h1>🏆 Achievement Booklet</h1>
+      <div style="font-size:.8rem;color:var(--muted)">10 Milestones · Track your learning journey</div>
+    </div>
+  </div>
+
+  <!-- Summary bar -->
+  <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:var(--radius);padding:18px 22px;color:white;margin-bottom:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="font-size:3rem;line-height:1" id="trophyDisplay">🏆</div>
+    <div style="flex:1">
+      <div style="font-size:1.3rem;font-weight:800" id="summaryText">0 of 10 Milestones Achieved</div>
+      <div style="opacity:.85;font-size:.88rem;margin-top:4px" id="summaryName">Keep practising — you can do it!</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:2rem;font-weight:900" id="overallPct">0%</div>
+      <div style="font-size:.75rem;opacity:.85">Overall Pack C</div>
+    </div>
+  </div>
+
+  <!-- Overall progress bar -->
+  <div class="progress-wrap" style="margin-bottom:18px">
+    <div class="progress-labels">
+      <span>Overall progress to Pack C</span>
+      <span id="overallPctLabel">0%</span>
+    </div>
+    <div class="progress-bar" style="height:16px">
+      <div class="progress-fill" id="overallBar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#22c55e)"></div>
+    </div>
+  </div>
+
+  <!-- Milestone cards -->
+  <div id="milestoneList"></div>
+
+  <!-- Confetti container -->
+  <div id="confettiContainer" aria-hidden="true"></div>
+
+  <div class="footer">
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using Claude Sonnet 4.6 &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a>
+  </div>
+</div>
+
+<script src="leitner-engine.js"></script>
+<script>
+(function () {
+  const engine = LeitnerEngine.init();
+
+  const MILESTONES = [
+    { n:1,  title:'Addition & Subtraction within 20',
+      desc:'Know all addition and subtraction facts up to 20 by heart.',
+      criteria:'All +/− within 20 cards in Pack C', topics:['addition','subtraction'] },
+    { n:2,  title:'Word Problems — Addition & Subtraction',
+      desc:'Solve one-step word problems involving addition and subtraction.',
+      criteria:'Complete 10 word problems (M2) with ≥80% accuracy', topics:[] },
+    { n:3,  title:'Multiplication: 2×, 3×, 4×, 5×, 10×',
+      desc:'Know multiplication facts for 2, 3, 4, 5, and 10 times tables.',
+      criteria:'All 2–5× and 10× cards in Pack C', topics:['multiplication'] },
+    { n:4,  title:'Division: ÷2, ÷3, ÷4, ÷5, ÷10',
+      desc:'Know division facts corresponding to the 2–5 and 10 times tables.',
+      criteria:'All ÷2–5 and ÷10 cards in Pack C', topics:['division'] },
+    { n:5,  title:'Mixed × and ÷ (2–5, 10)',
+      desc:'Fluently switch between multiplication and division facts for 2–5 and 10.',
+      criteria:'Milestones 3 and 4 both achieved', topics:['multiplication','division'] },
+    { n:6,  title:'Word Problems — Multiplication, Division & Mixed',
+      desc:'Solve one- and two-step word problems involving all four operations.',
+      criteria:'Complete 10 word problems (M6) with ≥80% accuracy', topics:[] },
+    { n:7,  title:'Multiplication: 6×, 7×, 8×, 9×',
+      desc:'Know multiplication facts for the harder 6, 7, 8, and 9 times tables.',
+      criteria:'All 6–9× cards in Pack C', topics:['multiplication'] },
+    { n:8,  title:'Division: ÷6, ÷7, ÷8, ÷9',
+      desc:'Know division facts corresponding to the 6, 7, 8, and 9 times tables.',
+      criteria:'All ÷6–9 cards in Pack C', topics:['division'] },
+    { n:9,  title:'Mixed × and ÷ (2–10)',
+      desc:'Fluently switch between multiplication and division facts for all tables 2–10.',
+      criteria:'Milestones 7 and 8 both achieved', topics:['multiplication','division'] },
+    { n:10, title:'Factual Fluency Champion!',
+      desc:'Mastered all addition, subtraction, multiplication, and division facts. Outstanding!',
+      criteria:'All 9 previous milestones achieved', topics:[] },
+  ];
+
+  const TROPHY_STAGES = ['🌱','⭐','🌟','💫','🥉','🥈','🥇','🏅','🎖️','🏆','👑'];
+
+  // ── Compute progress ───────────────────────────────────────
+  function getMilestoneCards(milestone) {
+    return engine.cards.filter(c => c.milestone === milestone);
+  }
+
+  function getMilestonePct(milestone) {
+    const cards = getMilestoneCards(milestone);
+    if (!cards.length) return 0;
+    return Math.round((cards.filter(c => c.pack === 'C').length / cards.length) * 100);
+  }
+
+  function getOverallPct() {
+    const all = engine.cards;
+    if (!all.length) return 0;
+    return Math.round((all.filter(c => c.pack === 'C').length / all.length) * 100);
+  }
+
+  // ── Summary bar ────────────────────────────────────────────
+  let achievedCount = 0;
+  for (let i = 1; i <= 10; i++) { if (engine.getAchievementDate(i)) achievedCount++; }
+  const overallPct = getOverallPct();
+
+  document.getElementById('summaryText').textContent = achievedCount + ' of 10 Milestones Achieved';
+  document.getElementById('overallPct').textContent  = overallPct + '%';
+  document.getElementById('overallPctLabel').textContent = overallPct + '%';
+  document.getElementById('overallBar').style.width  = overallPct + '%';
+  document.getElementById('trophyDisplay').textContent = TROPHY_STAGES[Math.min(achievedCount, 10)];
+  document.getElementById('summaryName').textContent = achievedCount >= 10
+    ? '🎉 Congratulations, ' + engine.student.name + '! All milestones complete!'
+    : achievedCount >= 5
+      ? 'Great progress, ' + engine.student.name + '! Keep going!'
+      : 'Keep practising, ' + engine.student.name + ' — you can do it!';
+
+  // ── Build milestone cards ──────────────────────────────────
+  const list = document.getElementById('milestoneList');
+
+  MILESTONES.forEach(m => {
+    const pct      = getMilestonePct(m.n);
+    const dateAchieved = engine.getAchievementDate(m.n);
+    const isAchieved   = !!dateAchieved;
+
+    const card = document.createElement('div');
+    card.className = 'milestone-card' + (isAchieved ? ' achieved pop-in' : '');
+    card.id = 'mc-' + m.n;
+
+    card.innerHTML = `
+      <div class="milestone-num-badge">${m.n}</div>
+      <div class="milestone-card-content">
+        <h3>${m.title}</h3>
+        <p>${m.desc}</p>
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">📌 ${m.criteria}</div>
+        <div class="milestone-progress-bar">
+          <div class="milestone-progress-fill" style="width:${pct}%"></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:3px">${pct}% of cards in Pack C</div>
+      </div>
+      <div class="milestone-card-actions">
+        <div class="trophy" id="trophy-${m.n}">${isAchieved ? '🏆' : (pct >= 80 ? '🌟' : pct >= 50 ? '⭐' : '🌱')}</div>
+        <button class="btn btn-sm ${isAchieved ? 'btn-outline' : 'btn-primary'}" id="btn-m${m.n}"
+          aria-label="${isAchieved ? 'Remove achievement for milestone ' + m.n : 'Mark milestone ' + m.n + ' as achieved'}">
+          ${isAchieved ? '✓ Achieved' : '🎯 Mark Achieved'}
+        </button>
+        <div class="achieved-date" id="date-${m.n}">${dateAchieved ? 'Achieved: ' + dateAchieved : ''}</div>
+      </div>`;
+
+    list.appendChild(card);
+
+    // Button handler
+    const btn = document.getElementById('btn-m' + m.n);
+    engine.addTouchButton(btn, () => {
+      if (isAchieved) return; // already achieved — no un-achieve
+      const isNew = engine.markAchievement(m.n);
+      if (isNew) {
+        // Update UI
+        card.classList.add('achieved');
+        btn.textContent = '✓ Achieved';
+        btn.className = 'btn btn-sm btn-outline';
+        document.getElementById('trophy-' + m.n).textContent = '🏆';
+        document.getElementById('date-' + m.n).textContent = 'Achieved: ' + engine.getAchievementDate(m.n);
+        // Update summary
+        achievedCount++;
+        document.getElementById('summaryText').textContent = achievedCount + ' of 10 Milestones Achieved';
+        document.getElementById('trophyDisplay').textContent = TROPHY_STAGES[Math.min(achievedCount, 10)];
+        fireConfetti();
+        if (achievedCount >= 10) {
+          document.getElementById('summaryName').textContent = '🎉 Congratulations, ' + engine.student.name + '! All milestones complete!';
+        }
+      }
+    });
+  });
+
+  // ── Confetti ───────────────────────────────────────────────
+  const CONFETTI_COLORS = ['#ef4444','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+
+  function fireConfetti() {
+    const container = document.getElementById('confettiContainer');
+    for (let i = 0; i < 60; i++) {
+      setTimeout(() => {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.top  = '-20px';
+        piece.style.background = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        piece.style.width  = (Math.random() * 8 + 6) + 'px';
+        piece.style.height = (Math.random() * 8 + 6) + 'px';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+        piece.style.animationDelay    = (Math.random() * 0.5) + 's';
+        container.appendChild(piece);
+        piece.addEventListener('animationend', () => piece.remove());
+      }, i * 30);
+    }
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intermolecular Forces Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+            padding: min(20px, 4vw);
+            overflow-x: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: min(20px, 4vw);
+            padding: clamp(15px, 3vw, 30px);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-height: calc(100vh - min(40px, 8vw));
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: clamp(1.5em, 5vw, 3em);
+            margin-bottom: clamp(15px, 3vw, 30px);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            line-height: 1.2;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr min(350px, 30vw);
+            gap: clamp(15px, 3vw, 30px);
+            min-height: 0;
+            align-items: start;
+        }
+        
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(10px, 2vw, 20px);
+            min-height: 0;
+        }
+        
+        .graph-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: min(15px, 3vw);
+            padding: clamp(10px, 2vw, 20px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            min-height: clamp(250px, 40vh, 400px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .explanation {
+            background: rgba(255, 255, 255, 0.1);
+            padding: clamp(10px, 2vw, 20px);
+            border-radius: min(15px, 3vw);
+            max-height: min(300px, 35vh);
+            overflow-y: auto;
+            font-size: clamp(0.8em, 1.8vw, 0.9em);
+            line-height: 1.5;
+        }
+        
+        .explanation h3 {
+            margin-bottom: clamp(10px, 2vw, 15px);
+            color: #4facfe;
+            font-size: clamp(1.1em, 2.5vw, 1.3em);
+        }
+        
+        .explanation-section {
+            margin-bottom: clamp(8px, 1.5vw, 15px);
+            padding: clamp(8px, 1.5vw, 12px);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .explanation-section h4 {
+            margin-bottom: clamp(4px, 1vw, 8px);
+            font-size: clamp(0.9em, 2vw, 1em);
+        }
+        
+        .explanation-section p {
+            margin: 0;
+            font-size: clamp(0.8em, 1.7vw, 0.9em);
+        }
+        
+        .physics-note {
+            background: rgba(79, 172, 254, 0.2);
+            padding: clamp(8px, 1.5vw, 15px);
+            border-radius: 8px;
+            border-left: 4px solid #4facfe;
+            font-size: clamp(0.75em, 1.6vw, 0.85em);
+        }
+        
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(10px, 2vw, 20px);
+            min-width: 0;
+        }
+        
+        .atoms-container {
+            height: clamp(120px, 25vh, 200px);
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: min(15px, 3vw);
+            position: relative;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            width: 100%;
+        }
+        
+        .atom {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 20px rgba(79, 172, 254, 0.8);
+            transition: all 0.1s ease;
+            width: clamp(25px, 8vw, 50px);
+            height: clamp(25px, 8vw, 50px);
+        }
+        
+        .atom1 {
+            left: clamp(15px, 4vw, 30px);
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .atom2 {
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: clamp(10px, 2vw, 20px);
+            border-radius: min(15px, 3vw);
+            flex: 1;
+        }
+        
+        .control-group h4 {
+            font-size: clamp(0.95em, 2.2vw, 1.1em);
+            margin-bottom: clamp(8px, 1.5vw, 15px);
+        }
+        
+        .slider-container {
+            margin-bottom: clamp(10px, 2vw, 20px);
+        }
+        
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: clamp(8px, 1.5vw, 15px);
+            margin-bottom: clamp(5px, 1vw, 10px);
+            flex-wrap: wrap;
+        }
+        
+        .slider-row label {
+            font-size: clamp(0.8em, 1.7vw, 0.9em);
+            white-space: nowrap;
+            min-width: fit-content;
+        }
+        
+        .slider {
+            flex: 1;
+            min-width: 120px;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4facfe;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.8);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4facfe;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.8);
+        }
+        
+        .value-display {
+            min-width: clamp(50px, 12vw, 70px);
+            background: rgba(0, 0, 0, 0.3);
+            padding: clamp(4px, 1vw, 8px) clamp(8px, 1.5vw, 12px);
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            font-size: clamp(0.8em, 1.7vw, 0.9em);
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: clamp(8px, 1.5vw, 15px);
+            border-radius: 10px;
+            font-size: clamp(0.8em, 1.7vw, 0.9em);
+            line-height: 1.4;
+        }
+        
+        .info-panel h4 {
+            margin-bottom: clamp(5px, 1vw, 10px);
+            font-size: clamp(0.9em, 2vw, 1em);
+        }
+        
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: clamp(4px, 1vw, 8px);
+            gap: 10px;
+            align-items: center;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        .force-indicator {
+            position: absolute;
+            top: clamp(8px, 2vw, 15px);
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(0.75em, 1.6vw, 0.85em);
+            font-weight: bold;
+            padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 12px);
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        
+        .attractive { color: #ff6b6b; }
+        .repulsive { color: #4ecdc4; }
+        .equilibrium { color: #45b7d1; }
+        
+        .legend {
+            font-size: clamp(0.7em, 1.5vw, 0.8em);
+            line-height: 1.3;
+        }
+        
+        .legend-item {
+            margin-bottom: clamp(3px, 0.5vw, 5px);
+        }
+        
+        /* Tablet responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr min(280px, 35vw);
+                gap: clamp(10px, 2vw, 20px);
+            }
+            
+            .explanation {
+                max-height: min(250px, 30vh);
+            }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: min(10px, 2vw);
+            }
+            
+            .container {
+                border-radius: min(15px, 3vw);
+                min-height: calc(100vh - min(20px, 4vw));
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: clamp(10px, 2vw, 20px);
+            }
+            
+            .left-panel {
+                order: 1;
+            }
+            
+            .right-panel {
+                order: 2;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: clamp(8px, 2vw, 15px);
+                align-items: start;
+            }
+            
+            .atoms-container {
+                grid-column: 1 / -1;
+                height: clamp(100px, 20vh, 140px);
+                order: 1;
+            }
+            
+            .controls {
+                order: 2;
+            }
+            
+            .explanation {
+                order: 3;
+                max-height: none;
+                grid-column: 1 / -1;
+            }
+            
+            .graph-container {
+                min-height: clamp(200px, 35vh, 300px);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .right-panel {
+                grid-template-columns: 1fr;
+                gap: clamp(8px, 2vw, 15px);
+            }
+            
+            .atoms-container {
+                height: clamp(80px, 18vh, 120px);
+            }
+            
+            .slider-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: clamp(5px, 1vw, 8px);
+            }
+            
+            .slider-row label {
+                text-align: center;
+            }
+            
+            .slider {
+                min-width: unset;
+                width: 100%;
+            }
+            
+            .value-display {
+                align-self: center;
+                min-width: 60px;
+            }
+        }
+        
+        /* Extra small screens */
+        @media (max-width: 360px) {
+            .status-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
+            }
+            
+            .explanation-section {
+                padding: clamp(6px, 1vw, 10px);
+            }
+        }
+        
+        /* Landscape mobile optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .container {
+                min-height: calc(100vh - min(10px, 2vw));
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr min(300px, 40vw);
+            }
+            
+            .right-panel {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .atoms-container {
+                height: clamp(80px, 25vh, 120px);
+            }
+            
+            .explanation {
+                max-height: min(200px, 25vh);
+            }
+        }
+        
+        /* High DPI display optimization */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+            .atom {
+                border-width: 2px;
+            }
+            
+            .atoms-container {
+                border-width: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Intermolecular Forces Simulation</h1>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="graph-container">
+                    <canvas id="graph"></canvas>
+                </div>
+                
+                <div class="explanation">
+                    <h3>Understanding the Lennard-Jones Potential</h3>
+                    <p><strong>The curve shows how potential energy between two atoms varies with distance:</strong></p>
+                    
+                    <div class="explanation-section">
+                        <h4>📏 Key Parameters</h4>
+                        <p><strong>ε (epsilon):</strong> Energy scale - depth of potential well. Sets interaction strength and determines if substance is gas/liquid/solid. At equilibrium: U = -ε.</p>
+                        <p><strong>σ (sigma):</strong> Size scale - collision diameter where U = 0. Roughly the "effective atomic size" including electron clouds.</p>
+                    </div>
+                    
+                    <div class="explanation-section">
+                        <h4>🔴 Short Distances (Repulsive Region)</h4>
+                        <p>When atoms get too close (r < 1.12σ), their electron clouds overlap, creating strong repulsive forces. Energy rises steeply - like trying to compress a spring.</p>
+                    </div>
+                    
+                    <div class="explanation-section">
+                        <h4>🔵 Equilibrium Distance (Energy Minimum)</h4>
+                        <p>At r ≈ 1.12σ, attractive and repulsive forces balance perfectly. This is the most stable configuration with lowest energy (-1.0ε).</p>
+                    </div>
+                    
+                    <div class="explanation-section">
+                        <h4>🟢 Large Distances (Attractive Region)</h4>
+                        <p>Beyond equilibrium, weak van der Waals forces try to pull atoms together. Energy slowly approaches zero as distance increases.</p>
+                    </div>
+                    
+                    <div class="physics-note">
+                        <strong>Real Examples:</strong> Argon (ε ≈ 1.67 kJ/mol, σ ≈ 3.4 Å), Water (ε ≈ 37 kJ/mol), Hydrogen (σ ≈ 2.9 Å). Larger ε = stronger attraction = higher melting points. Larger σ = bigger atoms = lower density.
+                    </div>
+                    
+                    <div class="physics-note">
+                        <strong>Key Physics:</strong> The curve's shape comes from two competing effects - strong short-range repulsion (∝ r⁻¹²) and weaker long-range attraction (∝ r⁻⁶). This model explains why solids have preferred spacing between atoms and how they resist both compression and stretching.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="atoms-container">
+                    <div class="atom atom1"></div>
+                    <div class="atom atom2" id="atom2"></div>
+                    <div class="force-indicator" id="forceIndicator">Equilibrium</div>
+                </div>
+                
+                <div class="controls">
+                    <div class="control-group">
+                        <h4>Distance Control</h4>
+                        <div class="slider-container">
+                            <div class="slider-row">
+                                <label>Distance (σ):</label>
+                                <input type="range" id="distanceSlider" class="slider" min="0.8" max="3.0" step="0.05" value="1.12">
+                                <div class="value-display" id="distanceValue">1.12</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-panel">
+                        <h4>Current State</h4>
+                        <div class="status-row">
+                            <span>Energy:</span>
+                            <span id="currentEnergy">-1.00 ε</span>
+                        </div>
+                        <div class="status-row">
+                            <span>Force:</span>
+                            <span id="currentForce">0.00 ε/σ</span>
+                        </div>
+                        
+                        <div class="legend">
+                            <div class="legend-item">🔴 Repulsive forces</div>
+                            <div class="legend-item">🔵 Equilibrium state</div>
+                            <div class="legend-item">🟢 Attractive forces</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('graph');
+        const ctx = canvas.getContext('2d');
+        const distanceSlider = document.getElementById('distanceSlider');
+        const distanceValue = document.getElementById('distanceValue');
+        const atom2 = document.getElementById('atom2');
+        const forceIndicator = document.getElementById('forceIndicator');
+        const currentEnergy = document.getElementById('currentEnergy');
+        const currentForce = document.getElementById('currentForce');
+        
+        let resizeTimeout;
+        
+        // Improved responsive canvas sizing
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Wait for container to stabilize
+            if (rect.width === 0 || rect.height === 0) {
+                setTimeout(resizeCanvas, 50);
+                return;
+            }
+            
+            // Ensure minimum size with better scaling
+            const width = Math.max(rect.width - 20, 180); // Account for padding
+            const height = Math.max(rect.height - 20, 120);
+            
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            
+            ctx.scale(dpr, dpr);
+            
+            // Force redraw after resize with small delay
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                drawGraph();
+            }, 10);
+        }
+        
+        // Debounced resize handler
+        function handleResize() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeCanvas, 100);
+        }
+        
+        // Lennard-Jones potential parameters
+        const epsilon = 1.0;
+        const sigma = 1.0;
+        
+        function lennardJones(r) {
+            const term = Math.pow(sigma / r, 6);
+            return 4 * epsilon * (term * term - term);
+        }
+        
+        function lennardJonesForce(r) {
+            const term = Math.pow(sigma / r, 6);
+            return 24 * epsilon / r * (2 * term * term - term);
+        }
+        
+        function drawGraph() {
+            // Get actual canvas dimensions
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            
+            if (width <= 0 || height <= 0) {
+                requestAnimationFrame(drawGraph);
+                return;
+            }
+            
+            // Clear with full context reset
+            ctx.clearRect(0, 0, width, height);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+            
+            // Dynamic responsive padding based on screen size
+            const minPadding = 15;
+            const maxPadding = Math.min(width, height) * 0.15;
+            const padding = Math.max(minPadding, Math.min(maxPadding, 40));
+            const graphWidth = Math.max(width - 2 * padding, 100);
+            const graphHeight = Math.max(height - 2 * padding, 60);
+            
+            // Ensure minimum graph area for usability
+            if (graphWidth < 80 || graphHeight < 40) {
+                ctx.fillStyle = '#666';
+                ctx.font = `${Math.min(width, height) * 0.08}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText('Resize to see graph', width / 2, height / 2);
+                return;
+            }
+            
+            // Responsive stroke widths
+            const axisLineWidth = Math.max(1, Math.min(width, height) / 300);
+            const gridLineWidth = Math.max(0.5, axisLineWidth / 2);
+            const curveLineWidth = Math.max(2, Math.min(width, height) / 200);
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = axisLineWidth;
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.stroke();
+            
+            // Responsive font sizes with better scaling
+            const baseFontSize = Math.max(8, Math.min(width, height) / 25);
+            const labelFontSize = Math.max(7, baseFontSize * 0.75);
+            const titleFontSize = Math.max(9, baseFontSize * 1.1);
+            
+            // Draw axis labels with better positioning
+            ctx.fillStyle = '#333';
+            ctx.font = `${titleFontSize}px Arial`;
+            ctx.textAlign = 'center';
+            
+            const bottomLabelY = height - Math.max(3, titleFontSize * 0.3);
+            ctx.fillText('Distance (r/σ)', width / 2, bottomLabelY);
+            
+            // Rotate and draw Y-axis label
+            ctx.save();
+            const leftLabelX = Math.max(8, titleFontSize * 0.8);
+            ctx.translate(leftLabelX, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Potential Energy (U/ε)', 0, 0);
+            ctx.restore();
+            
+            // Scale parameters
+            const minR = 0.8;
+            const maxR = 3.0;
+            const minU = -1.5;
+            const maxU = 2.0;
+            
+            // Draw grid lines with adaptive density
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = gridLineWidth;
+            
+            // Determine grid density based on available space
+            const verticalGridSpacing = graphWidth > 200 ? 0.5 : 1.0;
+            const horizontalGridSpacing = graphHeight > 150 ? 0.5 : 1.0;
+            
+            // Vertical grid lines
+            for (let r = 1.0; r <= 3.0; r += verticalGridSpacing) {
+                const x = padding + (r - minR) / (maxR - minR) * graphWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, height - padding);
+                ctx.stroke();
+            }
+            
+            // Horizontal grid lines
+            for (let u = -1.0; u <= 1.0; u += horizontalGridSpacing) {
+                const y = height - padding - (u - minU) / (maxU - minU) * graphHeight;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Draw potential curve with adaptive resolution
+            ctx.strokeStyle = '#2196F3';
+            ctx.lineWidth = curveLineWidth;
+            ctx.beginPath();
+            
+            let first = true;
+            // Adaptive step size for smoother curves on larger screens
+            const step = Math.max(0.008, 0.3 / Math.max(graphWidth, 200));
+            
+            for (let r = minR; r <= maxR; r += step) {
+                const u = lennardJones(r);
+                if (u > maxU) continue;
+                
+                const x = padding + (r - minR) / (maxR - minR) * graphWidth;
+                const y = height - padding - (u - minU) / (maxU - minU) * graphHeight;
+                
+                if (first) {
+                    ctx.moveTo(x, y);
+                    first = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Draw reference lines with adaptive dash patterns
+            const dashSize = Math.max(2, Math.min(width, height) / 150);
+            
+            // Zero energy line
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = Math.max(1, curveLineWidth / 2);
+            ctx.setLineDash([dashSize * 2, dashSize]);
+            const zeroY = height - padding - (0 - minU) / (maxU - minU) * graphHeight;
+            ctx.beginPath();
+            ctx.moveTo(padding, zeroY);
+            ctx.lineTo(width - padding, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Equilibrium line
+            const equilibriumR = Math.pow(2, 1/6);
+            const equilibriumX = padding + (equilibriumR - minR) / (maxR - minR) * graphWidth;
+            ctx.strokeStyle = '#45b7d1';
+            ctx.lineWidth = Math.max(1, curveLineWidth / 2);
+            ctx.setLineDash([dashSize, dashSize]);
+            ctx.beginPath();
+            ctx.moveTo(equilibriumX, padding);
+            ctx.lineTo(equilibriumX, height - padding);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw current position indicator with adaptive size
+            const currentR = parseFloat(distanceSlider.value);
+            const currentU = lennardJones(currentR);
+            const currentX = padding + (currentR - minR) / (maxR - minR) * graphWidth;
+            const currentY = height - padding - (currentU - minU) / (maxU - minU) * graphHeight;
+            
+            const indicatorRadius = Math.max(3, Math.min(width, height) / 60);
+            ctx.fillStyle = '#FF5722';
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, indicatorRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Add white border to indicator for better visibility
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = Math.max(1, indicatorRadius / 3);
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, indicatorRadius, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Draw scale numbers with adaptive positioning
+            ctx.fillStyle = '#333';
+            ctx.font = `${labelFontSize}px Arial`;
+            ctx.textAlign = 'center';
+            
+            // X-axis scale - only show if there's enough space
+            if (graphWidth > 120) {
+                const xLabelSpacing = graphWidth > 200 ? 0.5 : 1.0;
+                for (let r = 1.0; r <= 3.0; r += xLabelSpacing) {
+                    const x = padding + (r - minR) / (maxR - minR) * graphWidth;
+                    const labelY = height - padding + labelFontSize + 3;
+                    if (labelY < height - 2) {
+                        ctx.fillText(r.toFixed(1), x, labelY);
+                    }
+                }
+            }
+            
+            // Y-axis scale - only show if there's enough space
+            if (graphHeight > 80) {
+                ctx.textAlign = 'right';
+                const yLabelSpacing = graphHeight > 120 ? 0.5 : 1.0;
+                for (let u = -1.0; u <= 1.0; u += yLabelSpacing) {
+                    const y = height - padding - (u - minU) / (maxU - minU) * graphHeight;
+                    const labelX = padding - 3;
+                    if (labelX > 0) {
+                        ctx.fillText(u.toFixed(1), labelX, y + labelFontSize / 3);
+                    }
+                }
+            }
+        }
+        
+        function updateSimulation() {
+            const r = parseFloat(distanceSlider.value);
+            distanceValue.textContent = r.toFixed(2);
+            
+            // Improved atom positioning with better scaling
+            const container = atom2.parentElement;
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            
+            // Get computed atom size
+            const atomStyle = getComputedStyle(atom2);
+            const atomSize = parseFloat(atomStyle.width) / 2; // Get actual atom radius
+            
+            const atom1 = document.querySelector('.atom1');
+            const atom1Style = getComputedStyle(atom1);
+            const atom1Left = parseFloat(atom1Style.left);
+            const atom1Center = atom1Left + atomSize; // Center of first atom
+            
+            // Define the distance range we're visualizing
+            const minR = 0.8; // Minimum distance on slider
+            const maxR = 3.0; // Maximum distance on slider
+            const equilibriumR = Math.pow(2, 1/6); // ≈ 1.12
+            
+            // Available space for showing distances
+            const margin = atomSize; // Keep some margin from edge
+            const availableWidth = containerWidth - atom1Center - margin;
+            
+            // Calculate visual distance with better scaling
+            let centerToCenterDistance;
+            
+            if (r <= equilibriumR) {
+                // Below equilibrium: scale from compressed to touching
+                const compressionRatio = (r - minR) / (equilibriumR - minR);
+                const minDistance = atomSize * 1.3; // Allow some overlap but not complete
+                const equilibriumDistance = atomSize * 2.1; // Just touching with small gap
+                centerToCenterDistance = minDistance + (equilibriumDistance - minDistance) * compressionRatio;
+            } else {
+                // Above equilibrium: scale from touching to maximum separation
+                const expansionRatio = (r - equilibriumR) / (maxR - equilibriumR);
+                const equilibriumDistance = atomSize * 2.1;
+                const maxDistance = Math.min(availableWidth, containerWidth * 0.7); // Use most of available width
+                centerToCenterDistance = equilibriumDistance + (maxDistance - equilibriumDistance) * expansionRatio;
+            }
+            
+            // Position atom2 based on center-to-center distance
+            const atom2Left = atom1Center + centerToCenterDistance - atomSize;
+            const clampedLeft = Math.max(0, Math.min(atom2Left, containerWidth - atomSize * 2));
+            atom2.style.left = clampedLeft + 'px';
+            
+            // Calculate current energy and force
+            const energy = lennardJones(r);
+            const force = lennardJonesForce(r);
+            
+            currentEnergy.textContent = energy.toFixed(3) + ' ε';
+            currentForce.textContent = force.toFixed(3) + ' ε/σ';
+            
+            // Update force indicator
+            const equilibriumTolerance = 0.05;
+            if (Math.abs(r - equilibriumR) < equilibriumTolerance) {
+                forceIndicator.textContent = 'Equilibrium';
+                forceIndicator.className = 'force-indicator equilibrium';
+            } else if (r < equilibriumR) {
+                forceIndicator.textContent = 'Repulsive';
+                forceIndicator.className = 'force-indicator repulsive';
+            } else {
+                forceIndicator.textContent = 'Attractive';
+                forceIndicator.className = 'force-indicator attractive';
+            }
+            
+            // Update atom colors and visual effects
+            if (r < equilibriumR) {
+                // Repulsive - atoms glow red
+                atom1.style.background = 'radial-gradient(circle at 30% 30%, #ff6b6b, #ff4757)';
+                atom2.style.background = 'radial-gradient(circle at 30% 30%, #ff6b6b, #ff4757)';
+                atom1.style.boxShadow = '0 0 30px rgba(255, 107, 107, 0.9)';
+                atom2.style.boxShadow = '0 0 30px rgba(255, 107, 107, 0.9)';
+            } else if (r > equilibriumR + 0.3) {
+                // Attractive - atoms glow green
+                atom1.style.background = 'radial-gradient(circle at 30% 30%, #26de81, #20bf6b)';
+                atom2.style.background = 'radial-gradient(circle at 30% 30%, #26de81, #20bf6b)';
+                atom1.style.boxShadow = '0 0 30px rgba(38, 222, 129, 0.9)';
+                atom2.style.boxShadow = '0 0 30px rgba(38, 222, 129, 0.9)';
+            } else {
+                // Equilibrium - normal blue
+                atom1.style.background = 'radial-gradient(circle at 30% 30%, #4facfe, #00f2fe)';
+                atom2.style.background = 'radial-gradient(circle at 30% 30%, #4facfe, #00f2fe)';
+                atom1.style.boxShadow = '0 0 20px rgba(79, 172, 254, 0.8)';
+                atom2.style.boxShadow = '0 0 20px rgba(79, 172, 254, 0.8)';
+            }
+            
+            drawGraph();
+        }
+        
+        // Event listeners
+        distanceSlider.addEventListener('input', updateSimulation);
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleResize, 100);
+        });
+        
+        // Initialize with proper timing
+        function initialize() {
+            // Wait for DOM to be fully loaded and styled
+            if (document.readyState === 'complete') {
+                setTimeout(() => {
+                    resizeCanvas();
+                    updateSimulation();
+                }, 100);
+            } else {
+                window.addEventListener('load', () => {
+                    setTimeout(() => {
+                        resizeCanvas();
+                        updateSimulation();
+                    }, 100);
+                });
+            }
+        }
+        
+        // Start initialization
+        initialize();
+        
+        // Additional safety net for initialization
+        setTimeout(() => {
+            if (canvas.width === 0 || canvas.height === 0) {
+                resizeCanvas();
+                updateSimulation();
+            }
+        }, 500);
+    </script>
+</body>
+</html>

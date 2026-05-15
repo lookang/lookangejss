@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Section Volcano Eruption Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the canvas and layout */
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #e0f2fe; /* Light blue background */
+            margin: 0;
+            padding-top: 1rem;
+            padding-bottom: 2rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        #volcanoCanvas {
+            display: block;
+            /* Match sky color from image */
+            background-color: #76c8e6; /* Sky blue from image */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 1rem;
+            cursor: default;
+        }
+         /* Container for canvas to manage width */
+        .canvas-container {
+             width: 95%;
+             max-width: 800px; /* Adjusted max width */
+             margin-left: auto;
+             margin-right: auto;
+             position: relative;
+         }
+        .controls {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            align-items: center; gap: 0.75rem; margin-top: 0.5rem;
+            text-align: center; width: 90%; max-width: 700px;
+        }
+        label { font-weight: 500; color: #374151; margin-right: 0.25rem; }
+        select, button {
+            padding: 0.6rem 1.1rem; border-radius: 0.5rem;
+            border: 1px solid #d1d5db; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            font-size: 0.9rem; cursor: pointer;
+        }
+        select { background-color: white; min-width: 160px; flex-grow: 1; max-width: 300px; }
+        button {
+            color: white; border: none; font-weight: 600;
+            transition: background-color 0.3s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        button:hover { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        button:active { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+        #eruptButton { background-color: #ef4444; }
+        #eruptButton:hover { background-color: #dc2626; }
+        #eruptButton:active { background-color: #b91c1c; }
+        #resetButton { background-color: #3b82f6; }
+        #resetButton:hover { background-color: #2563eb; }
+        #resetButton:active { background-color: #1d4ed8; }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; box-shadow: none; }
+        select:disabled { background-color: #e5e7eb; cursor: not-allowed; opacity: 0.7; }
+
+        #explanationText {
+            margin-top: 1rem; padding: 0.75rem 1rem;
+            background-color: rgba(255, 255, 255, 0.7); border-radius: 0.5rem;
+            width: 90%; max-width: 700px; text-align: center;
+            font-size: 0.9rem; color: #1f2937; min-height: 40px; /* Ensure space */
+            line-height: 1.4; /* Improve readability */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        #messageBox {
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.75); color: white;
+            padding: 8px 15px; border-radius: 5px; display: none;
+            z-index: 1000; text-align: center; font-size: 0.9rem;
+        }
+        /* Remove cloud styles as they are not in the target image */
+        #cloudContainer { display: none; }
+
+    </style>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+</head>
+<body class="bg-blue-50">
+
+    <h1 class="text-2xl font-bold text-gray-800 mb-4 text-center">Volcano Cross-Section Simulation</h1>
+
+    <div class="canvas-container">
+       <canvas id="volcanoCanvas" style="z-index: 10; position: relative;"></canvas>
+    </div>
+
+    <div class="controls">
+         <label for="eruptionType">Eruption Style:</label> <select id="eruptionType">
+             <option value="plinian">Plinian (Ash Column)</option>
+             <option value="vulcanian">Vulcanian (Explosion)</option>
+             <option value="strombolian" selected>Strombolian (Bursts)</option>
+             <option value="hawaiian">Hawaiian (Spatter)</option>
+         </select>
+        <button id="eruptButton">Trigger Eruption</button>
+        <button id="resetButton">Reset</button>
+    </div>
+
+    <div id="explanationText">Select an eruption style and click "Trigger Eruption".</div>
+
+    <div id="messageBox">Volcano is erupting!</div>
+
+    <div class="text-center text-xs text-gray-600 mt-4">
+        Made using <a href="https://gemini.google.com/" target="_blank" class="text-blue-600 hover:underline">https://gemini.google.com/</a><br>
+        For more resources, go to <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/humanities/geography" target="_blank" class="text-blue-600 hover:underline">iwant2study.org Geography</a>.
+    </div>
+
+    <script>
+        const canvas = document.getElementById('volcanoCanvas');
+        const ctx = canvas.getContext('2d');
+        const eruptButton = document.getElementById('eruptButton');
+        const resetButton = document.getElementById('resetButton');
+        const messageBox = document.getElementById('messageBox');
+        const eruptionTypeSelect = document.getElementById('eruptionType');
+        const explanationTextDiv = document.getElementById('explanationText');
+
+        let particles = [];
+        let magmaLevel = 0; // 0 to 1
+        let isErupting = false;
+        let animationFrameId = null;
+        let groundSurfaceY;
+        let volcanoPeakY;
+        let conduitTopX, conduitTopY;
+        let craterWidth; // Width of the crater opening
+        let currentEruptionParams = {};
+        let eruptionTimeoutId = null;
+
+        // --- Style Colors (from image) ---
+        const COLOR_SKY = '#76c8e6';
+        const COLOR_BEDROCK = '#6b3e2e';
+        const COLOR_VOLCANO = '#a75a44';
+        const COLOR_MAGMA = '#ff1a00';
+        const COLOR_ASH = 'rgba(128, 128, 128, 0.5)';
+        const COLOR_LABEL = '#000000';
+        const COLOR_LEGEND_BG = '#f0e6d2';
+        const COLOR_LEGEND_TEXT = '#333333';
+
+        // --- Eruption Type Configurations (with real-world examples) ---
+        const eruptionStyles = {
+             plinian: {
+                particleCount: 80, particleLifespan: 180, gravity: 0.02, eruptionForceY: -4,
+                eruptionSpreadX: 0.8, windX: 0.03, ashRatio: 1.0,
+                magmaRiseSpeed: 0.008, duration: 7000, particlesPerFrame: 3, initialBurstFactor: 1.0,
+                description: "Plinian: Extremely explosive, sustained column of gas & ash reaching high into the atmosphere. Example: Mount Pinatubo (1991), Vesuvius (79 AD)."
+            },
+            vulcanian: {
+                particleCount: 60, particleLifespan: 120, gravity: 0.03, eruptionForceY: -3.5,
+                eruptionSpreadX: 0.7, windX: 0.02, ashRatio: 1.0,
+                magmaRiseSpeed: 0.02, duration: 4000, particlesPerFrame: 5, initialBurstFactor: 1.5,
+                description: "Vulcanian: Short, violent explosion clearing the conduit. Ejects ash clouds and larger blocks. Example: Sakurajima (Japan), Vulcano (Italy)."
+            },
+            strombolian: {
+                particleCount: 40, particleLifespan: 80, gravity: 0.05, eruptionForceY: -2.5,
+                eruptionSpreadX: 0.5, windX: 0.01, ashRatio: 0.4,
+                magmaRiseSpeed: 0.015, duration: 5000, particlesPerFrame: 2, initialBurstFactor: 1.0,
+                description: "Strombolian: Relatively mild, intermittent bursts ejecting incandescent lava fragments (bombs, cinder). Example: Stromboli (Italy)."
+            },
+            hawaiian: {
+                particleCount: 20, particleLifespan: 60, gravity: 0.07, eruptionForceY: -1.0,
+                eruptionSpreadX: 0.3, windX: 0.01, ashRatio: 0.1,
+                magmaRiseSpeed: 0.01, duration: 6000, particlesPerFrame: 1, initialBurstFactor: 0.5,
+                description: "Hawaiian: Effusive eruption where fluid lava flows (not shown) or spatters from vents. Relatively quiet. Example: Kīlauea (Hawaii)."
+            }
+        };
+
+        // --- Canvas Setup ---
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth;
+            const aspectRatio = 0.65;
+            const maxWidth = 850;
+            const maxHeight = 550;
+
+            canvas.width = Math.min(containerWidth, maxWidth);
+            canvas.height = Math.min(canvas.width * aspectRatio, maxHeight);
+
+            groundSurfaceY = canvas.height * 0.80;
+            volcanoPeakY = canvas.height * 0.30;
+            craterWidth = canvas.width * 0.08;
+            conduitTopX = canvas.width / 2;
+            conduitTopY = volcanoPeakY + canvas.height * 0.05;
+
+            resetAnimationVisuals();
+        }
+
+        // --- Drawing Functions ---
+        function drawSkyAndBedrock() {
+            // Sky is canvas background
+            ctx.fillStyle = COLOR_BEDROCK;
+            ctx.fillRect(0, groundSurfaceY, canvas.width, canvas.height - groundSurfaceY);
+        }
+
+        function drawVolcanoStructure() {
+            const centerX = canvas.width / 2;
+            const volcanoHeight = groundSurfaceY - volcanoPeakY;
+            const baseWidth = canvas.width * 0.7;
+            const magmaChamberRadius = canvas.width * 0.1;
+            const magmaChamberY = groundSurfaceY - volcanoHeight * 0.3;
+            const conduitWidth = canvas.width * 0.05;
+            const conduitBottomY = magmaChamberY;
+
+            // Cone
+            ctx.fillStyle = COLOR_VOLCANO;
+            ctx.beginPath();
+            ctx.moveTo(centerX - baseWidth / 2, groundSurfaceY);
+            ctx.lineTo(centerX - craterWidth / 2, volcanoPeakY);
+            ctx.lineTo(centerX + craterWidth / 2, volcanoPeakY);
+            ctx.lineTo(centerX + baseWidth / 2, groundSurfaceY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Chamber
+            ctx.fillStyle = COLOR_MAGMA;
+            ctx.beginPath();
+            ctx.arc(centerX, magmaChamberY, magmaChamberRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Conduit Structure (behind magma)
+            ctx.fillStyle = COLOR_VOLCANO; // Match cone color
+            ctx.fillRect(centerX - conduitWidth / 2, volcanoPeakY, conduitWidth, conduitBottomY - volcanoPeakY);
+
+            // Rising Magma
+            if (magmaLevel > 0) {
+                const magmaHeightInConduit = (conduitBottomY - volcanoPeakY) * magmaLevel;
+                const currentMagmaTopY = conduitBottomY - magmaHeightInConduit;
+                ctx.fillStyle = COLOR_MAGMA;
+                ctx.fillRect(centerX - conduitWidth / 2, currentMagmaTopY, conduitWidth, conduitBottomY - currentMagmaTopY);
+            }
+
+             // Crater Funnel
+             ctx.fillStyle = COLOR_MAGMA;
+             ctx.beginPath();
+             ctx.moveTo(centerX - craterWidth / 2, volcanoPeakY);
+             ctx.lineTo(centerX - conduitWidth / 2, conduitTopY);
+             ctx.lineTo(centerX + conduitWidth / 2, conduitTopY);
+             ctx.lineTo(centerX + craterWidth / 2, volcanoPeakY);
+             if (magmaLevel > 0.95) { ctx.fill(); } // Fill when magma reaches top
+             ctx.strokeStyle = COLOR_VOLCANO;
+             ctx.lineWidth = 2;
+             ctx.stroke(); // Draw outline always
+        }
+
+        function drawLabels() {
+            const centerX = canvas.width / 2;
+            const magmaChamberY = groundSurfaceY - (groundSurfaceY - volcanoPeakY) * 0.3;
+            const magmaChamberRadius = canvas.width * 0.1;
+            ctx.font = 'bold 12px Inter, sans-serif';
+            ctx.fillStyle = COLOR_LABEL;
+            ctx.textAlign = 'center';
+
+            ctx.fillText('Magma Chamber', centerX, magmaChamberY + magmaChamberRadius + 15);
+            ctx.fillText('Magma Conduit', centerX + canvas.width * 0.15, magmaChamberY - canvas.height * 0.1);
+            ctx.fillText('Crater', centerX, volcanoPeakY - 10);
+            ctx.fillText('Volcano Slope', centerX + canvas.width * 0.25, groundSurfaceY - canvas.height * 0.2);
+            ctx.fillText('Bedrock', canvas.width * 0.15, groundSurfaceY + 20);
+
+            if (particles.length > 0) {
+                let avgX = 0, avgY = 0;
+                particles.forEach(p => { avgX += p.x; avgY += p.y; });
+                if (particles.length > 0) { avgX /= particles.length; avgY /= particles.length; }
+                ctx.fillText('Ash Cloud', avgX, Math.min(avgY - 30, volcanoPeakY - 40));
+            }
+        }
+
+        function drawLegend() {
+            const legendWidth = 110;
+            const legendHeight = 55;
+            const legendX = canvas.width - legendWidth - 15;
+            const legendY = canvas.height - legendHeight - 15;
+            const itemYPadding = 20;
+            const itemXPadding = 10;
+            const squareSize = 10;
+
+            ctx.fillStyle = COLOR_LEGEND_BG;
+            ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
+
+            ctx.fillStyle = COLOR_LEGEND_TEXT;
+            ctx.font = 'bold 11px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Legend:', legendX + 5, legendY + 14);
+
+            ctx.font = '10px Inter, sans-serif';
+            ctx.fillStyle = COLOR_MAGMA;
+            ctx.fillRect(legendX + itemXPadding, legendY + itemYPadding + 2, squareSize, squareSize);
+            ctx.fillStyle = COLOR_LEGEND_TEXT;
+            ctx.fillText('Magma / Lava', legendX + itemXPadding + squareSize + 5, legendY + itemYPadding + squareSize + 1);
+
+            ctx.fillStyle = COLOR_ASH;
+            ctx.fillRect(legendX + itemXPadding, legendY + itemYPadding * 1.8 + 2, squareSize, squareSize);
+            ctx.fillStyle = COLOR_LEGEND_TEXT;
+            ctx.fillText('Ash and Gas', legendX + itemXPadding + squareSize + 5, legendY + itemYPadding * 1.8 + squareSize + 1);
+        }
+
+
+        // --- Particle Class ---
+        class Particle {
+             constructor(x, y, params) {
+                this.x = x + (Math.random() - 0.5) * craterWidth * 0.5;
+                this.y = y - Math.random() * 10;
+                const angleVariation = 0.8;
+                const angle = (Math.random() - 0.5) * Math.PI * angleVariation;
+                const speedVariation = 1 + (Math.random() - 0.5) * 0.8;
+                const speed = (params.eruptionForceY || -3) * speedVariation;
+
+                this.vx = Math.sin(angle) * Math.abs(speed) * ((params.eruptionSpreadX || 0.8));
+                this.vy = Math.cos(angle) * speed - Math.random();
+
+                this.life = (params.particleLifespan || 100) + Math.random() * 40;
+                this.initialLife = Math.max(1, this.life);
+                this.gravity = (params.gravity || 0.05);
+                this.windEffect = (params.windX || 0);
+
+                if (Math.random() < (params.ashRatio !== undefined ? params.ashRatio : 0.5)) {
+                    this.type = 'ash';
+                    this.size = Math.random() * 15 + 10;
+                    this.color = COLOR_ASH;
+                } else {
+                    this.type = 'ejecta';
+                    this.size = Math.random() * 5 + 3;
+                    this.color = COLOR_MAGMA;
+                    this.windEffect *= 0.3;
+                }
+                 this.targetSize = this.size;
+                 this.currentSize = this.type === 'ash' ? 0 : this.targetSize;
+            }
+
+            update() {
+                this.vy += this.gravity;
+                const heightFactor = Math.max(0.2, 1 - (this.y / groundSurfaceY));
+                this.vx += this.windEffect * heightFactor;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+                 if (this.type === 'ash' && this.currentSize < this.targetSize) { this.currentSize += 0.5; }
+                 if (this.life < 30) { this.currentSize = Math.max(0, this.currentSize * 0.95); }
+            }
+
+            draw() {
+                if (this.life > 0 && this.currentSize > 1) {
+                    ctx.fillStyle = this.color;
+                    const alpha = (this.type === 'ash') ? 0.5 : 1.0;
+                    ctx.globalAlpha = Math.max(0, Math.min(alpha, (this.life / this.initialLife) * alpha * 1.5));
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.currentSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+        }
+
+        // --- Magma Update ---
+        function updateMagma() {
+            if (isErupting) {
+                const riseSpeed = currentEruptionParams.magmaRiseSpeed || 0.01;
+                magmaLevel = Math.min(1, magmaLevel + riseSpeed);
+            } else {
+                 magmaLevel = Math.max(0, magmaLevel - 0.005); // Recede slowly
+            }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            updateMagma();
+
+            ctx.fillStyle = COLOR_SKY;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawSkyAndBedrock();
+            drawVolcanoStructure();
+
+            let hasActiveParticles = false;
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                if (p.life <= 0) { particles.splice(index, 1); }
+                 else { hasActiveParticles = true; }
+            });
+
+            if (isErupting && magmaLevel >= 0.95 && particles.length < (currentEruptionParams.particleCount || 50) * 1.2) {
+                const particlesToAdd = currentEruptionParams.particlesPerFrame || 2;
+                 for (let i = 0; i < particlesToAdd; i++) {
+                     if (particles.length < (currentEruptionParams.particleCount || 50) * 1.5) {
+                         particles.push(new Particle(conduitTopX, conduitTopY, currentEruptionParams));
+                     }
+                 }
+                 hasActiveParticles = true;
+            }
+
+            drawLabels();
+            drawLegend();
+
+            if (hasActiveParticles || magmaLevel > 0 || (isErupting && magmaLevel < 1)) {
+                 animationFrameId = requestAnimationFrame(animate);
+            } else {
+                 finishEruptionAnimation();
+            }
+        }
+
+        // --- Reset and Finish Functions ---
+        function resetAnimationVisuals() {
+             particles = [];
+             // Don't reset magma level here, let resetFullAnimation handle it
+             ctx.fillStyle = COLOR_SKY;
+             ctx.fillRect(0, 0, canvas.width, canvas.height);
+             drawSkyAndBedrock();
+             drawVolcanoStructure(); // Draw with current (likely 0) magma level
+             drawLabels();
+             drawLegend();
+        }
+
+        function resetAnimationState() {
+            if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            if (eruptionTimeoutId) { clearTimeout(eruptionTimeoutId); eruptionTimeoutId = null; }
+            isErupting = false;
+
+            eruptButton.disabled = false;
+            eruptionTypeSelect.disabled = false;
+            resetButton.disabled = true;
+            eruptButton.textContent = "Trigger Eruption";
+            hideMessage();
+            updateExplanationText(); // Update text based on current selection
+            console.log("Animation state reset.");
+        }
+
+        function resetFullAnimation() {
+            resetAnimationState();
+            magmaLevel = 0; // Explicitly reset magma level
+            resetAnimationVisuals(); // Redraw everything in initial state
+            console.log("Full animation reset.");
+        }
+
+        function finishEruptionAnimation() {
+             resetAnimationState();
+             console.log("Animation finished naturally.");
+             // Magma will now recede via updateMagma in the next animation frame if needed
+             if (magmaLevel > 0 && !animationFrameId) { // Start animation loop again if needed just for receding magma
+                animate();
+             }
+        }
+
+        // --- Event Listeners ---
+        eruptButton.addEventListener('click', () => {
+            if (animationFrameId && isErupting) return;
+
+            const selectedType = eruptionTypeSelect.value;
+            currentEruptionParams = eruptionStyles[selectedType];
+
+            console.log(`Triggering ${selectedType} eruption...`);
+            particles = []; // Clear old particles
+            isErupting = true;
+            magmaLevel = Math.max(magmaLevel, 0.01); // Ensure magma starts rising
+
+            if (eruptionTimeoutId) { clearTimeout(eruptionTimeoutId); }
+
+            eruptButton.disabled = true;
+            resetButton.disabled = false;
+            eruptionTypeSelect.disabled = true;
+            eruptButton.textContent = "Erupting...";
+            showMessage(`Erupting: ${selectedType}`);
+            updateExplanationText();
+
+            if (!animationFrameId) { animate(); } // Start animation loop if not running
+
+            eruptionTimeoutId = setTimeout(() => {
+                isErupting = false;
+                console.log("Stopping active particle generation phase.");
+            }, currentEruptionParams.duration || 4000);
+        });
+
+        resetButton.addEventListener('click', () => {
+            console.log("Reset button clicked.");
+            resetFullAnimation();
+        });
+
+        eruptionTypeSelect.addEventListener('change', () => {
+             console.log("Dropdown selection changed!");
+             updateExplanationText();
+             if (!isErupting && magmaLevel === 0) {
+                 resetAnimationVisuals();
+             }
+        });
+
+        // --- Utility Functions ---
+        function showMessage(text) {
+             messageBox.textContent = text;
+             messageBox.style.display = 'block';
+         }
+        function hideMessage() {
+             messageBox.style.display = 'none';
+         }
+        function updateExplanationText() {
+            console.log("updateExplanationText called");
+            const selectedType = eruptionTypeSelect.value;
+            console.log("Selected type:", selectedType);
+            if (explanationTextDiv) {
+                 const description = eruptionStyles[selectedType]?.description || "Select an eruption type.";
+                 console.log("Description:", description);
+                 explanationTextDiv.textContent = description;
+            } else {
+                 console.error("explanationTextDiv not found!");
+            }
+        }
+
+        // --- Initial setup ---
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = () => {
+            console.log("Window loaded, calling initial resize and updateExplanationText");
+            resizeCanvas();
+            updateExplanationText();
+            resetButton.disabled = true;
+        };
+
+    </script>
+
+</body>
+</html>

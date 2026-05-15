@@ -1,0 +1,538 @@
+<html>
+  <head>
+    <title> Dynamics of a 1D rod.py</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      # # Author: Larry Engelhardt (July, 2016)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Material properties for a few different materials are listed below
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 1. Thermal conductivity: `k_t`
+    </p>
+    <p style="margin-top: 0">
+      # 2. Specific heat capacity: `c`
+    </p>
+    <p style="margin-top: 0">
+      # 3. Density: `rho`
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Stainless Steel
+    </p>
+    <p style="margin-top: 0">
+      k_t = 16 # W / (m C)
+    </p>
+    <p style="margin-top: 0">
+      c = 500 # J / (kg C)
+    </p>
+    <p style="margin-top: 0">
+      rho = 8000 # kg / m^3
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Bakelite
+    </p>
+    <p style="margin-top: 0">
+      k_t = 0.2 # W / (m C)
+    </p>
+    <p style="margin-top: 0">
+      c = 920 # J / (kg C)
+    </p>
+    <p style="margin-top: 0">
+      rho = 1300 # kg / m^3
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Oak
+    </p>
+    <p style="margin-top: 0">
+      k_t = 0.17 # W / (m C)
+    </p>
+    <p style="margin-top: 0">
+      c = 2000 # J / (kg C)
+    </p>
+    <p style="margin-top: 0">
+      rho = 700 # kg / m^3
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Fiberglass
+    </p>
+    <p style="margin-top: 0">
+      k_t = 0.04 # W / (m C)
+    </p>
+    <p style="margin-top: 0">
+      c = 700 # J / (kg C)
+    </p>
+    <p style="margin-top: 0">
+      rho = 2000 # kg / m^3
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # BEGINNING THE PROGRAM:
+    </p>
+    <p style="margin-top: 0">
+      from pylab import *
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Discretizing space
+    </p>
+    <p style="margin-top: 0">
+      L = 0.15 # Length of handle in meters
+    </p>
+    <p style="margin-top: 0">
+      Nx = 76 # Number of positions in space
+    </p>
+    <p style="margin-top: 0">
+      x = linspace(0, L, Nx) # Array of positions
+    </p>
+    <p style="margin-top: 0">
+      dx = L / (Nx - 1) # Values of delta x (meters)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Discretizing time
+    </p>
+    <p style="margin-top: 0">
+      tMax = 600 # Maximum time in seconds
+    </p>
+    <p style="margin-top: 0">
+      Nt = 1801 # Number of time steps
+    </p>
+    <p style="margin-top: 0">
+      t = linspace(0, tMax, Nt) # Array of time values
+    </p>
+    <p style="margin-top: 0">
+      dt = tMax / (Nt - 1) # Size of time step (seconds)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      T0 = 72 # Initial temperature (Farenheit)
+    </p>
+    <p style="margin-top: 0">
+      dT_stove = 300 # Temperature increase of the stove (F)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Stainless Steel's material properties
+    </p>
+    <p style="margin-top: 0">
+      k_t = 16 # W / (m C)
+    </p>
+    <p style="margin-top: 0">
+      c = 500 # J / (kg C)
+    </p>
+    <p style="margin-top: 0">
+      rho = 8000 # kg / m^3
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      r = k_t * dt / (c * rho * dx**2) ## THE PARAMETER! (dimensionless) ##
+    </p>
+    <p style="margin-top: 0">
+      print('r:', r) # Check to make sure that r &lt; 0.5
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Preparing 2D array of temperatures
+    </p>
+    <p style="margin-top: 0">
+      T = zeros((Nt, Nx)) # 2D array for temperature. NOTE THE ORDER: [time, 
+      space]
+    </p>
+    <p style="margin-top: 0">
+      T[0, :] = T0 # Initial values (time t = 0)
+    </p>
+    <p style="margin-top: 0">
+      tau = 60 # Used in tanh function, units of seconds
+    </p>
+    <p style="margin-top: 0">
+      T[:, 0] = T0 + dT_stove * tanh(t/tau) # Edge of rod (at x=0) in deg. F
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      T = (T - 32) / 1.8 # Convert all temperatures to Celsius
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Verifying that $T(t)$ for the pan ($x=0$) looks correct:
+    </p>
+    <p style="margin-top: 0">
+      Tpan = T0 + dT_stove * tanh(t/tau)
+    </p>
+    <p style="margin-top: 0">
+      plot(t, Tpan, lw=2)
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      xlabel('Time (sec)')
+    </p>
+    <p style="margin-top: 0">
+      ylabel('Pan Temperature (F)')
+    </p>
+    <p style="margin-top: 0">
+      grid(True); show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Computing the temperature of the handle for all `x` and `t`:
+    </p>
+    <p style="margin-top: 0">
+      for j in range(1, Nt): # Loop thru TIME
+    </p>
+    <p style="margin-top: 0">
+      for i in range(1, Nx-1): # Loop thru SPACE
+    </p>
+    <p style="margin-top: 0">
+      T[j,i] = r*T[j-1, i+1] + (1 - 2*r)*T[j-1,i] + r*T[j-1, i-1]
+    </p>
+    <p style="margin-top: 0">
+      T[j, -1] = (1-r)*T[j-1,i] + r*T[j-1,i-1] # End of rod (x=L)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      T = 1.8*T + 32 # Convert back to F from C
+    </p>
+    <p style="margin-top: 0">
+      x = x * 100 # Convert from meters to cm
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plotting $T(x)$ for a few moments in time
+    </p>
+    <p style="margin-top: 0">
+      jValues = [30, 180, 540, -1] # A few values of the time index (-1 for 
+      last element)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      for j in jValues:
+    </p>
+    <p style="margin-top: 0">
+      plot(x, T[j,:], linewidth=2, label='Time (seconds): '+str(t[j]))
+    </p>
+    <p style="margin-top: 0">
+      legend()
+    </p>
+    <p style="margin-top: 0">
+      title('Stainless Steel')
+    </p>
+    <p style="margin-top: 0">
+      xlim([0, 15])
+    </p>
+    <p style="margin-top: 0">
+      xlabel('Position (cm)')
+    </p>
+    <p style="margin-top: 0">
+      ylabel('Temperature ($^{\circ}$F)')
+    </p>
+    <p style="margin-top: 0">
+      grid(True);
+    </p>
+    <p style="margin-top: 0">
+      savefig('StainlessSteel_T_vs_x.png')
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Creating a contour plot of $T(x, t)$
+    </p>
+    <p style="margin-top: 0">
+      colorvals = linspace(70, 160, 91) # colors for contour plot (min, max, 
+      num)
+    </p>
+    <p style="margin-top: 0">
+      contourf(x, t, T, colorvals) # (x-axis, y-axis, z(x,y))
+    </p>
+    <p style="margin-top: 0">
+      title('Stainless Steel')
+    </p>
+    <p style="margin-top: 0">
+      xlabel('x (cm)')
+    </p>
+    <p style="margin-top: 0">
+      ylabel('Time (sec)')
+    </p>
+    <p style="margin-top: 0">
+      colorbar()
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      savefig('StainlessSteel_contour.png')
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Repeating using Bakelite
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Discretizing space
+    </p>
+    <p style="margin-top: 0">
+      L = 0.15 # Length of handle in meters
+    </p>
+    <p style="margin-top: 0">
+      Nx = 76 # Number of positions in space
+    </p>
+    <p style="margin-top: 0">
+      x = linspace(0, L, Nx) # Array of positions
+    </p>
+    <p style="margin-top: 0">
+      dx = L / (Nx - 1) # Values of delta x (meters)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Discretizing time
+    </p>
+    <p style="margin-top: 0">
+      tMax = 600 # Maximum time in seconds
+    </p>
+    <p style="margin-top: 0">
+      Nt = 1801 # Number of time steps
+    </p>
+    <p style="margin-top: 0">
+      t = linspace(0, tMax, Nt) # Array of time values
+    </p>
+    <p style="margin-top: 0">
+      dt = tMax / (Nt - 1) # Size of time step (seconds)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      T0 = 72 # Initial temperature (Farenheit)
+    </p>
+    <p style="margin-top: 0">
+      dT_stove = 300 # Temperature increase of the stove (F)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Bakelite's material properties
+    </p>
+    <p style="margin-top: 0">
+      k_t = 0.2 # W / (m C)
+    </p>
+    <p style="margin-top: 0">
+      c = 920 # J / (kg C)
+    </p>
+    <p style="margin-top: 0">
+      rho = 1300 # kg / m^3
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      r = k_t * dt / (c * rho * dx**2) ## THE PARAMETER! (dimensionless) ##
+    </p>
+    <p style="margin-top: 0">
+      print('r:', r) # Check to make sure that r &lt; 0.5
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Preparing 2D array of temperatures
+    </p>
+    <p style="margin-top: 0">
+      T = zeros((Nt, Nx)) # 2D array for temperature. NOTE THE ORDER: [time, 
+      space]
+    </p>
+    <p style="margin-top: 0">
+      T[0, :] = T0 # Initial values (time t = 0)
+    </p>
+    <p style="margin-top: 0">
+      tau = 60 # Used in tanh function, units of seconds
+    </p>
+    <p style="margin-top: 0">
+      T[:, 0] = T0 + dT_stove * tanh(t/tau) # Edge of rod (at x=0) in deg. F
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      T = (T - 32) / 1.8 # Convert all temperatures to Celsius
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      for j in range(1, Nt): # Loop thru TIME
+    </p>
+    <p style="margin-top: 0">
+      for i in range(1, Nx-1): # Loop thru SPACE
+    </p>
+    <p style="margin-top: 0">
+      T[j,i] = r*T[j-1, i+1] + (1 - 2*r)*T[j-1,i] + r*T[j-1, i-1]
+    </p>
+    <p style="margin-top: 0">
+      T[j, -1] = (1-r)*T[j-1,i] + r*T[j-1,i-1] # End of rod (x=L)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      T = 1.8*T + 32 # Convert back to F from C
+    </p>
+    <p style="margin-top: 0">
+      x = x * 100 # Convert from meters to cm
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      jValues = [30, 180, 540, -1] # A few values of the time index (-1 for 
+      last element)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      for j in jValues:
+    </p>
+    <p style="margin-top: 0">
+      plot(x, T[j,:], linewidth=2, label='Time (seconds): '+str(t[j]))
+    </p>
+    <p style="margin-top: 0">
+      legend()
+    </p>
+    <p style="margin-top: 0">
+      title('Bakelite')
+    </p>
+    <p style="margin-top: 0">
+      xlim([0, 15])
+    </p>
+    <p style="margin-top: 0">
+      xlabel('Position (cm)')
+    </p>
+    <p style="margin-top: 0">
+      ylabel('Temperature ($^{\circ}$F)')
+    </p>
+    <p style="margin-top: 0">
+      grid(True);
+    </p>
+    <p style="margin-top: 0">
+      savefig('StainlessSteel_T_vs_x.png')
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      colorvals = linspace(70, 160, 91) # colors for contour plot (min, max, 
+      num)
+    </p>
+    <p style="margin-top: 0">
+      contourf(x, t, T, colorvals) # (x-axis, y-axis, z(x,y))
+    </p>
+    <p style="margin-top: 0">
+      title('Bakelite')
+    </p>
+    <p style="margin-top: 0">
+      xlabel('x (cm)')
+    </p>
+    <p style="margin-top: 0">
+      ylabel('Time (sec)')
+    </p>
+    <p style="margin-top: 0">
+      colorbar()
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      savefig('Bakelite_contour.png')
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

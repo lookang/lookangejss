@@ -1,0 +1,391 @@
+<html lang="en" data-kantu="1"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Code Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            height: 100vh;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .editor-panel {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            background: #2d2d2d;
+            border-right: 2px solid #444;
+            transition: width 0.3s ease, min-width 0.3s ease;
+            min-width: 300px;
+        }
+
+        .editor-panel.minimized {
+            width: 40px;
+            min-width: 40px;
+        }
+
+        .editor-panel.minimized .editor-container {
+            display: none;
+        }
+
+        .preview-panel {
+            width: 50%;
+            background: #ffffff;
+            position: relative;
+            transition: width 0.3s ease;
+        }
+
+        .preview-panel.expanded {
+            width: calc(100% - 40px);
+        }
+
+        .panel-header {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .panel-header::before {
+            content: "💻";
+            font-size: 16px;
+        }
+
+        .editor-panel.minimized .panel-header {
+            padding: 12px 8px;
+            justify-content: center;
+        }
+
+        .editor-panel.minimized .panel-header .panel-title {
+            display: none;
+        }
+
+        .preview-panel .panel-header::before {
+            content: "🌐";
+        }
+
+        .minimize-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #4CAF50;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .minimize-toggle:hover {
+            background: #45a049;
+        }
+
+        .editor-panel.minimized .minimize-toggle {
+            position: static;
+            transform: none;
+            margin: 0;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+            background: #2d2d2d;
+            overflow: hidden;
+        }
+
+        .line-numbers {
+            background: #1e1e1e;
+            color: #6c7086;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 16px 8px 16px 16px;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #444;
+            min-width: 50px;
+            white-space: pre;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .code-editor {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 16px;
+            resize: none;
+            tab-size: 2;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        .code-editor:focus {
+            background: #333;
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: calc(100% - 49px);
+            border: none;
+            background: white;
+        }
+
+        .toolbar {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .toolbar-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toolbar-button:hover {
+            background: #45a049;
+        }
+
+        .toolbar-button.download {
+            background: #2196F3;
+        }
+
+        .toolbar-button.download:hover {
+            background: #1976D2;
+        }
+
+        .toolbar-button.github {
+            background: #FF9800;
+        }
+
+        .toolbar-button.github:hover {
+            background: #F57C00;
+        }
+
+        /* Syntax highlighting-like colors */
+        .code-editor::placeholder {
+            color: #6c7086;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .editor-panel, .preview-panel {
+                width: 100% !important;
+                height: 50vh;
+                min-width: unset !important;
+            }
+
+            .editor-panel.minimized {
+                height: 40px;
+            }
+
+            .preview-panel.expanded {
+                height: calc(100vh - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-panel" id="editorPanel">
+            <div class="panel-header">
+                <span class="panel-title">Code Editor</span>
+                <button class="minimize-toggle" id="minimizeToggle" onclick="toggleEditorPanel()" title="Minimize/Maximize Editor">◀</button>
+            </div>
+            <div class="editor-container">
+                <div class="line-numbers" id="lineNumbers">1
+</div>
+                <textarea class="code-editor" id="codeInput" placeholder="Write your HTML, CSS, and JavaScript here...
+
+Example:
+&lt;h1&gt;Hello World!&lt;/h1&gt;
+&lt;p&gt;This is a paragraph.&lt;/p&gt;
+
+&lt;style&gt;
+  h1 { color: #4CAF50; }
+  p { color: #666; }
+&lt;/style&gt;
+
+&lt;script&gt;
+  console.log('Hello from JavaScript!');
+&lt;/script&gt;"></textarea>
+            </div>
+        </div>
+        
+        <div class="preview-panel" id="previewPanel">
+            <div class="panel-header">
+                Live Preview
+                <div class="toolbar">
+                    <button class="toolbar-button" onclick="updatePreview()">▶ Run</button>
+                    <button class="toolbar-button download" onclick="downloadHTML()">⬇ Download</button>
+                    <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site" target="_blank" class="toolbar-button github">📖 GitHub Pages</a>
+                </div>
+            </div>
+            <iframe id="previewFrame" class="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const codeInput = document.getElementById('codeInput');
+        const previewFrame = document.getElementById('previewFrame');
+        const lineNumbers = document.getElementById('lineNumbers');
+        const editorPanel = document.getElementById('editorPanel');
+        const previewPanel = document.getElementById('previewPanel');
+        const minimizeToggle = document.getElementById('minimizeToggle');
+        let updateTimeout;
+        let isMinimized = false;
+
+        function toggleEditorPanel() {
+            isMinimized = !isMinimized;
+            
+            if (isMinimized) {
+                editorPanel.classList.add('minimized');
+                previewPanel.classList.add('expanded');
+                minimizeToggle.innerHTML = '▶';
+                minimizeToggle.title = 'Maximize Editor';
+            } else {
+                editorPanel.classList.remove('minimized');
+                previewPanel.classList.remove('expanded');
+                minimizeToggle.innerHTML = '◀';
+                minimizeToggle.title = 'Minimize Editor';
+            }
+        }
+
+        function updateLineNumbers() {
+            const lines = codeInput.value.split('\n');
+            const lineCount = lines.length;
+            let lineNumbersHtml = '';
+            
+            for (let i = 1; i <= lineCount; i++) {
+                lineNumbersHtml += i + '\n';
+            }
+            
+            lineNumbers.textContent = lineNumbersHtml;
+        }
+
+        function syncScroll() {
+            lineNumbers.scrollTop = codeInput.scrollTop;
+        }
+
+        function downloadHTML() {
+            const code = codeInput.value || '<!DOCTYPE html>\n<html>\n<head>\n    <title>My Web Page</title>\n</head>\n<body>\n    <h1>Hello World!</h1>\n</body>\n</html>';
+            
+            // Create blob with HTML content
+            const blob = new Blob([code], { type: 'text/html' });
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            
+            // Trigger download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // Clean up
+            URL.revokeObjectURL(url);
+        }
+
+        function updatePreview() {
+            const code = codeInput.value;
+            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            
+            previewDoc.open();
+            previewDoc.write(code);
+            previewDoc.close();
+        }
+
+        function debounceUpdate() {
+            clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(updatePreview, 500);
+        }
+
+        // Auto-update on typing (debounced)
+        codeInput.addEventListener('input', function() {
+            updateLineNumbers();
+            debounceUpdate();
+        });
+
+        // Sync scroll between line numbers and code editor
+        codeInput.addEventListener('scroll', syncScroll);
+
+        // Handle tab key for proper indentation
+        codeInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const value = this.value;
+                
+                this.value = value.substring(0, start) + '  ' + value.substring(end);
+                this.selectionStart = this.selectionEnd = start + 2;
+                
+                updateLineNumbers();
+            }
+        });
+
+        // Keyboard shortcut to toggle panel (Ctrl/Cmd + B)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                toggleEditorPanel();
+            }
+        });
+
+        // Initial setup
+        updateLineNumbers();
+        updatePreview();
+    </script>
+</body></html>

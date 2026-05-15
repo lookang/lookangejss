@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard — Leitner Maths Arena</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── page-level layout ── */
+    .td-page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    .td-page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+    .td-page-header h1 { font-size: 1.4rem; font-weight: 700; color: var(--text); margin: 0; }
+    .td-back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--primary); text-decoration: none; font-size: .875rem; font-weight: 600; }
+    .td-back-link:hover { text-decoration: underline; }
+
+    /* ── auth gate ── */
+    #authGate { text-align: center; padding: 60px 24px; }
+    #authGate p { color: var(--muted); margin-bottom: 16px; }
+
+    /* ── section cards ── */
+    .td-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px 20px 16px; margin-bottom: 20px; overflow-x: auto; }
+    .td-card-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 14px; }
+
+    /* ── summary bar ── */
+    .class-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .summary-stat { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); padding: 14px 16px; border-top: 4px solid var(--primary); }
+    .summary-stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .summary-stat-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-top: 4px; }
+
+    /* ── pack circle badge ── */
+    .pack-circle { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: .65rem; font-weight: 800; color: #fff; }
+    .pack-circle.A { background: var(--pack-a); }
+    .pack-circle.B { background: var(--pack-b); }
+    .pack-circle.C { background: var(--pack-c); }
+
+    /* ── mini progress bar ── */
+    .mini-bar-wrap { width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; display: inline-block; vertical-align: middle; }
+    .mini-bar-fill { height: 100%; border-radius: 3px; background: var(--primary); }
+
+    /* ── accuracy bar (fact table) ── */
+    .acc-bar-wrap { display: flex; align-items: center; gap: 6px; min-width: 90px; }
+    .acc-bar-bg { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+    .acc-bar-fill { height: 100%; border-radius: 4px; }
+    .acc-bar-fill.good  { background: var(--correct); }
+    .acc-bar-fill.mid   { background: var(--pack-b); }
+    .acc-bar-fill.poor  { background: var(--wrong); }
+    .acc-pct { font-size: .75rem; font-weight: 700; min-width: 30px; }
+
+    /* ── fact detail panel ── */
+    #factDetailPanel { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; overflow-x: auto; }
+    .fd-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .fd-student-name { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .fd-topic-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .fd-tab { min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font-size: .85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s; }
+    .fd-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .fd-tab:hover:not(.active) { background: #e0eeff; }
+
+    /* ── activity log ── */
+    .activity-log-list { list-style: none; padding: 0; margin: 0; }
+    .activity-log-list li { padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: .84rem; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .activity-log-list li:last-child { border-bottom: none; }
+    .activity-log-time { color: var(--muted); font-size: .75rem; margin-left: auto; white-space: nowrap; }
+
+    /* ── buttons ── */
+    .btn { min-height: 44px; }
+    .td-icon-btn { min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-size: .9rem; display: inline-flex; align-items: center; justify-content: center; }
+    .td-icon-btn:hover { background: #e0eeff; }
+
+    /* ── hint bulbs ── */
+    .hint-bulbs { font-size: .85rem; letter-spacing: 1px; }
+
+    /* ── common errors ── */
+    .error-tag { display: inline-block; background: #fee2e2; color: #991b1b; border-radius: 4px; font-size: .72rem; font-weight: 700; padding: 1px 5px; margin: 1px; }
+
+    /* ── teacher tools in dashboard ── */
+    .td-tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+
+    @media (max-width: 640px) {
+      .td-page-header h1 { font-size: 1.1rem; }
+      .summary-stat-value { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="td-page">
+
+  <!-- Auth gate (shown when not teacher/admin) -->
+  <div id="authGate" hidden>
+    <p style="font-size:1.1rem;color:var(--wrong);font-weight:600;">🔒 Teacher or admin login required.</p>
+    <p>You need to be signed in as a teacher or admin to access this page.</p>
+    <a href="index.html" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 24px;">← Back to Arena</a>
+  </div>
+
+  <!-- Main content (hidden until auth confirmed) -->
+  <div id="mainContent" hidden>
+
+    <!-- Page header -->
+    <div class="td-page-header">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <a href="index.html" class="td-back-link">← Arena</a>
+        <h1>📊 Teacher Dashboard</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span id="tdWelcome" style="font-size:.85rem;color:var(--muted);"></span>
+        <button class="btn btn-outline" id="tdRefreshBtn" style="min-height:44px;padding:0 16px;">↺ Refresh</button>
+      </div>
+    </div>
+
+    <!-- ── Summary Bar ── -->
+    <div class="class-summary-grid" id="summaryGrid">
+      <div class="summary-stat" style="border-top-color:#3b82f6;">
+        <div class="summary-stat-value" id="statStudents">—</div>
+        <div class="summary-stat-label">Students</div>
+      </div>
+      <div class="summary-stat" style="border-top-color:#22c55e;">
+        <div class="summary-stat-value" id="statActiveToday">—</div>
+        <div class="summary-stat-label">Active Today</div>
+      </div>
+      <div class="summary-stat" style="border-top-color:#f59e0b;">
+        <div class="summary-stat-value" id="statAvgAcc">—</div>
+        <div class="summary-stat-label">Avg Accuracy %</div>
+      </div>
+      <div class="summary-stat" style="border-top-color:#8b5cf6;">
+        <div class="summary-stat-value" id="statGoalMet">—</div>
+        <div class="summary-stat-label">Goal Met</div>
+      </div>
+      <div class="summary-stat" style="border-top-color:#ef4444;">
+        <div class="summary-stat-value" id="statTotalXp">—</div>
+        <div class="summary-stat-label">Total XP</div>
+      </div>
+    </div>
+
+    <!-- ── Student Roster ── -->
+    <div class="td-card">
+      <div class="td-card-title">Student Roster</div>
+      <div id="rosterWrap">
+        <div style="color:var(--muted);font-size:.85rem;padding:20px 0;">Loading students…</div>
+      </div>
+    </div>
+
+    <!-- ── Fact Detail Panel ── -->
+    <div id="factDetailPanel" hidden>
+      <div class="fd-header">
+        <button class="btn btn-outline" id="fdBackBtn" style="min-height:44px;padding:0 14px;">← Back</button>
+        <div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);">Fact Detail</div>
+          <div class="fd-student-name" id="fdStudentName">—</div>
+        </div>
+      </div>
+      <div class="fd-topic-tabs" id="fdTopicTabs">
+        <button class="fd-tab active" data-topic="addition">➕ Addition</button>
+        <button class="fd-tab" data-topic="subtraction">➖ Subtraction</button>
+        <button class="fd-tab" data-topic="multiplication">✖️ Multiplication</button>
+        <button class="fd-tab" data-topic="division">➗ Division</button>
+      </div>
+      <div id="fdTableWrap">
+        <div style="color:var(--muted);font-size:.85rem;padding:16px 0;">Select a topic above.</div>
+      </div>
+    </div>
+
+    <!-- ── Login Activity Log ── -->
+    <div class="td-card" id="activityCard">
+      <div class="td-card-title">Recent Login Activity</div>
+      <ul class="activity-log-list" id="activityList">
+        <li style="color:var(--muted);">Loading…</li>
+      </ul>
+    </div>
+
+    <!-- ── Teacher Tools ── -->
+    <section class="debug-footer-panel teacher-tools-panel" id="teacherToolsSection">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">Teacher tools</div>
+          <h2>Password Reset And Teacher Approval</h2>
+        </div>
+      </div>
+      <p class="debug-note">Teachers can reset passwords for students in their own class. Admins can approve pending teacher accounts.</p>
+      <div class="teacher-tool-grid td-tool-grid">
+        <div class="teacher-tool-card">
+          <strong>Reset Student Password</strong>
+          <span>Select a student and set a temporary password.</span>
+          <select id="resetStudentSelect" class="teacher-select">
+            <option value="">Loading students…</option>
+          </select>
+          <input type="text" id="resetPasswordInput" class="student-name-input login-input" placeholder="New temporary password">
+          <button class="btn btn-outline login-wide-btn" id="resetPasswordBtn" type="button">Reset selected student's password</button>
+        </div>
+        <div class="teacher-tool-card" id="approveTeacherCard">
+          <strong>Approve Teacher Accounts</strong>
+          <span>Teacher-domain emails become pending teachers until admin approves them.</span>
+          <select id="pendingTeacherSelect" class="teacher-select">
+            <option value="">Loading…</option>
+          </select>
+          <button class="btn btn-outline login-wide-btn" id="approveTeacherBtn" type="button">Approve selected teacher</button>
+        </div>
+      </div>
+      <div class="cloud-status teacher-tool-status" id="teacherToolStatus"></div>
+    </section>
+
+  </div><!-- /mainContent -->
+
+  <!-- Footer -->
+  <div class="footer" id="tdFooter" hidden>
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a>, Juliet, and Lawrence &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a> &nbsp;|&nbsp;
+    <a href="https://www.iwant2study.moe.edu.sg" target="_blank" rel="noopener">iwant2study.moe.edu.sg</a>
+    &nbsp;|&nbsp; <span id="lastMod" style="color:var(--muted);font-size:.75rem"></span>
+  </div>
+
+</div><!-- /td-page -->
+
+<script src="leitner-engine.js"></script>
+<script src="backend-client.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── Card lookup from engine ──────────────────────────────────
+  const cardLookup = {};
+  if (window.LeitnerEngine && LeitnerEngine.cardBank) {
+    LeitnerEngine.cardBank.forEach(c => { cardLookup[c.id] = c; });
+  }
+
+  // ── State ────────────────────────────────────────────────────
+  let allStudents = [];         // array from teacher-dashboard
+  let currentStudent = null;    // student object with fact data loaded
+  let currentFacts = [];        // fact array for currentStudent
+  let currentTopic = 'addition';
+  let currentUser = null;
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function relTime(iso) {
+    if (!iso) return '—';
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.round(diff / 60000);
+    if (m < 2)  return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.round(m / 60);
+    if (h < 24) return h + 'h ago';
+    const d = Math.round(h / 24);
+    if (d < 7)  return d + 'd ago';
+    return new Date(iso).toLocaleDateString('en-SG', { day:'numeric', month:'short' });
+  }
+
+  function accClass(pct) {
+    if (pct === null || pct === undefined) return 'mid';
+    if (pct >= 80) return 'good';
+    if (pct >= 50) return 'mid';
+    return 'poor';
+  }
+
+  function hintBulbs(level) {
+    const filled = Math.max(0, 3 - (level || 0));
+    return '💡'.repeat(filled) + '○'.repeat(Math.max(0, (level || 0)));
+  }
+
+  // ── Summary bar ──────────────────────────────────────────────
+  function renderSummary(s) {
+    document.getElementById('statStudents').textContent   = s.studentCount ?? '—';
+    document.getElementById('statActiveToday').textContent = s.activeToday ?? '—';
+    document.getElementById('statAvgAcc').textContent     = (s.avgAccuracy != null) ? s.avgAccuracy + '%' : '—';
+    document.getElementById('statGoalMet').textContent    = s.completedGoal ?? '—';
+    document.getElementById('statTotalXp').textContent    = s.totalXp != null ? s.totalXp.toLocaleString() : '—';
+  }
+
+  // ── Roster table ─────────────────────────────────────────────
+  function renderRoster(students) {
+    const wrap = document.getElementById('rosterWrap');
+    if (!students.length) {
+      wrap.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:20px 0;">No students found.</div>';
+      return;
+    }
+    const rows = students.map((s, i) => {
+      const goalPct = s.today?.goalPct ?? 0;
+      const acc     = s.today?.accuracy ?? null;
+      const accCls  = accClass(acc);
+      return `<tr class="td-student-row" data-sid="${s.id}">
+        <td style="color:var(--muted);font-size:.75rem;">${i + 1}</td>
+        <td>
+          <div style="font-weight:700;font-size:.88rem;">${escHtml(s.displayName || s.username)}</div>
+          <div style="color:var(--muted);font-size:.72rem;">@${escHtml(s.username)}</div>
+        </td>
+        <td style="background:#fef2f2;text-align:center;font-weight:700;color:var(--pack-a);">${s.packs?.A ?? 0}</td>
+        <td style="background:#fffbeb;text-align:center;font-weight:700;color:#b45309;">${s.packs?.B ?? 0}</td>
+        <td style="background:#f0fdf4;text-align:center;font-weight:700;color:var(--correct);">${s.packs?.C ?? 0}</td>
+        <td>
+          <span style="font-size:.8rem;">${s.today?.cards ?? 0}/${s.today?.goal ?? 20}</span><br>
+          <span class="mini-bar-wrap"><span class="mini-bar-fill" style="width:${goalPct}%;"></span></span>
+        </td>
+        <td>
+          <span style="color:${accCls === 'good' ? 'var(--correct)' : accCls === 'poor' ? 'var(--wrong)' : '#b45309'};font-weight:700;">
+            ${acc !== null ? acc + '%' : '—'}
+          </span>
+        </td>
+        <td>${s.streak ? '🔥 ' + s.streak : '—'}</td>
+        <td style="font-weight:700;">${(s.xp || 0).toLocaleString()}</td>
+        <td style="color:var(--muted);font-size:.78rem;">${relTime(s.lastLoginAt)}</td>
+        <td><button class="td-icon-btn" data-sid="${s.id}" title="View facts">📊</button></td>
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <table class="td-roster-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Student</th>
+            <th style="background:#fef2f2;color:var(--pack-a);">Box1</th>
+            <th style="background:#fffbeb;color:#b45309;">Box2</th>
+            <th style="background:#f0fdf4;color:var(--correct);">Box3</th>
+            <th>Today / Goal</th><th>Acc%</th>
+            <th>🔥 Streak</th><th>XP</th>
+            <th>Last Login</th><th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    wrap.querySelectorAll('.td-student-row, .td-icon-btn').forEach(el => {
+      el.addEventListener('click', e => {
+        const sid = parseInt(el.dataset.sid, 10);
+        openFactDetail(sid);
+        e.stopPropagation();
+      });
+    });
+  }
+
+  // ── Fact detail panel ────────────────────────────────────────
+  async function openFactDetail(studentId) {
+    const student = allStudents.find(s => s.id === studentId);
+    if (!student) return;
+
+    document.getElementById('fdStudentName').textContent =
+      (student.displayName || student.username) + ' (@' + student.username + ')';
+
+    const panel = document.getElementById('factDetailPanel');
+    panel.hidden = false;
+    document.getElementById('fdTableWrap').innerHTML =
+      '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;">Loading facts…</div>';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+      const data = await LeitnerCloud.factAttempts(studentId);
+      currentFacts   = data.facts || [];
+      currentStudent = student;
+      renderFactTable(currentTopic);
+    } catch (err) {
+      document.getElementById('fdTableWrap').innerHTML =
+        `<div style="color:var(--wrong);font-size:.85rem;padding:16px 0;">Error: ${escHtml(err.message)}</div>`;
+    }
+  }
+
+  function renderFactTable(topic) {
+    currentTopic = topic;
+    // Update tab active state
+    document.querySelectorAll('.fd-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.topic === topic);
+    });
+
+    const facts = currentFacts.filter(f => f.topic === topic);
+    if (!facts.length) {
+      document.getElementById('fdTableWrap').innerHTML =
+        '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;">No data for this topic yet.</div>';
+      return;
+    }
+
+    // Sort: A first, B, C; within same pack sort by accuracy ascending (nulls last)
+    const packOrder = { A: 0, B: 1, C: 2 };
+    facts.sort((a, b) => {
+      const po = (packOrder[a.pack] ?? 3) - (packOrder[b.pack] ?? 3);
+      if (po !== 0) return po;
+      const aa = a.accuracy ?? 101;
+      const ba = b.accuracy ?? 101;
+      return aa - ba;
+    });
+
+    const rows = facts.map(f => {
+      const card    = cardLookup[f.cardId];
+      const accCls  = accClass(f.accuracy);
+      const accPct  = f.accuracy !== null && f.accuracy !== undefined ? f.accuracy : null;
+      const errTags = (f.commonErrors || []).slice(0, 5)
+        .map(e => `<span class="error-tag">${escHtml(String(e.answer))} ×${e.count}</span>`)
+        .join('');
+      return `<tr>
+        <td style="font-weight:600;">${escHtml(card ? card.question : f.cardId)}</td>
+        <td style="color:var(--correct);font-weight:700;">${escHtml(card ? card.answer : '—')}</td>
+        <td style="text-align:center;"><span class="pack-circle ${f.pack}">${f.pack}</span></td>
+        <td style="text-align:center;color:var(--muted);">${f.attempts}</td>
+        <td style="text-align:center;color:var(--correct);font-weight:700;">${f.correct}</td>
+        <td>
+          ${accPct !== null ? `<div class="acc-bar-wrap">
+            <div class="acc-bar-bg"><div class="acc-bar-fill ${accCls}" style="width:${accPct}%;"></div></div>
+            <span class="acc-pct" style="color:${accCls==='good'?'var(--correct)':accCls==='poor'?'var(--wrong)':'#b45309'}">${accPct}%</span>
+          </div>` : '<span style="color:var(--muted);font-size:.75rem;">—</span>'}
+        </td>
+        <td><span class="hint-bulbs">${hintBulbs(f.hintLevel)}</span></td>
+        <td>${errTags || '<span style="color:var(--muted);font-size:.75rem;">—</span>'}</td>
+        <td style="color:var(--muted);font-size:.78rem;">${f.lastReviewed ? relTime(f.lastReviewed + 'T00:00:00') : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('fdTableWrap').innerHTML = `
+      <table class="td-fact-table">
+        <thead>
+          <tr>
+            <th>Fact</th><th>Ans</th><th>Box</th>
+            <th>Tries</th><th>✅</th><th>Accuracy</th>
+            <th>Hints</th><th>Common Errors</th><th>Last Seen</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ── Activity log ─────────────────────────────────────────────
+  async function renderActivityLog(studentIds) {
+    const list = document.getElementById('activityList');
+    try {
+      const events = await LeitnerCloud.authFeed();
+      const filtered = studentIds.size
+        ? events.filter(e => studentIds.has(e.userId))
+        : events;
+
+      const icons = {
+        login: '🔑', logout: '🚪', account_created: '✨',
+        password_reset: '🔒', teacher_pending: '⏳', teacher_approved: '✅',
+        login_failed: '❌',
+      };
+      if (!filtered.length) {
+        list.innerHTML = '<li style="color:var(--muted);">No recent activity.</li>';
+        return;
+      }
+      list.innerHTML = filtered.slice(0, 40).map(e => {
+        const icon  = icons[e.eventType] || '📝';
+        const name  = e.displayName || e.username || 'Unknown';
+        const etype = (e.eventType || '').replace(/_/g, ' ');
+        return `<li>
+          <span>${icon}</span>
+          <span><strong>${escHtml(name)}</strong>${e.username ? ' @' + escHtml(e.username) : ''}</span>
+          <span style="color:var(--muted);font-size:.78rem;">${etype}</span>
+          <span class="activity-log-time">${relTime(e.createdAt)}</span>
+        </li>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = `<li style="color:var(--wrong);">Could not load activity: ${escHtml(err.message)}</li>`;
+    }
+  }
+
+  // ── Teacher tools ─────────────────────────────────────────────
+  function populateStudentSelect(students) {
+    const sel = document.getElementById('resetStudentSelect');
+    sel.innerHTML = '<option value="">— Select student —</option>' +
+      students.map(s =>
+        `<option value="${s.id}">${escHtml(s.displayName || s.username)} (@${escHtml(s.username)})</option>`
+      ).join('');
+  }
+
+  async function loadPendingTeachers(isAdmin) {
+    const card = document.getElementById('approveTeacherCard');
+    if (!isAdmin) { card.hidden = true; return; }
+    card.hidden = false;
+    const sel = document.getElementById('pendingTeacherSelect');
+    try {
+      const teachers = await LeitnerCloud.pendingTeachers();
+      sel.innerHTML = teachers.length
+        ? '<option value="">— Select teacher —</option>' +
+          teachers.map(t => `<option value="${t.id}">${escHtml(t.displayName || t.username)}</option>`).join('')
+        : '<option value="">No pending teachers</option>';
+    } catch (err) {
+      sel.innerHTML = `<option value="">Error: ${escHtml(err.message)}</option>`;
+    }
+  }
+
+  document.getElementById('resetPasswordBtn').addEventListener('click', async () => {
+    const sid  = document.getElementById('resetStudentSelect').value;
+    const pwd  = document.getElementById('resetPasswordInput').value.trim();
+    const stat = document.getElementById('teacherToolStatus');
+    if (!sid) { stat.textContent = 'Please select a student.'; return; }
+    if (pwd.length < 4) { stat.textContent = 'Password must be at least 4 characters.'; return; }
+    try {
+      await LeitnerCloud.teacherResetPassword(parseInt(sid, 10), pwd);
+      stat.textContent = 'Password reset successfully.';
+      stat.style.color = 'var(--correct)';
+      document.getElementById('resetPasswordInput').value = '';
+    } catch (err) {
+      stat.textContent = 'Error: ' + err.message;
+      stat.style.color = 'var(--wrong)';
+    }
+  });
+
+  document.getElementById('approveTeacherBtn').addEventListener('click', async () => {
+    const tid  = document.getElementById('pendingTeacherSelect').value;
+    const stat = document.getElementById('teacherToolStatus');
+    if (!tid) { stat.textContent = 'Please select a teacher.'; return; }
+    try {
+      await LeitnerCloud.approveTeacher(parseInt(tid, 10));
+      stat.textContent = 'Teacher approved!';
+      stat.style.color = 'var(--correct)';
+      loadPendingTeachers(true);
+    } catch (err) {
+      stat.textContent = 'Error: ' + err.message;
+      stat.style.color = 'var(--wrong)';
+    }
+  });
+
+  // ── Topic tabs ──────────────────────────────────────────────
+  document.querySelectorAll('.fd-tab').forEach(btn => {
+    btn.addEventListener('click', () => renderFactTable(btn.dataset.topic));
+  });
+
+  // ── Back button ──────────────────────────────────────────────
+  document.getElementById('fdBackBtn').addEventListener('click', () => {
+    document.getElementById('factDetailPanel').hidden = true;
+    currentStudent = null;
+    currentFacts   = [];
+  });
+
+  // ── Main load ────────────────────────────────────────────────
+  async function loadDashboard() {
+    try {
+      const data = await LeitnerCloud.teacherDashboard();
+      allStudents  = data.students || [];
+      renderSummary(data.classSummary || {});
+      renderRoster(allStudents);
+      populateStudentSelect(allStudents);
+      const studentIds = new Set(allStudents.map(s => s.id));
+      renderActivityLog(studentIds);
+      loadPendingTeachers(currentUser && currentUser.role === 'admin');
+    } catch (err) {
+      document.getElementById('rosterWrap').innerHTML =
+        `<div style="color:var(--wrong);font-size:.85rem;padding:20px 0;">Could not load dashboard: ${escHtml(err.message)}</div>`;
+    }
+  }
+
+  document.getElementById('tdRefreshBtn').addEventListener('click', loadDashboard);
+
+  // ── Escape helper ─────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────
+  (async function boot() {
+    document.getElementById('lastMod').textContent =
+      'Last updated: ' + new Date(document.lastModified).toLocaleString('en-SG', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+
+    let user = null;
+    try {
+      user = await LeitnerCloud.me();
+    } catch (_) { /* not logged in */ }
+
+    const isTeacherOrAdmin = user && ['teacher', 'admin'].includes(user.role || '');
+    if (!isTeacherOrAdmin) {
+      document.getElementById('authGate').hidden    = false;
+      document.getElementById('tdFooter').hidden    = false;
+      return;
+    }
+
+    currentUser = user;
+    document.getElementById('tdWelcome').textContent =
+      'Signed in as ' + (user.displayName || user.username) +
+      ' (' + user.role + ')';
+
+    document.getElementById('mainContent').hidden = false;
+    document.getElementById('tdFooter').hidden    = false;
+
+    await loadDashboard();
+  })();
+
+})();
+</script>
+</body>
+</html>

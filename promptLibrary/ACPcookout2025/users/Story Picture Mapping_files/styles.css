@@ -1,0 +1,463 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'SimHei', Arial, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    overflow: hidden;
+}
+
+/* Container setup for iframe compatibility */
+.container {
+    width: 100%;
+    height: 450px; /* Default iframe height */
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive height for full browser */
+@media (min-height: 500px) {
+    .container {
+        height: 90vh;
+    }
+}
+
+/* Control panel styling */
+.control-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 1000;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    padding: 8px 12px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    min-width: 40px;
+    height: 32px;
+}
+
+.control-btn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+/* Main mapping area */
+.mapping-area {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-origin: center center;
+    transition: transform 0.3s ease;
+    padding: 50px 10px 60px 10px;
+    /* Center all content within the mapping area */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* SVG for connection lines */
+.connection-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Scenario zones (drop areas) - Modified for centered layout */
+.scenario-zone {
+    position: absolute;
+    width: 140px;
+    height: 80px;
+    border-radius: 12px;
+    border: 3px dashed #ccc;
+    background: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Centered positioning for scenario zones */
+.scenario-zone.morning {
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-color: #FF9800;
+    background: rgba(255, 152, 0, 0.1);
+}
+
+.scenario-zone.school {
+    top: 20%;
+    right: 20%;
+    border-color: #2196F3;
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.scenario-zone.home {
+    bottom: 30%;
+    left: 20%;
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.scenario-zone.evening {
+    bottom: 30%;
+    right: 20%;
+    border-color: #9C27B0;
+    background: rgba(156, 39, 176, 0.1);
+}
+
+.scenario-label {
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 5px;
+    color: #333;
+    line-height: 1.2;
+}
+
+.drop-area {
+    width: 100%;
+    height: 50px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Drag over effects */
+.scenario-zone.drag-over {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+}
+
+/* Special handling for morning scenario drag-over to maintain centering */
+.scenario-zone.morning.drag-over {
+    transform: translateX(-50%) scale(1.05);
+}
+
+/* Concept items (draggable elements) */
+.concept-item {
+    position: absolute;
+    width: 70px;
+    height: 60px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    cursor: grab;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border: 2px solid transparent;
+}
+
+.concept-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.concept-item.dragging {
+    cursor: grabbing;
+    transform: rotate(5deg) scale(1.1);
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+.concept-item.placed {
+    position: relative;
+    margin: 2px;
+    width: 60px;
+    height: 50px;
+    transform: none;
+}
+
+.concept-image {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+.concept-text {
+    font-size: 9px;
+    text-align: center;
+    color: #333;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Color coding for categories */
+.concept-item[data-category="morning"] {
+    border-color: #FF9800;
+}
+
+.concept-item[data-category="school"] {
+    border-color: #2196F3;
+}
+
+.concept-item[data-category="home"] {
+    border-color: #4CAF50;
+}
+
+.concept-item[data-category="evening"] {
+    border-color: #9C27B0;
+}
+
+/* Centered positioning of concept items */
+#concept1 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-150px, -50px); 
+}
+#concept2 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-70px, -50px); 
+}
+#concept3 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(10px, -50px); 
+}
+#concept4 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(90px, -50px); 
+}
+#concept5 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-150px, 20px); 
+}
+#concept6 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-70px, 20px); 
+}
+#concept7 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(10px, 20px); 
+}
+#concept8 { 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(90px, 20px); 
+}
+
+/* Connection lines styling */
+.connection-line {
+    stroke: #4CAF50;
+    stroke-width: 3;
+    fill: none;
+    stroke-dasharray: 5,5;
+    animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -10;
+    }
+}
+
+/* Example overlay */
+.example-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.example-content {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+    text-align: center;
+}
+
+.example-content h3 {
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+}
+
+.example-content ul {
+    text-align: left;
+    margin: 15px 0;
+    font-size: 12px;
+}
+
+.example-content li {
+    margin: 8px 0;
+    list-style: none;
+    padding: 5px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.close-example {
+    padding: 8px 16px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+/* Feedback messages */
+.feedback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border-radius: 20px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1500;
+    pointer-events: none;
+}
+
+.feedback.show {
+    opacity: 1;
+}
+
+/* Progress bar */
+.progress-bar {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .control-panel {
+        top: 5px;
+        right: 5px;
+        gap: 3px;
+    }
+    
+    .control-btn {
+        padding: 6px 8px;
+        font-size: 10px;
+        min-width: 35px;
+        height: 28px;
+    }
+    
+    .scenario-zone {
+        width: 120px;
+        height: 70px;
+    }
+    
+    .concept-item {
+        width: 60px;
+        height: 50px;
+    }
+    
+    .concept-text {
+        font-size: 8px;
+    }
+    
+    .scenario-label {
+        font-size: 10px;
+    }
+    
+    /* Adjust centered positioning for mobile */
+    #concept1 { transform: translate(-120px, -40px); }
+    #concept2 { transform: translate(-60px, -40px); }
+    #concept3 { transform: translate(0px, -40px); }
+    #concept4 { transform: translate(60px, -40px); }
+    #concept5 { transform: translate(-120px, 15px); }
+    #concept6 { transform: translate(-60px, 15px); }
+    #concept7 { transform: translate(0px, 15px); }
+    #concept8 { transform: translate(60px, 15px); }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) {
+    .concept-item:hover {
+        transform: none;
+    }
+    
+    .concept-item:active {
+        transform: scale(1.1);
+    }
+    
+    .control-btn:hover {
+        transform: none;
+    }
+    
+    .control-btn:active {
+        transform: scale(0.95);
+    }
+}

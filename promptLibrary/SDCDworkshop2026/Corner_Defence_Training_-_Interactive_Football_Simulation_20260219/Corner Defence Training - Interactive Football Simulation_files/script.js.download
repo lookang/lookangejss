@@ -1,0 +1,800 @@
+// ============================================
+// CORNER DEFENCE TRAINING - INTERACTIVE SIMULATION
+// ============================================
+// This interactive teaches students defensive positioning,
+// observation skills, and tactical responses during corner kicks
+// ============================================
+
+// ============================================
+// AUDIO SYSTEM - Background music and sound effects
+// ============================================
+class AudioSystem {
+    constructor() {
+        // Create audio context for sound generation
+        this.audioContext = null;
+        this.backgroundMusicPlaying = false;
+        this.initAudioContext();
+    }
+
+    initAudioContext() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.log('Web Audio API not supported');
+        }
+    }
+
+    // Play a tone with specified frequency and duration
+    playTone(frequency, duration, type = 'sine') {
+        if (!this.audioContext) return;
+
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + duration);
+    }
+
+    // Sound effects for different interactions
+    playClickSound() {
+        this.playTone(800, 0.1, 'square');
+    }
+
+    playSuccessSound() {
+        this.playTone(523.25, 0.15, 'sine'); // C5
+        setTimeout(() => this.playTone(659.25, 0.15, 'sine'), 100); // E5
+        setTimeout(() => this.playTone(783.99, 0.3, 'sine'), 200); // G5
+    }
+
+    playErrorSound() {
+        this.playTone(200, 0.2, 'sawtooth');
+        setTimeout(() => this.playTone(150, 0.3, 'sawtooth'), 150);
+    }
+
+    playWhistleSound() {
+        this.playTone(2000, 0.3, 'sine');
+    }
+
+    playGoalKickSound() {
+        this.playTone(300, 0.2, 'sine');
+        setTimeout(() => this.playTone(250, 0.15, 'sine'), 100);
+    }
+
+    // Background ambient music
+    startBackgroundMusic() {
+        if (this.backgroundMusicPlaying || !this.audioContext) return;
+        this.backgroundMusicPlaying = true;
+        this.playBackgroundLoop();
+    }
+
+    playBackgroundLoop() {
+        if (!this.backgroundMusicPlaying) return;
+
+        const notes = [261.63, 293.66, 329.63, 349.23, 392.00]; // C, D, E, F, G
+        const randomNote = notes[Math.floor(Math.random() * notes.length)];
+        
+        this.playTone(randomNote, 0.5, 'triangle');
+        
+        setTimeout(() => this.playBackgroundLoop(), 2000 + Math.random() * 2000);
+    }
+
+    stopBackgroundMusic() {
+        this.backgroundMusicPlaying = false;
+    }
+}
+
+// ============================================
+// GAME STATE MANAGEMENT
+// ============================================
+class GameState {
+    constructor() {
+        this.currentPhase = 1; // 1: Positioning, 2: Observation, 3: Tactical Response
+        this.score = 0;
+        this.maxScore = 300; // 100 points per phase
+        this.phaseScores = {
+            positioning: 0,
+            observation: 0,
+            tactical: 0
+        };
+        this.defenderPositions = {};
+        this.observationAnswers = {
+            trajectory: null,
+            height: null
+        };
+        this.tacticalResponses = {};
+        
+        // Correct answers for validation
+        this.correctAnswers = {
+            observation: {
+                trajectory: 'near-post',
+                height: 'high'
+            },
+            tactical: {
+                'runs-near': 'follow-tight',
+                'stays-central': 'hold-position',
+                'runs-far': 'follow-tight'
+            }
+        };
+
+        // Optimal defender positions (zones)
+        this.optimalPositions = {
+            defender1: 'near-post',
+            defender2: 'six-yard',
+            defender3: 'far-post'
+        };
+    }
+
+    updateScore(points) {
+        this.score += points;
+        document.getElementById('scoreValue').textContent = this.score;
+    }
+
+    updatePhase(phase) {
+        this.currentPhase = phase;
+        document.getElementById('phaseValue').textContent = `${phase}/3`;
+    }
+
+    reset() {
+        this.currentPhase = 1;
+        this.score = 0;
+        this.phaseScores = { positioning: 0, observation: 0, tactical: 0 };
+        this.defenderPositions = {};
+        this.observationAnswers = { trajectory: null, height: null };
+        this.tacticalResponses = {};
+        document.getElementById('scoreValue').textContent = '0';
+        document.getElementById('phaseValue').textContent = '1/3';
+    }
+}
+
+// ============================================
+// DRAG AND DROP SYSTEM
+// ============================================
+class DragDropSystem {
+    constructor(gameState, audioSystem) {
+        this.gameState = gameState;
+        this.audioSystem = audioSystem;
+        this.draggedElement = null;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.isDragging = false;
+        this.initDragDrop();
+    }
+
+    initDragDrop() {
+        const draggables = document.querySelectorAll('.draggable');
+        
+        draggables.forEach(element => {
+            // Mouse events
+            element.addEventListener('mousedown', (e) => this.startDrag(e, element));
+            
+            // Touch events
+            element.addEventListener('touchstart', (e) => this.startDrag(e, element), { passive: false });
+        });
+
+        // Global move and end events
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', (e) => this.endDrag(e));
+        document.addEventListener('touchmove', (e) => this.drag(e), { passive: false });
+        document.addEventListener('touchend', (e) => this.endDrag(e));
+    }
+
+    startDrag(e, element) {
+        if (this.gameState.currentPhase !== 1) return;
+        
+        e.preventDefault();
+        this.isDragging = true;
+        this.draggedElement = element;
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = element.getBoundingClientRect();
+        
+        this.offsetX = touch.clientX - rect.left;
+        this.offsetY = touch.clientY - rect.top;
+        
+        element.classList.add('dragging');
+        this.audioSystem.playClickSound();
+        
+        // Highlight drop zones
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.classList.add('active');
+        });
+    }
+
+    drag(e) {
+        if (!this.isDragging || !this.draggedElement) return;
+        
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const pitch = document.getElementById('footballPitch');
+        const pitchRect = pitch.getBoundingClientRect();
+        
+        // Calculate position relative to pitch
+        let x = touch.clientX - pitchRect.left - this.offsetX;
+        let y = touch.clientY - pitchRect.top - this.offsetY;
+        
+        // Constrain to pitch boundaries
+        x = Math.max(0, Math.min(x, pitchRect.width - this.draggedElement.offsetWidth));
+        y = Math.max(0, Math.min(y, pitchRect.height - this.draggedElement.offsetHeight));
+        
+        this.draggedElement.style.left = x + 'px';
+        this.draggedElement.style.top = y + 'px';
+    }
+
+    endDrag(e) {
+        if (!this.isDragging || !this.draggedElement) return;
+        
+        e.preventDefault();
+        this.isDragging = false;
+        
+        const element = this.draggedElement;
+        element.classList.remove('dragging');
+        
+        // Check which zone the defender is in
+        const zone = this.getZoneForPosition(element);
+        const playerId = element.dataset.player;
+        this.gameState.defenderPositions[playerId] = zone;
+        
+        // Remove drop zone highlights
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.classList.remove('active');
+        });
+        
+        this.draggedElement = null;
+        this.audioSystem.playClickSound();
+    }
+
+    getZoneForPosition(element) {
+        const elementRect = element.getBoundingClientRect();
+        const elementCenterX = elementRect.left + elementRect.width / 2;
+        const elementCenterY = elementRect.top + elementRect.height / 2;
+        
+        const zones = document.querySelectorAll('.drop-zone');
+        let closestZone = null;
+        let minDistance = Infinity;
+        
+        zones.forEach(zone => {
+            const zoneRect = zone.getBoundingClientRect();
+            const zoneCenterX = zoneRect.left + zoneRect.width / 2;
+            const zoneCenterY = zoneRect.top + zoneRect.height / 2;
+            
+            const distance = Math.sqrt(
+                Math.pow(elementCenterX - zoneCenterX, 2) +
+                Math.pow(elementCenterY - zoneCenterY, 2)
+            );
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestZone = zone.dataset.zone;
+            }
+        });
+        
+        return closestZone;
+    }
+}
+
+// ============================================
+// GAME CONTROLLER - Main game logic
+// ============================================
+class GameController {
+    constructor() {
+        this.audioSystem = new AudioSystem();
+        this.gameState = new GameState();
+        this.dragDropSystem = new DragDropSystem(this.gameState, this.audioSystem);
+        
+        this.init();
+    }
+
+    init() {
+        // Detect if running in iframe
+        if (window.self !== window.top) {
+            document.body.classList.add('iframe-mode');
+        }
+
+        // Initialize event listeners
+        this.setupEventListeners();
+        
+        // Start background music
+        this.audioSystem.startBackgroundMusic();
+        
+        // Show initial tooltip
+        this.showCentralTooltip(
+            '<strong>Welcome to Corner Defence Training!</strong><br><br>' +
+            'You will learn three critical skills:<br>' +
+            '1. <strong>Positioning</strong> - Place defenders in optimal zones<br>' +
+            '2. <strong>Observation</strong> - Identify ball trajectory and height<br>' +
+            '3. <strong>Tactical Response</strong> - React to opponent movements<br><br>' +
+            'Earn up to 300 points by mastering all phases!<br><br>' +
+            'Click Continue to begin Phase 1.'
+        );
+    }
+
+    setupEventListeners() {
+        // Info icon
+        document.getElementById('infoIcon').addEventListener('click', () => {
+            this.toggleHeaderTooltip();
+        });
+
+        // Phase 1: Positioning
+        document.getElementById('checkPositioningBtn').addEventListener('click', () => {
+            this.checkPositioning();
+        });
+
+        // Phase 2: Observation
+        document.querySelectorAll('#observationQuestions .option-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.selectObservationOption(e.target);
+            });
+        });
+
+        document.getElementById('submitObservationBtn').addEventListener('click', () => {
+            this.submitObservation();
+        });
+
+        // Phase 3: Tactical Response
+        document.querySelectorAll('.response-select').forEach(select => {
+            select.addEventListener('change', () => {
+                this.checkTacticalComplete();
+            });
+        });
+
+        document.getElementById('submitResponseBtn').addEventListener('click', () => {
+            this.submitTacticalResponse();
+        });
+
+        // Continue button in feedback panel
+        document.getElementById('continueBtn').addEventListener('click', () => {
+            this.hideFeedback();
+            this.advancePhase();
+        });
+
+        // Restart button
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            this.restart();
+        });
+
+        // Close tooltip
+        document.getElementById('closeTooltipBtn').addEventListener('click', () => {
+            this.hideCentralTooltip();
+        });
+    }
+
+    toggleHeaderTooltip() {
+        const tooltip = document.getElementById('headerTooltip');
+        tooltip.classList.toggle('hidden');
+        this.audioSystem.playClickSound();
+    }
+
+    // ============================================
+    // PHASE 1: POSITIONING
+    // ============================================
+    checkPositioning() {
+        this.audioSystem.playWhistleSound();
+        
+        let correctCount = 0;
+        let feedback = '<strong>Positioning Analysis:</strong><br><br>';
+        
+        // Check each defender's position
+        Object.keys(this.gameState.optimalPositions).forEach(defenderId => {
+            const optimalZone = this.gameState.optimalPositions[defenderId];
+            const actualZone = this.gameState.defenderPositions[defenderId];
+            
+            const defenderNum = defenderId.replace('defender', '');
+            
+            if (actualZone === optimalZone) {
+                correctCount++;
+                feedback += `✓ Defender ${defenderNum}: Excellent positioning in ${this.formatZoneName(optimalZone)}!<br>`;
+            } else {
+                feedback += `✗ Defender ${defenderNum}: Should be in ${this.formatZoneName(optimalZone)}, currently in ${this.formatZoneName(actualZone || 'unknown zone')}.<br>`;
+            }
+        });
+        
+        // Calculate score (100 points max for phase 1)
+        const phaseScore = Math.round((correctCount / 3) * 100);
+        this.gameState.phaseScores.positioning = phaseScore;
+        this.gameState.updateScore(phaseScore);
+        
+        feedback += `<br><strong>Phase 1 Score: ${phaseScore}/100</strong><br><br>`;
+        
+        if (correctCount === 3) {
+            feedback += 'Perfect positioning! You understand how to cover key areas during a corner.';
+            this.audioSystem.playSuccessSound();
+        } else if (correctCount >= 2) {
+            feedback += 'Good positioning! Minor adjustments needed for optimal coverage.';
+            this.audioSystem.playSuccessSound();
+        } else {
+            feedback += 'Review your positioning. Consider covering near post, far post, and six-yard box.';
+            this.audioSystem.playErrorSound();
+        }
+        
+        this.showFeedback(feedback);
+    }
+
+    formatZoneName(zone) {
+        const names = {
+            'near-post': 'Near Post Zone',
+            'far-post': 'Far Post Zone',
+            'six-yard': 'Six-Yard Box'
+        };
+        return names[zone] || zone;
+    }
+
+    // ============================================
+    // PHASE 2: OBSERVATION
+    // ============================================
+    selectObservationOption(button) {
+        this.audioSystem.playClickSound();
+        
+        // Get the question type (trajectory or height)
+        const questionItem = button.closest('.question-item');
+        const label = questionItem.querySelector('label').textContent.trim();
+        const answer = button.dataset.answer;
+        
+        // Deselect other options in the same group
+        questionItem.querySelectorAll('.option-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Select this option
+        button.classList.add('selected');
+        
+        // Store answer
+        if (label.includes('trajectory')) {
+            this.gameState.observationAnswers.trajectory = answer;
+        } else if (label.includes('height')) {
+            this.gameState.observationAnswers.height = answer;
+        }
+        
+        // Check if both questions answered
+        if (this.gameState.observationAnswers.trajectory && this.gameState.observationAnswers.height) {
+            document.getElementById('submitObservationBtn').disabled = false;
+        }
+    }
+
+    submitObservation() {
+        this.audioSystem.playWhistleSound();
+        
+        // Animate ball trajectory
+        this.animateBallTrajectory();
+        
+        let correctCount = 0;
+        let feedback = '<strong>Observation Analysis:</strong><br><br>';
+        
+        // Check trajectory
+        if (this.gameState.observationAnswers.trajectory === this.gameState.correctAnswers.observation.trajectory) {
+            correctCount++;
+            feedback += '✓ Ball Trajectory: Correct! The ball is heading to the near post.<br>';
+        } else {
+            feedback += `✗ Ball Trajectory: Incorrect. The ball is actually heading to the near post, not ${this.gameState.observationAnswers.trajectory}.<br>`;
+        }
+        
+        // Check height
+        if (this.gameState.observationAnswers.height === this.gameState.correctAnswers.observation.height) {
+            correctCount++;
+            feedback += '✓ Ball Height: Correct! The ball is at head height (high).<br>';
+        } else {
+            feedback += `✗ Ball Height: Incorrect. The ball is at head height (high), not ${this.gameState.observationAnswers.height}.<br>`;
+        }
+        
+        // Calculate score (100 points max for phase 2)
+        const phaseScore = Math.round((correctCount / 2) * 100);
+        this.gameState.phaseScores.observation = phaseScore;
+        this.gameState.updateScore(phaseScore);
+        
+        feedback += `<br><strong>Phase 2 Score: ${phaseScore}/100</strong><br><br>`;
+        
+        if (correctCount === 2) {
+            feedback += 'Excellent observation skills! You correctly identified the ball\'s path.';
+            this.audioSystem.playSuccessSound();
+        } else {
+            feedback += 'Keep practicing your observation. Watch the ball\'s flight and the kicker\'s body position.';
+            this.audioSystem.playErrorSound();
+        }
+        
+        // Visual feedback on buttons
+        document.querySelectorAll('#observationQuestions .option-btn').forEach(btn => {
+            const questionItem = btn.closest('.question-item');
+            const label = questionItem.querySelector('label').textContent.trim();
+            const answer = btn.dataset.answer;
+            
+            if (label.includes('trajectory') && answer === this.gameState.correctAnswers.observation.trajectory) {
+                btn.classList.add('correct');
+            } else if (label.includes('height') && answer === this.gameState.correctAnswers.observation.height) {
+                btn.classList.add('correct');
+            } else if (btn.classList.contains('selected')) {
+                btn.classList.add('incorrect');
+            }
+        });
+        
+        setTimeout(() => {
+            this.showFeedback(feedback);
+        }, 1000);
+    }
+
+    // MODIFIED: Ball animation now starts from bottom corner position
+    animateBallTrajectory() {
+        const ball = document.getElementById('ball');
+        const pitch = document.getElementById('footballPitch');
+        const pitchRect = pitch.getBoundingClientRect();
+        
+        // Animate ball from bottom corner to near post (upward trajectory)
+        ball.style.transition = 'all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        ball.style.bottom = ''; // Clear bottom positioning
+        ball.style.left = '15%';
+        ball.style.top = '30%';
+        
+        this.audioSystem.playGoalKickSound();
+        
+        // Animate attackers moving
+        setTimeout(() => {
+            document.getElementById('attacker1').style.transition = 'all 0.8s ease';
+            document.getElementById('attacker1').style.left = '18%';
+            document.getElementById('attacker1').style.top = '32%';
+        }, 200);
+    }
+
+    // ============================================
+    // PHASE 3: TACTICAL RESPONSE
+    // ============================================
+    checkTacticalComplete() {
+        const selects = document.querySelectorAll('.response-select');
+        let allSelected = true;
+        
+        selects.forEach(select => {
+            if (!select.value) {
+                allSelected = false;
+            } else {
+                const action = select.dataset.for;
+                this.gameState.tacticalResponses[action] = select.value;
+            }
+        });
+        
+        document.getElementById('submitResponseBtn').disabled = !allSelected;
+    }
+
+    submitTacticalResponse() {
+        this.audioSystem.playWhistleSound();
+        
+        let correctCount = 0;
+        let feedback = '<strong>Tactical Response Analysis:</strong><br><br>';
+        
+        // Check each response
+        Object.keys(this.gameState.correctAnswers.tactical).forEach(action => {
+            const correctResponse = this.gameState.correctAnswers.tactical[action];
+            const userResponse = this.gameState.tacticalResponses[action];
+            
+            const actionText = this.formatActionText(action);
+            
+            if (userResponse === correctResponse) {
+                correctCount++;
+                feedback += `✓ ${actionText}: Correct response!<br>`;
+                
+                // Visual feedback
+                const select = document.querySelector(`.response-select[data-for="${action}"]`);
+                select.closest('.response-slot').classList.add('correct');
+            } else {
+                feedback += `✗ ${actionText}: Should "${this.formatResponseText(correctResponse)}", not "${this.formatResponseText(userResponse)}".<br>`;
+                
+                // Visual feedback
+                const select = document.querySelector(`.response-select[data-for="${action}"]`);
+                select.closest('.response-slot').classList.add('incorrect');
+            }
+        });
+        
+        // Calculate score (100 points max for phase 3)
+        const phaseScore = Math.round((correctCount / 3) * 100);
+        this.gameState.phaseScores.tactical = phaseScore;
+        this.gameState.updateScore(phaseScore);
+        
+        feedback += `<br><strong>Phase 3 Score: ${phaseScore}/100</strong><br><br>`;
+        
+        if (correctCount === 3) {
+            feedback += 'Outstanding tactical awareness! You know exactly how to respond to opponent movements.';
+            this.audioSystem.playSuccessSound();
+        } else if (correctCount >= 2) {
+            feedback += 'Good tactical decisions! Minor improvements will make you even more effective.';
+            this.audioSystem.playSuccessSound();
+        } else {
+            feedback += 'Review defensive principles: follow runs tightly, hold position when opponents are static.';
+            this.audioSystem.playErrorSound();
+        }
+        
+        setTimeout(() => {
+            this.showFeedback(feedback);
+        }, 500);
+    }
+
+    formatActionText(action) {
+        const texts = {
+            'runs-near': 'Attacker runs to near post',
+            'stays-central': 'Attacker holds central position',
+            'runs-far': 'Attacker runs to far post'
+        };
+        return texts[action] || action;
+    }
+
+    formatResponseText(response) {
+        const texts = {
+            'follow-tight': 'Follow tightly and block',
+            'hold-position': 'Hold position and intercept',
+            'drop-back': 'Drop back to cover space',
+            'step-forward': 'Step forward to challenge'
+        };
+        return texts[response] || response;
+    }
+
+    // ============================================
+    // PHASE MANAGEMENT
+    // ============================================
+    advancePhase() {
+        if (this.gameState.currentPhase === 1) {
+            // Move to Phase 2
+            this.gameState.updatePhase(2);
+            document.getElementById('phase1Panel').classList.remove('active');
+            document.getElementById('phase1Panel').classList.add('hidden');
+            document.getElementById('phase2Panel').classList.remove('hidden');
+            document.getElementById('phase2Panel').classList.add('active');
+            
+            this.audioSystem.playWhistleSound();
+            
+        } else if (this.gameState.currentPhase === 2) {
+            // Move to Phase 3
+            this.gameState.updatePhase(3);
+            document.getElementById('phase2Panel').classList.remove('active');
+            document.getElementById('phase2Panel').classList.add('hidden');
+            document.getElementById('phase3Panel').classList.remove('hidden');
+            document.getElementById('phase3Panel').classList.add('active');
+            
+            this.audioSystem.playWhistleSound();
+            
+        } else if (this.gameState.currentPhase === 3) {
+            // Show final results
+            this.showFinalResults();
+        }
+    }
+
+    showFinalResults() {
+        this.gameState.updatePhase(3);
+        document.getElementById('phase3Panel').classList.remove('active');
+        document.getElementById('phase3Panel').classList.add('hidden');
+        document.getElementById('resultsPanel').classList.remove('hidden');
+        document.getElementById('resultsPanel').classList.add('active');
+        
+        const finalScore = this.gameState.score;
+        const maxScore = this.gameState.maxScore;
+        const percentage = Math.round((finalScore / maxScore) * 100);
+        
+        document.getElementById('finalScore').innerHTML = `${finalScore} / ${maxScore} points (${percentage}%)`;
+        
+        let performance = '';
+        if (percentage >= 90) {
+            performance = '🏆 <strong>Outstanding!</strong> You have mastered corner defence. Your positioning, observation, and tactical responses are excellent.';
+            this.audioSystem.playSuccessSound();
+        } else if (percentage >= 70) {
+            performance = '⭐ <strong>Well Done!</strong> You have a solid understanding of corner defence. Keep practicing to perfect your skills.';
+            this.audioSystem.playSuccessSound();
+        } else if (percentage >= 50) {
+            performance = '👍 <strong>Good Effort!</strong> You understand the basics. Review the key principles and try again to improve.';
+        } else {
+            performance = '📚 <strong>Keep Learning!</strong> Corner defence requires practice. Review each phase and focus on the fundamentals.';
+        }
+        
+        performance += '<br><br><strong>Phase Breakdown:</strong><br>';
+        performance += `Positioning: ${this.gameState.phaseScores.positioning}/100<br>`;
+        performance += `Observation: ${this.gameState.phaseScores.observation}/100<br>`;
+        performance += `Tactical Response: ${this.gameState.phaseScores.tactical}/100`;
+        
+        document.getElementById('performanceSummary').innerHTML = performance;
+    }
+
+    // ============================================
+    // UI HELPERS
+    // ============================================
+    showFeedback(content) {
+        document.getElementById('feedbackContent').innerHTML = content;
+        document.getElementById('feedbackPanel').classList.remove('hidden');
+    }
+
+    hideFeedback() {
+        document.getElementById('feedbackPanel').classList.add('hidden');
+        this.audioSystem.playClickSound();
+    }
+
+    showCentralTooltip(content) {
+        document.getElementById('tooltipContent').innerHTML = content;
+        document.getElementById('centralTooltip').classList.remove('hidden');
+    }
+
+    hideCentralTooltip() {
+        document.getElementById('centralTooltip').classList.add('hidden');
+        this.audioSystem.playClickSound();
+        
+        // If this is the initial tooltip, start the game
+        if (this.gameState.currentPhase === 1 && this.gameState.score === 0) {
+            this.audioSystem.playWhistleSound();
+        }
+    }
+
+    // MODIFIED: Reset function now properly resets ball position to bottom corner
+    restart() {
+        this.audioSystem.playWhistleSound();
+        
+        // Reset game state
+        this.gameState.reset();
+        
+        // Reset UI
+        document.getElementById('resultsPanel').classList.remove('active');
+        document.getElementById('resultsPanel').classList.add('hidden');
+        document.getElementById('phase1Panel').classList.remove('hidden');
+        document.getElementById('phase1Panel').classList.add('active');
+        
+        // Reset defenders to initial positions
+        document.getElementById('defender1').style.left = '';
+        document.getElementById('defender1').style.top = '';
+        document.getElementById('defender2').style.left = '';
+        document.getElementById('defender2').style.top = '';
+        document.getElementById('defender3').style.left = '';
+        document.getElementById('defender3').style.top = '';
+        
+        // Reset ball to bottom corner position
+        const ball = document.getElementById('ball');
+        ball.style.left = '';
+        ball.style.top = '';
+        ball.style.bottom = ''; // Clear any bottom positioning from animations
+        ball.style.transition = '';
+        
+        // Reset attackers
+        document.getElementById('attacker1').style.left = '';
+        document.getElementById('attacker1').style.top = '';
+        document.getElementById('attacker1').style.transition = '';
+        
+        // Reset observation buttons
+        document.querySelectorAll('#observationQuestions .option-btn').forEach(btn => {
+            btn.classList.remove('selected', 'correct', 'incorrect');
+        });
+        document.getElementById('submitObservationBtn').disabled = true;
+        
+        // Reset tactical selects
+        document.querySelectorAll('.response-select').forEach(select => {
+            select.value = '';
+            select.closest('.response-slot').classList.remove('correct', 'incorrect');
+        });
+        document.getElementById('submitResponseBtn').disabled = true;
+        
+        // Show welcome message again
+        this.showCentralTooltip(
+            '<strong>Welcome Back!</strong><br><br>' +
+            'Ready for another training session?<br><br>' +
+            'Remember the three phases:<br>' +
+            '1. Positioning<br>' +
+            '2. Observation<br>' +
+            '3. Tactical Response<br><br>' +
+            'Good luck!'
+        );
+    }
+}
+
+// ============================================
+// INITIALIZE GAME
+// ============================================
+let game;
+
+document.addEventListener('DOMContentLoaded', () => {
+    game = new GameController();
+});
+
+// Handle window resize for responsive layout
+window.addEventListener('resize', () => {
+    // Recalculate positions if needed
+    if (game && game.dragDropSystem) {
+        // Could add responsive adjustments here
+    }
+});

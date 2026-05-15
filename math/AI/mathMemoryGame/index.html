@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fraction Memory Game</title>
+    <style>
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 800px; /* Match grid max-width */
+            margin-bottom: 10px;
+        }
+
+        .header-container h1 {
+            margin: 0; /* Remove default h1 margin */
+        }
+
+        #timer {
+            font-size: 24px;
+            /* margin: 10px; */ /* Removed individual margin, handled by container */
+            font-weight: bold;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: background-color 0.5s;
+            width: 100%; /* Ensure full width */
+            min-height: auto; /* Adjust height to content */
+            margin: 0;
+            padding: 10px; /* Slightly reduced padding */
+            box-sizing: border-box; /* Include padding in width/height */
+        }
+
+        .level1 { background-color: #b0e0e6; }
+        .level2 { background-color: #90EE90; }
+        .level3 { background-color: #fffacd; }
+
+        /* #timer style moved to the new .header-container section */
+
+        #grid {
+            display: grid;
+            gap: 15px; /* Increased gap */
+            margin: 10px auto; /* Reduced margin */
+            width: 100%; /* Use full available width */
+            max-width: 800px; /* Keep a max-width for very large screens, but allow shrinking */
+            box-sizing: border-box;
+        }
+
+        .card {
+            width: 90px; /* Increased width */
+            height: 90px; /* Increased height */
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border-radius: 10px;
+            border: 2px solid #333;
+        }
+
+        .card-front {
+            color: white;
+            background-color: #4CAF50;
+        }
+
+        .level1 .card-front { background-color: #00008B; }
+        .level2 .card-front { background-color: #4CAF50; }
+        .level3 .card-front { background-color: #FFD700; }
+
+        .card-back {
+            background-color: white;
+            transform: rotateY(180deg);
+            color: black;
+        }
+
+        .matched .card-back {
+            background-color: #90EE90;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            min-width: 100px;
+        }
+
+        #startBtn { background-color: #32CD32; color: white; }
+        #restartBtn { background-color: #FF4500; color: white; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+</head>
+<body class="level2">
+    <div class="header-container">
+        <h1>Fraction Memory Game</h1>
+        <div id="timer">Time: 0s</div>
+    </div>
+    <div class="controls">
+        <button id="level1">Level 1</button>
+        <button id="level2">Level 2</button>
+        <button id="level3">Level 3</button>
+        <button id="startBtn">START</button>
+        <button id="restartBtn">RESTART</button>
+    </div>
+    <div id="grid"></div>
+
+    <footer>
+        <div>
+            <h3>How to Play:</h3>
+            <ol>
+                <li>Select a level (1, 2, or 3).</li>
+                <li>Click the 'START' button to begin the timer and enable card clicking.</li>
+                <li>Click on two cards to flip them over.</li>
+                <li>If the fractions on the cards are equivalent (e.g., 1/2 and 2/4), they are a match and will stay face up.</li>
+                <li>If they are not a match, they will flip back over.</li>
+                <li>Continue until all pairs are found.</li>
+                <li>Click 'RESTART' to reset the game at any time or to apply a new level selection.</li>
+            </ol>
+        </div>
+        <p>credit: made by theresa and/or hung, using Claude 4 or Gemini 2.5 Pro</p>
+        <p>For more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics</a></p>
+    </footer>
+
+    <script>
+        // Game Configuration
+        const pairsDatabase = [
+            ['1/2', '2/4'], ['1/3', '3/9'], ['2/3', '6/9'],
+            ['1/4', '2/8'], ['3/4', '6/8'], ['1/5', '2/10'],
+            ['5/6', '10/12'], ['3/5', '6/10'], ['2/6', '1/3'],
+            ['4/8', '1/2'], ['5/10', '1/2'], ['2/8', '1/4'],
+            ['3/6', '1/2'], ['4/12', '1/3'], ['6/12', '1/2'],
+            ['8/12', '2/3'], ['9/12', '3/4'], ['4/10', '2/5'],
+            ['6/10', '3/5'], ['8/10', '4/5']
+        ];
+
+        let gameConfig = {
+            currentLevel: 2,
+            columns: 4,
+            rows: 4,
+            pairsNeeded: 8,
+            selectedCards: [],
+            canClick: false,
+            startTime: null,
+            timerInterval: null,
+            gameActive: false
+        };
+
+        // Initialize Game
+        function init() {
+            document.getElementById('level1').onclick = () => setLevel(1);
+            document.getElementById('level2').onclick = () => setLevel(2);
+            document.getElementById('level3').onclick = () => setLevel(3);
+            document.getElementById('startBtn').onclick = startGame;
+            document.getElementById('restartBtn').onclick = restartGame;
+            createGrid();
+        }
+
+        // Level Configuration
+        function setLevel(level) {
+            gameConfig.currentLevel = level;
+            document.body.className = `level${level}`;
+            
+            const levelSettings = {
+                1: {cols: 4, rows: 2, pairs: 4},
+                2: {cols: 4, rows: 4, pairs: 8},
+                3: {cols: 6, rows: 4, pairs: 12}
+            };
+            
+            const settings = levelSettings[level];
+            gameConfig.columns = settings.cols;
+            gameConfig.rows = settings.rows;
+            gameConfig.pairsNeeded = settings.pairs;
+            
+            restartGame();
+        }
+
+        // Game Controls
+        function startGame() {
+            if (!gameConfig.gameActive) {
+                gameConfig.gameActive = true;
+                gameConfig.canClick = true;
+                gameConfig.startTime = Date.now();
+                gameConfig.timerInterval = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function restartGame() {
+            clearInterval(gameConfig.timerInterval);
+            gameConfig.gameActive = false;
+            gameConfig.canClick = false;
+            gameConfig.selectedCards = [];
+            document.getElementById('timer').textContent = 'Time: 0s';
+            createGrid();
+        }
+
+        // Grid Creation
+        function createGrid() {
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${gameConfig.columns}, 1fr)`;
+            grid.innerHTML = '';
+
+            let pairs = gameConfig.currentLevel === 1
+                ? pairsDatabase.filter(p => p.every(f => parseInt(f.split('/')[1]) % 2 === 0))
+                : pairsDatabase.slice(0, gameConfig.pairsNeeded);
+
+            shuffle(pairs.flat()).forEach(fraction => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">?</div>
+                        <div class="card-back">${fraction}</div>
+                    </div>
+                `;
+                card.onclick = () => handleCardClick(card);
+                grid.appendChild(card);
+            });
+        }
+
+        // Game Logic
+        function handleCardClick(card) {
+            if (!gameConfig.canClick || card.classList.contains('flipped')) return;
+            
+            card.classList.add('flipped');
+            gameConfig.selectedCards.push(card);
+
+            if (gameConfig.selectedCards.length === 2) {
+                gameConfig.canClick = false;
+                const [card1, card2] = gameConfig.selectedCards;
+                const match = areEquivalent(
+                    card1.querySelector('.card-back').textContent,
+                    card2.querySelector('.card-back').textContent
+                );
+
+                match ? handleMatch(card1, card2) : resetCards(card1, card2);
+            }
+        }
+
+        function areEquivalent(a, b) {
+            const [n1, d1] = a.split('/').map(Number);
+            const [n2, d2] = b.split('/').map(Number);
+            return n1 * d2 === n2 * d1;
+        }
+
+        function handleMatch(card1, card2) {
+            card1.classList.add('matched');
+            card2.classList.add('matched');
+            gameConfig.selectedCards = [];
+            gameConfig.canClick = true;
+            checkWin();
+        }
+
+        function resetCards(card1, card2) {
+            setTimeout(() => {
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                gameConfig.selectedCards = [];
+                gameConfig.canClick = true;
+            }, 1000);
+        }
+
+        function checkWin() {
+            if (document.querySelectorAll('.matched').length === gameConfig.pairsNeeded * 2) {
+                clearInterval(gameConfig.timerInterval);
+                triggerConfetti();
+                setTimeout(() => {
+                    const time = Math.floor((Date.now() - gameConfig.startTime) / 1000);
+                    alert(`You won in ${time} seconds!`);
+                    gameConfig.gameActive = false;
+                }, 500);
+            }
+        }
+
+        // Utilities
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - gameConfig.startTime) / 1000);
+            document.getElementById('timer').textContent = `Time: ${elapsed}s`;
+        }
+
+        function triggerConfetti() {
+            const count = 200;
+            const defaults = { origin: { y: 0.7 } };
+
+            function fire(ratio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * ratio),
+                    colors: ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF']
+                }));
+            }
+
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Start Game
+        window.onload = init;
+    </script>
+</body>
+</html>

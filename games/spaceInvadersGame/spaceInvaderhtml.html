@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Space Invaders Game Enhanced</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+            font-family: 'PressStart2P', Arial, sans-serif;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: black;
+        }
+        /* Pixelated font for retro aesthetic */
+        @font-face {
+            font-family: 'PressStart2P';
+            src: url('https://fonts.gstatic.com/s/pressstart2p/v11/8QIJdijZitv49rDfuIgOq7jkzJzDfQ.ttf') format('truetype');
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById('gameCanvas');
+        var ctx = canvas.getContext('2d');
+
+        // Adjust canvas size to fit the screen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Ask for number of players
+        var isTwoPlayer = confirm("Do you want to play in two-player mode?\nOK for Yes, Cancel for No.");
+
+        // Game variables
+        var player1 = {
+            x: canvas.width / 2 - 45,
+            y: canvas.height - 60,
+            width: 30,
+            height: 20,
+            speed: 7,
+            bullets: [],
+            canShoot: false,
+            lives: 3,
+            color: 'green',
+            controls: {
+                left: 65,    // 'A'
+                right: 68,   // 'D'
+                fire: 83     // 'S'
+            },
+            isMobile: false,
+            score: 0,
+            name: ''
+        };
+
+        var player2 = {
+            x: canvas.width / 2 + 15,
+            y: canvas.height - 60,
+            width: 30,
+            height: 20,
+            speed: 7,
+            bullets: [],
+            canShoot: false,
+            lives: 3,
+            color: 'blue',
+            controls: {
+                left: 37,    // Left Arrow
+                right: 39,   // Right Arrow
+                fire: 40     // Down Arrow
+            },
+            isMobile: false,
+            score: 0,
+            name: ''
+        };
+
+        var invaders = [];
+        var invaderRows = 5;
+        var invaderCols = 11;
+        var invaderWidth = 30;
+        var invaderHeight = 20;
+        var invaderPadding = 20; // Increased padding for more space between invaders
+        var invaderOffsetTop = 100;
+        var invaderOffsetLeft = 30;
+        var invaderSpeed = 1;
+        var invaderDirection = 1; // 1 means right, -1 means left
+
+        var keys = {};
+
+        var invadersDestroyed = 0;
+        var level = 1;
+        var gameOver = false;
+
+        var invaderBullets = [];
+        var bulletSpeed = 7;
+
+        var tilt = 0;
+
+        // Sound effects
+        var shootSound = new Audio('shoot.mp3');
+        var invaderHitSound = new Audio('invader_hit.mp3');
+        var playerHitSound = new Audio('player_hit.mp3');
+        var backgroundMusic = new Audio('background_music.mp3');
+        backgroundMusic.loop = true;
+        backgroundMusic.volume = 0.5;
+
+        // Mobile detection
+        var isMobile = /Mobi|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+            player1.isMobile = true;
+            // Only player 1 on mobile
+            isTwoPlayer = false;
+        }
+
+        // Start background music after user interaction
+        document.body.addEventListener('click', function() {
+            backgroundMusic.play();
+        }, { once: true });
+
+        // Initialize shields
+        var shields = [];
+        var shieldWidth = 60;
+        var shieldHeight = 40;
+        var shieldY = player1.y - 100;
+        var shieldPositions = [
+            canvas.width / 4 - shieldWidth / 2,
+            canvas.width / 2 - shieldWidth / 2,
+            (canvas.width * 3) / 4 - shieldWidth / 2
+        ];
+
+        function initShields() {
+            shields = [];
+            shieldPositions.forEach(function(x) {
+                var shield = {
+                    x: x,
+                    y: shieldY,
+                    width: shieldWidth,
+                    height: shieldHeight,
+                    blocks: []
+                };
+                // Create a grid of blocks for each shield
+                var rows = 4;
+                var cols = 8;
+                var blockWidth = shieldWidth / cols;
+                var blockHeight = shieldHeight / rows;
+                for (var r = 0; r < rows; r++) {
+                    for (var c = 0; c < cols; c++) {
+                        shield.blocks.push({
+                            x: x + c * blockWidth,
+                            y: shieldY + r * blockHeight,
+                            width: blockWidth,
+                            height: blockHeight,
+                            status: 1
+                        });
+                    }
+                }
+                shields.push(shield);
+            });
+        }
+
+        initShields();
+
+        // Initialize invaders
+        function initInvaders() {
+            invaders = [];
+            for (var r = 0; r < invaderRows; r++) {
+                for (var c = 0; c < invaderCols; c++) {
+                    var type;
+                    var points;
+                    if (r === 0) {
+                        type = 'small';
+                        points = 10;
+                    } else if (r === 1 || r === 2) {
+                        type = 'medium';
+                        points = 20;
+                    } else {
+                        type = 'large';
+                        points = 30;
+                    }
+                    invaders.push({
+                        x: c * (invaderWidth + invaderPadding) + invaderOffsetLeft,
+                        y: r * (invaderHeight + invaderPadding) + invaderOffsetTop,
+                        width: invaderWidth,
+                        height: invaderHeight,
+                        status: 1, // 1 means alive, 0 means dead
+                        type: type,
+                        points: points
+                    });
+                }
+            }
+            invadersDestroyed = 0;
+        }
+
+        initInvaders();
+
+        // Event listeners
+        document.addEventListener('keydown', function(e) {
+            keys[e.keyCode] = true;
+            // Start background music on key press
+            if (backgroundMusic.paused) {
+                backgroundMusic.play();
+            }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            keys[e.keyCode] = false;
+        });
+
+        // Accelerometer controls for mobile
+        if (player1.isMobile) {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+
+        function handleOrientation(event) {
+            var gamma = event.gamma; // Left to right tilt in degrees (-90 to 90)
+            tilt = gamma;
+        }
+
+        // Touch to fire for mobile
+        if (player1.isMobile) {
+            document.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                // Fire bullet
+                if (!player1.canShoot) {
+                    player1.bullets.push({
+                        x: player1.x + player1.width / 2 - 2.5,
+                        y: player1.y,
+                        width: 5,
+                        height: 10,
+                        speed: bulletSpeed
+                    });
+                    player1.canShoot = true;
+                    setTimeout(function() {
+                        player1.canShoot = false;
+                    }, 300);
+                    // Play shoot sound
+                    shootSound.currentTime = 0;
+                    shootSound.play();
+                }
+            }, { passive: false });
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            render();
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            } else {
+                backgroundMusic.pause();
+            }
+        }
+
+        // Update game state
+        function update() {
+            // Update players
+            updatePlayer(player1);
+            if (isTwoPlayer && !isMobile) {
+                updatePlayer(player2);
+            }
+
+            // Move invaders
+            var edgeReached = false;
+            for (var i = 0; i < invaders.length; i++) {
+                var invader = invaders[i];
+                if (invader.status == 1) {
+                    invader.x += invaderSpeed * invaderDirection;
+
+                    if (invader.x + invader.width > canvas.width || invader.x < 0) {
+                        edgeReached = true;
+                    }
+
+                    // Randomly shoot bullets
+                    if (Math.random() < 0.001 * level) {
+                        invaderBullets.push({
+                            x: invader.x + invader.width / 2 - 2.5,
+                            y: invader.y + invader.height,
+                            width: 5,
+                            height: 10,
+                            speed: bulletSpeed - 2
+                        });
+                    }
+                }
+            }
+
+            if (edgeReached) {
+                invaderDirection *= -1;
+                for (var i = 0; i < invaders.length; i++) {
+                    invaders[i].y += invaderHeight;
+                }
+                // Increase invader speed (tempo) slightly when they change direction
+                invaderSpeed += 0.1;
+            }
+
+            // Update invader bullets
+            for (var i = 0; i < invaderBullets.length; i++) {
+                var bullet = invaderBullets[i];
+                bullet.y += bullet.speed;
+
+                // Check collision with shields
+                shieldCollision(bullet, 'invader');
+
+                // Check collisions between players and invader bullets
+                if (player1.lives > 0 && collision(bullet, player1)) {
+                    player1.lives--;
+                    invaderBullets.splice(i, 1);
+                    i--;
+                    // Play player hit sound
+                    playerHitSound.currentTime = 0;
+                    playerHitSound.play();
+                } else if (isTwoPlayer && player2.lives > 0 && collision(bullet, player2)) {
+                    player2.lives--;
+                    invaderBullets.splice(i, 1);
+                    i--;
+                    // Play player hit sound
+                    playerHitSound.currentTime = 0;
+                    playerHitSound.play();
+                }
+
+                // Remove bullet if it goes off screen
+                if (bullet.y > canvas.height) {
+                    invaderBullets.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Check if invaders reach the bottom
+            for (var i = 0; i < invaders.length; i++) {
+                var invader = invaders[i];
+                if (invader.status == 1 && invader.y + invader.height >= player1.y) {
+                    // Game over
+                    gameOver = true;
+                    endGame();
+                    return;
+                }
+            }
+
+            // Check if all invaders are destroyed
+            if (invadersDestroyed == invaders.length) {
+                level++;
+                invaderSpeed += 0.5;
+                initInvaders();
+            }
+
+            // Check if both players are out of lives
+            if (player1.lives <= 0 && (!isTwoPlayer || player2.lives <= 0)) {
+                gameOver = true;
+                endGame();
+                return;
+            }
+        }
+
+        function updatePlayer(player) {
+            // Move player with accelerometer (mobile)
+            if (player.lives > 0) {
+                if (player.isMobile && tilt) {
+                    player.x += tilt * 0.5; // Adjust sensitivity as needed
+                    if (player.x < 0) player.x = 0;
+                    if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+                }
+
+                // Move player with keyboard
+                if (keys[player.controls.left] && player.x > 0) { // Left
+                    player.x -= player.speed;
+                }
+                if (keys[player.controls.right] && player.x < canvas.width - player.width) { // Right
+                    player.x += player.speed;
+                }
+
+                // Fire bullet with keyboard
+                if (keys[player.controls.fire]) {
+                    // Limit the rate of fire
+                    if (!player.canShoot) {
+                        player.bullets.push({
+                            x: player.x + player.width / 2 - 2.5,
+                            y: player.y,
+                            width: 5,
+                            height: 10,
+                            speed: bulletSpeed
+                        });
+                        player.canShoot = true;
+                        setTimeout(function() {
+                            player.canShoot = false;
+                        }, 300);
+                        // Play shoot sound
+                        shootSound.currentTime = 0;
+                        shootSound.play();
+                    }
+                }
+            }
+
+            // Update player bullets regardless of lives
+            for (var i = 0; i < player.bullets.length; i++) {
+                var bullet = player.bullets[i];
+                bullet.y -= bullet.speed;
+
+                // Check collision with shields
+                shieldCollision(bullet, 'player', player);
+
+                // Check collisions between bullets and invaders
+                for (var j = 0; j < invaders.length; j++) {
+                    var invader = invaders[j];
+                    if (invader.status == 1 && collision(bullet, invader)) {
+                        invader.status = 0;
+                        player.score += invader.points;
+                        invadersDestroyed++;
+                        player.bullets.splice(i, 1);
+                        i--;
+                        // Play invader hit sound
+                        invaderHitSound.currentTime = 0;
+                        invaderHitSound.play();
+                        break;
+                    }
+                }
+
+                // Remove bullet if it goes off screen
+                if (bullet.y < 0) {
+                    player.bullets.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        // Handle shield collisions
+        function shieldCollision(bullet, shooter, player) {
+            for (var s = 0; s < shields.length; s++) {
+                var shield = shields[s];
+                for (var b = 0; b < shield.blocks.length; b++) {
+                    var block = shield.blocks[b];
+                    if (block.status === 1 && collision(bullet, block)) {
+                        block.status = 0; // Destroy the block
+                        if (shooter === 'player') {
+                            player.bullets.splice(player.bullets.indexOf(bullet), 1);
+                        } else if (shooter === 'invader') {
+                            invaderBullets.splice(invaderBullets.indexOf(bullet), 1);
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Render game objects
+        function render() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw header
+            ctx.fillStyle = 'white';
+            ctx.font = '16px "PressStart2P", Arial, sans-serif';
+
+            // Player 1 Score on the left
+            ctx.textAlign = 'left';
+            ctx.fillText('Player 1: ' + pad(player1.score, 5), 20, 30);
+
+            // Total Score in the center
+            ctx.textAlign = 'center';
+            var totalScore = player1.score + (isTwoPlayer ? player2.score : 0);
+            ctx.fillText('Total Score: ' + pad(totalScore, 5), canvas.width / 2, 30);
+
+            // Player 2 Score on the right
+            if (isTwoPlayer && !isMobile) {
+                ctx.textAlign = 'right';
+                ctx.fillText('Player 2: ' + pad(player2.score, 5), canvas.width - 20, 30);
+            }
+
+            // Draw Top Scores at the top center, below the total score
+            displayTopScores();
+
+            // Draw lives as ships for player 1
+            var shipImg1 = createPlayerShip(player1.color);
+            for (var i = 0; i < player1.lives; i++) {
+                ctx.drawImage(shipImg1, 150 + i * 30, canvas.height - 35);
+            }
+
+            // Draw lives as ships for player 2
+            if (isTwoPlayer && !isMobile) {
+                var shipImg2 = createPlayerShip(player2.color);
+                for (var i = 0; i < player2.lives; i++) {
+                    ctx.drawImage(shipImg2, canvas.width - (150 + (i + 1) * 30), canvas.height - 35);
+                }
+            }
+
+            // Draw shields
+            drawShields();
+
+            // Draw players if they have lives
+            if (player1.lives > 0) {
+                ctx.drawImage(shipImg1, player1.x, player1.y);
+            }
+            if (isTwoPlayer && !isMobile && player2.lives > 0) {
+                ctx.drawImage(shipImg2, player2.x, player2.y);
+            }
+
+            // Draw player bullets
+            ctx.fillStyle = 'yellow';
+            player1.bullets.forEach(function(bullet) {
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+            if (isTwoPlayer && !isMobile) {
+                player2.bullets.forEach(function(bullet) {
+                    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                });
+            }
+
+            // Draw invader bullets
+            ctx.fillStyle = 'lightblue';
+            for (var i = 0; i < invaderBullets.length; i++) {
+                var bullet = invaderBullets[i];
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            }
+
+            // Draw invaders
+            for (var i = 0; i < invaders.length; i++) {
+                var invader = invaders[i];
+                if (invader.status == 1) {
+                    drawInvader(invader);
+                }
+            }
+
+            // Draw game credit
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.font = '14px "PressStart2P", Arial, sans-serif';
+            ctx.fillText('Game created by weelookang@gmail.com', canvas.width / 2, canvas.height - 20);
+        }
+
+        // Pad score with leading zeros
+        function pad(num, size) {
+            var s = "000000000" + num;
+            return s.substr(s.length - size);
+        }
+
+        // Create player ship as an off-screen canvas
+        function createPlayerShip(color) {
+            var shipCanvas = document.createElement('canvas');
+            shipCanvas.width = 30;
+            shipCanvas.height = 20;
+            var shipCtx = shipCanvas.getContext('2d');
+
+            shipCtx.fillStyle = color;
+            shipCtx.beginPath();
+            shipCtx.moveTo(15, 0);
+            shipCtx.lineTo(30, 20);
+            shipCtx.lineTo(0, 20);
+            shipCtx.closePath();
+            shipCtx.fill();
+
+            return shipCanvas;
+        }
+
+        // Draw shields
+        function drawShields() {
+            for (var s = 0; s < shields.length; s++) {
+                var shield = shields[s];
+                for (var b = 0; b < shield.blocks.length; b++) {
+                    var block = shield.blocks[b];
+                    if (block.status === 1) {
+                        ctx.fillStyle = 'teal'; // Changed color to teal
+                        ctx.fillRect(block.x, block.y, block.width, block.height);
+                    }
+                }
+            }
+        }
+
+        // Draw an invader based on type
+        function drawInvader(invader) {
+            ctx.fillStyle = 'white';
+            var x = invader.x;
+            var y = invader.y;
+            switch (invader.type) {
+                case 'small':
+                    // Simple alien with antennae
+                    ctx.fillRect(x + 10, y, 10, 10);
+                    ctx.fillRect(x + 5, y + 5, 20, 10);
+                    ctx.fillRect(x, y + 10, 30, 10);
+                    ctx.fillRect(x + 5, y + 20, 20, 10);
+                    ctx.fillRect(x, y + 30, 10, 10);
+                    ctx.fillRect(x + 20, y + 30, 10, 10);
+                    break;
+                case 'medium':
+                    // Crab-like alien
+                    ctx.fillRect(x + 5, y, 20, 10);
+                    ctx.fillRect(x, y + 10, 30, 10);
+                    ctx.fillRect(x + 5, y + 20, 20, 10);
+                    ctx.fillRect(x, y + 30, 10, 10);
+                    ctx.fillRect(x + 20, y + 30, 10, 10);
+                    ctx.fillRect(x - 5, y + 20, 5, 10);
+                    ctx.fillRect(x + 30, y + 20, 5, 10);
+                    break;
+                case 'large':
+                    // Octopus-like alien
+                    ctx.fillRect(x + 10, y, 10, 10);
+                    ctx.fillRect(x + 5, y + 10, 20, 10);
+                    ctx.fillRect(x, y + 20, 30, 10);
+                    ctx.fillRect(x - 5, y + 30, 40, 10);
+                    ctx.fillRect(x - 10, y + 40, 50, 10);
+                    ctx.fillRect(x - 5, y + 50, 10, 10);
+                    ctx.fillRect(x + 25, y + 50, 10, 10);
+                    break;
+            }
+        }
+
+        // Collision detection
+        function collision(a, b) {
+            return a.x < b.x + b.width &&
+                   a.x + a.width > b.x &&
+                   a.y < b.y + b.height &&
+                   a.y + a.height > b.y;
+        }
+
+        // Top scores management
+        var topScores = JSON.parse(localStorage.getItem('topScores')) || [];
+
+        function endGame() {
+            setTimeout(function() {
+                // Prompt players for their names
+                if (player1.score > 0) {
+                    player1.name = prompt('Player 1, enter your name:', 'Player 1') || 'Player 1';
+                    topScores.push({ name: player1.name, score: player1.score });
+                }
+                if (isTwoPlayer && player2.score > 0) {
+                    player2.name = prompt('Player 2, enter your name:', 'Player 2') || 'Player 2';
+                    topScores.push({ name: player2.name, score: player2.score });
+                }
+
+                // Sort topScores and keep top 10
+                topScores.sort(function(a, b) {
+                    return b.score - a.score;
+                });
+                topScores = topScores.slice(0, 10);
+
+                // Save to localStorage
+                localStorage.setItem('topScores', JSON.stringify(topScores));
+
+                // Show final scores
+                alert('Game Over!\nPlayer 1 Score: ' + player1.score + (isTwoPlayer ? '\nPlayer 2 Score: ' + player2.score : ''));
+
+                // Option to restart the game
+                if (confirm('Do you want to play again?')) {
+                    document.location.reload();
+                }
+            }, 100);
+        }
+
+        function displayTopScores() {
+            ctx.save();
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.font = '12px "PressStart2P", Arial, sans-serif';
+            var startX = canvas.width / 2;
+            var startY = 50;
+            ctx.fillText('TOP 10 SCORES', startX, startY);
+
+            for (var i = 0; i < topScores.length; i++) {
+                var entry = topScores[i];
+                var text = (i + 1) + '. ' + entry.name + ': ' + entry.score;
+                ctx.fillText(text, startX, startY + 20 + i * 15);
+            }
+            ctx.restore();
+        }
+
+        // Start the game
+        gameLoop();
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            player1.x = canvas.width / 2 - 45;
+            player1.y = canvas.height - 60;
+            player2.x = canvas.width / 2 + 15;
+            player2.y = canvas.height - 60;
+            shieldY = player1.y - 100;
+            initShields();
+        });
+    </script>
+</body>
+</html>

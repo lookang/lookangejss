@@ -1,0 +1,749 @@
+// ===== GAME STATE MANAGEMENT =====
+// This object holds all the game state variables
+const gameState = {
+    currentChapter: 0,
+    score: 0,
+    timeRemaining: 300, // 5 minutes in seconds
+    timerInterval: null,
+    musicEnabled: true,
+    sfxEnabled: true,
+    playerChoices: [],
+    lessonsLearned: []
+};
+
+// ===== STORY DATA STRUCTURE =====
+// Each chapter contains the narrative, choices, and outcomes
+// Aligned with Singapore curriculum on digital literacy and online safety
+const storyData = [
+    {
+        chapter: 1,
+        title: "The Mysterious Message",
+        characterState: "character-idle",
+        text: "You're Detective Alex, investigating strange AI-powered messages spreading across social media. Your friend Jamie just received a message from an account claiming to be a famous influencer, offering a 'special prize'. The message looks real, but something feels off. What do you do?",
+        choices: [
+            {
+                text: "Click the link immediately to claim the prize - it might expire!",
+                outcome: "danger",
+                nextChapter: 2,
+                feedback: "Oh no! The link was a phishing attempt. AI-generated messages can look very convincing, but we should always verify sources first.",
+                lesson: "Always verify the authenticity of messages before clicking links, even if they appear to be from known sources."
+            },
+            {
+                text: "Check if the account is verified and search for the influencer's official website",
+                outcome: "safe",
+                nextChapter: 3,
+                feedback: "Great thinking! You discovered the account was fake - a deepfake AI was creating convincing but fraudulent messages.",
+                lesson: "Verification badges and cross-referencing official sources help identify legitimate accounts."
+            },
+            {
+                text: "Ask Jamie to share their personal information to 'claim the prize' together",
+                outcome: "danger",
+                nextChapter: 2,
+                feedback: "That's risky! Never share personal information based on unsolicited messages. This could lead to identity theft.",
+                lesson: "Personal information should never be shared through unverified channels or unsolicited requests."
+            },
+            {
+                text: "Report the suspicious message to the platform and warn Jamie",
+                outcome: "safe",
+                nextChapter: 3,
+                feedback: "Excellent! You protected your friend and helped the platform identify a scam. Community reporting is crucial for online safety.",
+                lesson: "Reporting suspicious content helps protect the entire community from AI-powered scams."
+            }
+        ]
+    },
+    {
+        chapter: 2,
+        title: "The AI Chatbot Trap",
+        characterState: "character-worried",
+        text: "After the close call, you discover a new AI chatbot that's becoming popular at school. It claims to help with homework and offers 'personalized advice'. However, it asks for detailed personal information including your address, school name, and daily schedule. What's your next move?",
+        choices: [
+            {
+                text: "Provide all the information - it's just a helpful AI assistant",
+                outcome: "danger",
+                nextChapter: 4,
+                feedback: "Danger! AI chatbots can collect and misuse personal data. This information could be used for targeted scams or worse.",
+                lesson: "AI systems can collect vast amounts of data. Be cautious about what personal information you share."
+            },
+            {
+                text: "Use the chatbot but only share your first name and general interests",
+                outcome: "safe",
+                nextChapter: 5,
+                feedback: "Smart approach! You can benefit from AI tools while maintaining privacy by limiting personal information.",
+                lesson: "You can use AI services safely by sharing minimal, non-sensitive information."
+            },
+            {
+                text: "Research the chatbot's privacy policy and data usage terms first",
+                outcome: "safe",
+                nextChapter: 5,
+                feedback: "Excellent detective work! You found that the chatbot was collecting data to sell to advertisers without proper consent.",
+                lesson: "Always read privacy policies to understand how your data will be used and stored."
+            },
+            {
+                text: "Share your friend's information instead to test if it's safe",
+                outcome: "danger",
+                nextChapter: 4,
+                feedback: "Never share others' information without consent! This violates their privacy and trust.",
+                lesson: "Respecting others' privacy is as important as protecting your own."
+            }
+        ]
+    },
+    {
+        chapter: 3,
+        title: "The Deepfake Discovery",
+        characterState: "character-thinking",
+        text: "Your investigation leads you to discover AI-generated videos (deepfakes) spreading false information about a local community event. The videos look incredibly real and are causing panic. People are sharing them without checking facts. How do you respond?",
+        choices: [
+            {
+                text: "Share the video to warn everyone about the 'danger'",
+                outcome: "danger",
+                nextChapter: 4,
+                feedback: "Sharing without verification spreads misinformation! Even with good intentions, this amplifies the problem.",
+                lesson: "Sharing unverified content, even to warn others, can spread misinformation rapidly."
+            },
+            {
+                text: "Use reverse image search and fact-checking websites to verify the video",
+                outcome: "safe",
+                nextChapter: 5,
+                feedback: "Brilliant! You discovered the video was AI-generated and found the original, unaltered footage.",
+                lesson: "Fact-checking tools and reverse image search can help identify AI-manipulated content."
+            },
+            {
+                text: "Create your own AI video to 'prove' the first one was fake",
+                outcome: "danger",
+                nextChapter: 4,
+                feedback: "Creating more fake content doesn't solve the problem! This adds to confusion and misinformation.",
+                lesson: "Fighting misinformation with more fake content creates additional problems."
+            },
+            {
+                text: "Contact reliable news sources and community leaders with your findings",
+                outcome: "safe",
+                nextChapter: 5,
+                feedback: "Perfect! Working with trusted sources helps spread accurate information and combat deepfakes effectively.",
+                lesson: "Collaborating with credible sources is the best way to counter misinformation."
+            }
+        ]
+    },
+    {
+        chapter: 4,
+        title: "The AI Recommendation Rabbit Hole",
+        characterState: "character-surprised",
+        text: "You notice that AI recommendation algorithms on social media are showing you increasingly extreme content. Each video is more sensational than the last, and you're spending hours scrolling. Your sleep and homework are suffering. What's your strategy?",
+        choices: [
+            {
+                text: "Keep watching - the AI knows what you like, so it must be good for you",
+                outcome: "danger",
+                nextChapter: 6,
+                feedback: "AI algorithms prioritize engagement, not your wellbeing. This can lead to addiction and exposure to harmful content.",
+                lesson: "AI recommendations are designed for engagement, not necessarily for your benefit or wellbeing."
+            },
+            {
+                text: "Set time limits on apps and diversify your content sources",
+                outcome: "safe",
+                nextChapter: 7,
+                feedback: "Excellent self-regulation! You're taking control of your digital consumption instead of letting algorithms control you.",
+                lesson: "Setting boundaries and diversifying content helps maintain a healthy relationship with AI-driven platforms."
+            },
+            {
+                text: "Actively click 'not interested' on extreme content and follow educational accounts",
+                outcome: "safe",
+                nextChapter: 7,
+                feedback: "Great! You're training the AI to show you better content while expanding your perspectives.",
+                lesson: "You can influence AI recommendations by actively curating your feed and providing feedback."
+            },
+            {
+                text: "Share all the extreme videos with friends so they can see them too",
+                outcome: "danger",
+                nextChapter: 6,
+                feedback: "Spreading extreme content amplifies its reach and can harm others. The algorithm will also show you more of this content.",
+                lesson: "Sharing extreme content increases its spread and reinforces algorithmic promotion of such material."
+            }
+        ]
+    },
+    {
+        chapter: 5,
+        title: "The AI Helper Dilemma",
+        characterState: "character-thinking",
+        text: "Your teacher assigns a project, and you discover an AI that can write entire essays. Your classmates are using it and getting good grades. You're tempted to use it too, but you're unsure if it's right. The deadline is approaching. What do you decide?",
+        choices: [
+            {
+                text: "Let the AI write the entire essay and submit it as your own work",
+                outcome: "danger",
+                nextChapter: 6,
+                feedback: "This is plagiarism and academic dishonesty. You miss the learning opportunity and violate academic integrity.",
+                lesson: "Using AI to complete work entirely for you is dishonest and prevents genuine learning."
+            },
+            {
+                text: "Use AI to brainstorm ideas and check grammar, but write the essay yourself",
+                outcome: "safe",
+                nextChapter: 7,
+                feedback: "Perfect balance! You're using AI as a tool to enhance your work while maintaining integrity and learning.",
+                lesson: "AI can be a helpful tool for brainstorming and editing when used ethically and transparently."
+            },
+            {
+                text: "Talk to your teacher about appropriate AI use for the assignment",
+                outcome: "safe",
+                nextChapter: 7,
+                feedback: "Excellent communication! Your teacher appreciates your honesty and provides clear guidelines for ethical AI use.",
+                lesson: "Open communication with teachers about AI use helps establish clear, ethical boundaries."
+            },
+            {
+                text: "Copy the AI-generated essay but change a few words to avoid detection",
+                outcome: "danger",
+                nextChapter: 6,
+                feedback: "This is still plagiarism. Teachers have tools to detect AI-generated content, and you're not learning the material.",
+                lesson: "Attempting to disguise AI-generated work is dishonest and can be detected by plagiarism tools."
+            }
+        ]
+    },
+    {
+        chapter: 6,
+        title: "Learning from Mistakes",
+        characterState: "character-worried",
+        text: "Your choices have led to some consequences. You've learned that AI can be misused, and you've seen how it can harm yourself and others. But there's still time to make better choices. A new situation arises: an AI-powered game asks for access to your contacts, photos, and location. What do you do now?",
+        choices: [
+            {
+                text: "Grant all permissions - it's just a game and everyone's playing it",
+                outcome: "danger",
+                nextChapter: 8,
+                feedback: "Apps can misuse permissions to collect excessive data. Always question why an app needs certain access.",
+                lesson: "Be cautious about granting app permissions, especially for data unrelated to the app's core function."
+            },
+            {
+                text: "Deny unnecessary permissions and only allow what's essential for gameplay",
+                outcome: "safe",
+                nextChapter: 8,
+                feedback: "Smart! You're protecting your privacy while still enjoying the game. Most apps work fine with limited permissions.",
+                lesson: "You can often use apps effectively while denying unnecessary permissions."
+            },
+            {
+                text: "Research the game developer and read reviews about privacy concerns",
+                outcome: "safe",
+                nextChapter: 8,
+                feedback: "Excellent research! You found that the game had privacy violations and chose a safer alternative.",
+                lesson: "Researching app developers and reading reviews helps identify potential privacy risks."
+            },
+            {
+                text: "Install the game on your parent's phone instead to avoid risks",
+                outcome: "danger",
+                nextChapter: 8,
+                feedback: "This doesn't solve the problem and puts others at risk. We must take responsibility for our digital choices.",
+                lesson: "Shifting risk to others doesn't address the underlying privacy concerns."
+            }
+        ]
+    },
+    {
+        chapter: 7,
+        title: "The Final Challenge",
+        characterState: "character-happy",
+        text: "You've become a skilled digital detective! Now you face the ultimate test: an AI-powered social media challenge is going viral. It uses facial recognition to create funny videos, but the terms of service say the company can use your face data forever. Your friends are pressuring you to join. What's your final decision?",
+        choices: [
+            {
+                text: "Join the challenge - everyone's doing it and it's just for fun",
+                outcome: "danger",
+                nextChapter: 9,
+                feedback: "Viral trends can have lasting consequences. Your biometric data (like facial features) is permanent and valuable.",
+                lesson: "Biometric data is highly sensitive and should be protected, even for entertaining trends."
+            },
+            {
+                text: "Politely decline and explain your privacy concerns to friends",
+                outcome: "safe",
+                nextChapter: 9,
+                feedback: "Brave and wise! You're standing up for your values and educating others about digital rights.",
+                lesson: "It's okay to decline trends that compromise your privacy, and explaining why can help others."
+            },
+            {
+                text: "Research alternative apps that offer similar fun without data exploitation",
+                outcome: "safe",
+                nextChapter: 9,
+                feedback: "Creative solution! You found privacy-respecting alternatives and shared them with your friends.",
+                lesson: "There are often privacy-friendly alternatives to popular apps that exploit user data."
+            },
+            {
+                text: "Create a fake account with someone else's photo to participate safely",
+                outcome: "danger",
+                nextChapter: 9,
+                feedback: "Using someone else's identity is unethical and potentially illegal. This violates others' rights and trust.",
+                lesson: "Creating fake accounts or using others' identities is unethical and can have legal consequences."
+            }
+        ]
+    },
+    {
+        chapter: 8,
+        title: "Case Closed",
+        characterState: "character-happy",
+        text: "Congratulations, Detective Alex! You've completed your investigation into AI safety. You've learned valuable lessons about protecting yourself and others online. Your choices have shaped your understanding of AI's affordances and dangers. Remember: AI is a powerful tool that can help or harm, depending on how we use it. Stay curious, stay critical, and stay safe!",
+        choices: [] // Final chapter, no choices
+    },
+    {
+        chapter: 9,
+        title: "Mission Complete",
+        characterState: "character-happy",
+        text: "You've successfully navigated the complex world of AI and online safety! Your detective skills have helped you understand when to trust AI, when to question it, and how to protect yourself and others. You're now equipped to make informed decisions in the digital world. Well done, Detective!",
+        choices: [] // Final chapter, no choices
+    }
+];
+
+// ===== AUDIO CONTEXT =====
+// Using Web Audio API to generate simple tones for music and sound effects
+// This works offline without external audio files
+let audioContext;
+let backgroundMusicNode;
+let musicGainNode;
+
+// Initialize audio context (must be done after user interaction)
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        musicGainNode = audioContext.createGain();
+        musicGainNode.connect(audioContext.destination);
+        musicGainNode.gain.value = 0.1; // Low volume for background music
+    }
+}
+
+// Generate background music using oscillators
+function playBackgroundMusic() {
+    if (!gameState.musicEnabled || !audioContext) return;
+    
+    stopBackgroundMusic();
+    
+    // Create a simple melody using multiple oscillators
+    const notes = [261.63, 293.66, 329.63, 349.23, 392.00]; // C, D, E, F, G
+    let noteIndex = 0;
+    
+    function playNote() {
+        if (!gameState.musicEnabled) return;
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(musicGainNode);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = notes[noteIndex % notes.length];
+        
+        gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+        
+        noteIndex++;
+        
+        backgroundMusicNode = setTimeout(playNote, 600);
+    }
+    
+    playNote();
+}
+
+function stopBackgroundMusic() {
+    if (backgroundMusicNode) {
+        clearTimeout(backgroundMusicNode);
+        backgroundMusicNode = null;
+    }
+}
+
+// Play sound effect for button clicks and interactions
+function playSoundEffect(type) {
+    if (!gameState.sfxEnabled || !audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Different sounds for different interactions
+    switch(type) {
+        case 'click':
+            oscillator.frequency.value = 800;
+            oscillator.type = 'square';
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+            break;
+        case 'success':
+            oscillator.frequency.value = 523.25; // C5
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            break;
+        case 'danger':
+            oscillator.frequency.value = 200;
+            oscillator.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+            break;
+    }
+}
+
+// ===== TIMER MANAGEMENT =====
+function startTimer() {
+    // Clear any existing timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    // Start countdown timer
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+        updateTimerDisplay();
+        
+        // Warning state when time is low
+        const timerContainer = document.getElementById('timer-container');
+        if (gameState.timeRemaining <= 60) {
+            timerContainer.classList.add('warning');
+        }
+        
+        // Game over when time runs out
+        if (gameState.timeRemaining <= 0) {
+            clearInterval(gameState.timerInterval);
+            endGame(false);
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(gameState.timeRemaining / 60);
+    const seconds = gameState.timeRemaining % 60;
+    const timerText = document.getElementById('timer-text');
+    timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function stopTimer() {
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+}
+
+// ===== PROGRESS TRACKING =====
+function updateProgress() {
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    
+    // Calculate progress based on current chapter
+    const totalChapters = 9;
+    const progress = (gameState.currentChapter / totalChapters) * 100;
+    
+    progressFill.style.width = `${progress}%`;
+    progressText.textContent = `Chapter ${gameState.currentChapter + 1} of ${totalChapters}`;
+}
+
+// ===== STORY DISPLAY WITH TYPING EFFECT =====
+function displayStory(chapterIndex) {
+    const chapter = storyData[chapterIndex];
+    const storyText = document.getElementById('story-text');
+    const characterAvatar = document.getElementById('character-avatar');
+    const choicesContainer = document.getElementById('choices-container');
+    
+    // Update character state
+    characterAvatar.className = chapter.characterState;
+    
+    // Clear previous content
+    storyText.textContent = '';
+    choicesContainer.innerHTML = '';
+    
+    // Typing effect for story text (cognitive load management - progressive disclosure)
+    let charIndex = 0;
+    const text = chapter.text;
+    const typingSpeed = 30; // milliseconds per character
+    
+    function typeCharacter() {
+        if (charIndex < text.length) {
+            storyText.textContent += text.charAt(charIndex);
+            charIndex++;
+            setTimeout(typeCharacter, typingSpeed);
+        } else {
+            // Show choices after text is fully displayed
+            if (chapter.choices.length > 0) {
+                displayChoices(chapter.choices);
+            } else {
+                // Final chapter - show completion
+                setTimeout(() => endGame(true), 2000);
+            }
+        }
+    }
+    
+    typeCharacter();
+    
+    // Update progress
+    updateProgress();
+}
+
+// ===== DISPLAY CHOICES =====
+function displayChoices(choices) {
+    const choicesContainer = document.getElementById('choices-container');
+    choicesContainer.innerHTML = '';
+    
+    choices.forEach((choice, index) => {
+        const button = document.createElement('button');
+        button.className = 'choice-btn fade-in';
+        button.textContent = choice.text;
+        button.style.animationDelay = `${index * 0.1}s`;
+        
+        // Add tooltip for longer text (Mayer's principle: manage complexity)
+        button.addEventListener('mouseenter', (e) => {
+            if (choice.text.length > 60) {
+                showTooltip(choice.text, e);
+            }
+        });
+        
+        button.addEventListener('mouseleave', hideTooltip);
+        
+        // Handle choice selection
+        button.addEventListener('click', () => {
+            playSoundEffect('click');
+            handleChoice(choice);
+        });
+        
+        choicesContainer.appendChild(button);
+    });
+}
+
+// ===== HANDLE PLAYER CHOICE =====
+function handleChoice(choice) {
+    // Record choice
+    gameState.playerChoices.push(choice);
+    
+    // Store lesson learned
+    if (choice.lesson) {
+        gameState.lessonsLearned.push(choice.lesson);
+    }
+    
+    // Update score based on outcome
+    if (choice.outcome === 'safe') {
+        gameState.score += 10;
+        playSoundEffect('success');
+    } else {
+        gameState.score -= 5;
+        playSoundEffect('danger');
+    }
+    
+    // Show feedback
+    showFeedback(choice.feedback, choice.outcome);
+    
+    // Move to next chapter after feedback
+    setTimeout(() => {
+        gameState.currentChapter = choice.nextChapter;
+        displayStory(gameState.currentChapter);
+    }, 3000);
+}
+
+// ===== SHOW FEEDBACK =====
+function showFeedback(feedback, outcome) {
+    const storyPanel = document.getElementById('story-panel');
+    const feedbackDiv = document.createElement('div');
+    feedbackDiv.className = 'fade-in';
+    feedbackDiv.style.marginTop = '15px';
+    feedbackDiv.style.padding = '15px';
+    feedbackDiv.style.borderRadius = '10px';
+    feedbackDiv.style.fontWeight = 'bold';
+    
+    if (outcome === 'safe') {
+        feedbackDiv.style.background = 'linear-gradient(135deg, #A8E6CF, #95E1D3)';
+        feedbackDiv.style.border = '3px solid #95E1D3';
+        feedbackDiv.innerHTML = `✅ ${feedback}`;
+    } else {
+        feedbackDiv.style.background = 'linear-gradient(135deg, #FFB6B6, #FF6B6B)';
+        feedbackDiv.style.border = '3px solid #FF6B6B';
+        feedbackDiv.innerHTML = `⚠️ ${feedback}`;
+    }
+    
+    storyPanel.appendChild(feedbackDiv);
+    
+    // Scroll to show feedback
+    storyPanel.scrollTop = storyPanel.scrollHeight;
+}
+
+// ===== TOOLTIP MANAGEMENT =====
+function showTooltip(text, event) {
+    const tooltip = document.getElementById('info-tooltip');
+    tooltip.textContent = text;
+    tooltip.classList.remove('hidden');
+    tooltip.classList.add('visible');
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('info-tooltip');
+    tooltip.classList.remove('visible');
+    setTimeout(() => {
+        tooltip.classList.add('hidden');
+    }, 300);
+}
+
+// ===== END GAME =====
+function endGame(completed) {
+    stopTimer();
+    stopBackgroundMusic();
+    
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const gameOverTitle = document.getElementById('game-over-title');
+    const gameOverMessage = document.getElementById('game-over-message');
+    const lessonsLearnedDiv = document.getElementById('lessons-learned');
+    
+    gameOverScreen.classList.remove('hidden');
+    
+    if (completed) {
+        gameOverTitle.textContent = '🎉 Mission Complete!';
+        gameOverMessage.innerHTML = `
+            <p>Congratulations, Detective Alex! You've successfully completed your investigation.</p>
+            <p><strong>Final Score: ${gameState.score} points</strong></p>
+            <p>Time Remaining: ${Math.floor(gameState.timeRemaining / 60)}:${(gameState.timeRemaining % 60).toString().padStart(2, '0')}</p>
+        `;
+        playSoundEffect('success');
+    } else {
+        gameOverTitle.textContent = '⏰ Time\'s Up!';
+        gameOverMessage.innerHTML = `
+            <p>The investigation took too long, but you've still learned valuable lessons!</p>
+            <p><strong>Final Score: ${gameState.score} points</strong></p>
+        `;
+    }
+    
+    // Display lessons learned
+    if (gameState.lessonsLearned.length > 0) {
+        lessonsLearnedDiv.innerHTML = `
+            <h3>🎓 Key Lessons Learned:</h3>
+            <ul>
+                ${gameState.lessonsLearned.map(lesson => `<li>${lesson}</li>`).join('')}
+            </ul>
+        `;
+    }
+}
+
+// ===== RESTART GAME =====
+function restartGame() {
+    // Reset game state
+    gameState.currentChapter = 0;
+    gameState.score = 0;
+    gameState.timeRemaining = 300;
+    gameState.playerChoices = [];
+    gameState.lessonsLearned = [];
+    
+    // Hide game over screen
+    document.getElementById('game-over-screen').classList.add('hidden');
+    
+    // Reset timer display
+    const timerContainer = document.getElementById('timer-container');
+    timerContainer.classList.remove('warning');
+    updateTimerDisplay();
+    
+    // Start new game
+    startGame();
+}
+
+// ===== SOUND CONTROLS =====
+function toggleMusic() {
+    gameState.musicEnabled = !gameState.musicEnabled;
+    const musicBtn = document.getElementById('music-toggle');
+    
+    if (gameState.musicEnabled) {
+        musicBtn.classList.remove('muted');
+        playBackgroundMusic();
+    } else {
+        musicBtn.classList.add('muted');
+        stopBackgroundMusic();
+    }
+    
+    playSoundEffect('click');
+}
+
+function toggleSFX() {
+    gameState.sfxEnabled = !gameState.sfxEnabled;
+    const sfxBtn = document.getElementById('sfx-toggle');
+    
+    if (gameState.sfxEnabled) {
+        sfxBtn.classList.remove('muted');
+    } else {
+        sfxBtn.classList.add('muted');
+    }
+    
+    playSoundEffect('click');
+}
+
+// ===== DETECT IFRAME OR STANDALONE =====
+function detectEnvironment() {
+    // Check if running in iframe or standalone
+    if (window.self !== window.top) {
+        // In iframe - use 450px height
+        document.body.style.height = '450px';
+    } else {
+        // Standalone - use 90vh
+        document.body.classList.add('standalone');
+    }
+}
+
+// ===== START GAME =====
+function startGame() {
+    // Initialize audio on first user interaction
+    initAudio();
+    
+    // Start background music
+    playBackgroundMusic();
+    
+    // Start timer
+    startTimer();
+    
+    // Display first chapter
+    displayStory(gameState.currentChapter);
+    
+    // Show header tooltip briefly
+    const headerTooltip = document.getElementById('header-tooltip');
+    headerTooltip.style.opacity = '1';
+    setTimeout(() => {
+        headerTooltip.style.opacity = '0';
+    }, 3000);
+}
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+    // Detect environment (iframe vs standalone)
+    detectEnvironment();
+    
+    // Set up sound control buttons
+    document.getElementById('music-toggle').addEventListener('click', toggleMusic);
+    document.getElementById('sfx-toggle').addEventListener('click', toggleSFX);
+    
+    // Set up restart button
+    document.getElementById('restart-btn').addEventListener('click', restartGame);
+    
+    // Start the game
+    startGame();
+});
+
+// ===== ACCESSIBILITY AND TOUCH SUPPORT =====
+// Ensure buttons work well with both mouse and touch
+document.addEventListener('touchstart', function() {}, {passive: true});
+
+// Prevent double-tap zoom on buttons (better mobile experience)
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(event) {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+    }
+    lastTouchEnd = now;
+}, false);
+
+// ===== KEYBOARD NAVIGATION SUPPORT =====
+document.addEventListener('keydown', (e) => {
+    const choices = document.querySelectorAll('.choice-btn');
+    
+    // Allow keyboard navigation through choices (1-4 keys)
+    if (e.key >= '1' && e.key <= '4') {
+        const index = parseInt(e.key) - 1;
+        if (choices[index]) {
+            choices[index].click();
+        }
+    }
+    
+    // Space or Enter to restart
+    if ((e.key === ' ' || e.key === 'Enter') && !document.getElementById('game-over-screen').classList.contains('hidden')) {
+        document.getElementById('restart-btn').click();
+    }
+});

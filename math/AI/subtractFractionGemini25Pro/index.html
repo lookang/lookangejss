@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Fraction Subtraction (Overlay Animation)</title>
+    <script
+    async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+    <style>
+        /* Basic reset and body styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh; /* Use min-height to allow footer */
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0; /* Light background for contrast */
+        }
+
+        /* Controls container */
+        #controls {
+            display: flex; /* Use flexbox for controls */
+            justify-content: center; /* Center controls horizontally */
+            align-items: center;
+            padding: 10px;
+            background-color: #d3d3d3; /* Light grey background for controls */
+            border-bottom: 1px solid #ccc;
+            flex-shrink: 0; /* Prevent controls from shrinking */
+            flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+            gap: 5px; /* Add space between control elements */
+        }
+
+        /* Style for fraction input area */
+        .fraction-input {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 2px;
+        }
+
+        /* Style for select dropdowns */
+        select {
+            padding: 3px 5px;
+            font-size: 0.9em;
+            border: 1px solid #999;
+            border-radius: 4px;
+            background-color: white;
+            margin: 1px 0;
+            min-width: 45px; /* Ensure minimum width */
+            text-align: center;
+        }
+
+        /* Style for operators and result display */
+        .operator, #resultDisplay {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0 5px;
+            align-self: center; /* Align vertically with buttons */
+        }
+
+        /* Style for buttons */
+        button {
+            padding: 8px 15px;
+            margin: 0 5px; /* Adjust margin */
+            font-size: 1em;
+            cursor: pointer;
+            border: 1px solid #888;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            transition: background-color 0.2s;
+            align-self: center;
+        }
+
+        button:hover {
+            background-color: #c0c0c0;
+        }
+
+        button:active {
+            background-color: #a0a0a0;
+        }
+        button:disabled {
+            background-color: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        /* Visualization container */
+        #visualization {
+            flex-grow: 1; /* Allow visualization to fill remaining space */
+            display: flex;
+            justify-content: space-around; /* Space out canvases */
+            align-items: center;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box; /* Include padding in width calculation */
+            overflow: hidden; /* Ensure canvases don't overflow */
+            flex-wrap: wrap; /* Allow canvases to wrap on very small screens */
+            position: relative; /* Needed for absolute positioning of error message */
+            min-height: 300px; /* Ensure minimum height for visualization */
+        }
+
+        /* Canvas styling */
+        canvas {
+            border: 1px solid #aaa;
+            background-color: #fff;
+            max-width: 45%; /* Limit canvas width */
+            height: auto; /* Maintain aspect ratio */
+            aspect-ratio: 1 / 1; /* Make canvas square */
+            max-height: 80%; /* Limit height relative to container */
+            box-sizing: border-box;
+        }
+
+         /* Style for the answer/error text */
+        #messageText {
+            position: absolute; /* Position absolutely relative to visualization div */
+            bottom: 5%; /* Position near the bottom */
+            left: 50%;
+            transform: translateX(-50%); /* Center horizontally */
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #0000CD; /* Default blue for answer */
+            padding: 5px 10px;
+            background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white background */
+            border-radius: 5px;
+            display: none; /* Initially hidden */
+            text-align: center;
+            z-index: 10; /* Ensure it's above canvases */
+        }
+         #messageText.error {
+             color: red; /* Red color for errors */
+         }
+
+        /* Footer styling */
+        footer {
+            text-align: center;
+            padding: 10px;
+            margin-top: 15px; /* Add space above the footer */
+            font-size: 0.8em;
+            color: #555;
+            background-color: #e8e8e8;
+            border-top: 1px solid #ccc;
+            flex-shrink: 0; /* Prevent footer from shrinking */
+        }
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 700px) { /* Adjust breakpoint */
+             #controls {
+                 gap: 3px;
+             }
+            .operator, #resultDisplay {
+                 font-size: 1.2em;
+                 margin: 0 3px;
+             }
+             select {
+                 font-size: 0.8em;
+                 min-width: 35px;
+                 padding: 2px 3px;
+             }
+             button {
+                 padding: 6px 10px;
+                 font-size: 0.9em;
+             }
+            #visualization {
+                 flex-direction: column; /* Stack canvases vertically */
+                 justify-content: center;
+                 padding: 10px;
+                 min-height: 400px; /* Adjust min-height for stacked layout */
+             }
+            canvas {
+                 max-width: 80%; /* Allow canvases to take more width */
+                 margin-bottom: 10px; /* Add space between canvases */
+                 max-height: 40vh; /* Adjust max height for vertical layout */
+             }
+             #messageText {
+                 font-size: 1.1em;
+                 bottom: 2%; /* Adjust position */
+             }
+        }
+         @media (max-height: 450px) {
+             #controls {
+                 padding: 5px;
+             }
+             .operator, #resultDisplay {
+                 font-size: 1em;
+             }
+             select {
+                 font-size: 0.7em;
+                 min-width: 30px;
+             }
+             button {
+                 padding: 4px 8px;
+                 font-size: 0.8em;
+             }
+             #messageText {
+                 font-size: 1em;
+             }
+             #visualization {
+                 min-height: 250px; /* Further adjust min-height */
+             }
+         }
+
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <div class="fraction-input">
+            <select id="num1"></select>
+            <hr width="80%">
+            <select id="den1"></select>
+        </div>
+        <span class="operator">-</span>
+        <div class="fraction-input">
+            <select id="num2"></select>
+            <hr width="80%">
+            <select id="den2"></select>
+        </div>
+        <span class="operator" id="equalsSign">=</span>
+        <span id="resultDisplay">?</span>
+
+        <button id="playBtn">Play</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+
+    <div id="visualization">
+        <canvas id="canvas1" width="300" height="300"></canvas>
+        <canvas id="canvas2" width="300" height="300"></canvas> <div id="messageText"></div>
+    </div>
+
+    <footer>
+        Created by weelookang@gmail.com using Gemini 2.5 Pro.
+        For more resources: go to <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/fractions" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/fractions</a>
+    </footer>
+
+    <script>
+        // Get UI elements
+        const num1Select = document.getElementById('num1');
+        const den1Select = document.getElementById('den1');
+        const num2Select = document.getElementById('num2');
+        const den2Select = document.getElementById('den2');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const playBtn = document.getElementById('playBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const messageText = document.getElementById('messageText');
+
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+
+        // --- Configuration ---
+        const MAX_DENOMINATOR = 12;
+        const MIN_DENOMINATOR = 2; // Denominator cannot be 0 or 1
+        const RED_COLOR = 'rgba(255, 0, 0, 0.6)';
+        const GREEN_COLOR = 'rgba(0, 128, 0, 0.6)';
+        const BLUE_COLOR = 'rgba(0, 0, 255, 0.6)';
+        const OVERLAY_COLOR = 'rgba(0, 100, 0, 0.8)'; // Darker green for overlay
+
+        // --- Simulation State ---
+        let state = 'initial'; // 'initial', 'playing', 'finished', 'error'
+        let currentNum1, currentDen1, currentNum2, currentDen2;
+        let commonDen, eqNum1, eqNum2, resNum, resDenSimplified, resNumSimplified; // Added simplified vars
+        let animationFrameId = null;
+        let radius, centerX, centerY; // Canvas drawing parameters
+
+        // --- Helper Functions ---
+
+        /** Greatest Common Divisor (GCD) using Euclidean algorithm */
+        function gcd(a, b) {
+            a = Math.abs(a);
+            b = Math.abs(b);
+            while (b) {
+                [a, b] = [b, a % b];
+            }
+            return a;
+        }
+
+        /** Least Common Multiple (LCM) */
+        function lcm(a, b) {
+            // Ensure denominators are positive integers > 1 for LCM calculation
+             if (a < MIN_DENOMINATOR || b < MIN_DENOMINATOR || !Number.isInteger(a) || !Number.isInteger(b)) {
+                 return 0; // Or handle error appropriately
+             }
+            return (a * b) / gcd(a, b);
+        }
+
+        /** Populate select dropdown options for denominators */
+        function populateDenominatorSelect(selectElement, min, max, initialValue) {
+            selectElement.innerHTML = ''; // Clear existing options
+            for (let i = min; i <= max; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                selectElement.appendChild(option);
+            }
+            selectElement.value = initialValue; // Set default value
+        }
+
+        /** Populate select dropdown options for numerators based on denominator */
+        function populateNumeratorOptions(numeratorSelect, denominatorValue, currentNumeratorValue) {
+            numeratorSelect.innerHTML = ''; // Clear existing options
+            const maxNum = denominatorValue; // Numerator <= Denominator
+
+            // Ensure maxNum is a valid number before proceeding
+            if (isNaN(maxNum) || maxNum < 1) {
+                 console.error("Invalid denominator value for populating numerator:", denominatorValue);
+                 // Add a default option like '1' or handle error
+                 const option = document.createElement('option');
+                 option.value = 1;
+                 option.textContent = 1;
+                 numeratorSelect.appendChild(option);
+                 numeratorSelect.value = 1;
+                 return;
+             }
+
+            for (let i = 1; i <= maxNum; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                numeratorSelect.appendChild(option);
+            }
+
+            // Try to set the previous value if still valid, otherwise default to 1
+            if (currentNumeratorValue && currentNumeratorValue > 0 && currentNumeratorValue <= maxNum) {
+                numeratorSelect.value = currentNumeratorValue;
+            } else {
+                 // Default to 1 if maxNum is >= 1, otherwise this case shouldn't be hit due to MIN_DENOMINATOR
+                 numeratorSelect.value = (maxNum >= 1) ? 1 : '';
+            }
+        }
+
+
+        /** Initialize all dropdowns */
+        function initializeDropdowns() {
+            // Populate denominators first
+            populateDenominatorSelect(den1Select, MIN_DENOMINATOR, MAX_DENOMINATOR, 4);
+            populateDenominatorSelect(den2Select, MIN_DENOMINATOR, MAX_DENOMINATOR, 8);
+
+            // Populate numerators based on initial denominators
+            // Initial values: 3/4 and 1/8
+            populateNumeratorOptions(num1Select, 4, 3);
+            populateNumeratorOptions(num2Select, 8, 1);
+        }
+
+        // --- Drawing Functions ---
+        function clearCanvas(ctx, canvas) { ctx.clearRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1)); } // Adjust for scale
+        function drawCircleOutline(ctx, x, y, r, style = '#888', dashed = false) {
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = style; ctx.lineWidth = 1;
+            if (dashed) { ctx.setLineDash([5, 5]); } else { ctx.setLineDash([]); }
+            ctx.stroke(); ctx.setLineDash([]);
+        }
+        function drawSegments(ctx, x, y, r, totalSegments, style = '#aaa', dashed = false) {
+             if (totalSegments <= 0 || totalSegments > 100) return; // Add safety limit
+             ctx.strokeStyle = style; ctx.lineWidth = 1;
+             if (dashed) { ctx.setLineDash([5, 5]); } else { ctx.setLineDash([]); }
+             const angleOffset = -Math.PI / 2;
+             for (let i = 0; i < totalSegments; i++) {
+                 const angle = angleOffset + (i / totalSegments) * Math.PI * 2;
+                 ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle)); ctx.stroke();
+             }
+             ctx.setLineDash([]);
+        }
+        function fillSegments(ctx, x, y, r, numerator, denominator, color, startAngleOffset = -Math.PI / 2) {
+            if (denominator <= 0 || numerator <= 0 || denominator > 100) return; // Add safety limit
+            const segmentAngle = (Math.PI * 2) / denominator;
+            ctx.fillStyle = color; ctx.lineWidth = 1; ctx.strokeStyle = '#555'; // Outline filled segments
+            for (let i = 0; i < numerator; i++) {
+                const startAngle = startAngleOffset + i * segmentAngle;
+                const endAngle = startAngle + segmentAngle;
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, startAngle, endAngle); ctx.closePath(); ctx.fill(); ctx.stroke();
+            }
+        }
+        function fillSingleSegment(ctx, x, y, r, segmentIndex, totalSegments, color, startAngleOffset = -Math.PI / 2) {
+            if (totalSegments <= 0 || segmentIndex < 0 || segmentIndex >= totalSegments || totalSegments > 100) return; // Add safety limit
+            const segmentAngle = (Math.PI * 2) / totalSegments;
+            ctx.fillStyle = color; ctx.lineWidth = 1; ctx.strokeStyle = '#555'; // Outline filled segments
+            const startAngle = startAngleOffset + segmentIndex * segmentAngle;
+            const endAngle = startAngle + segmentAngle;
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r, startAngle, endAngle); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+
+
+        // --- Simulation Logic ---
+
+        /** Reads values, validates, and updates the initial display */
+        function updateAndDrawInitialState() {
+            cancelAnimationFrame(animationFrameId); // Stop any animation
+            state = 'initial';
+
+            // Read values from dropdowns
+            currentNum1 = parseInt(num1Select.value);
+            currentDen1 = parseInt(den1Select.value);
+            currentNum2 = parseInt(num2Select.value);
+            currentDen2 = parseInt(den2Select.value);
+
+            // Basic Validation
+            let errorMsg = null;
+            if (isNaN(currentNum1) || isNaN(currentDen1) || isNaN(currentNum2) || isNaN(currentDen2)) {
+                errorMsg = "Invalid selection.";
+            } else if (currentDen1 < MIN_DENOMINATOR || currentDen2 < MIN_DENOMINATOR) {
+                 errorMsg = "Denominator must be 2 or greater."; // Should not happen with dropdown limits
+            } else if (currentNum1 > currentDen1 || currentNum2 > currentDen2) {
+                 errorMsg = "Numerator cannot exceed denominator."; // Should not happen with dynamic population
+            }
+            // Check if first fraction is smaller than the second
+            else if ((currentNum1 / currentDen1) < (currentNum2 / currentDen2)) {
+                errorMsg = "Result would be negative. (Subtraction order matters)";
+            }
+
+             // Update UI based on validation
+            resultDisplay.textContent = "?";
+            messageText.style.display = 'none';
+            messageText.classList.remove('error');
+            playBtn.disabled = !!errorMsg; // Disable play if error
+
+            if (errorMsg) {
+                messageText.textContent = errorMsg;
+                messageText.style.display = 'block';
+                messageText.classList.add('error');
+                state = 'error';
+                // Clear canvases on error
+                calculateCanvasDimensions(); // Ensure dimensions are set before drawing outlines
+                clearCanvas(ctx1, canvas1);
+                clearCanvas(ctx2, canvas2);
+                if (radius > 0) { // Only draw if radius is valid
+                     drawCircleOutline(ctx1, centerX, centerY, radius, '#ccc'); // Faint outline
+                     drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc');
+                }
+                return; // Don't draw fractions if invalid
+            }
+
+            // Draw initial fractions if valid
+            drawInitialFractions();
+        }
+
+        /** Draws the fractions selected in the dropdowns */
+        function drawInitialFractions() {
+            if (state === 'error') return; // Don't draw if state is error
+
+              // Recalculate dimensions
+              calculateCanvasDimensions();
+              if (radius <= 0) return; // Don't draw if canvas size is invalid
+
+            // Canvas 1: Draw first fraction (num1/den1)
+            clearCanvas(ctx1, canvas1);
+            drawCircleOutline(ctx1, centerX, centerY, radius);
+            fillSegments(ctx1, centerX, centerY, radius, currentNum1, currentDen1, RED_COLOR); // Red
+            drawSegments(ctx1, centerX, centerY, radius, currentDen1, '#555');
+
+            // Canvas 2: Draw second fraction (num2/den2)
+            clearCanvas(ctx2, canvas2);
+            drawCircleOutline(ctx2, centerX, centerY, radius);
+            fillSegments(ctx2, centerX, centerY, radius, currentNum2, currentDen2, GREEN_COLOR); // Green
+            drawSegments(ctx2, centerX, centerY, radius, currentDen2, '#aaa');
+
+              // Ensure message text is hidden in initial valid state
+              messageText.style.display = 'none';
+              resultDisplay.textContent = "?";
+        }
+
+
+        /** Performs the fraction subtraction calculation */
+        function calculateSubtraction() {
+            commonDen = lcm(currentDen1, currentDen2);
+            if (commonDen === 0) { // Handle potential LCM error with invalid inputs
+                 messageText.textContent = "Invalid denominators for calculation.";
+                 messageText.style.display = 'block';
+                 messageText.classList.add('error');
+                 state = 'error';
+                 playBtn.disabled = true;
+                 return false;
+             }
+            // Safety check for extremely large common denominators
+            if (commonDen > 100) { // Increased limit slightly for visualization
+                 messageText.textContent = "Resulting denominator too large for visualization.";
+                 messageText.style.display = 'block';
+                 messageText.classList.add('error');
+                 state = 'error';
+                 playBtn.disabled = true;
+                 return false; // Indicate calculation failure
+            }
+            eqNum1 = currentNum1 * (commonDen / currentDen1);
+            eqNum2 = currentNum2 * (commonDen / currentDen2);
+            resNum = eqNum1 - eqNum2;
+
+            // Simplify the result
+            const commonDivisor = gcd(resNum, commonDen);
+            resNumSimplified = resNum / commonDivisor;
+            resDenSimplified = commonDen / commonDivisor;
+
+            return true; // Indicate calculation success
+        }
+
+
+        /** Animates the subtraction process with overlay */
+        function playAnimation() {
+            // Ensure we start from the current selection and it's valid
+            if (state === 'error') {
+                console.log("Cannot play: Initial state has errors.");
+                return;
+            }
+
+            if (!calculateSubtraction()) { // Perform calculation
+                 console.log("Cannot play: Calculation failed.");
+                 return; // Error handled within calculateSubtraction
+            }
+
+            state = 'playing';
+            playBtn.disabled = true;
+            resetBtn.disabled = true; // Disable reset during animation
+            num1Select.disabled = true; den1Select.disabled = true;
+            num2Select.disabled = true; den2Select.disabled = true;
+            cancelAnimationFrame(animationFrameId);
+
+              // Recalculate dimensions
+              calculateCanvasDimensions();
+              if (radius <= 0) { // Check for valid dimensions before animating
+                  console.error("Cannot animate: Invalid canvas dimensions.");
+                  resetSimulation(); // Reset to a valid state
+                  return;
+              }
+
+            let step = 0;
+            const totalSteps = 240; // Increased steps for more phases
+            const conversionPoint = totalSteps * 0.3; // Phase 1: Convert Denominators
+            const overlayPoint = totalSteps * 0.6;    // Phase 2: Overlay Green onto Red
+            const subtractionPoint = totalSteps * 0.8; // Phase 3: Remove Overlay
+                                                      // Phase 4: Result Reveal (remaining steps)
+
+            function animate() {
+                 // Ensure state hasn't changed externally (e.g., by resize/reset)
+                 if (state !== 'playing') {
+                     cancelAnimationFrame(animationFrameId);
+                     return;
+                 }
+
+                 if (step > totalSteps) {
+                     drawFinalState(); // Draw the final result clearly
+                     state = 'finished';
+                     playBtn.disabled = true; // Keep play disabled until reset
+                     resetBtn.disabled = false; // Re-enable reset
+                     num1Select.disabled = false; den1Select.disabled = false;
+                     num2Select.disabled = false; den2Select.disabled = false;
+                     return; // Stop animation
+                 }
+
+                 // --- Animation Phases ---
+
+                 clearCanvas(ctx1, canvas1);
+                 drawCircleOutline(ctx1, centerX, centerY, radius);
+
+                 if (step < conversionPoint) {
+                     // Phase 1: Convert Denominators
+                     const progress = step / conversionPoint;
+
+                     // Canvas 1: Convert Red
+                     clearCanvas(ctx1, canvas1);
+                     drawCircleOutline(ctx1, centerX, centerY, radius);
+                     fillSegments(ctx1, centerX, centerY, radius, eqNum1, commonDen, RED_COLOR);
+                     // Draw original denominator lines fading out
+                     drawSegments(ctx1, centerX, centerY, radius, currentDen1, `rgba(85, 85, 85, ${1 - progress})`);
+                     // Draw common denominator lines fading in
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, `rgba(85, 85, 85, ${progress})`);
+
+                     // Canvas 2: Convert Green
+                     clearCanvas(ctx2, canvas2);
+                     drawCircleOutline(ctx2, centerX, centerY, radius);
+                     fillSegments(ctx2, centerX, centerY, radius, eqNum2, commonDen, GREEN_COLOR);
+                     // Draw original denominator lines fading out
+                     drawSegments(ctx2, centerX, centerY, radius, currentDen2, `rgba(170, 170, 170, ${1 - progress})`);
+                     // Draw common denominator lines fading in
+                     drawSegments(ctx2, centerX, centerY, radius, commonDen, `rgba(85, 85, 85, ${progress})`);
+
+                 } else if (step < overlayPoint) {
+                     // Phase 2: Overlay Green onto Red (on Canvas 1)
+                     const progress = (step - conversionPoint) / (overlayPoint - conversionPoint);
+
+                     // Canvas 1: Show Red base, overlay Green
+                     clearCanvas(ctx1, canvas1);
+                     drawCircleOutline(ctx1, centerX, centerY, radius);
+                     fillSegments(ctx1, centerX, centerY, radius, eqNum1, commonDen, RED_COLOR); // Draw base red
+                     // Overlay the last eqNum2 segments with green, fading in
+                     const overlayAlpha = 0.8 * progress; // Fade in overlay
+                     const overlayColorCurrent = `rgba(0, 100, 0, ${overlayAlpha})`;
+                     for (let i = 0; i < eqNum2; i++) {
+                         // Overlay starts from the end of the result segments
+                         fillSingleSegment(ctx1, centerX, centerY, radius, resNum + i, commonDen, overlayColorCurrent);
+                     }
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Keep common denominator lines
+
+                     // Canvas 2: Fade out
+                     const fadeOutAlpha = 1 - progress;
+                     clearCanvas(ctx2, canvas2);
+                     ctx2.globalAlpha = fadeOutAlpha; // Apply fade out
+                     drawCircleOutline(ctx2, centerX, centerY, radius);
+                     fillSegments(ctx2, centerX, centerY, radius, eqNum2, commonDen, GREEN_COLOR);
+                     drawSegments(ctx2, centerX, centerY, radius, commonDen, '#555');
+                     ctx2.globalAlpha = 1; // Reset alpha
+
+                 } else if (step < subtractionPoint) {
+                     // Phase 3: Remove Overlay (Fade out green overlay on Canvas 1)
+                     const progress = (step - overlayPoint) / (subtractionPoint - overlayPoint);
+
+                     clearCanvas(ctx1, canvas1);
+                     drawCircleOutline(ctx1, centerX, centerY, radius);
+                     // Draw the result segments (still red for now)
+                     fillSegments(ctx1, centerX, centerY, radius, resNum, commonDen, RED_COLOR);
+                     // Draw the segments being removed (red base + fading green overlay)
+                     const overlayAlpha = 0.8 * (1 - progress); // Fade out overlay
+                     const overlayColorCurrent = `rgba(0, 100, 0, ${overlayAlpha})`;
+                     const baseRedAlpha = 0.6 * (1 - progress); // Fade out base red underneath overlay
+                     const baseRedCurrent = `rgba(255, 0, 0, ${baseRedAlpha})`;
+                     for (let i = 0; i < eqNum2; i++) {
+                         fillSingleSegment(ctx1, centerX, centerY, radius, resNum + i, commonDen, baseRedCurrent); // Fading base red
+                         fillSingleSegment(ctx1, centerX, centerY, radius, resNum + i, commonDen, overlayColorCurrent); // Fading overlay
+                     }
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Keep common denominator lines
+
+                     // Canvas 2: Keep clear
+                     clearCanvas(ctx2, canvas2);
+                     drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc'); // Faint outline
+
+                 } else {
+                     // Phase 4: Result Reveal (Transition remaining red to blue on Canvas 1)
+                     const progress = (step - subtractionPoint) / (totalSteps - subtractionPoint);
+
+                     clearCanvas(ctx1, canvas1);
+                     drawCircleOutline(ctx1, centerX, centerY, radius);
+
+                     // Interpolate color from red to blue
+                     const resultRed = 255 * (1 - progress);
+                     const resultBlue = 255 * progress;
+                     const resultColor = `rgba(${resultRed}, 0, ${resultBlue}, 0.6)`;
+
+                     // Draw the result segments transitioning color
+                     fillSegments(ctx1, centerX, centerY, radius, resNum, commonDen, resultColor);
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Keep common denominator lines
+
+                     // Canvas 2: Keep clear
+                     clearCanvas(ctx2, canvas2);
+                     drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc'); // Faint outline
+                 }
+
+                 step++;
+                 animationFrameId = requestAnimationFrame(animate);
+            }
+            animate(); // Start the animation loop
+        }
+
+        /** Draws the final state after subtraction */
+        function drawFinalState() {
+            if (state === 'error' || typeof resNum === 'undefined') return; // Check if calculation results are valid
+            calculateCanvasDimensions(); // Ensure dimensions are up-to-date
+            if (radius <= 0) return;
+
+            // Canvas 1: Shows the final result resNum/commonDen in blue
+            clearCanvas(ctx1, canvas1);
+            drawCircleOutline(ctx1, centerX, centerY, radius);
+            fillSegments(ctx1, centerX, centerY, radius, resNum, commonDen, BLUE_COLOR); // Result blue
+            drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Show final common denominator lines
+
+            // Canvas 2: Clear (or optionally show the subtrahend eqNum2/commonDen green)
+            clearCanvas(ctx2, canvas2);
+            drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc'); // Faint outline
+
+            // Update result display text
+            resultDisplay.innerHTML = `${resNumSimplified} / ${resDenSimplified}`; // Display simplified result
+            messageText.textContent = `Answer: ${resNumSimplified} / ${resDenSimplified}`;
+            messageText.style.display = 'block';
+            messageText.classList.remove('error'); // Ensure it's not styled as error
+            messageText.style.color = 'blue'; // Set answer color
+
+            // Final state settings (redundant if set at end of animation, but safe)
+            state = 'finished';
+            playBtn.disabled = true;
+            resetBtn.disabled = false;
+            num1Select.disabled = false; den1Select.disabled = false;
+            num2Select.disabled = false; den2Select.disabled = false;
+        }
+
+        /** Resets the simulation to the initial state based on dropdowns */
+        function resetSimulation() {
+            state = 'initial'; // Set state first
+            cancelAnimationFrame(animationFrameId);
+            playBtn.disabled = false; // Re-enable play button initially
+            resetBtn.disabled = false;
+            num1Select.disabled = false; den1Select.disabled = false;
+            num2Select.disabled = false; den2Select.disabled = false;
+            resultDisplay.textContent = "?";
+            messageText.style.display = 'none';
+            messageText.classList.remove('error');
+            // Don't re-populate dropdowns here, just read and draw
+            updateAndDrawInitialState(); // Redraw based on current dropdown values & re-validate
+        }
+
+        // --- Event Listeners ---
+        playBtn.addEventListener('click', playAnimation);
+        resetBtn.addEventListener('click', () => {
+            // Full reset including dropdowns to initial values
+            initializeDropdowns(); // Reset dropdowns to defaults
+            resetSimulation();     // Then update state and redraw
+        });
+
+        // Numerator changes only trigger redraw/validation
+        num1Select.addEventListener('change', resetSimulation);
+        num2Select.addEventListener('change', resetSimulation);
+
+        // Denominator changes require repopulating numerator options AND redraw/validation
+        den1Select.addEventListener('change', () => {
+            const currentNum = parseInt(num1Select.value); // Get current numerator
+            const newDen = parseInt(den1Select.value);     // Get new denominator
+            populateNumeratorOptions(num1Select, newDen, currentNum); // Repopulate num options
+            resetSimulation(); // Redraw and validate with new values
+        });
+        den2Select.addEventListener('change', () => {
+            const currentNum = parseInt(num2Select.value); // Get current numerator
+            const newDen = parseInt(den2Select.value);     // Get new denominator
+            populateNumeratorOptions(num2Select, newDen, currentNum); // Repopulate num options
+            resetSimulation(); // Redraw and validate with new values
+        });
+
+
+         // --- Responsive Resizing ---
+         function calculateCanvasDimensions() {
+              // Make sure the visualization container exists
+              const vizContainer = document.getElementById('visualization');
+              if (!vizContainer) return;
+
+              const scale = window.devicePixelRatio || 1;
+              const vizWidth = vizContainer.offsetWidth;
+              const vizHeight = vizContainer.offsetHeight;
+              // Check if the window width suggests a row layout (matches the CSS media query)
+              const isRowLayout = window.innerWidth > 700;
+
+              let availableWidth, availableHeight;
+              // Calculate available space per canvas based on layout
+              if (isRowLayout) {
+                   // Roughly 45% of container width per canvas, minus padding/margins
+                   availableWidth = vizWidth * 0.45 - 30;
+                   // Full container height, minus padding/margins
+                   availableHeight = vizHeight - 30;
+              } else {
+                   // Roughly 80% of container width (stacked), minus padding/margins
+                   availableWidth = vizWidth * 0.80 - 20;
+                   // Roughly half container height per canvas (stacked), minus padding/margins
+                   availableHeight = (vizHeight / 2) - 20;
+              }
+              // Ensure dimensions are not negative or zero
+              availableWidth = Math.max(10, availableWidth);
+              availableHeight = Math.max(10, availableHeight);
+              // Determine the limiting dimension for a square canvas, with a max size limit
+              const size = Math.min(availableWidth, availableHeight, 350);
+
+              // Check if size is valid before updating canvas
+              if (size <= 0) {
+                  radius = 0; // Indicate invalid size
+                  return;
+              }
+
+              // Update internal canvas resolution (backing store) only if size changed significantly or was invalid
+              if (Math.abs(canvas1.width / scale - size) > 1 || radius === 0) {
+                  canvas1.width = size * scale;
+                  canvas1.height = size * scale;
+                  canvas2.width = size * scale;
+                  canvas2.height = size * scale;
+                  // Reset context scale after changing canvas dimensions
+                  ctx1.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+                  ctx2.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+                  ctx1.scale(scale, scale); // Apply new scale
+                  ctx2.scale(scale, scale); // Apply new scale
+              }
+
+              // Update CSS size for display
+              canvas1.style.width = `${size}px`; canvas1.style.height = `${size}px`;
+              canvas2.style.width = `${size}px`; canvas2.style.height = `${size}px`;
+
+              // Update drawing parameters based on the CSS size
+              radius = size / 2 * 0.85; // 85% of half the size
+              centerX = size / 2;
+              centerY = size / 2;
+         }
+
+         function handleResize() {
+              calculateCanvasDimensions();
+              // Redraw based on the current state using the new dimensions
+              if (state === 'initial' || state === 'error') {
+                  drawInitialFractions(); // Redraw initial state (handles error case internally)
+                   if (state === 'error') { // Ensure error message persists
+                       messageText.style.display = 'block';
+                   }
+              } else if (state === 'finished') {
+                  drawFinalState(); // Redraw final state
+              }
+              // No redraw during 'playing' to avoid disrupting animation;
+         }
+
+         let resizeTimeout;
+         window.addEventListener('resize', () => {
+              // Debounce resize events to avoid excessive recalculations
+              clearTimeout(resizeTimeout);
+              resizeTimeout = setTimeout(handleResize, 150);
+         });
+
+        // --- Initial Setup ---
+        window.onload = () => {
+             initializeDropdowns();
+             calculateCanvasDimensions(); // Calculate initial dimensions
+             resetSimulation(); // Perform initial draw and validation
+         };
+
+    </script>
+
+</body>
+</html>

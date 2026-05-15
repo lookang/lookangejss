@@ -1,0 +1,551 @@
+// ============================================
+// SINGAPORE ECO HEROES ADVENTURE
+// Educational game about recycling and littering
+// For Primary 5-6 students (11-12 years old)
+// ============================================
+
+// Global game state
+let gameState = {
+    score: 0,
+    correctCount: 0,
+    currentScene: 'story',
+    sortingComplete: false,
+    matchingComplete: false,
+    playerChoice: null,
+    selectedMatchItem: null,
+    matchedPairs: 0
+};
+
+// Game data for sorting activity
+const sortingItems = [
+    { emoji: '📰', name: 'Newspaper', type: 'recyclable' },
+    { emoji: '🥤', name: 'Plastic Bottle', type: 'recyclable' },
+    { emoji: '🥫', name: 'Aluminum Can', type: 'recyclable' },
+    { emoji: '📦', name: 'Cardboard Box', type: 'recyclable' },
+    { emoji: '🍌', name: 'Banana Peel', type: 'general' },
+    { emoji: '🧻', name: 'Tissue Paper', type: 'general' },
+    { emoji: '🍔', name: 'Food Wrapper', type: 'general' },
+    { emoji: '🥡', name: 'Food Container', type: 'general' }
+];
+
+// Game data for matching activity
+const matchingData = [
+    { item: '🥤 Plastic Bottle', impact: '🌊 Takes 450 years to decompose', id: 1 },
+    { item: '📰 Newspaper', impact: '🌳 Saves trees when recycled', id: 2 },
+    { item: '🍌 Food Waste', impact: '🦟 Attracts pests and smells bad', id: 3 },
+    { item: '🥫 Aluminum Can', impact: '⚡ Saves 95% energy when recycled', id: 4 }
+];
+
+// Audio context for sound effects (using Web Audio API)
+let audioContext;
+let isSoundEnabled = true;
+
+// Initialize audio context on first user interaction
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+// Play sound effect using Web Audio API (no external files needed)
+function playSound(type) {
+    if (!isSoundEnabled || !audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Different sounds for different interactions
+    switch(type) {
+        case 'correct':
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            break;
+        case 'incorrect':
+            oscillator.frequency.value = 200;
+            oscillator.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+            break;
+        case 'click':
+            oscillator.frequency.value = 600;
+            oscillator.type = 'square';
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+            break;
+        case 'complete':
+            // Play a celebratory sequence
+            [800, 1000, 1200].forEach((freq, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.3);
+                osc.start(audioContext.currentTime + i * 0.1);
+                osc.stop(audioContext.currentTime + i * 0.1 + 0.3);
+            });
+            break;
+    }
+}
+
+// Tooltip functions for showing information
+function showTooltip(event, text) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = text;
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('show');
+}
+
+// Scene transition function
+function switchScene(sceneId) {
+    initAudio(); // Initialize audio on first interaction
+    playSound('click');
+    
+    // Hide all scenes
+    document.querySelectorAll('.scene').forEach(scene => {
+        scene.classList.remove('active');
+    });
+    
+    // Show target scene
+    const targetScene = document.getElementById(sceneId);
+    if (targetScene) {
+        targetScene.classList.add('active');
+        gameState.currentScene = sceneId;
+    }
+}
+
+// Start the adventure
+function startAdventure() {
+    switchScene('sorting-scene');
+    initSortingGame();
+}
+
+// Initialize sorting game
+function initSortingGame() {
+    const container = document.getElementById('items-container');
+    container.innerHTML = '';
+    
+    // Shuffle items for variety
+    const shuffled = [...sortingItems].sort(() => Math.random() - 0.5);
+    
+    // Create draggable items
+    shuffled.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item';
+        itemDiv.draggable = true;
+        itemDiv.textContent = item.emoji;
+        itemDiv.dataset.type = item.type;
+        itemDiv.dataset.name = item.name;
+        itemDiv.id = `item-${index}`;
+        
+        // Add drag event listeners
+        itemDiv.addEventListener('dragstart', handleDragStart);
+        itemDiv.addEventListener('dragend', handleDragEnd);
+        
+        // Touch support
+        itemDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+        itemDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
+        itemDiv.addEventListener('touchend', handleTouchEnd);
+        
+        container.appendChild(itemDiv);
+    });
+    
+    // Setup bins as drop targets
+    document.querySelectorAll('.bin').forEach(bin => {
+        bin.addEventListener('dragover', handleDragOver);
+        bin.addEventListener('drop', handleDrop);
+        bin.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+// Drag and drop handlers
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    if (!draggedElement) return;
+    
+    const binType = e.currentTarget.dataset.type;
+    const itemType = draggedElement.dataset.type;
+    const itemName = draggedElement.dataset.name;
+    
+    checkSortingAnswer(binType, itemType, itemName, draggedElement);
+}
+
+// Touch support for mobile devices
+let touchedElement = null;
+let touchClone = null;
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    touchedElement = e.target;
+    
+    // Create a clone for visual feedback
+    touchClone = touchedElement.cloneNode(true);
+    touchClone.style.position = 'fixed';
+    touchClone.style.zIndex = '1000';
+    touchClone.style.opacity = '0.8';
+    touchClone.style.pointerEvents = 'none';
+    document.body.appendChild(touchClone);
+    
+    const touch = e.touches[0];
+    touchClone.style.left = touch.clientX - 40 + 'px';
+    touchClone.style.top = touch.clientY - 40 + 'px';
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!touchClone) return;
+    
+    const touch = e.touches[0];
+    touchClone.style.left = touch.clientX - 40 + 'px';
+    touchClone.style.top = touch.clientY - 40 + 'px';
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    if (!touchedElement || !touchClone) return;
+    
+    // Remove clone
+    document.body.removeChild(touchClone);
+    touchClone = null;
+    
+    // Find bin under touch point
+    const touch = e.changedTouches[0];
+    const elementUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+    const bin = elementUnder?.closest('.bin');
+    
+    if (bin) {
+        const binType = bin.dataset.type;
+        const itemType = touchedElement.dataset.type;
+        const itemName = touchedElement.dataset.name;
+        
+        checkSortingAnswer(binType, itemType, itemName, touchedElement);
+    }
+    
+    touchedElement = null;
+}
+
+// Check sorting answer and provide immediate feedback
+function checkSortingAnswer(binType, itemType, itemName, element) {
+    const feedback = document.getElementById('sorting-feedback');
+    const feedbackOverlay = document.getElementById('feedback-overlay');
+    
+    if (binType === itemType) {
+        // Correct answer
+        playSound('correct');
+        gameState.score += 10;
+        gameState.correctCount++;
+        
+        // Update score display
+        document.getElementById('score').textContent = gameState.score;
+        document.getElementById('correct-count').textContent = gameState.correctCount;
+        
+        // Show positive feedback
+        feedback.textContent = `✓ Correct! ${itemName} goes in the ${binType} bin!`;
+        feedback.className = 'feedback correct show';
+        
+        feedbackOverlay.textContent = '✓';
+        feedbackOverlay.classList.add('show');
+        
+        // Remove the item
+        element.style.transition = 'all 0.5s';
+        element.style.transform = 'scale(0)';
+        setTimeout(() => element.remove(), 500);
+        
+        // Check if all items sorted
+        setTimeout(() => {
+            if (document.querySelectorAll('.item').length === 0) {
+                completeSortingGame();
+            }
+        }, 600);
+        
+    } else {
+        // Incorrect answer
+        playSound('incorrect');
+        gameState.score = Math.max(0, gameState.score - 5);
+        document.getElementById('score').textContent = gameState.score;
+        
+        // Show corrective feedback
+        feedback.textContent = `✗ Oops! ${itemName} should go in the ${itemType} bin. Try again!`;
+        feedback.className = 'feedback incorrect show';
+        
+        feedbackOverlay.textContent = '✗';
+        feedbackOverlay.classList.add('show');
+        
+        // Shake animation for incorrect
+        element.style.animation = 'shake 0.5s';
+        setTimeout(() => {
+            element.style.animation = '';
+        }, 500);
+    }
+    
+    // Hide feedback after delay
+    setTimeout(() => {
+        feedback.classList.remove('show');
+        feedbackOverlay.classList.remove('show');
+    }, 2000);
+}
+
+// Shake animation for incorrect answers
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+`;
+document.head.appendChild(style);
+
+// Complete sorting game and move to next scene
+function completeSortingGame() {
+    playSound('complete');
+    gameState.sortingComplete = true;
+    
+    setTimeout(() => {
+        switchScene('park-scene');
+    }, 1000);
+}
+
+// Handle player choice in park scene
+function makeChoice(choice) {
+    gameState.playerChoice = choice;
+    const storyText = document.getElementById('park-story-text');
+    
+    if (choice === 'help') {
+        playSound('correct');
+        gameState.score += 20;
+        storyText.textContent = "Great choice! You politely explain about recycling. The person thanks you and uses the recycling bin. You're making a real difference! Now let's learn more about environmental impact...";
+    } else {
+        playSound('incorrect');
+        storyText.textContent = "Hmm... ignoring the problem won't help Singapore stay clean. Remember, every small action counts! Let's learn more about why recycling matters...";
+    }
+    
+    // Move to matching game after delay
+    setTimeout(() => {
+        switchScene('matching-scene');
+        initMatchingGame();
+    }, 3000);
+}
+
+// Initialize matching game
+function initMatchingGame() {
+    const itemsColumn = document.getElementById('items-column');
+    const impactsColumn = document.getElementById('impacts-column');
+    
+    itemsColumn.innerHTML = '';
+    impactsColumn.innerHTML = '';
+    
+    // Update score display
+    document.getElementById('score-match').textContent = gameState.score;
+    
+    // Shuffle impacts for challenge
+    const shuffledImpacts = [...matchingData].sort(() => Math.random() - 0.5);
+    
+    // Create item elements
+    matchingData.forEach((data, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'match-item';
+        itemDiv.textContent = data.item;
+        itemDiv.dataset.id = data.id;
+        itemDiv.addEventListener('click', () => selectMatchItem(itemDiv, data.id));
+        itemsColumn.appendChild(itemDiv);
+    });
+    
+    // Create impact elements
+    shuffledImpacts.forEach((data, index) => {
+        const impactDiv = document.createElement('div');
+        impactDiv.className = 'match-impact';
+        impactDiv.textContent = data.impact;
+        impactDiv.dataset.id = data.id;
+        impactDiv.addEventListener('click', () => selectMatchImpact(impactDiv, data.id));
+        impactsColumn.appendChild(impactDiv);
+    });
+}
+
+// Select item for matching
+function selectMatchItem(element, id) {
+    // Deselect previous selection
+    document.querySelectorAll('.match-item').forEach(item => {
+        if (!item.classList.contains('matched')) {
+            item.classList.remove('selected');
+        }
+    });
+    
+    if (!element.classList.contains('matched')) {
+        element.classList.add('selected');
+        gameState.selectedMatchItem = { element, id };
+        playSound('click');
+    }
+}
+
+// Select impact and check match
+function selectMatchImpact(element, id) {
+    if (!gameState.selectedMatchItem || element.classList.contains('matched')) return;
+    
+    const feedback = document.getElementById('matching-feedback');
+    const feedbackOverlay = document.getElementById('feedback-overlay');
+    
+    if (gameState.selectedMatchItem.id === id) {
+        // Correct match
+        playSound('correct');
+        gameState.score += 15;
+        gameState.matchedPairs++;
+        
+        document.getElementById('score-match').textContent = gameState.score;
+        
+        // Mark both as matched
+        gameState.selectedMatchItem.element.classList.add('matched');
+        element.classList.add('matched');
+        
+        feedback.textContent = '✓ Perfect match! You understand the environmental impact!';
+        feedback.className = 'feedback correct show';
+        
+        feedbackOverlay.textContent = '✓';
+        feedbackOverlay.classList.add('show');
+        
+        gameState.selectedMatchItem = null;
+        
+        // Check if all matched
+        if (gameState.matchedPairs === matchingData.length) {
+            setTimeout(() => completeMatchingGame(), 1000);
+        }
+        
+    } else {
+        // Incorrect match
+        playSound('incorrect');
+        gameState.score = Math.max(0, gameState.score - 5);
+        document.getElementById('score-match').textContent = gameState.score;
+        
+        feedback.textContent = '✗ Not quite right. Try again!';
+        feedback.className = 'feedback incorrect show';
+        
+        feedbackOverlay.textContent = '✗';
+        feedbackOverlay.classList.add('show');
+        
+        // Deselect
+        gameState.selectedMatchItem.element.classList.remove('selected');
+        gameState.selectedMatchItem = null;
+    }
+    
+    setTimeout(() => {
+        feedback.classList.remove('show');
+        feedbackOverlay.classList.remove('show');
+    }, 2000);
+}
+
+// Complete matching game
+function completeMatchingGame() {
+    playSound('complete');
+    gameState.matchingComplete = true;
+    
+    setTimeout(() => {
+        switchScene('final-scene');
+        showFinalResults();
+    }, 1000);
+}
+
+// Show final results and achievements
+function showFinalResults() {
+    document.getElementById('final-score-display').textContent = gameState.score;
+    
+    const badge = document.getElementById('achievement-badge');
+    const message = document.getElementById('final-message');
+    
+    // Determine achievement level
+    if (gameState.score >= 150) {
+        badge.textContent = '🏆 Eco Champion!';
+        message.textContent = 'Outstanding! You are a true Eco Hero! You understand the importance of recycling and keeping Singapore clean. Share what you learned with your friends and family!';
+    } else if (gameState.score >= 100) {
+        badge.textContent = '⭐ Eco Warrior!';
+        message.textContent = 'Great job! You have learned important lessons about recycling and environmental care. Keep practicing these habits every day!';
+    } else {
+        badge.textContent = '🌱 Eco Learner!';
+        message.textContent = 'Good effort! You are on your way to becoming an Eco Hero. Remember: reduce, reuse, and recycle to keep Singapore beautiful!';
+    }
+}
+
+// Restart the adventure
+function restartAdventure() {
+    // Reset game state
+    gameState = {
+        score: 0,
+        correctCount: 0,
+        currentScene: 'story',
+        sortingComplete: false,
+        matchingComplete: false,
+        playerChoice: null,
+        selectedMatchItem: null,
+        matchedPairs: 0
+    };
+    
+    // Reset displays
+    document.getElementById('score').textContent = '0';
+    document.getElementById('correct-count').textContent = '0';
+    document.getElementById('score-match').textContent = '0';
+    
+    // Return to start
+    switchScene('story-scene');
+}
+
+// Initialize the game when page loads
+window.addEventListener('load', () => {
+    // Check if in iframe
+    if (window.self !== window.top) {
+        document.body.classList.add('iframe-mode');
+    }
+    
+    // Start with story scene
+    switchScene('story-scene');
+});
+
+// Handle visibility change to pause/resume audio context
+document.addEventListener('visibilitychange', () => {
+    if (audioContext) {
+        if (document.hidden) {
+            audioContext.suspend();
+        } else {
+            audioContext.resume();
+        }
+    }
+});

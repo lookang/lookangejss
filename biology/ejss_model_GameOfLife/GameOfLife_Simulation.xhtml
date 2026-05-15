@@ -1,0 +1,1028 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>John Conway' s Game of Life</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function GameOfLife(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var nCells; // EjsS Model.Variables.Var Table.nCells
+  var min; // EjsS Model.Variables.Var Table.min
+  var max; // EjsS Model.Variables.Var Table.max
+  var cells; // EjsS Model.Variables.Var Table.cells
+  var tmpCells; // EjsS Model.Variables.Var Table.tmpCells
+  var t; // EjsS Model.Variables.Var Table.t
+  var selected; // EjsS Model.Variables.Var Table.selected
+  var msg; // EjsS Model.Variables.Var Table.msg
+
+  var font; // EjsS Model.Variables.lookang.font
+
+  _model.getOdes = function() { return []; };
+
+  _model.removeEvents = function(){
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      nCells : nCells,
+      min : min,
+      max : max,
+      cells : cells,
+      tmpCells : tmpCells,
+      t : t,
+      selected : selected,
+      msg : msg,
+      font : font
+    };
+  };
+
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return {
+      nCells : nCells,
+      min : min,
+      max : max,
+      cells : cells,
+      tmpCells : tmpCells,
+      t : t,
+      selected : selected,
+      msg : msg,
+      font : font
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.nCells != "undefined") nCells = json.nCells;
+    if(typeof json.min != "undefined") min = json.min;
+    if(typeof json.max != "undefined") max = json.max;
+    if(typeof json.cells != "undefined") cells = json.cells;
+    if(typeof json.tmpCells != "undefined") tmpCells = json.tmpCells;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.selected != "undefined") selected = json.selected;
+    if(typeof json.msg != "undefined") msg = json.msg;
+    if(typeof json.font != "undefined") font = json.font;
+  };
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.nCells != "undefined") nCells = json.nCells;
+    if(typeof json.min != "undefined") min = json.min;
+    if(typeof json.max != "undefined") max = json.max;
+    if(typeof json.cells != "undefined") cells = json.cells;
+    if(typeof json.tmpCells != "undefined") tmpCells = json.tmpCells;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.selected != "undefined") selected = json.selected;
+    if(typeof json.msg != "undefined") msg = json.msg;
+    if(typeof json.font != "undefined") font = json.font;
+  };
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["Initial state"] = true;
+    __pagesEnabled["Evol Page"] = true;
+  });
+
+  _model.addToReset(function() {
+    nCells = 20; // EjsS Model.Variables.Var Table.nCells
+    min = 0; // EjsS Model.Variables.Var Table.min
+    max = 10; // EjsS Model.Variables.Var Table.max
+    cells = new Array(nCells); // EjsS Model.Variables.Var Table.cells
+    (function () {
+      var _i0,_i1;
+      for (_i0=0; _i0<nCells; _i0+=1) {  // EjsS Model.Variables.Var Table.cells
+        cells[_i0] = [];
+        for (_i1=0; _i1<nCells; _i1+=1) {  // EjsS Model.Variables.Var Table.cells
+          cells[_i0][_i1] = (Math.random() < 0.5) ? 0 : 1;  // EjsS Model.Variables.Var Table.cells
+        }
+      }
+    }());
+    tmpCells = new Array(nCells); // EjsS Model.Variables.Var Table.tmpCells
+    (function () {
+      var _i0,_i1;
+      for (_i0=0; _i0<nCells; _i0+=1) {  // EjsS Model.Variables.Var Table.tmpCells
+        tmpCells[_i0] = [];
+        for (_i1=0; _i1<nCells; _i1+=1) {  // EjsS Model.Variables.Var Table.tmpCells
+          tmpCells[_i0][_i1] = 0;  // EjsS Model.Variables.Var Table.tmpCells
+        }
+      }
+    }());
+    t = 0; // EjsS Model.Variables.Var Table.t
+    selected = new Array(1); // EjsS Model.Variables.Var Table.selected
+    msg = "Click on a cell to toggle"; // EjsS Model.Variables.Var Table.msg
+  });
+
+  _model.addToReset(function() {
+    font = "normal normal 1.5vw "; // EjsS Model.Variables.lookang.font
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(1);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function computeNeighbors(row, col) {  // > CustomCode.Compute Neighbors:1
+    var i,j;  // > CustomCode.Compute Neighbors:2
+    var neighbors = -tmpCells[row][col]; // do not count self  // > CustomCode.Compute Neighbors:3
+    row += nCells; // add the size so that the mod operator works for row 0  // > CustomCode.Compute Neighbors:4
+    col += nCells;  // > CustomCode.Compute Neighbors:5
+    for ( i = -1; i<=1; i+=1) {  // > CustomCode.Compute Neighbors:6
+      for ( j = -1; j<=1; j+=1) {  // > CustomCode.Compute Neighbors:7
+        neighbors += tmpCells[(row+i)%nCells][(col+j)%nCells];  // > CustomCode.Compute Neighbors:8
+      }  // > CustomCode.Compute Neighbors:9
+    }  // > CustomCode.Compute Neighbors:10
+   // alert(neighbors);  // > CustomCode.Compute Neighbors:11
+    return neighbors;  // > CustomCode.Compute Neighbors:12
+      // > CustomCode.Compute Neighbors:13
+  }  // > CustomCode.Compute Neighbors:14
+
+  // code to be copied to EJSS source code under Custom and used in drawingPanel3D and plottingPanel2D  // > CustomCode.changeOrientation:1
+  // address the problem is height difference is iOS app , epub, and Firefox  // > CustomCode.changeOrientation:2
+  // user need to change only k and kepub  // > CustomCode.changeOrientation:3
+  // copy %changeOrientation()% into the Height Field of drawingPanel3D and plottingPanel2D  // > CustomCode.changeOrientation:4
+  function changeOrientation() {  // > CustomCode.changeOrientation:5
+     // > CustomCode.changeOrientation:6
+  var k =0.9 ; // k control height 1 is for full screen, 0.9 shorten etc  // > CustomCode.changeOrientation:7
+  var kepub =0.9 ;  // > CustomCode.changeOrientation:8
+  // check platform for Apps  // > CustomCode.changeOrientation:9
+  try { // allow code to run in Student Learning Space   // > CustomCode.changeOrientation:10
+    var iOSapp =  (typeof parent.device != 'undefined' && parent.device.platform == "iOS");  // > CustomCode.changeOrientation:11
+    var Androidapp = (typeof parent.device != 'undefined' && parent.device.platform == "Android");  // > CustomCode.changeOrientation:12
+  } catch(e) {  // > CustomCode.changeOrientation:13
+    var iOSapp = false;  // > CustomCode.changeOrientation:14
+    var Androidapp = false;  // > CustomCode.changeOrientation:15
+  }  // > CustomCode.changeOrientation:16
+  // check platform for web browsers  // > CustomCode.changeOrientation:17
+  var iOS =/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:18
+  var iPad =/iPad/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:19
+  var iPhone = /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:20
+  var Android= /Android|android/i.test(navigator.userAgent);  // > CustomCode.changeOrientation:21
+  //navigator  // > CustomCode.changeOrientation:22
+  var Firefox = navigator.userAgent.indexOf("Firefox") != -1;  // > CustomCode.changeOrientation:23
+     // > CustomCode.changeOrientation:24
+  switch (window.orientation) { // using window.orientation as deciding factor  // > CustomCode.changeOrientation:25
+    case 0:  // > CustomCode.changeOrientation:26
+    case 180:  // > CustomCode.changeOrientation:27
+      this.screenOrientation = 'portrait';  // > CustomCode.changeOrientation:28
+      if (iOSapp){ // does not seems to work  // > CustomCode.changeOrientation:29
+          // > CustomCode.changeOrientation:30
+        return window.screen.height*k;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:31
+        // > CustomCode.changeOrientation:32
+      }  // > CustomCode.changeOrientation:33
+      else if (_isEPub){ // does not seems to work  // > CustomCode.changeOrientation:34
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.changeOrientation:35
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:36
+        // return window.screen.height;  // > CustomCode.changeOrientation:37
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:38
+        // return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:39
+      }  // > CustomCode.changeOrientation:40
+       // > CustomCode.changeOrientation:41
+      else {  // > CustomCode.changeOrientation:42
+         // > CustomCode.changeOrientation:43
+        return 100*k+"vh";  // > CustomCode.changeOrientation:44
+      }  // > CustomCode.changeOrientation:45
+      break;  // > CustomCode.changeOrientation:46
+    case 90:  // > CustomCode.changeOrientation:47
+    case -90:  // > CustomCode.changeOrientation:48
+      this.screenOrientation = 'landscape';  // > CustomCode.changeOrientation:49
+     // > CustomCode.changeOrientation:50
+      if (iOSapp){ // App  // > CustomCode.changeOrientation:51
+        return window.screen.width*k;    // > CustomCode.changeOrientation:52
+        // return window.screen.height;  // > CustomCode.changeOrientation:53
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:54
+        //  return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:55
+      }  // > CustomCode.changeOrientation:56
+      else if (_isEPub){ // does not seems to work  // > CustomCode.changeOrientation:57
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.changeOrientation:58
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:59
+        // return window.screen.height;  // > CustomCode.changeOrientation:60
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:61
+        // return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:62
+      }  // > CustomCode.changeOrientation:63
+       // > CustomCode.changeOrientation:64
+      else {  // > CustomCode.changeOrientation:65
+        return 100*k+"vh";  // > CustomCode.changeOrientation:66
+        }  // > CustomCode.changeOrientation:67
+      break;  // > CustomCode.changeOrientation:68
+    default:  // > CustomCode.changeOrientation:69
+      this.screenOrientation = 'unknown';  // > CustomCode.changeOrientation:70
+      //       return (iPad)?""+(window.screen.width+window.screen.height)*0.4:((iPhone)?""+window.screen.width:_view._format(window.innerHeight*0.9,"0"));  // > CustomCode.changeOrientation:71
+       if (Firefox){  // > CustomCode.changeOrientation:72
+        return window.innerHeight*k;// number as of 20180831 Firefox does not support vh yet so need a separate line to handle  // > CustomCode.changeOrientation:73
+        }  // > CustomCode.changeOrientation:74
+          // > CustomCode.changeOrientation:75
+        else {  // > CustomCode.changeOrientation:76
+          return 100*k+"vh"; // string every other solid deployment, Android Android App web chrome etc  // > CustomCode.changeOrientation:77
+          //console.log('hello');  // > CustomCode.changeOrientation:78
+  }  // > CustomCode.changeOrientation:79
+  }  // > CustomCode.changeOrientation:80
+     // > CustomCode.changeOrientation:81
+  }  // > CustomCode.changeOrientation:82
+
+  function setCells(row,col,subcells) {  // > CustomCode.Toggle Life:1
+    var i,j;  // > CustomCode.Toggle Life:2
+    for ( i=0; i<subcells.length; i+=1) {  // > CustomCode.Toggle Life:3
+      for (j=0; j<subcells[i].length; j+=1) {  // > CustomCode.Toggle Life:4
+        cells[(row+i)%nCells][(col+j)%nCells] = subcells[i][j];  // > CustomCode.Toggle Life:5
+      }  // > CustomCode.Toggle Life:6
+    }  // > CustomCode.Toggle Life:7
+  }  // > CustomCode.Toggle Life:8
+  function pointSelected(point) { // lookang dont think the options are neccessary here, noly need the reverse that point  // > CustomCode.Toggle Life:9
+    //console.log("panel clicked at "+point[0]+", "+point[1]);  // > CustomCode.Toggle Life:10
+    var col = Math.floor(point[1]);  // > CustomCode.Toggle Life:11
+    var row = Math.floor(point[0]);  // > CustomCode.Toggle Life:12
+   // var option = _view.comboBox.getProperty("SelectedOptions"); // also possible _view.comboBox.getSelectedOptions();  // > CustomCode.Toggle Life:13
+    //console.log ("Selection = "+option+ " = Glider = "+(option=="Glider"));  // > CustomCode.Toggle Life:14
+   // if (option=="Glider")       { setCells(row,col,[ [0,1,0], [1,0,0], [1,1,1] ]); }  // > CustomCode.Toggle Life:15
+  //  else if (option=="Diehard") { setCells(row,col,[ [0,1,0,0,0,1,1,1], [1,1,0,0,0,0,0,0], [0,0,0,0,0,0,1,0] ]); }  // > CustomCode.Toggle Life:16
+  //  else if (option=="Acorn")   { setCells(row,col,[ [1,1,0,0,1,1,1], [0,0,0,1,0,0,0], [0,1,0,0,0,0,0] ]); }  // > CustomCode.Toggle Life:17
+  // else if (option=="Still Life Block")   { setCells(row,col,[ [1,1], [1,1] ]); }  // > CustomCode.Toggle Life:18
+   //else { cells[row][col] = 1 - cells[row][col]; } // reverse that point  // > CustomCode.Toggle Life:19
+   if ((point[0]>0&&point[0]<20)&&(point[1]>0&&point[1]<20)){ // by lookang  // > CustomCode.Toggle Life:20
+   cells[row][col] = 1 - cells[row][col]; //} // reverse that point  // > CustomCode.Toggle Life:21
+   }  // > CustomCode.Toggle Life:22
+   else {  // > CustomCode.Toggle Life:23
+     // do nothing to aviod bug error  // > CustomCode.Toggle Life:24
+     }  // > CustomCode.Toggle Life:25
+     // > CustomCode.Toggle Life:26
+   _view.cellLattice.setChanged(true);  // > CustomCode.Toggle Life:27
+  }  // > CustomCode.Toggle Life:28
+
+  function clearCells() {  // > CustomCode.Clear Life:1
+    _pause();  // > CustomCode.Clear Life:2
+    var i,j;  // > CustomCode.Clear Life:3
+    for (i = 0; i < nCells; i+=1) {  // > CustomCode.Clear Life:4
+      for (j = 0; j < nCells; j+=1) {  // > CustomCode.Clear Life:5
+        cells[i][j] = 0;  // > CustomCode.Clear Life:6
+      }  // > CustomCode.Clear Life:7
+    }  // > CustomCode.Clear Life:8
+    _view.cellLattice.setChanged(true);  // > CustomCode.Clear Life:9
+    t = 0; // resets the time  // > CustomCode.Clear Life:10
+  }  // > CustomCode.Clear Life:11
+
+  function comboAction() {  // > CustomCode.Configurations:1
+    clearCells();  // > CustomCode.Configurations:2
+    var ix=nCells/2;  // > CustomCode.Configurations:3
+    var iy=nCells/2;  // > CustomCode.Configurations:4
+     // > CustomCode.Configurations:5
+   var opts = _view.comboBox.getProperty("SelectedOptions");  // array of options  // > CustomCode.Configurations:6
+      var option = (opts.length > 0)? opts[0]:""; // selected option   // > CustomCode.Configurations:7
+  //_initialize();  // > CustomCode.Configurations:8
+      if(option=="Glider"){  // > CustomCode.Configurations:9
+        glider( ix, iy);  // > CustomCode.Configurations:10
+      } else if(option=="Diehard"){  // > CustomCode.Configurations:11
+        diehard( ix, iy);  // > CustomCode.Configurations:12
+      } else if(option=="Acorn"){  // > CustomCode.Configurations:13
+        acorn( ix, iy);  // > CustomCode.Configurations:14
+      } else if (option=="Point"){  // > CustomCode.Configurations:15
+        cells[ix][iy] = 1;  // > CustomCode.Configurations:16
+      }  // > CustomCode.Configurations:17
+      else if (option=="Random"){  // > CustomCode.Configurations:18
+        for ( i = 0; i < nCells; i+=1) {  // > CustomCode.Configurations:19
+    cells[i] = [];  // > CustomCode.Configurations:20
+    tmpCells[i] = new Array(nCells);  // > CustomCode.Configurations:21
+    for (var j = 0; j < nCells; j+=1)  // > CustomCode.Configurations:22
+    cells[i][j] = (Math.random() < 0.5) ? 0 : 1;  // > CustomCode.Configurations:23
+  }    // > CustomCode.Configurations:24
+        }  // > CustomCode.Configurations:25
+      else if (option=="Blank"){  // > CustomCode.Configurations:26
+        for ( i = 0; i < nCells; i+=1) {  // > CustomCode.Configurations:27
+    cells[i] = [];  // > CustomCode.Configurations:28
+    tmpCells[i] = new Array(nCells);  // > CustomCode.Configurations:29
+    for (var j = 0; j < nCells; j+=1)  // > CustomCode.Configurations:30
+    cells[i][j] = 0;  // > CustomCode.Configurations:31
+  }    // > CustomCode.Configurations:32
+        }  // > CustomCode.Configurations:33
+        else if (option=="All Life"){  // > CustomCode.Configurations:34
+        for ( i = 0; i < nCells; i+=1) {  // > CustomCode.Configurations:35
+    cells[i] = [];  // > CustomCode.Configurations:36
+    tmpCells[i] = new Array(nCells);  // > CustomCode.Configurations:37
+    for (var j = 0; j < nCells; j+=1)  // > CustomCode.Configurations:38
+    cells[i][j] = 1;  // > CustomCode.Configurations:39
+  }    // > CustomCode.Configurations:40
+        }  // > CustomCode.Configurations:41
+      else if (option=="Still Life Block"){  // > CustomCode.Configurations:42
+        stilllifeblock( ix, iy);  // > CustomCode.Configurations:43
+        }  // > CustomCode.Configurations:44
+        else if (option=="Still Life Beehive"){  // > CustomCode.Configurations:45
+        stilllifebeehive( ix, iy);  // > CustomCode.Configurations:46
+        }  // > CustomCode.Configurations:47
+        //"Still Life Loaf","Still Life Boat","Still Life Tub"  // > CustomCode.Configurations:48
+        else if (option=="Still Life Loaf"){  // > CustomCode.Configurations:49
+        stilllifeloaf( ix, iy);  // > CustomCode.Configurations:50
+        }  // > CustomCode.Configurations:51
+         else if (option=="Still Life Boat"){  // > CustomCode.Configurations:52
+        stilllifeboat( ix, iy);  // > CustomCode.Configurations:53
+        }  // > CustomCode.Configurations:54
+         else if (option=="Still Life Tub"){  // > CustomCode.Configurations:55
+        stilllifetub( ix, iy);  // > CustomCode.Configurations:56
+        }  // > CustomCode.Configurations:57
+        else if (option=="Oscillators Blinker"){  // > CustomCode.Configurations:58
+        OscillatorsBlinker( ix, iy);  // > CustomCode.Configurations:59
+        }  // > CustomCode.Configurations:60
+        else if (option=="Oscillators Toad"){  // > CustomCode.Configurations:61
+        OscillatorsToad( ix, iy);  // > CustomCode.Configurations:62
+        }  // > CustomCode.Configurations:63
+        else if (option=="Oscillators Beacon"){  // > CustomCode.Configurations:64
+        OscillatorsBeacon( ix, iy);  // > CustomCode.Configurations:65
+        }  // > CustomCode.Configurations:66
+        else if (option=="Oscillators Pulsar"){  // > CustomCode.Configurations:67
+        OscillatorsPulsar( ix, iy);  // > CustomCode.Configurations:68
+        }  // > CustomCode.Configurations:69
+        else if (option=="Oscillators Pentadecathlon"){  // > CustomCode.Configurations:70
+        OscillatorsPentadecathlon( ix, iy);  // > CustomCode.Configurations:71
+        }  // > CustomCode.Configurations:72
+        // > CustomCode.Configurations:73
+      else if (option=="Oscillators Pentadecathlon"){  // > CustomCode.Configurations:74
+        OscillatorsPentadecathlon( ix, iy);  // > CustomCode.Configurations:75
+        }  // > CustomCode.Configurations:76
+        else if (option=="Spaceships Glider"){  // > CustomCode.Configurations:77
+        SpaceshipsGlider( ix, iy);  // > CustomCode.Configurations:78
+        }  // > CustomCode.Configurations:79
+   else if (option=="Lightweight spaceship"){  // > CustomCode.Configurations:80
+        Lightweightspaceship( ix, iy);  // > CustomCode.Configurations:81
+        }     // > CustomCode.Configurations:82
+        else if (option=="Middleweight spaceship"){  // > CustomCode.Configurations:83
+        Middleweightspaceship( ix, iy);  // > CustomCode.Configurations:84
+        }     // > CustomCode.Configurations:85
+        else if (option=="Heavyweight spaceship"){  // > CustomCode.Configurations:86
+        Heavyweightspaceship( ix, iy);  // > CustomCode.Configurations:87
+        }    // > CustomCode.Configurations:88
+        // > CustomCode.Configurations:89
+        // > CustomCode.Configurations:90
+      _view.cellLattice.setChanged(true);  // > CustomCode.Configurations:91
+  }  // > CustomCode.Configurations:92
+  function glider( ix, iy) {  // > CustomCode.Configurations:93
+    cells[ix-1][iy-1] = 1;  // > CustomCode.Configurations:94
+    cells[ix][iy-1] =1;  // > CustomCode.Configurations:95
+    cells[ix+1][iy-1] = 1;  // > CustomCode.Configurations:96
+    //row 2  // > CustomCode.Configurations:97
+    cells[ix-1][iy] = 1;  // > CustomCode.Configurations:98
+    cells[ix][iy] = 0;  // > CustomCode.Configurations:99
+    cells[ix+1][iy] = 0;  // > CustomCode.Configurations:100
+    // row 3  // > CustomCode.Configurations:101
+    cells[ix-1][iy+1] = 0;  // > CustomCode.Configurations:102
+    cells[ix][iy+1] = 1;  // > CustomCode.Configurations:103
+    cells[ix+1][iy+1] =0;  // > CustomCode.Configurations:104
+  }  // > CustomCode.Configurations:105
+  function SpaceshipsGlider( ix, iy) {  // > CustomCode.Configurations:106
+    cells[ix][iy] = 1;  // > CustomCode.Configurations:107
+    //row 2  // > CustomCode.Configurations:108
+    cells[ix+1][iy-1] = 1;  // > CustomCode.Configurations:109
+    // row 3  // > CustomCode.Configurations:110
+    cells[ix-1][iy-2] = 1;  // > CustomCode.Configurations:111
+    cells[ix][iy-2] = 1;  // > CustomCode.Configurations:112
+    cells[ix+1][iy-2] =1;  // > CustomCode.Configurations:113
+  }  // > CustomCode.Configurations:114
+  function diehard( ix, iy) {  // > CustomCode.Configurations:115
+    cells[ix+3][iy-1] = 1;  // > CustomCode.Configurations:116
+    //row 2  // > CustomCode.Configurations:117
+    cells[ix-3][iy] = 1;  // > CustomCode.Configurations:118
+    cells[ix-2][iy] = 1;  // > CustomCode.Configurations:119
+    // row 3  // > CustomCode.Configurations:120
+    cells[ix-2][iy+1] = 1;  // > CustomCode.Configurations:121
+    cells[ix+2][iy+1] = 1;  // > CustomCode.Configurations:122
+    cells[ix+3][iy+1] =1;  // > CustomCode.Configurations:123
+    cells[ix+4][iy+1] =1;  // > CustomCode.Configurations:124
+  }  // > CustomCode.Configurations:125
+  function stilllifeblock( ix, iy) { //lookang  // > CustomCode.Configurations:126
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:127
+    cells[ix+1][iy] = 1;  // > CustomCode.Configurations:128
+    //row 2  // > CustomCode.Configurations:129
+    cells[ix][iy-1] = 1;  // > CustomCode.Configurations:130
+    cells[ix+1][iy-1] = 1;  // > CustomCode.Configurations:131
+      // > CustomCode.Configurations:132
+  }  // > CustomCode.Configurations:133
+  function stilllifebeehive( ix, iy) { //lookang  // > CustomCode.Configurations:134
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:135
+    cells[ix+1][iy] = 1;  // > CustomCode.Configurations:136
+    //row 2  // > CustomCode.Configurations:137
+    cells[ix-1][iy-1] = 1;  // > CustomCode.Configurations:138
+    cells[ix+2][iy-1] = 1;  // > CustomCode.Configurations:139
+    //row 3  // > CustomCode.Configurations:140
+    cells[ix][iy-2] = 1;  // > CustomCode.Configurations:141
+    cells[ix+1][iy-2] = 1;  // > CustomCode.Configurations:142
+      // > CustomCode.Configurations:143
+  }  // > CustomCode.Configurations:144
+  function stilllifeloaf( ix, iy) { //lookang  // > CustomCode.Configurations:145
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:146
+    cells[ix+1][iy] = 1;  // > CustomCode.Configurations:147
+    //row 2  // > CustomCode.Configurations:148
+    cells[ix-1][iy-1] = 1;  // > CustomCode.Configurations:149
+    cells[ix+2][iy-1] = 1;  // > CustomCode.Configurations:150
+    //row 3  // > CustomCode.Configurations:151
+    cells[ix][iy-2] = 1;  // > CustomCode.Configurations:152
+    cells[ix+2][iy-2] = 1;  // > CustomCode.Configurations:153
+    //row 4  // > CustomCode.Configurations:154
+    cells[ix+1][iy-3] = 1;  // > CustomCode.Configurations:155
+      // > CustomCode.Configurations:156
+      // > CustomCode.Configurations:157
+  }  // > CustomCode.Configurations:158
+  function stilllifeboat( ix, iy) { //lookang  // > CustomCode.Configurations:159
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:160
+    cells[ix+1][iy] = 1;  // > CustomCode.Configurations:161
+    //row 2  // > CustomCode.Configurations:162
+    cells[ix][iy-1] = 1;  // > CustomCode.Configurations:163
+    cells[ix+2][iy-1] = 1;  // > CustomCode.Configurations:164
+    //row 3  // > CustomCode.Configurations:165
+    cells[ix+1][iy-2] = 1;  // > CustomCode.Configurations:166
+      // > CustomCode.Configurations:167
+      // > CustomCode.Configurations:168
+      // > CustomCode.Configurations:169
+  }  // > CustomCode.Configurations:170
+  function stilllifetub( ix, iy) { //lookang  // > CustomCode.Configurations:171
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:172
+    //row 2  // > CustomCode.Configurations:173
+    cells[ix-1][iy-1] = 1;  // > CustomCode.Configurations:174
+    cells[ix+1][iy-1] = 1;  // > CustomCode.Configurations:175
+    //row 3  // > CustomCode.Configurations:176
+    cells[ix][iy-2] = 1;  // > CustomCode.Configurations:177
+      // > CustomCode.Configurations:178
+  }  // > CustomCode.Configurations:179
+  function OscillatorsBlinker( ix, iy) {  // > CustomCode.Configurations:180
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:181
+    //row 2  // > CustomCode.Configurations:182
+    cells[ix][iy-1] = 1;  // > CustomCode.Configurations:183
+    //row 3  // > CustomCode.Configurations:184
+    cells[ix][iy-2] = 1;  // > CustomCode.Configurations:185
+    }  // > CustomCode.Configurations:186
+  function OscillatorsToad( ix, iy) {  // > CustomCode.Configurations:187
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:188
+    cells[ix+1][iy] = 1;   // > CustomCode.Configurations:189
+    cells[ix+2][iy] = 1;   // > CustomCode.Configurations:190
+    //row 2  // > CustomCode.Configurations:191
+    cells[ix-1][iy-1] = 1;  // > CustomCode.Configurations:192
+    cells[ix][iy-1] = 1;  // > CustomCode.Configurations:193
+    cells[ix+1][iy-1] = 1;  // > CustomCode.Configurations:194
+    }  // > CustomCode.Configurations:195
+    function OscillatorsBeacon( ix, iy) {  // > CustomCode.Configurations:196
+    cells[ix][iy] = 1; //itself  // > CustomCode.Configurations:197
+    cells[ix+1][iy] = 1;   // > CustomCode.Configurations:198
+    //row 2  // > CustomCode.Configurations:199
+    cells[ix][iy-1] = 1;  // > CustomCode.Configurations:200
+    cells[ix+1][iy-1] = 1;  // > CustomCode.Configurations:201
+    //row 3  // > CustomCode.Configurations:202
+    cells[ix+2][iy-2] = 1;  // > CustomCode.Configurations:203
+    cells[ix+3][iy-2] = 1;  // > CustomCode.Configurations:204
+  //row 4  // > CustomCode.Configurations:205
+    cells[ix+2][iy-3] = 1;  // > CustomCode.Configurations:206
+    cells[ix+3][iy-3] = 1;  // > CustomCode.Configurations:207
+    }  // > CustomCode.Configurations:208
+    function OscillatorsPulsar( ix, iy) {  // > CustomCode.Configurations:209
+   // nCells = 20;  // > CustomCode.Configurations:210
+   // _initialize();  // > CustomCode.Configurations:211
+    cells[ix-4][iy+6] = 1; //itself  // > CustomCode.Configurations:212
+    cells[ix-3][iy+6] = 1;   // > CustomCode.Configurations:213
+    cells[ix-2][iy+6] = 1;   // > CustomCode.Configurations:214
+      // > CustomCode.Configurations:215
+    cells[ix+2][iy+6] = 1;   // > CustomCode.Configurations:216
+    cells[ix+3][iy+6] = 1;  // > CustomCode.Configurations:217
+    cells[ix+4][iy+6] = 1;  // > CustomCode.Configurations:218
+    //row 2 blank  // > CustomCode.Configurations:219
+    //row 3  // > CustomCode.Configurations:220
+    cells[ix-6][iy+4] = 1;   // > CustomCode.Configurations:221
+     cells[ix-1][iy+4] = 1;   // > CustomCode.Configurations:222
+      cells[ix+1][iy+4] = 1;   // > CustomCode.Configurations:223
+  cells[ix+6][iy+4] = 1;   // > CustomCode.Configurations:224
+  //row 4  // > CustomCode.Configurations:225
+   cells[ix-6][iy+3] = 1;   // > CustomCode.Configurations:226
+     cells[ix-1][iy+3] = 1;   // > CustomCode.Configurations:227
+      cells[ix+1][iy+3] = 1;   // > CustomCode.Configurations:228
+  cells[ix+6][iy+3] = 1;   // > CustomCode.Configurations:229
+  //row 5  // > CustomCode.Configurations:230
+   cells[ix-6][iy+2] = 1;   // > CustomCode.Configurations:231
+     cells[ix-1][iy+2] = 1;   // > CustomCode.Configurations:232
+      cells[ix+1][iy+2] = 1;   // > CustomCode.Configurations:233
+  cells[ix+6][iy+2] = 1;   // > CustomCode.Configurations:234
+  //row6   // > CustomCode.Configurations:235
+   cells[ix-4][iy+1] = 1; //itself  // > CustomCode.Configurations:236
+    cells[ix-3][iy+1] = 1;   // > CustomCode.Configurations:237
+    cells[ix-2][iy+1] = 1;   // > CustomCode.Configurations:238
+      // > CustomCode.Configurations:239
+    cells[ix+2][iy+1] = 1;   // > CustomCode.Configurations:240
+    cells[ix+3][iy+1] = 1;  // > CustomCode.Configurations:241
+    cells[ix+4][iy+1] = 1;  // > CustomCode.Configurations:242
+  //row7  // > CustomCode.Configurations:243
+  //row8  // > CustomCode.Configurations:244
+  cells[ix-4][iy-1] = 1; //itself  // > CustomCode.Configurations:245
+    cells[ix-3][iy-1] = 1;   // > CustomCode.Configurations:246
+    cells[ix-2][iy-1] = 1;   // > CustomCode.Configurations:247
+      // > CustomCode.Configurations:248
+    cells[ix+2][iy-1] = 1;   // > CustomCode.Configurations:249
+    cells[ix+3][iy-1] = 1;  // > CustomCode.Configurations:250
+    cells[ix+4][iy-1] = 1;  // > CustomCode.Configurations:251
+  //row 9  // > CustomCode.Configurations:252
+    cells[ix-6][iy-2] = 1;   // > CustomCode.Configurations:253
+     cells[ix-1][iy-2] = 1;   // > CustomCode.Configurations:254
+      cells[ix+1][iy-2] = 1;   // > CustomCode.Configurations:255
+  cells[ix+6][iy-2] = 1;   // > CustomCode.Configurations:256
+  //row 10  // > CustomCode.Configurations:257
+    cells[ix-6][iy-3] = 1;   // > CustomCode.Configurations:258
+     cells[ix-1][iy-3] = 1;   // > CustomCode.Configurations:259
+      cells[ix+1][iy-3] = 1;   // > CustomCode.Configurations:260
+  cells[ix+6][iy-3] = 1;   // > CustomCode.Configurations:261
+  //row 11  // > CustomCode.Configurations:262
+    cells[ix-6][iy-4] = 1;   // > CustomCode.Configurations:263
+     cells[ix-1][iy-4] = 1;   // > CustomCode.Configurations:264
+      cells[ix+1][iy-4] = 1;   // > CustomCode.Configurations:265
+  cells[ix+6][iy-4] = 1;   // > CustomCode.Configurations:266
+  //row12  // > CustomCode.Configurations:267
+  cells[ix-4][iy-6] = 1;   // > CustomCode.Configurations:268
+    cells[ix-3][iy-6] = 1;   // > CustomCode.Configurations:269
+    cells[ix-2][iy-6] = 1;   // > CustomCode.Configurations:270
+      // > CustomCode.Configurations:271
+    cells[ix+2][iy-6] = 1;   // > CustomCode.Configurations:272
+    cells[ix+3][iy-6] = 1;  // > CustomCode.Configurations:273
+    cells[ix+4][iy-6] = 1;  // > CustomCode.Configurations:274
+    }  // > CustomCode.Configurations:275
+      // > CustomCode.Configurations:276
+  function OscillatorsPentadecathlon( ix, iy) {  // > CustomCode.Configurations:277
+    cells[ix-1][iy+6] = 1;   // > CustomCode.Configurations:278
+    cells[ix][iy+6] = 1;   // > CustomCode.Configurations:279
+    cells[ix+1][iy+6] = 1;   // > CustomCode.Configurations:280
+    //row 2  // > CustomCode.Configurations:281
+    cells[ix][iy+5] = 1;  // > CustomCode.Configurations:282
+    //row 3  // > CustomCode.Configurations:283
+    cells[ix][iy+4] = 1;  // > CustomCode.Configurations:284
+     // > CustomCode.Configurations:285
+  //row 4  // > CustomCode.Configurations:286
+    cells[ix-1][iy+3] = 1;   // > CustomCode.Configurations:287
+    cells[ix][iy+3] = 1;   // > CustomCode.Configurations:288
+    cells[ix+1][iy+3] = 1;  // > CustomCode.Configurations:289
+  //row5  // > CustomCode.Configurations:290
+  //row6  // > CustomCode.Configurations:291
+  cells[ix-1][iy+1] = 1;   // > CustomCode.Configurations:292
+    cells[ix][iy+1] = 1;   // > CustomCode.Configurations:293
+    cells[ix+1][iy+1] = 1;  // > CustomCode.Configurations:294
+    //row7  // > CustomCode.Configurations:295
+  cells[ix-1][iy] = 1;   // > CustomCode.Configurations:296
+    cells[ix][iy] = 1;   // > CustomCode.Configurations:297
+    cells[ix+1][iy] = 1;  // > CustomCode.Configurations:298
+    //row8  // > CustomCode.Configurations:299
+    //row9  // > CustomCode.Configurations:300
+    cells[ix-1][iy-2] = 1;   // > CustomCode.Configurations:301
+    cells[ix][iy-2] = 1;   // > CustomCode.Configurations:302
+    cells[ix+1][iy-2] = 1;  // > CustomCode.Configurations:303
+    //row10  // > CustomCode.Configurations:304
+    cells[ix][iy-3] = 1;  // > CustomCode.Configurations:305
+    //row11  // > CustomCode.Configurations:306
+    cells[ix][iy-4] = 1;  // > CustomCode.Configurations:307
+    //row12  // > CustomCode.Configurations:308
+    cells[ix-1][iy-5] = 1;   // > CustomCode.Configurations:309
+    cells[ix][iy-5] = 1;   // > CustomCode.Configurations:310
+    cells[ix+1][iy-5] = 1;  // > CustomCode.Configurations:311
+      // > CustomCode.Configurations:312
+      // > CustomCode.Configurations:313
+    }  // > CustomCode.Configurations:314
+  function acorn( ix, iy) {  // > CustomCode.Configurations:315
+    cells[ix-2][iy-1] = 1;  // > CustomCode.Configurations:316
+    //row 2  // > CustomCode.Configurations:317
+    cells[ix][iy] = 1;  // > CustomCode.Configurations:318
+    // row 3  // > CustomCode.Configurations:319
+    cells[ix-3][iy+1] = 1;  // > CustomCode.Configurations:320
+    cells[ix-2][iy+1] = 1;  // > CustomCode.Configurations:321
+    cells[ix+1][iy+1] =1;  // > CustomCode.Configurations:322
+    cells[ix+2][iy+1] =1;  // > CustomCode.Configurations:323
+    cells[ix+3][iy+1] =1;  // > CustomCode.Configurations:324
+  }  // > CustomCode.Configurations:325
+  function Lightweightspaceship( ix, iy) {  // > CustomCode.Configurations:326
+    cells[ix][iy] = 1;  // > CustomCode.Configurations:327
+    cells[ix+3][iy] = 1;  // > CustomCode.Configurations:328
+    //row 2  // > CustomCode.Configurations:329
+    cells[ix+4][iy-1] = 1;  // > CustomCode.Configurations:330
+    // row 3  // > CustomCode.Configurations:331
+    cells[ix][iy-2] = 1;  // > CustomCode.Configurations:332
+    cells[ix+4][iy-2] = 1;  // > CustomCode.Configurations:333
+    // row 4  // > CustomCode.Configurations:334
+    cells[ix+1][iy-3] = 1;  // > CustomCode.Configurations:335
+    cells[ix+2][iy-3] = 1;  // > CustomCode.Configurations:336
+    cells[ix+3][iy-3] = 1;  // > CustomCode.Configurations:337
+    cells[ix+4][iy-3] = 1;  // > CustomCode.Configurations:338
+      // > CustomCode.Configurations:339
+  }  // > CustomCode.Configurations:340
+  //Middleweightspaceship( ix, iy);  // > CustomCode.Configurations:341
+  function Middleweightspaceship( ix, iy) {  // > CustomCode.Configurations:342
+    cells[ix][iy] = 1;  // > CustomCode.Configurations:343
+    //row 2  // > CustomCode.Configurations:344
+    cells[ix-2][iy-1] = 1;  // > CustomCode.Configurations:345
+    cells[ix+2][iy-1] = 1;  // > CustomCode.Configurations:346
+    // row 3  // > CustomCode.Configurations:347
+    cells[ix-3][iy-2] = 1;  // > CustomCode.Configurations:348
+      // > CustomCode.Configurations:349
+    // row 4  // > CustomCode.Configurations:350
+  cells[ix-3][iy-3] = 1;  // > CustomCode.Configurations:351
+    cells[ix+2][iy-3] = 1;  // > CustomCode.Configurations:352
+    // row 5  // > CustomCode.Configurations:353
+    cells[ix-3][iy-4] = 1;  // > CustomCode.Configurations:354
+    cells[ix-2][iy-4] = 1;  // > CustomCode.Configurations:355
+    cells[ix-1][iy-4] = 1;  // > CustomCode.Configurations:356
+    cells[ix][iy-4] = 1;  // > CustomCode.Configurations:357
+    cells[ix+1][iy-4] = 1;  // > CustomCode.Configurations:358
+  }  // > CustomCode.Configurations:359
+  //Heavyweight  // > CustomCode.Configurations:360
+  function Heavyweightspaceship( ix, iy) {  // > CustomCode.Configurations:361
+    cells[ix][iy] = 1;  // > CustomCode.Configurations:362
+    cells[ix+1][iy] = 1;  // > CustomCode.Configurations:363
+    //row 2  // > CustomCode.Configurations:364
+    cells[ix-2][iy-1] = 1;  // > CustomCode.Configurations:365
+    cells[ix+3][iy-1] = 1;  // > CustomCode.Configurations:366
+    // row 3  // > CustomCode.Configurations:367
+    cells[ix-3][iy-2] = 1;  // > CustomCode.Configurations:368
+      // > CustomCode.Configurations:369
+    // row 4  // > CustomCode.Configurations:370
+  cells[ix-3][iy-3] = 1;  // > CustomCode.Configurations:371
+    cells[ix+3][iy-3] = 1;  // > CustomCode.Configurations:372
+    // row 5  // > CustomCode.Configurations:373
+    cells[ix-3][iy-4] = 1;  // > CustomCode.Configurations:374
+    cells[ix-2][iy-4] = 1;  // > CustomCode.Configurations:375
+    cells[ix-1][iy-4] = 1;  // > CustomCode.Configurations:376
+    cells[ix][iy-4] = 1;  // > CustomCode.Configurations:377
+    cells[ix+1][iy-4] = 1;  // > CustomCode.Configurations:378
+    cells[ix+2][iy-4] = 1;  // > CustomCode.Configurations:379
+  }  // > CustomCode.Configurations:380
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Initial state"]) return;
+    var i;  // > Initialization.Initial state:1
+    nCells = Math.max(3,nCells); // insures a 3x3 grid  // > Initialization.Initial state:2
+    min = 0;  // > Initialization.Initial state:3
+    max = 10;  // > Initialization.Initial state:4
+    cells = [];  // > Initialization.Initial state:5
+    tmpCells = new Array(nCells);  // > Initialization.Initial state:6
+    for ( i = 0; i < nCells; i+=1) {  // > Initialization.Initial state:7
+      cells[i] = [];  // > Initialization.Initial state:8
+      tmpCells[i] = new Array(nCells);  // > Initialization.Initial state:9
+      for (var j = 0; j < nCells; j+=1)  // > Initialization.Initial state:10
+      //cells[i][j] = (Math.random() < 0.5) ? 0 : 1;  // > Initialization.Initial state:11
+      cells[i][j] = 0;  // > Initialization.Initial state:12
+    }  // > Initialization.Initial state:13
+    t = 0; // resets the time  // > Initialization.Initial state:14
+    _view.cellLattice.setChanged(true);  // > Initialization.Initial state:15
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Evol Page"]) return;
+    var i,j;  // > Evolution.Evol Page:1
+    // Copy current state  // > Evolution.Evol Page:2
+    for ( i=0; i<nCells; i+=1)  // > Evolution.Evol Page:3
+    for (j=0; j<nCells; j+=1) tmpCells[i][j] = cells[i][j];  // > Evolution.Evol Page:4
+    for(i = 0; i<nCells; i+=1) {  // > Evolution.Evol Page:5
+      for(j = 0; j<nCells; j+=1) {  // > Evolution.Evol Page:6
+        switch(computeNeighbors(i, j)) {  // > Evolution.Evol Page:7
+          // apply the rules of Life  // > Evolution.Evol Page:8
+          case 0 :  // > Evolution.Evol Page:9
+          case 1 :  // > Evolution.Evol Page:10
+          cells[i][j] = 0;              //dies  // > Evolution.Evol Page:11
+          break;  // > Evolution.Evol Page:12
+          case 2 :  // > Evolution.Evol Page:13
+          cells[i][j] = tmpCells[i][j]; //life goes on  // > Evolution.Evol Page:14
+          break;  // > Evolution.Evol Page:15
+          case 3 :  // > Evolution.Evol Page:16
+          cells[i][j] = 1;              //condition for birth  // > Evolution.Evol Page:17
+        //  _view.cellLattice.setProperty("Colors","yellow"); //does not work  // > Evolution.Evol Page:18
+          break;  // > Evolution.Evol Page:19
+          default :  // > Evolution.Evol Page:20
+          cells[i][j] = 0;              // dies of overcrowding if >3  // > Evolution.Evol Page:21
+        } // end of switch  // > Evolution.Evol Page:22
+      } // end of j loop  // > Evolution.Evol Page:23
+    } //end of i loop  // > Evolution.Evol Page:24
+    t++;  // increment generation  // > Evolution.Evol Page:25
+    _view.cellLattice.setChanged(true);  // > Evolution.Evol Page:26
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "Main", width : 600, height : 650 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new GameOfLife_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.bottomRightPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Main linking property 'Font' for element 'bottomRightPanel'
+          _view.comboBox.linkProperty("Options",  function() { return ["Random","Blank","All Life","Still Life Block","Still Life Beehive","Still Life Loaf","Still Life Boat","Still Life Tub","Oscillators Blinker","Oscillators Toad","Oscillators Beacon","Oscillators Pulsar","Oscillators Pentadecathlon","Point", "Glider","Spaceships Glider","Lightweight spaceship","Middleweight spaceship","Heavyweight spaceship","Diehard", "Acorn"]; } ); // Main linking property 'Options' for element 'comboBox'
+          _view.comboBox.setAction("OnChange", comboAction); // Main setting action 'OnChange' for element 'comboBox'
+          _view.comboBox.linkProperty("SelectedOptions",  function() { return selected; }, function(_v) { selected = _v; } ); // Main linking property 'SelectedOptions' for element 'comboBox'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Main linking property 'Font' for element 'comboBox'
+          _view.cellsField.linkProperty("Value",  function() { return nCells; }, function(_v) { nCells = _v; } ); // Main linking property 'Value' for element 'cellsField'
+          _view.cellsField.setAction("OnChange", function(_data,_info) {
+  _initialize();
+
+}); // Main setting action 'OnChange' for element 'cellsField'
+          _view.stepField.linkProperty("Value",  function() { return t; }, function(_v) { t = _v; } ); // Main linking property 'Value' for element 'stepField'
+          _view.bottomLeftPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Main linking property 'Font' for element 'bottomLeftPanel'
+          _view.playPauseButton.setAction("OffClick", _pause); // Main setting action 'OffClick' for element 'playPauseButton'
+          _view.playPauseButton.linkProperty("State",  function() { return _isPaused; } ); // Main linking property 'State' for element 'playPauseButton'
+          _view.playPauseButton.setAction("OnClick", function(_data,_info) {
+  msg="";
+  _play();
+
+}); // Main setting action 'OnClick' for element 'playPauseButton'
+          _view.stepButton.setAction("OnClick", function(_data,_info) {
+  _step();
+
+}); // Main setting action 'OnClick' for element 'stepButton'
+          _view.clearButton.setAction("OnClick", function(_data,_info) {
+  clearCells ();
+
+}); // Main setting action 'OnClick' for element 'clearButton'
+          _view.resetButton.setAction("OnClick", function(_data,_info) {
+  _reset();
+
+}); // Main setting action 'OnClick' for element 'resetButton'
+          _view.drawingPanel.linkProperty("Height",  function() { return changeOrientation(); }, function(_v) { changeOrientation() = _v; } ); // Main linking property 'Height' for element 'drawingPanel'
+          _view.drawingPanel.setAction("OnPress", pointSelected ); // Main setting action 'OnPress' for element 'drawingPanel'
+          _view.drawingPanel.linkProperty("TLMessage",  function() { return msg; }, function(_v) { msg = _v; } ); // Main linking property 'TLMessage' for element 'drawingPanel'
+          _view.cellLattice.linkProperty("SizeX",  function() { return nCells; }, function(_v) { nCells = _v; } ); // Main linking property 'SizeX' for element 'cellLattice'
+          _view.cellLattice.linkProperty("Data",  function() { return cells; }, function(_v) { cells = _v; } ); // Main linking property 'Data' for element 'cellLattice'
+          _view.cellLattice.linkProperty("SizeY",  function() { return nCells; }, function(_v) { nCells = _v; } ); // Main linking property 'SizeY' for element 'cellLattice'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(1);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function GameOfLife_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = GameOfLife_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+  _view._addDescriptionPage('Introduction','./GameOfLife_Intro_1.html');
+
+  return _view;
+} // end of main function
+
+function GameOfLife_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view._topFrame) // EJsS HtmlView.Main: declaration of element 'panel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panelLabel", _view.panel) // EJsS HtmlView.Main: declaration of element 'panelLabel'
+      .setProperty("Display","none") // EJsS HtmlView.Main: setting property 'Display' for element 'panelLabel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"labelTitle", _view.panelLabel) // EJsS HtmlView.Main: declaration of element 'labelTitle'
+      .setProperty("Text","<h1>John Conway's Game of Life</h1>") // EJsS HtmlView.Main: setting property 'Text' for element 'labelTitle'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"bottomPanel", _view.panel) // EJsS HtmlView.Main: declaration of element 'bottomPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.Main: setting property 'Width' for element 'bottomPanel'
+      .setProperty("CSS",{ "margin-left":"auto",   "margin-right" : "auto" }) // EJsS HtmlView.Main: setting property 'CSS' for element 'bottomPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"bottomRightPanel", _view.bottomPanel) // EJsS HtmlView.Main: declaration of element 'bottomRightPanel'
+      .setProperty("CSS",{ "display":"inline-block"}) // EJsS HtmlView.Main: setting property 'CSS' for element 'bottomRightPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.bottomRightPanel) // EJsS HtmlView.Main: declaration of element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"cellsLabel", _view.bottomRightPanel) // EJsS HtmlView.Main: declaration of element 'cellsLabel'
+      .setProperty("Text","Cells:") // EJsS HtmlView.Main: setting property 'Text' for element 'cellsLabel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"cellsField", _view.bottomRightPanel) // EJsS HtmlView.Main: declaration of element 'cellsField'
+      .setProperty("Width",50) // EJsS HtmlView.Main: setting property 'Width' for element 'cellsField'
+      .setProperty("Format","0") // EJsS HtmlView.Main: setting property 'Format' for element 'cellsField'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"stepLabel", _view.bottomRightPanel) // EJsS HtmlView.Main: declaration of element 'stepLabel'
+      .setProperty("CSS",{ "border-width": "0" }) // EJsS HtmlView.Main: setting property 'CSS' for element 'stepLabel'
+      .setProperty("Text","Step:") // EJsS HtmlView.Main: setting property 'Text' for element 'stepLabel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"stepField", _view.bottomRightPanel) // EJsS HtmlView.Main: declaration of element 'stepField'
+      .setProperty("Width",50) // EJsS HtmlView.Main: setting property 'Width' for element 'stepField'
+      .setProperty("Format","0") // EJsS HtmlView.Main: setting property 'Format' for element 'stepField'
+      .setProperty("Editable",false) // EJsS HtmlView.Main: setting property 'Editable' for element 'stepField'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"bottomLeftPanel", _view.bottomPanel) // EJsS HtmlView.Main: declaration of element 'bottomLeftPanel'
+      .setProperty("CSS",{ "display":"inline-block"}) // EJsS HtmlView.Main: setting property 'CSS' for element 'bottomLeftPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"playPauseButton", _view.bottomLeftPanel) // EJsS HtmlView.Main: declaration of element 'playPauseButton'
+      .setProperty("TextOn","▶") // EJsS HtmlView.Main: setting property 'TextOn' for element 'playPauseButton'
+      .setProperty("Tooltip","Play/Pause") // EJsS HtmlView.Main: setting property 'Tooltip' for element 'playPauseButton'
+      .setProperty("TextOff","❚❚") // EJsS HtmlView.Main: setting property 'TextOff' for element 'playPauseButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"stepButton", _view.bottomLeftPanel) // EJsS HtmlView.Main: declaration of element 'stepButton'
+      .setProperty("Text","▶|") // EJsS HtmlView.Main: setting property 'Text' for element 'stepButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"clearButton", _view.bottomLeftPanel) // EJsS HtmlView.Main: declaration of element 'clearButton'
+      .setProperty("Text","▼") // EJsS HtmlView.Main: setting property 'Text' for element 'clearButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.bottomLeftPanel) // EJsS HtmlView.Main: declaration of element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.Main: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.drawingPanel,"drawingPanel", _view.panel) // EJsS HtmlView.Main: declaration of element 'drawingPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.Main: setting property 'Width' for element 'drawingPanel'
+      .setProperty("TRMessage","John Conway's Game of Life") // EJsS HtmlView.Main: setting property 'TRMessage' for element 'drawingPanel'
+      .setProperty("ShowAreaRectangle",false) // EJsS HtmlView.Main: setting property 'ShowAreaRectangle' for element 'drawingPanel'
+      .setProperty("AutoScaleY",true) // EJsS HtmlView.Main: setting property 'AutoScaleY' for element 'drawingPanel'
+      .setProperty("AutoScaleX",true) // EJsS HtmlView.Main: setting property 'AutoScaleX' for element 'drawingPanel'
+      .setProperty("MarginX",1) // EJsS HtmlView.Main: setting property 'MarginX' for element 'drawingPanel'
+      .setProperty("MarginY",1) // EJsS HtmlView.Main: setting property 'MarginY' for element 'drawingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.Main: setting property 'Enabled' for element 'drawingPanel'
+      .setProperty("SquareAspect",true) // EJsS HtmlView.Main: setting property 'SquareAspect' for element 'drawingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.cellLattice,"cellLattice", _view.drawingPanel) // EJsS HtmlView.Main: declaration of element 'cellLattice'
+      .setProperty("ShowGrid",true) // EJsS HtmlView.Main: setting property 'ShowGrid' for element 'cellLattice'
+      .setProperty("Colors",['white','black']) // EJsS HtmlView.Main: setting property 'Colors' for element 'cellLattice'
+      .setProperty("AutoUpdate",true) // EJsS HtmlView.Main: setting property 'AutoUpdate' for element 'cellLattice'
+      .setProperty("RelativePosition","SOUTH_WEST") // EJsS HtmlView.Main: setting property 'RelativePosition' for element 'cellLattice'
+      .setProperty("NumColors",2) // EJsS HtmlView.Main: setting property 'NumColors' for element 'cellLattice'
+      .setProperty("Attributes",{ "stroke":"lightgrey" , "stroke-width":"2" }) // EJsS HtmlView.Main: setting property 'Attributes' for element 'cellLattice'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.html,"htmlArea", _view.panel) // EJsS HtmlView.Main: declaration of element 'htmlArea'
+      .setProperty("Html","<h2>Some special configurations</h2> <p style=\"margin-top: 0\"> Glider = <img src=\"./GameOfLife/Game_of_life_glider.png\">, Diehard =&#160; <img src=\"./GameOfLife/Game_of_life_diehard.png\">, Acorn = <img src=\"./GameOfLife/Game_of_life_methuselah.png\"> </p>") // EJsS HtmlView.Main: setting property 'Html' for element 'htmlArea'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"textPanel", _view._topFrame) // EJsS HtmlView.Main: declaration of element 'textPanel'
+      .setProperty("Html","<h2>Game of Life Description</h2> <p>Description taken from <a href=\"http://en.wikipedia.org/wiki/Conway%27s_Game_of_Life\">Wikipedia, the free encyclopedia</a>. </p> <p>The <b>Game of Life</b> is a cellular automaton devised by the British mathematician <b>John Horton Conway</b> in 1970. It is the best-known example of a cellular automaton. The &quot;game&quot; is actually a zero-player game, meaning that its evolution is determined by its initial state, needing no input from human players. One interacts with the Game of Life by creating an initial configuration and observing how it evolves. A variant exists where two players compete. <b>Rules:</b> The universe of the Game of Life is an infinite two-dimensional orthogonal grid of square cells, each of which is in one of two possible states, live or dead. Every cell interacts with its eight neighbours, which are the cells that are directly horizontally, vertically, or diagonally adjacent. At each step in time, the following transitions occur:</p> <ul> <li> Any live cell with fewer than two live neighbors dies, as if by loneliness. </li> <li> Any live cell with more than three live neighbors dies, as if by overcrowding. </li> <li> Any live cell with two or three live neighbors lives, unchanged, to the next generation. </li> <li> Any dead cell with exactly three live neighbors comes to life. </li> </ul> <p>The initial pattern constitutes the <it>seed</it> of the system. The next generation is created by applying the above rules simultaneously to every cell in the seed - births and deaths happen simultaneously, and the discrete moment at which this happens is sometimes called a tick. (In other words, each generation is a pure function of the one before.) The rules continue to be applied repeatedly to create further generations.</p>") // EJsS HtmlView.Main: setting property 'Html' for element 'textPanel'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      John Conway' s Game of Life<br />
+     <img alt="Logo" src="GameOfLife/Screen Shot 2018-11-05 at 10.33.41 AM (2).png" />
+      </p>
+      <p>
+      <img alt="author image" src="images/PacoEsquembre2011.png" />
+      <img alt="author image" src="images/WC_logo.png" />
+      <img alt="author image" src="images/01authorlookang50x50.png" />
+ Francisco Esquembre; Wolfgang Christian; lookang
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2020, Francisco Esquembre; Wolfgang Christian; lookang. Compiled with EJS 6.0 (191124)
+</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new GameOfLife("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

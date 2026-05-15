@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sound Sprectrum</title>
+<meta name="description" content="Explore sound frequency analysis and spectrum visualization with this interactive physics simulation using FFT analysis and decibel measurement tools." />
+<meta name="keywords" content="sound spectrum simulation, frequency analysis interactive, FFT visualization, sound wave physics, decibel measurement tool, audio spectrum analyzer, physics simulation, sound frequency explorer, acoustic analysis interactive, Geiger reader sound, sound analysis education, secondary physics" />
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.max.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function Geiger_reader(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var analyser; // EjsS Model.Variables.Vars.analyser
+  var dataArray; // EjsS Model.Variables.Vars.dataArray
+  var valuesArray; // EjsS Model.Variables.Vars.valuesArray
+  var orderArray; // EjsS Model.Variables.Vars.orderArray
+  var fftSize; // EjsS Model.Variables.Vars.fftSize
+  var baseFreq; // EjsS Model.Variables.Vars.baseFreq
+  var maxDecibels; // EjsS Model.Variables.Vars.maxDecibels
+  var minDecibels; // EjsS Model.Variables.Vars.minDecibels
+  var font; // EjsS Model.Variables.Vars.font
+
+  _model.getOdes = function() { return []; };
+
+  _model.removeEvents = function(){
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      analyser : analyser,
+      dataArray : dataArray,
+      valuesArray : valuesArray,
+      orderArray : orderArray,
+      fftSize : fftSize,
+      baseFreq : baseFreq,
+      maxDecibels : maxDecibels,
+      minDecibels : minDecibels,
+      font : font
+    };
+  };
+
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return {
+      analyser : analyser,
+      dataArray : dataArray,
+      valuesArray : valuesArray,
+      orderArray : orderArray,
+      fftSize : fftSize,
+      baseFreq : baseFreq,
+      maxDecibels : maxDecibels,
+      minDecibels : minDecibels,
+      font : font
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.analyser != "undefined") analyser = json.analyser;
+    if(typeof json.dataArray != "undefined") dataArray = json.dataArray;
+    if(typeof json.valuesArray != "undefined") valuesArray = json.valuesArray;
+    if(typeof json.orderArray != "undefined") orderArray = json.orderArray;
+    if(typeof json.fftSize != "undefined") fftSize = json.fftSize;
+    if(typeof json.baseFreq != "undefined") baseFreq = json.baseFreq;
+    if(typeof json.maxDecibels != "undefined") maxDecibels = json.maxDecibels;
+    if(typeof json.minDecibels != "undefined") minDecibels = json.minDecibels;
+    if(typeof json.font != "undefined") font = json.font;
+  };
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.analyser != "undefined") analyser = json.analyser;
+    if(typeof json.dataArray != "undefined") dataArray = json.dataArray;
+    if(typeof json.valuesArray != "undefined") valuesArray = json.valuesArray;
+    if(typeof json.orderArray != "undefined") orderArray = json.orderArray;
+    if(typeof json.fftSize != "undefined") fftSize = json.fftSize;
+    if(typeof json.baseFreq != "undefined") baseFreq = json.baseFreq;
+    if(typeof json.maxDecibels != "undefined") maxDecibels = json.maxDecibels;
+    if(typeof json.minDecibels != "undefined") minDecibels = json.minDecibels;
+    if(typeof json.font != "undefined") font = json.font;
+  };
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["Initialization"] = true;
+    __pagesEnabled["evolution"] = true;
+  });
+
+  _model.addToReset(function() {
+    dataArray = []; // EjsS Model.Variables.Vars.dataArray
+    valuesArray = []; // EjsS Model.Variables.Vars.valuesArray
+    orderArray = []; // EjsS Model.Variables.Vars.orderArray
+    fftSize = 4096; // EjsS Model.Variables.Vars.fftSize
+    baseFreq = 0; // EjsS Model.Variables.Vars.baseFreq
+    maxDecibels = -30; // EjsS Model.Variables.Vars.maxDecibels
+    minDecibels = -80; // EjsS Model.Variables.Vars.minDecibels
+    font = "normal normal 2vw"; // EjsS Model.Variables.Vars.font
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(true);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function init_user_media () {  // > CustomCode.UserMedia:1
+    navigator.getUserMedia = (navigator.getUserMedia ||  // > CustomCode.UserMedia:2
+                            navigator.webkitGetUserMedia ||  // > CustomCode.UserMedia:3
+                            navigator.mozGetUserMedia ||  // > CustomCode.UserMedia:4
+                            navigator.msGetUserMedia);  // > CustomCode.UserMedia:5
+    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();  // > CustomCode.UserMedia:6
+    baseFreq = audioCtx.sampleRate / fftSize;  // > CustomCode.UserMedia:7
+    //set up the analyser  // > CustomCode.UserMedia:8
+    analyser = audioCtx.createAnalyser();  // > CustomCode.UserMedia:9
+    analyser.minDecibels = minDecibels;   // > CustomCode.UserMedia:10
+    analyser.maxDecibels = maxDecibels;  // > CustomCode.UserMedia:11
+    analyser.smoothingTimeConstant = 0.85;  // > CustomCode.UserMedia:12
+    analyser.fftSize = fftSize;  // > CustomCode.UserMedia:13
+    // filter  // > CustomCode.UserMedia:14
+    var filter = audioCtx.createBiquadFilter()  // > CustomCode.UserMedia:15
+      // > CustomCode.UserMedia:16
+    //main block for doing the audio recording  // > CustomCode.UserMedia:17
+    if (navigator.getUserMedia) {  // > CustomCode.UserMedia:18
+     console.log('getUserMedia supported.');  // > CustomCode.UserMedia:19
+     navigator.getUserMedia (  // > CustomCode.UserMedia:20
+        // constraints - only audio needed for this app  // > CustomCode.UserMedia:21
+        { audio: true },  // > CustomCode.UserMedia:22
+        // Success callback  // > CustomCode.UserMedia:23
+        function(stream) {  // > CustomCode.UserMedia:24
+           source = audioCtx.createMediaStreamSource(stream);  // > CustomCode.UserMedia:25
+           source.connect(analyser);  // > CustomCode.UserMedia:26
+           analyser.connect(filter);  // > CustomCode.UserMedia:27
+           filter.connect(audioCtx.destination);  // > CustomCode.UserMedia:28
+        },  // > CustomCode.UserMedia:29
+        // Error callback  // > CustomCode.UserMedia:30
+        function(err) {  // > CustomCode.UserMedia:31
+           console.log('The following gUM error occured: ' + err);  // > CustomCode.UserMedia:32
+        }  // > CustomCode.UserMedia:33
+     );  // > CustomCode.UserMedia:34
+    } else {  // > CustomCode.UserMedia:35
+     console.log('getUserMedia not supported on your browser!');  // > CustomCode.UserMedia:36
+    }  // > CustomCode.UserMedia:37
+  }  // > CustomCode.UserMedia:38
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Initialization"]) return;
+    init_user_media ();  // > Initialization.Initialization:1
+    // init arrays  // > Initialization.Initialization:2
+    var bufferLength = fftSize/2;  // > Initialization.Initialization:3
+    orderArray = [...Array(bufferLength).keys()].slice(1);  // > Initialization.Initialization:4
+    valuesArray = [...Array(bufferLength).keys()];  // > Initialization.Initialization:5
+    dataArray = new Uint8Array(bufferLength);  // > Initialization.Initialization:6
+    // set axisY for markers  // > Initialization.Initialization:7
+    _view.trace.setMarkAxisY(minDecibels);  // > Initialization.Initialization:8
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["evolution"]) return;
+    analyser.getByteFrequencyData(dataArray);  // > Evolution.evolution:1
+    // values (db)  // > Evolution.evolution:2
+    valuesArray = Array.from(dataArray);  // > Evolution.evolution:3
+    for (i=0; i<fftSize/2; i++) {  // > Evolution.evolution:4
+      valuesArray[i] = minDecibels + (valuesArray[i] / 255) * Math.abs(minDecibels - maxDecibels);  // > Evolution.evolution:5
+    }  // > Evolution.evolution:6
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new Geiger_reader_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.controlPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'controlPanel'
+          _view.BaseFreqValue.linkProperty("Value",  function() { return baseFreq; }, function(_v) { baseFreq = _v; } ); // HtmlView Page linking property 'Value' for element 'BaseFreqValue'
+          _view.runPauseButton.setAction("OffClick", _pause); // HtmlView Page setting action 'OffClick' for element 'runPauseButton'
+          _view.runPauseButton.linkProperty("State",  function() { return _isPaused; } ); // HtmlView Page linking property 'State' for element 'runPauseButton'
+          _view.runPauseButton.setAction("OnClick", _play); // HtmlView Page setting action 'OnClick' for element 'runPauseButton'
+          _view.resetButton.setAction("OnClick", _reset); // HtmlView Page setting action 'OnClick' for element 'resetButton'
+          _view.plottingPanel.linkProperty("MaximumY",  function() { return maxDecibels; }, function(_v) { maxDecibels = _v; } ); // HtmlView Page linking property 'MaximumY' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumY",  function() { return minDecibels; }, function(_v) { minDecibels = _v; } ); // HtmlView Page linking property 'MinimumY' for element 'plottingPanel'
+          _view.trace.linkProperty("InputX",  function() { return orderArray; }, function(_v) { orderArray = _v; } ); // HtmlView Page linking property 'InputX' for element 'trace'
+          _view.trace.linkProperty("InputY",  function() { return valuesArray; }, function(_v) { valuesArray = _v; } ); // HtmlView Page linking property 'InputY' for element 'trace'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(true);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function Geiger_reader_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = Geiger_reader_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+
+  return _view;
+} // end of main function
+
+function Geiger_reader_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"singlePlotPanel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'singlePlotPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"controlPanel", _view.singlePlotPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'controlPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'controlPanel'
+      .setProperty("BorderStyle","solid") // EJsS HtmlView.HtmlView Page: setting property 'BorderStyle' for element 'controlPanel'
+      .setProperty("BorderColor","Gray") // EJsS HtmlView.HtmlView Page: setting property 'BorderColor' for element 'controlPanel'
+      .setProperty("BorderWidth",1) // EJsS HtmlView.HtmlView Page: setting property 'BorderWidth' for element 'controlPanel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'controlPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"informative", _view.controlPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'informative'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'informative'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"baseFreq", _view.informative) // EJsS HtmlView.HtmlView Page: declaration of element 'baseFreq'
+      .setProperty("Text","Base Freq. (Hz)") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'baseFreq'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"BaseFreqValue", _view.informative) // EJsS HtmlView.HtmlView Page: declaration of element 'BaseFreqValue'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'BaseFreqValue'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"executionPanel", _view.controlPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'executionPanel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'executionPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"runPauseButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'runPauseButton'
+      .setProperty("TextOn","▶") // EJsS HtmlView.HtmlView Page: setting property 'TextOn' for element 'runPauseButton'
+      .setProperty("Tooltip","Play/Pause") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'runPauseButton'
+      .setProperty("TextOff","❚❚") // EJsS HtmlView.HtmlView Page: setting property 'TextOff' for element 'runPauseButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'resetButton'
+      .setProperty("Tooltip","Reset") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.singlePlotPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel'
+      .setProperty("Height",window.innerHeight*0.9) // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'plottingPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'plottingPanel'
+      .setProperty("ShowAreaRectangle",false) // EJsS HtmlView.HtmlView Page: setting property 'ShowAreaRectangle' for element 'plottingPanel'
+      .setProperty("YScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'YScalePrecision' for element 'plottingPanel'
+      .setProperty("Title","Sound Visualizer") // EJsS HtmlView.HtmlView Page: setting property 'Title' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("MaximumX",200) // EJsS HtmlView.HtmlView Page: setting property 'MaximumX' for element 'plottingPanel'
+      .setProperty("EnabledDragging","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledDragging' for element 'plottingPanel'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'YAutoTicks' for element 'plottingPanel'
+      .setProperty("MinimumX",0) // EJsS HtmlView.HtmlView Page: setting property 'MinimumX' for element 'plottingPanel'
+      .setProperty("YTickStep",10) // EJsS HtmlView.HtmlView Page: setting property 'YTickStep' for element 'plottingPanel'
+      .setProperty("TitleY","Power (dB)") // EJsS HtmlView.HtmlView Page: setting property 'TitleY' for element 'plottingPanel'
+      .setProperty("TitleX","Freq. Channel") // EJsS HtmlView.HtmlView Page: setting property 'TitleX' for element 'plottingPanel'
+      .setProperty("XAutoTicks",true) // EJsS HtmlView.HtmlView Page: setting property 'XAutoTicks' for element 'plottingPanel'
+      .setProperty("XScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'XScalePrecision' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.trace,"trace", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'trace'
+      .setProperty("MarkSize",[20,0]) // EJsS HtmlView.HtmlView Page: setting property 'MarkSize' for element 'trace'
+      .setProperty("MarkFillColor","Blue") // EJsS HtmlView.HtmlView Page: setting property 'MarkFillColor' for element 'trace'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'trace'
+      .setProperty("MarkLineColor","Blue") // EJsS HtmlView.HtmlView Page: setting property 'MarkLineColor' for element 'trace'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'trace'
+      .setProperty("DrawLines",false) // EJsS HtmlView.HtmlView Page: setting property 'DrawLines' for element 'trace'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.HtmlView Page: setting property 'NoRepeat' for element 'trace'
+      .setProperty("MarkType","BAR") // EJsS HtmlView.HtmlView Page: setting property 'MarkType' for element 'trace'
+      .setProperty("ClearAtInput",true) // EJsS HtmlView.HtmlView Page: setting property 'ClearAtInput' for element 'trace'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+      
+    <div style="max-width:700px; margin:0 auto; padding:8px 16px; font-family:sans-serif; font-size:14px; text-align:left; color:#333;">
+      <h2 style="font-size:18px;">About this Simulation</h2>
+<p>Sound Spectrum is an interactive simulation that lets students visualize and analyze sound frequencies in real time. Using Fast Fourier Transform (FFT) analysis, learners can explore how complex sound waves decompose into individual frequency components, measure intensity in decibels, and observe how different sounds produce unique spectral signatures.</p>
+<p><strong>Learning objectives:</strong> Understand how sound frequency is measured and displayed on a spectrum analyzer | Analyze the relationship between sound intensity (decibels) and frequency components | Interpret FFT data and spectral patterns from audio signals</p>
+    </div>
+    <!-- AdSense: Below Simulation -->
+    <div style="text-align:center; margin:8px 0;">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-0121577198857509"
+           data-ad-slot="7142112786"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Sound Sprectrum<br />
+      </p>
+      <p>
+      <img alt="author image" src="01authorFelix_J_Garcia_Clemente.png" />
+ Felix J. Garcia Clemente
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2020, Felix J. Garcia Clemente. Compiled with EJS 6.0 (191124)
+</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new Geiger_reader("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+    <!-- AdSense: Footer -->
+    <div style="text-align:center; margin:8px 0;">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-0121577198857509"
+           data-ad-slot="6479767804"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </body>
+</html>

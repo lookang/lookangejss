@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Singapore Young Physicists' Tournament (SYPT) Juror Assignment Web App</title>
+
+    <!-- Include Papa Parse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- Include FileSaver.js for file downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Include JSZip for creating ZIP files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Google Analytics -->
+    <script
+    async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <!-- End Google Analytics -->
+
+    <style>
+        /* Basic styling */
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        input[type="file"] { margin-bottom: 10px; }
+        button { margin-top: 10px; margin-right: 10px; }
+
+        /* Improved table styling */
+        table {
+            width: 100%; /* Full width */
+            border-collapse: collapse; /* Collapse borders */
+            margin-top: 20px; /* Space above the table */
+            background-color: #f9f9f9; /* Light background */
+            font-family: 'Courier New', monospace; /* Font for table content */
+            font-size: 16px; /* Font size for better readability */
+        }
+
+        th, td {
+            padding: 10px; /* Padding inside cells */
+            border: 1px solid #ccc; /* Subtle border */
+            text-align: left; /* Align text to the left */
+        }
+
+        th {
+            background-color: #f2f2f2; /* Slightly darker background for headers */
+            font-weight: bold; /* Bold header text */
+            color: #333; /* Text color for headers */
+            text-transform: uppercase; /* Optional: Uppercase header text */
+        }
+
+        td {
+            background-color: #fff; /* White background for table data cells */
+            color: #555; /* Slightly lighter text color */
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9; /* Alternating row colors for readability */
+        }
+
+        tr:hover {
+            background-color: #f1f1f1; /* Highlight row on hover */
+        }
+
+        /* Add rounded corners to the table */
+        table {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .output-section { margin-top: 40px; }
+        .uploaded-data { margin-top: 20px; }
+
+        /* Footer styling */
+        .footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+        .footer a {
+            color: #0066cc;
+        }
+
+        /* Label styling */
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <h1>Singapore Young Physicists' Tournament (SYPT) Juror Assignment Web App</h1>
+
+    <form id="upload-form">
+        <label>Upload Assignment Matrix CSV:</label>
+        <input type="file" id="assignment-matrix" accept=".csv">
+        <button type="button" onclick="loadSampleAssignmentMatrix()">Load Sample Assignment Matrix CSV</button>
+        <div id="assignment-matrix-preview" class="uploaded-data"></div>
+
+        <label>Upload Jurors CSV:</label>
+        <input type="file" id="jurors-csv" accept=".csv">
+        <button type="button" onclick="loadSampleJurorsCSV()">Load Sample Jurors CSV</button>
+        <div id="jurors-csv-preview" class="uploaded-data"></div>
+
+        <h3>Additional Constraints</h3>
+        <p>You can specify up to 8 constraints where jurors from a specific affiliation cannot be assigned to fights involving teams from another affiliation.</p>
+
+        <div id="constraints-section">
+            <!-- Constraints 1 to 8 -->
+            <div>
+                <label>Constraint 1: Jurors from <input type="text" id="juror-affiliation-1"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-1"></label>
+            </div>
+            <div>
+                <label>Constraint 2: Jurors from <input type="text" id="juror-affiliation-2"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-2"></label>
+            </div>
+            <div>
+                <label>Constraint 3: Jurors from <input type="text" id="juror-affiliation-3"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-3"></label>
+            </div>
+            <div>
+                <label>Constraint 4: Jurors from <input type="text" id="juror-affiliation-4"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-4"></label>
+            </div>
+            <div>
+                <label>Constraint 5: Jurors from <input type="text" id="juror-affiliation-5"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-5"></label>
+            </div>
+            <div>
+                <label>Constraint 6: Jurors from <input type="text" id="juror-affiliation-6"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-6"></label>
+            </div>
+            <div>
+                <label>Constraint 7: Jurors from <input type="text" id="juror-affiliation-7"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-7"></label>
+            </div>
+            <div>
+                <label>Constraint 8: Jurors from <input type="text" id="juror-affiliation-8"> cannot be assigned to fights involving teams from <input type="text" id="team-affiliation-8"></label>
+            </div>
+        </div>
+
+        <h3>Juror Assignment Options</h3>
+        <label><input type="checkbox" id="exclude-new-jurors"> Exclude jurors tagged as "NEW" from being assigned to the first session</label>
+        <label><input type="checkbox" id="break-between-sessions"> Ensure jurors assigned to 3 sessions have a break between sessions</label>
+
+        <button type="button" onclick="processFiles()">Process Files, Keyboard Shortcut: P</button>
+        <p>Keyboard Shortcut: Press "P" to trigger the "Process Files" action.</p>
+    </form>
+
+    <div class="output-section" id="output-section" style="display:none;">
+        <h2>Output Files</h2>
+        <button onclick="downloadAllFiles()">Download All Files</button>
+        <button onclick="downloadFile('Juror schedule.csv')">Download Juror schedule.csv</button>
+        <button onclick="downloadFile('juror_assignment_list_table.csv')">Download juror_assignment_list_table.csv</button>
+        <button onclick="downloadFile('juror_assignment_list.csv')">Download juror_assignment_list.csv</button>
+
+        <h3>Juror schedule.csv</h3>
+        <div id="juror-schedule-output"></div>
+
+        <h3>juror_assignment_list_table.csv</h3>
+        <div id="juror-assignment-table-output"></div>
+
+        <h3>juror_assignment_list.csv</h3>
+        <div id="juror-assignment-list-output"></div>
+    </div>
+
+    <script>
+    // JavaScript code with all fixes implemented
+
+    let assignmentMatrixDataGlobal = null;
+    let jurorsDataGlobal = null;
+    let room_list = []; // To be dynamically populated
+    let PF_list = []; // List of PFs
+    let schoolNameKey = null; // Key for the school name column
+
+    // Store raw data for display
+    let assignmentMatrixRawData = null;
+    let jurorsRawData = null;
+
+    // Sample data for Assignment Matrix CSV
+    const sampleAssignmentMatrixCSV = `Team,Round 1,Round 2,Round 3,Round 4
+RI1,BP,BO,EO,BP
+RGS1,CO,CP,BO,AP
+NUSH1,CP,DO,CP,BO
+NUSH2,DP,CO,AO,EP
+NJC1,AO,BP,CO,CP
+NJC2,EO,AP,EP,EO
+HCI1,DO,DP,DP,CO
+HCI2,EP,EO,BP,DO
+RVHS1,AP,EP,DO,AO
+TJC1,BO,AO,AP,DP
+`;
+
+    // Sample data for Jurors CSV
+    const sampleJurorsCSV = `Name;Affiliation
+Head Juror 1;Head
+Head Juror 2;Head
+Head Juror 3;Head
+Head Juror 4;Head
+Head Juror 5;Head
+Head Juror 6;Head
+Head Juror 7;Head
+Head Juror 8;Head
+Head Juror 9;Head
+Head Juror 10;Head
+Independent Juror 1;Exp
+Independent Juror 2;Exp
+Independent Juror 3;Exp
+Independent Juror 4;Exp
+Independent Juror 5;Exp
+Independent Juror 6;Exp
+Independent Juror 7;Exp
+Independent Juror 8;Exp
+Independent Juror 9;Exp
+Independent Juror 10;Exp
+Independent Juror 11;New
+Independent Juror 12;New
+Independent Juror 13;New
+Independent Juror 14;New
+Independent Juror 15;New
+Independent Juror 16;New
+Independent Juror 17;New
+Independent Juror 18;New
+Independent Juror 19;New
+Independent Juror 20;New
+School Juror 1;RGS
+School Juror 2;RGS
+School Juror 3;RGS
+School Juror 4;RI
+School Juror 5;RI
+School Juror 6;RI
+School Juror 7;RI
+School Juror 8;NUSH
+School Juror 9;NUSH
+School Juror 10;NUSH
+School Juror 11;NJC
+School Juror 12;NJC
+School Juror 13;NJC
+School Juror 14;HCI
+School Juror 15;HCI
+School Juror 16;HCI
+School Juror 17;HCI
+School Juror 18;RVHS
+School Juror 19;RVHS
+School Juror 20;TJC
+`;
+
+    // Function to extract the session number from PF
+    function getPFNumber(PF) {
+        return parseInt(PF.replace(/\D/g, ''), 10);
+    }
+
+    // Listen for keypress event to trigger processFiles function when "P" is pressed
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'p' || event.key === 'P') {
+            processFiles();
+        }
+    });
+
+    // Event listener for assignment matrix file upload
+    document.getElementById('assignment-matrix').addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                const text = await file.text();
+                processAssignmentMatrixCSV(text);
+            } catch (error) {
+                console.error(error);
+                alert('An error occurred while reading the Assignment Matrix file.');
+            }
+        }
+    });
+
+    // Event listener for jurors CSV file upload
+    document.getElementById('jurors-csv').addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                const text = await file.text();
+                processJurorsCSV(text);
+            } catch (error) {
+                console.error(error);
+                alert('An error occurred while reading the Jurors CSV file.');
+            }
+        }
+    });
+
+    function loadSampleAssignmentMatrix() {
+        processAssignmentMatrixCSV(sampleAssignmentMatrixCSV);
+    }
+
+    function loadSampleJurorsCSV() {
+        processJurorsCSV(sampleJurorsCSV);
+    }
+
+    function processAssignmentMatrixCSV(text) {
+        let parseResult = Papa.parse(text, { header: true });
+        let rawData = parseResult.data;
+        let headers = parseResult.meta.fields;
+
+        // Remove any empty rows
+        rawData = rawData.filter(row => Object.values(row).some(value => value && value.trim() !== ''));
+
+        // Determine the key for the school name column
+        if (headers[0] === '' || headers[0] === null || headers[0] === undefined) {
+            // If the first header is empty, set it to 'SchName'
+            headers[0] = 'SchName';
+            schoolNameKey = 'SchName';
+            // Update the data keys
+            rawData = rawData.map(row => {
+                row['SchName'] = row[''] || '';
+                delete row[''];
+                return row;
+            });
+            assignmentMatrixRawData = { data: rawData, headers: headers };
+        } else if (headers.includes('SchName')) {
+            schoolNameKey = 'SchName';
+            assignmentMatrixRawData = { data: rawData, headers: headers };
+        } else {
+            schoolNameKey = headers[0]; // Assume the first column is the school name
+            assignmentMatrixRawData = { data: rawData, headers: headers };
+        }
+
+        // Extract PFs (excluding the school name column)
+        PF_list = headers.filter(h => h !== schoolNameKey && h !== '');
+
+        // Sort PF_list based on the session numbers
+        PF_list.sort((a, b) => {
+            const numA = getPFNumber(a);
+            const numB = getPFNumber(b);
+            return numA - numB;
+        });
+
+        let data = JSON.parse(JSON.stringify(rawData)); // Deep copy to avoid mutation
+        data = cleanAssignmentMatrixData(data, PF_list);
+        assignmentMatrixDataGlobal = data;
+
+        // Display the uploaded data using raw data and headers
+        document.getElementById('assignment-matrix-preview').innerHTML = '<h3>Assignment Matrix Data: Letters are Rooms and P/O are Proposing/Opposing</h3>' + dataToHtmlTable(assignmentMatrixRawData.data, assignmentMatrixRawData.headers);
+    }
+
+    function processJurorsCSV(text) {
+        let parseResult = Papa.parse(text, { header: true, delimiter: ',' });
+        let rawData = parseResult.data;
+        let headers = parseResult.meta.fields;
+
+        // Remove any empty rows
+        rawData = rawData.filter(row => Object.values(row).some(value => value && value.trim() !== ''));
+
+        jurorsRawData = { data: rawData, headers: headers }; // Store raw data and headers for display
+        let data = JSON.parse(JSON.stringify(rawData)); // Deep copy to avoid mutation
+        data = cleanJurorsData(data);
+        jurorsDataGlobal = data;
+
+        // Display the uploaded data using raw data and headers
+        document.getElementById('jurors-csv-preview').innerHTML = '<h3>Jurors Data:</h3>' + dataToHtmlTable(jurorsRawData.data, jurorsRawData.headers);
+    }
+
+    function cleanAssignmentMatrixData(data, PF_list) {
+        // Parse the two-letter codes and extract room letters and roles
+        let roomsSet = new Set();
+        let cleanedData = [];
+        data.forEach((row, rowIndex) => {
+            let newRow = {};
+            // Check if the school name exists and is not empty
+            if (row.hasOwnProperty(schoolNameKey) && row[schoolNameKey] && row[schoolNameKey].trim() !== '') {
+                newRow['SchName'] = row[schoolNameKey].trim();
+            } else {
+                // Skip this row
+                return;
+            }
+
+            // Process each PF
+            PF_list.forEach(PF => {
+                let cellValue = row[PF] ? row[PF].trim().toUpperCase() : '';
+                if (cellValue.length === 2) {
+                    let roomLetter = cellValue[0];
+                    let role = cellValue[1];
+                    newRow[PF] = { room: roomLetter, role: role };
+                    roomsSet.add(roomLetter);
+                } else {
+                    newRow[PF] = null;
+                }
+            });
+            cleanedData.push(newRow);
+        });
+
+        // Dynamically detect room list
+        room_list = Array.from(roomsSet);
+        console.log('Detected rooms:', room_list);
+
+        return cleanedData;
+    }
+
+    function cleanJurorsData(data) {
+        // Ensure names are unique and data is properly formatted
+        const uniqueNames = new Set();
+        const cleanedData = [];
+        let index_no = 0;
+
+        data.forEach((row, rowIndex) => {
+            // Trim and validate the Name and Affiliation fields
+            let name = row['Name'] ? row['Name'].trim() : '';
+            let affiliation = row['Affiliation'] ? row['Affiliation'].trim() : '';
+
+            // Check for missing Name or Affiliation
+            if (!name || !affiliation) {
+                console.warn(`Row ${rowIndex + 1} is missing a Name or Affiliation and will be skipped.`);
+                return; // Skip this row
+            }
+
+            // Check for duplicate names
+            if (uniqueNames.has(name)) {
+                console.warn(`Duplicate juror name "${name}" found at row ${rowIndex + 1} and will be skipped.`);
+                return; // Skip duplicate entries
+            }
+
+            uniqueNames.add(name);
+
+            // Assign Index_no
+            row['Index_no'] = index_no;
+            index_no++;
+
+            // Determine juror type based on your requirements
+            if (affiliation === 'Head') {
+                row['Type'] = 'Head';
+            } else if (affiliation === 'Exp' || affiliation === 'New') {
+                row['Type'] = 'Independent';
+            } else {
+                row['Type'] = 'School';
+            }
+
+            // Initialize assignment history
+            row['AssignedPFs'] = [];
+
+            // Update the row with trimmed values
+            row['Name'] = name;
+            row['Affiliation'] = affiliation;
+
+            cleanedData.push(row);
+        });
+
+        return cleanedData;
+    }
+
+    async function processFiles() {
+        // Check if both files have been uploaded and data is available
+        if (!assignmentMatrixDataGlobal || !jurorsDataGlobal) {
+            alert('Please upload both CSV files.');
+            return;
+        }
+
+        // Collect constraints
+        let constraints = [];
+        for (let i = 1; i <= 8; i++) {
+            let jurorAffiliation = document.getElementById(`juror-affiliation-${i}`).value.trim();
+            let teamAffiliation = document.getElementById(`team-affiliation-${i}`).value.trim();
+            if (jurorAffiliation !== '' && teamAffiliation !== '') {
+                constraints.push({ jurorAffiliation, teamAffiliation });
+            }
+        }
+
+        // Check if 'Exclude NEW jurors from first session' is checked
+        let excludeNewJurors = document.getElementById('exclude-new-jurors').checked;
+
+        // Check if 'Break between sessions' checkbox is checked
+        let breakBetweenSessions = document.getElementById('break-between-sessions').checked;
+
+        try {
+            // Process data and generate outputs
+            const outputs = await processData(assignmentMatrixDataGlobal, jurorsDataGlobal, constraints, excludeNewJurors, breakBetweenSessions);
+
+            // Display outputs on the webpage
+            displayOutputs(outputs);
+
+            // Show the output section
+            document.getElementById('output-section').style.display = 'block';
+
+        } catch (error) {
+            console.error(error);
+            alert('An error occurred while processing the files.\n\n' + error.message);
+        }
+    }
+
+    async function processData(assignmentMatrixData, jurorsData, constraints, excludeNewJurors, breakBetweenSessions) {
+        let solved = false;
+        const MAX_ATTEMPT = 5000;
+        let attempt = 0;
+        let relaxation = false;
+
+        let jurorAssignments = {};
+
+        // Create a mapping of juror names to their affiliations (including tags)
+        let jurorNameAffiliationMap = {};
+        jurorsData.forEach(juror => {
+            let affiliationTag = '';
+            if (juror['Affiliation'] === 'Head') {
+                affiliationTag = '(Head)';
+            } else if (juror['Affiliation'] === 'Exp' || juror['Affiliation'] === 'New') {
+                affiliationTag = '(Ind)';
+            } else {
+                affiliationTag = `(${juror['Affiliation']})`;
+            }
+            jurorNameAffiliationMap[juror['Name']] = `${juror['Name']} ${affiliationTag}`;
+        });
+
+        // Prepare constraints for case-insensitive matching
+        constraints = constraints.map(constraint => ({
+            jurorAffiliation: constraint.jurorAffiliation.toLowerCase(),
+            teamAffiliation: constraint.teamAffiliation.toLowerCase()
+        }));
+
+        while (!solved) {
+            attempt = 0;
+            // Reset jurors' AssignedPFs
+            jurorsData.forEach(juror => juror['AssignedPFs'] = []);
+
+            while (!solved && attempt < MAX_ATTEMPT) {
+                attempt++;
+                try {
+                    // Initialize juror assignments
+                    jurorAssignments = {};
+                    PF_list.forEach(PF => {
+                        jurorAssignments[PF] = {};
+                        room_list.forEach(room => {
+                            jurorAssignments[PF][room] = { 'H': null, 'I1': null, 'I2': null, 'S1': null, 'S2': null };
+                        });
+                    });
+
+                    // Assign jurors for each PF and room
+                    for (let PF of PF_list) {
+                        for (let room of room_list) {
+                            let participants = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => row['SchName']);
+                            if (participants.length === 0) continue; // Skip if no participants
+
+                            // Assign jurors for each role
+                            let roles = ['H', 'I1', 'I2', 'S1', 'S2'];
+
+                            for (let role of roles) {
+                                // Determine required juror type based on role
+                                let requiredType = role === 'H' ? 'Head' : (role.startsWith('I') ? 'Independent' : 'School');
+
+                                let availableJurors = jurorsData.filter(juror => {
+                                    // Check juror type
+                                    if (!relaxation && juror['Type'] !== requiredType) return false;
+
+                                    // Not already assigned to this room
+                                    if (Object.values(jurorAssignments[PF][room]).includes(juror['Name'])) return false;
+
+                                    // Not affiliated with participants
+                                    if (participants.some(team => team.toLowerCase().includes(juror['Affiliation'].toLowerCase()))) return false;
+
+                                    // Not assigned elsewhere at the same PF
+                                    if (isJurorAssignedAtSameTime(juror['Name'], PF, jurorAssignments)) return false;
+
+                                    // Exclude 'NEW' jurors from first session if option is selected
+                                    if (excludeNewJurors && getPFNumber(PF) === 1 && juror['Affiliation'].trim().toLowerCase() === 'new') return false;
+
+                                    // Apply additional constraints
+                                    for (let constraint of constraints) {
+                                        if (juror['Affiliation'].toLowerCase().includes(constraint.jurorAffiliation)) {
+                                            if (participants.some(team => team.toLowerCase().includes(constraint.teamAffiliation))) {
+                                                return false;
+                                            }
+                                        }
+                                    }
+
+                                    // Check maximum of three sessions
+                                    if (juror['AssignedPFs'].length >= 3) return false;
+
+                                    // Enforce break between sessions if the option is selected
+                                    if (breakBetweenSessions && juror['AssignedPFs'].length >= 1) {
+                                        let assignedPFNumbers = juror['AssignedPFs'].map(pf => getPFNumber(pf));
+                                        let currentPFNumber = getPFNumber(PF);
+                                        assignedPFNumbers.push(currentPFNumber);
+                                        assignedPFNumbers.sort((a, b) => a - b);
+
+                                        // Check for consecutive sessions
+                                        for (let i = 0; i < assignedPFNumbers.length - 1; i++) {
+                                            if (assignedPFNumbers[i + 1] - assignedPFNumbers[i] === 1) {
+                                                return false;
+                                            }
+                                        }
+                                    }
+
+                                    return true;
+                                });
+
+                                if (availableJurors.length === 0) {
+                                    if (!relaxation) {
+                                        throw new Error(`No ${requiredType} jurors available for ${PF} Room ${room}, Role ${role}`);
+                                    } else {
+                                        // For the 'H' role, we still require 'Head' jurors even after relaxation
+                                        if (role === 'H') {
+                                            throw new Error(`No Head jurors available for ${PF} Room ${room}, Role ${role} even after relaxation`);
+                                        } else {
+                                            // For other roles, we can try to find any juror
+                                            availableJurors = jurorsData.filter(juror => {
+                                                // Not already assigned to this room
+                                                if (Object.values(jurorAssignments[PF][room]).includes(juror['Name'])) return false;
+
+                                                // Not affiliated with participants
+                                                if (participants.some(team => team.toLowerCase().includes(juror['Affiliation'].toLowerCase()))) return false;
+
+                                                // Not assigned elsewhere at the same PF
+                                                if (isJurorAssignedAtSameTime(juror['Name'], PF, jurorAssignments)) return false;
+
+                                                // Exclude 'NEW' jurors from first session if option is selected
+                                                if (excludeNewJurors && getPFNumber(PF) === 1 && juror['Affiliation'].trim().toLowerCase() === 'new') return false;
+
+                                                // Apply additional constraints
+                                                for (let constraint of constraints) {
+                                                    if (juror['Affiliation'].toLowerCase().includes(constraint.jurorAffiliation)) {
+                                                        if (participants.some(team => team.toLowerCase().includes(constraint.teamAffiliation))) {
+                                                            return false;
+                                                        }
+                                                    }
+                                                }
+
+                                                // Check maximum of three sessions
+                                                if (juror['AssignedPFs'].length >= 3) return false;
+
+                                                // Enforce break between sessions if the option is selected
+                                                if (breakBetweenSessions && juror['AssignedPFs'].length >= 1) {
+                                                    let assignedPFNumbers = juror['AssignedPFs'].map(pf => getPFNumber(pf));
+                                                    let currentPFNumber = getPFNumber(PF);
+                                                    assignedPFNumbers.push(currentPFNumber);
+                                                    assignedPFNumbers.sort((a, b) => a - b);
+
+                                                    // Check for consecutive sessions
+                                                    for (let i = 0; i < assignedPFNumbers.length - 1; i++) {
+                                                        if (assignedPFNumbers[i + 1] - assignedPFNumbers[i] === 1) {
+                                                            return false;
+                                                        }
+                                                    }
+                                                }
+
+                                                return true;
+                                            });
+                                            if (availableJurors.length === 0) {
+                                                throw new Error(`No jurors available for ${PF} Room ${room}, Role ${role} even after relaxation`);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Assign a juror randomly
+                                let selectedJuror = availableJurors[Math.floor(Math.random() * availableJurors.length)];
+                                jurorAssignments[PF][room][role] = selectedJuror['Name'];
+                                selectedJuror['AssignedPFs'].push(PF);
+                            }
+                        }
+                    }
+
+                    // If we reach here, assignments are successful
+                    solved = true;
+                } catch (error) {
+                    // Retry
+                }
+            }
+            if (!solved) {
+                if (!relaxation) {
+                    relaxation = true;
+                    alert('Unable to assign jurors with strict constraints. Relaxing constraints and trying again.');
+                } else {
+                    throw new Error('Unable to assign jurors even after relaxing constraints.');
+                }
+            }
+        }
+
+        // Prepare outputs
+        // Juror schedule
+        let serialNumber = 1;
+        let jurorSchedule = jurorsData.map(juror => {
+            let schedule = { ...juror };
+            schedule['Serial_Number'] = serialNumber++;
+            schedule['Count'] = juror['AssignedPFs'].length;
+            PF_list.forEach(PF => {
+                let assignedRoom = null;
+                for (let room of room_list) {
+                    for (let role in jurorAssignments[PF][room]) {
+                        if (jurorAssignments[PF][room][role] === juror['Name']) {
+                            assignedRoom = room;
+                            schedule[PF] = room;
+                            break;
+                        }
+                    }
+                    if (assignedRoom) break;
+                }
+                if (!assignedRoom) schedule[PF] = '-';
+            });
+            // Collect teams assigned to
+            let teamsAssigned = [];
+            PF_list.forEach(PF => {
+                room_list.forEach(room => {
+                    if (Object.values(jurorAssignments[PF][room]).includes(juror['Name'])) {
+                        let participants = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => row['SchName']);
+                        teamsAssigned = teamsAssigned.concat(participants);
+                    }
+                });
+            });
+            schedule['0'] = [...new Set(teamsAssigned)].join(', '); // Remove duplicates
+            return schedule;
+        });
+
+        // Rearrange columns to match the desired output, including 'Serial_Number'
+        jurorSchedule = jurorSchedule.map(juror => {
+            return {
+                'Serial_Number': juror['Serial_Number'],
+                'Name': juror['Name'],
+                'Affiliation': juror['Affiliation'],
+                'Index_no': juror['Index_no'],
+                'Count': juror['Count'],
+                ...PF_list.reduce((acc, PF) => ({ ...acc, [PF]: juror[PF] }), {}),
+                '0': juror['0']
+            };
+        });
+
+        // Ensure the headers are in the correct order
+        const jurorScheduleHeaders = ['Serial_Number', 'Name', 'Affiliation', 'Index_no', 'Count', ...PF_list, '0'];
+
+        // Juror assignment list table
+        let jurorAssignmentListTable = [];
+        let serialNum = 0;
+        PF_list.forEach(PF => {
+            room_list.forEach(room => {
+                let participantsData = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => ({ team: row['SchName'], role: row[PF].role }));
+                let jurors = jurorAssignments[PF][room];
+
+                if (participantsData.length === 0) return; // Skip if no participants
+
+                serialNum++;
+
+                // Sort participantsData so that the team with role 'P' comes first
+                participantsData.sort((a, b) => {
+                    if (a.role === 'P' && b.role === 'O') return -1;
+                    if (a.role === 'O' && b.role === 'P') return 1;
+                    return 0;
+                });
+
+                // Get the jurors assigned to this fight with affiliations
+                let headJuror = jurorNameAffiliationMap[jurors['H']] || jurors['H'];
+                let jurorI1 = jurorNameAffiliationMap[jurors['I1']] || jurors['I1'];
+                let jurorI2 = jurorNameAffiliationMap[jurors['I2']] || jurors['I2'];
+                let jurorS1 = jurorNameAffiliationMap[jurors['S1']] || jurors['S1'];
+                let jurorS2 = jurorNameAffiliationMap[jurors['S2']] || jurors['S2'];
+
+                // Corrected code for Reserves list
+                // Get participants' affiliations
+                let participantsAffiliations = participantsData.map(p => p.team.toLowerCase());
+
+                // Get the jurors assigned to any fight in the same PF
+                let assignedJurorsInPF = [];
+                for (let r in jurorAssignments[PF]) {
+                    let jurorsInRoom = Object.values(jurorAssignments[PF][r]);
+                    assignedJurorsInPF = assignedJurorsInPF.concat(jurorsInRoom);
+                }
+                // Remove duplicates
+                assignedJurorsInPF = [...new Set(assignedJurorsInPF)];
+
+                // Reserves are jurors not assigned in this PF and not affiliated with participants
+                let reserves = jurorsData.filter(juror => {
+                    // Exclude jurors assigned in the same PF
+                    if (assignedJurorsInPF.includes(juror['Name'])) return false;
+
+                    // Exclude jurors affiliated with participants
+                    if (participantsAffiliations.some(affiliation => juror['Affiliation'].toLowerCase().includes(affiliation))) return false;
+
+                    // Juror is available as a reserve
+                    return true;
+                }).map(juror => jurorNameAffiliationMap[juror['Name']]);
+
+                jurorAssignmentListTable.push({
+                    'SerialNumber': serialNum,
+                    'Fight': `${PF} room ${room}`,
+                    'Team1': participantsData[0] ? participantsData[0].team : '',
+                    'Team2': participantsData[1] ? participantsData[1].team : '',
+                    'Head Juror': headJuror,
+                    'Independent Juror 1': jurorI1,
+                    'Independent Juror 2': jurorI2,
+                    'School Juror 1': jurorS1,
+                    'School Juror 2': jurorS2,
+                    'Reserves': reserves.join(', ')
+                });
+            });
+        });
+
+        const jurorAssignmentListTableHeaders = ['SerialNumber', 'Fight', 'Team1', 'Team2', 'Head Juror', 'Independent Juror 1', 'Independent Juror 2', 'School Juror 1', 'School Juror 2', 'Reserves'];
+
+        // Juror assignment list
+        let jurorAssignmentList = [];
+
+        PF_list.forEach(PF => {
+            room_list.forEach(room => {
+                let participantsData = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => ({ team: row['SchName'], role: row[PF].role }));
+                let jurors = jurorAssignments[PF][room];
+
+                if (participantsData.length === 0) return; // Skip if no participants
+
+                // Get the jurors assigned to this fight with affiliations
+                let headJuror = jurorNameAffiliationMap[jurors['H']] || jurors['H'];
+                let jurorI1 = jurorNameAffiliationMap[jurors['I1']] || jurors['I1'];
+                let jurorI2 = jurorNameAffiliationMap[jurors['I2']] || jurors['I2'];
+                let jurorS1 = jurorNameAffiliationMap[jurors['S1']] || jurors['S1'];
+                let jurorS2 = jurorNameAffiliationMap[jurors['S2']] || jurors['S2'];
+
+                // Build the juror list (starting with empty cells as per your example)
+                let jurorList = ['', '', '', headJuror, jurorI1, jurorI2, jurorS1, jurorS2];
+
+                // Add to jurorAssignmentList
+                jurorAssignmentList.push({ '0': `${PF} room ${room}` });
+                jurorAssignmentList.push({ '0': `Participants: ${participantsData.map(p => p.team).join(', ')}` });
+                jurorAssignmentList.push({ '0': jurorList.join(',') });
+                jurorAssignmentList.push({}); // Empty row
+            });
+        });
+
+        return {
+            jurorSchedule,
+            jurorScheduleHeaders,
+            jurorAssignmentList,
+            jurorAssignmentListTable,
+            jurorAssignmentListTableHeaders
+        };
+    }
+
+    function isJurorAssignedAtSameTime(jurorName, PF, jurorAssignments) {
+        for (let room in jurorAssignments[PF]) {
+            for (let role in jurorAssignments[PF][room]) {
+                if (jurorAssignments[PF][room][role] === jurorName) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function displayOutputs(outputs) {
+        // Convert data to HTML tables
+        const jurorScheduleHtml = dataToHtmlTable(outputs.jurorSchedule, outputs.jurorScheduleHeaders);
+        const jurorAssignmentTableHtml = dataToHtmlTable(outputs.jurorAssignmentListTable, outputs.jurorAssignmentListTableHeaders);
+        const jurorAssignmentListHtml = dataToHtmlTable(outputs.jurorAssignmentList, ['0']);
+
+        // Display the tables
+        document.getElementById('juror-schedule-output').innerHTML = jurorScheduleHtml;
+        document.getElementById('juror-assignment-table-output').innerHTML = jurorAssignmentTableHtml;
+        document.getElementById('juror-assignment-list-output').innerHTML = jurorAssignmentListHtml;
+
+        // Save the outputs for download
+        window.outputFiles = {
+            'Juror schedule.csv': { data: outputs.jurorSchedule, headers: outputs.jurorScheduleHeaders },
+            'juror_assignment_list_table.csv': { data: outputs.jurorAssignmentListTable, headers: outputs.jurorAssignmentListTableHeaders },
+            'juror_assignment_list.csv': outputs.jurorAssignmentList
+        };
+    }
+
+    function dataToHtmlTable(data, headers = null) {
+        if (!data || data.length === 0) return '<p>No data available.</p>';
+
+        const table = document.createElement('table');
+        const thead = table.createTHead();
+        const tbody = table.createTBody();
+        headers = headers || Object.keys(data[0]);
+
+        // Create table header
+        const headerRow = thead.insertRow();
+        headers.forEach(headerText => {
+            const th = document.createElement('th');
+            th.innerText = headerText;
+            headerRow.appendChild(th);
+        });
+
+        // Create table body
+        data.forEach(rowData => {
+            const row = tbody.insertRow();
+            headers.forEach(headerText => {
+                const cell = row.insertCell();
+                let cellValue = rowData[headerText];
+                if (cellValue && typeof cellValue === 'object') {
+                    // If cell value is an object, display it appropriately
+                    cell.innerText = JSON.stringify(cellValue);
+                } else {
+                    cell.innerText = cellValue || '';
+                }
+            });
+        });
+
+        return table.outerHTML;
+    }
+
+    function downloadFile(filename) {
+        const output = window.outputFiles[filename];
+        if (!output) {
+            alert('No data available for ' + filename);
+            return;
+        }
+
+        let csvData;
+        if (filename === 'Juror schedule.csv' || filename === 'juror_assignment_list_table.csv') {
+            csvData = Papa.unparse(output.data, { columns: output.headers });
+        } else if (filename === 'juror_assignment_list.csv') {
+            // For jurorAssignmentList, we need to handle it differently
+            csvData = output.map(row => row['0'] || '').join('\n');
+        } else {
+            csvData = Papa.unparse(output);
+        }
+
+        // Create a Blob and trigger download
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        saveAs(blob, filename);
+    }
+
+    function downloadAllFiles() {
+        const zip = new JSZip();
+
+        for (const filename in window.outputFiles) {
+            const output = window.outputFiles[filename];
+            let csvData;
+
+            if (filename === 'Juror schedule.csv' || filename === 'juror_assignment_list_table.csv') {
+                csvData = Papa.unparse(output.data, { columns: output.headers });
+            } else if (filename === 'juror_assignment_list.csv') {
+                // For jurorAssignmentList, we need to handle it differently
+                csvData = output.map(row => row['0'] || '').join('\n');
+            } else {
+                csvData = Papa.unparse(output);
+            }
+
+            // Add the file to the ZIP archive
+            zip.file(filename, csvData);
+        }
+
+        // Generate the ZIP file and trigger download
+        zip.generateAsync({ type: 'blob' }).then(function(content) {
+            saveAs(content, 'SYPT_Juror_Assignments.zip');
+        });
+    }
+    </script>
+
+    <div class="footer">
+        This web app is created by <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> based on original Python code by nic_wong.
+        You can view the original Python source code on <a href="https://github.com/lookang/SYPTPython" target="_blank">GitHub</a>.
+    </div>
+
+</body>
+</html>

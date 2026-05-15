@@ -1,0 +1,147 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Water Electrolysis Simulation”** where students adjust circuit parameters (water volume, voltage, current), start/stop a virtual electrolysis experiment, and observe hydrogen and oxygen gas production in real time.
+
+TARGET AUDIENCE:
+- Lower Secondary Science (Electrochemistry introduction, ~13–15 years old)
+
+INTERACTIVE REQUIREMENTS:
+- Visual **laboratory setup** consisting of:
+  - An electrolysis cell with water and two electrodes (cathode and anode).
+  - Gas collection tubes above each electrode (H₂ at cathode, O₂ at anode).
+  - A simple circuit diagram showing a DC power source, connecting wires, and current indicator.
+- **Control panel** with sliders for:
+  - Water Volume (e.g., 50–500 mL).
+  - Voltage (e.g., 3–12 V).
+  - Current (e.g., 0.5–3.0 A).
+- Buttons:
+  - **Start Electrolysis**.
+  - **Stop** (disabled when not running).
+  - **Reset** (returns simulation to initial state).
+- **Real-time displays**:
+  - Elapsed time (s).
+  - Electrical power `P = V × I` (W).
+  - H₂ and O₂ gas volumes (mL).
+  - H₂:O₂ volume ratio (target 2:1).
+- A small **gas production chart** (canvas) plotting H₂ and O₂ volumes over time.
+- Status message area giving textual feedback and prompts.
+- Self-contained HTML, CSS, JavaScript (no external libraries), using canvas for the chart.
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Sliders respond to touch and adjust smoothly.
+  - Layout adapts to smaller screens.
+
+SPECIFIC REQUIREMENTS:
+
+Controls and parameters
+- Sliders:
+  - **Water Volume** (`#water-volume`): 50–500 mL, with current value displayed beside it (e.g., `250`).
+  - **Voltage** (`#voltage`): continuous or stepped 3–12 V, display with one decimal place (e.g., `6.0`).
+  - **Current** (`#current`): 0.5–3.0 A, display with one decimal place (e.g., `1.5`).
+- On slider `input` events:
+  - Update numeric display spans (`#water-value`, `#voltage-value`, `#current-value`).
+  - Recalculate derived quantities (power, water level).
+- Touch support:
+  - Custom `touchmove` handling maps horizontal finger position to slider value.
+  - Use `preventDefault` appropriately to avoid page scroll while sliding.
+
+Apparatus visuals
+- **Water container**:
+  - Represented as a vertical container with a water column (`#water-level`) whose height scales with water volume (e.g., 20–100% height).
+- **Electrodes**:
+  - Two vertical bars inside the water (`.electrode.cathode` and `.electrode.anode`).
+  - Tooltips or titles explaining roles (cathode: H₂, anode: O₂).
+- **Gas collection tubes**:
+  - Two tubes above the container:
+    - Hydrogen tube with fill area (`#hydrogen-gas`) and volume label (`#h2-volume`).
+    - Oxygen tube with fill area (`#oxygen-gas`) and volume label (`#o2-volume`).
+  - Gas fill heights represent collected volumes, capped at ~90% of tube height.
+- **Circuit diagram**:
+  - Simple icons for battery, wires, and current indicator (`#current-flow`).
+  - Current indicator shows `I` value and glowing/animated style when the experiment runs.
+
+Simulation logic
+- Main simulation state:
+  - `isRunning` boolean.
+  - `startTime` and `elapsedTime` in seconds.
+  - `hydrogenVolume` and `oxygenVolume` in mL.
+  - `chartData` arrays for time, hydrogen, and oxygen.
+- When **Start Electrolysis** is pressed and not already running:
+  - Set `isRunning = true` and store current time.
+  - Disable Start button and enable Stop button.
+  - Activate current indicator (`.active` class) and display current value.
+  - Update status message to indicate experiment is in progress; style it with greenish “in progress” appearance.
+  - Start a **requestAnimationFrame** loop to update time and gas production.
+  - Start a periodic **bubble effect** near electrodes.
+- Gas production model (simplified):
+  - At each animation frame, compute a **production rate** based on `current`, `voltage`, and `waterVolume` (e.g., `rate ∝ I × V / sqrt(Vwater)`).
+  - Hydrogen volume increases at twice the rate of oxygen (stoichiometric 2:1).
+  - Constrain visual gas heights to a maximum (e.g., 90% of tube height).
+- On each update:
+  - Update elapsed time display (integer seconds).
+  - Update `#h2-volume` and `#o2-volume` labels (to 1 decimal place).
+  - If both volumes > 0, update H₂:O₂ ratio in `#ratio-display` (actual ratio to 1 decimal; otherwise display theoretical `2:1`).
+  - Every few seconds (e.g., every 2 s), append points to chartData and redraw chart.
+
+Chart view
+- Use `#gas-chart` canvas to plot hydrogen and oxygen volumes vs time.
+- Chart background:
+  - Light-coloured rectangle with vertical and horizontal grid lines.
+- Scaling:
+  - X-axis: time (s), scaled to most recent `maxTime` window (e.g., last 10–15 points).
+  - Y-axis: volume (mL), scaled to maximum seen or a minimum (e.g., 10 mL) for readability.
+- Lines:
+  - Hydrogen: red line.
+  - Oxygen: teal/blue line.
+- Axis labels:
+  - X-axis: “Time (s)”.
+  - Y-axis: “Volume (mL)” (rotated text).
+
+Start, stop, and reset
+- **Stop** button:
+  - Stops simulation without resetting volumes/time.
+  - Re-enables Start button and disables Stop button.
+  - Stops requestAnimationFrame loop and bubble generator.
+  - Removes `.active` from current indicator.
+  - Status message updated to orange “stopped, data preserved” style.
+- **Reset** button:
+  - Calls `stopElectrolysis()` to stop any running simulation.
+  - Reset all state variables (time, gas volumes, chartData).
+  - Reset visual elements: gas heights 0%, labels “0 mL”, time “0s”, and default slider values.
+  - Redraw chart cleared of previous data.
+  - Reset water level & power display.
+  - Reset status message to blue “ready” style.
+
+Bubble and current animations
+- Bubble effect:
+  - Periodic creation of `.bubble` elements near cathode and (less frequently) near anode.
+  - Bubbles float upward in the water container with CSS animation, then are removed from DOM.
+- On Stop/Reset:
+  - Clear the bubble interval and remove all bubble elements.
+
+Status message and guidance
+- Status area (`#status-message`) that shows context-sensitive messages:
+  - Before start: “Adjust parameters and click ‘Start Electrolysis’ to begin the experiment”.
+  - During run: “Electrolysis in progress – Observing gas production…”.
+  - Stopped: “Electrolysis stopped – Data preserved for analysis”.
+  - After reset: “Simulation reset – Ready to start new experiment”.
+- Style changes (background/border/text colour) reinforce current state (ready/running/stopped/reset).
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Describe the basic setup and process of water electrolysis.
+  - Identify where hydrogen and oxygen are produced (cathode vs anode).
+  - Observe and explain why the hydrogen volume is approximately twice that of oxygen (2:1 ratio).
+  - Relate current and voltage to the **rate of gas production**.
+  - Interpret a simple graph of gas volume vs time.
+- The simulation should encourage students to explore “what-if” scenarios by changing parameters and observing effects on gas production and ratio.
+
+INTERACTION FEATURES TO INCLUDE:
+- Slider-based control of experimental parameters with instant numeric feedback.
+- Start/Stop/Reset experiment controls with clear state transitions.
+- Real-time visual changes (water level, gas columns, bubbles, current indicator).
+- Dynamic chart of gas production.
+- Intuitive status messages guiding the user.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

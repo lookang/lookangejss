@@ -1,0 +1,589 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>P5 FDP Converter Lab</title>
+<link rel="stylesheet" href="style.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      // Prefer live quiz state set by submitAnswer() on each attempt
+      if (window.__xapiQuizState && window.__xapiQuizState.score != null) {
+        return { score: window.__xapiQuizState.score, max: window.__xapiQuizState.max };
+      }
+      const directScore =
+        readDomNumberById('score') ??
+        readDomNumberById('points') ??
+        readDomNumberById('correctCount') ??
+        readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ??
+        readDomNumberById('correctAnswersCount');
+
+      const directMax =
+        readDomNumberById('max') ??
+        readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ??
+        readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ??
+        readDomNumberById('attempts') ??
+        readDomNumberById('totalAttempts');
+
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="correct" i]', '[class*="correct" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const scoreRegex = new RegExp('(\d+)\s*\/\s*(\d+)');
+        const m = text.match(scoreRegex);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+    // Include structured quiz attempt log from analytics.js
+    const quizLog = Array.isArray(window.__fdpEventLog) ? window.__fdpEventLog : [];
+    if (quizLog.length) {
+      const numCorrect = quizLog.filter(a => a.correct).length;
+      lines.push('');
+      lines.push('Quiz Attempts (' + numCorrect + '/' + quizLog.length + ' correct):');
+      quizLog.forEach((a, i) => {
+        const sym = a.correct ? '\u2705' : '\u274c';
+        lines.push(sym + ' Q' + (i + 1) + ' [' + a.questionId + '] &nbsp;Frac: <b>' + (a.fraction || '\u2014') + '</b> | Dec: <b>' + (a.decimal || '\u2014') + '</b> | %: <b>' + (a.percent || '\u2014') + '</b>');
+      });
+    }
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+    const quizAttempts = Array.isArray(window.__fdpEventLog) ? window.__fdpEventLog.slice() : [];
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      quizAttempts,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        quizAttempts,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  // Expose flush trigger and quiz state slot for analytics.js to call
+  window.__xapiFlushNow = scheduleFlush;
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const valueEl = entry.querySelector ? entry.querySelector('.log-value') : null;
+
+      const timeText = timeEl ? timeEl.textContent : (entry.textContent || '');
+      const actionText = actionEl ? actionEl.textContent : null;
+      const valueText = valueEl ? valueEl.textContent : null;
+
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+
+      const label = [actionText, valueText].filter(Boolean).join(' ').trim();
+      return {
+        timeSec: Number.isFinite(timeSec) ? timeSec : null,
+        action: actionText ? actionText.trim() : null,
+        details: valueText ? valueText.trim() : null,
+        label: label || null
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) {
+          const keep = Array.from(seen).slice(-200);
+          seen.clear();
+          keep.forEach(k => seen.add(k));
+        }
+
+        const ts = parsed.timeSec != null
+          ? (xapiState.startTime + Math.round(parsed.timeSec * 1000))
+          : Date.now();
+
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) {
+                recordEntry(node);
+              } else {
+                node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry);
+              }
+            });
+          });
+        });
+
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('logContainer') || document.querySelector('.analytics-content #logContainer');
+        if (container) {
+          attachToContainer(container);
+          return true;
+        }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) {
+          attachToContainer(entry.parentElement);
+          return true;
+        }
+        return false;
+      }
+
+      if (tryAttach()) return;
+
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts += 1;
+        if (tryAttach() || attempts > 20) {
+          clearInterval(timer);
+        }
+      }, 500);
+    } catch (e) {}
+  }
+
+  // Keyboard tracking for text-based inputs and textareas
+  // This logs each keystroke as a lightweight "key" action so it
+  // appears in the same timeline analytics as clicks.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+
+    // Limit to typical text input fields to avoid flooding from
+    // every key on the whole page.
+    const isTextField = (
+      tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')
+    ) || tag === 'textarea';
+
+    if (!isTextField) return;
+
+    logAction('key', {
+      tag,
+      id: t.id || null,
+      name: t.name || null,
+      value: t.value != null ? String(t.value).substring(0, 120) : null,
+      text: null,
+      key: String(e.key).substring(0, 40),
+      code: String(e.code || '').substring(0, 40)
+    });
+
+    // Group keystrokes slightly to avoid sending on every single key.
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      addSaveBtn();
+      hookLearningAnalyticsLog();
+    });
+  } else {
+    addSaveBtn();
+    hookLearningAnalyticsLog();
+  }
+})();
+    </script>
+    <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+<h2>P5 Percentage–Fraction–Decimal Converter Lab</h2>
+
+<div id="activity">
+  <div id="questionBox"></div>
+  <div>
+    <label>Fraction:</label>
+    <input type="text" id="fractionInput">
+  </div>
+  <div>
+    <label>Decimal:</label>
+    <input type="text" id="decimalInput">
+  </div>
+  <div>
+    <label>Percentage:</label>
+    <input type="text" id="percentInput">
+  </div>
+  <button onclick="submitAnswer()">Submit</button>
+  <p id="feedback"></p>
+</div>
+
+<hr>
+
+<div id="dashboard" style="display:none;">
+  <h3>Results</h3>
+  <p id="summary"></p>
+  <button onclick="downloadJSON()">Download Analytics JSON</button>
+</div>
+
+<!-- ── Real-Time Teacher Analytics Panel ── -->
+<div id="analyticsPanel">
+  <div id="analyticsPanelHeader">
+    <span>📊 Teacher Analytics — Real-Time Log</span>
+    <div class="panel-controls">
+      <button onclick="clearAnalyticsLog()">🗑 Clear Log</button>
+      <button id="toggleBtn" onclick="toggleAnalytics()">▼ Hide</button>
+    </div>
+  </div>
+  <div id="analyticsPanelBody">
+    <div id="analyticsLegend">
+      <span class="legend-correct">✅ Correct</span>
+      <span class="legend-wrong">❌ Wrong</span>
+      <span class="legend-info">Fraction | Decimal | Percentage</span>
+    </div>
+    <div id="logContainer"></div>
+    <div id="logEmpty" class="log-empty">No attempts yet. Answers will appear here in real time.</div>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="validation.js"></script>
+<script src="analytics.js"></script>
+
+<script>
+let currentIndex = 0;
+let score = 0;
+
+function loadQuestion() {
+  const q = questions[currentIndex];
+  document.getElementById("questionBox").innerHTML =
+    "Convert: <b>" + q.given + "</b>";
+}
+
+function submitAnswer() {
+  const q = questions[currentIndex];
+  const fraction = document.getElementById("fractionInput").value.trim();
+  const decimal = document.getElementById("decimalInput").value.trim();
+  const percent = document.getElementById("percentInput").value.trim();
+
+  const result = validateAnswer(q, fraction, decimal, percent);
+  logAttempt(q.id, fraction, decimal, percent, result.correct, q, currentIndex);
+
+  if (result.correct) {
+    score++;
+    document.getElementById("feedback").innerText = "Correct!";
+  } else {
+    document.getElementById("feedback").innerText = "Incorrect.";
+  }
+
+  // Keep xAPI payload score in sync with live quiz state
+  window.__xapiQuizState = { score: score, max: questions.length };
+
+  currentIndex++;
+  if (currentIndex < questions.length) {
+    loadQuestion();
+  } else {
+    finishActivity();
+  }
+}
+
+function finishActivity() {
+  document.getElementById("activity").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("summary").innerText =
+    "Score: " + score + " / " + questions.length;
+}
+
+loadQuestion();
+
+function toggleAnalytics() {
+  const body = document.getElementById('analyticsPanelBody');
+  const btn  = document.getElementById('toggleBtn');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    btn.textContent = '▼ Hide';
+  } else {
+    body.style.display = 'none';
+    btn.textContent = '▲ Show';
+  }
+}
+
+function clearAnalyticsLog() {
+  const container = document.getElementById('logContainer');
+  if (container) container.innerHTML = '';
+  const empty = document.getElementById('logEmpty');
+  if (empty) empty.style.display = 'block';
+}
+</script>
+
+</body>
+</html>

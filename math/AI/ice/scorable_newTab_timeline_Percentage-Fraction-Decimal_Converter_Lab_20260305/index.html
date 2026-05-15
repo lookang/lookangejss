@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Percentage-Fraction-Decimal Converter Lab</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      // Prefer live score written by checkTaskCompletion() after every intentional attempt
+      if (window.__xapiQuizState && window.__xapiQuizState.score != null) {
+        return { score: window.__xapiQuizState.score, max: window.__xapiQuizState.max };
+      }
+      const directScore =
+        readDomNumberById('score') ??
+        readDomNumberById('points') ??
+        readDomNumberById('correctCount') ??
+        readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ??
+        readDomNumberById('correctAnswersCount');
+
+      const directMax =
+        readDomNumberById('max') ??
+        readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ??
+        readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ??
+        readDomNumberById('attempts') ??
+        readDomNumberById('totalAttempts');
+
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="correct" i]', '[class*="correct" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const scoreRegex = new RegExp('(\d+)\s*\/\s*(\d+)');
+        const m = text.match(scoreRegex);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+
+    // ── Structured Task / Quiz Log ─────────────────────────────────────────
+    // Populated in real time by checkTaskCompletion() in script.js.
+    // Each entry records the task question, what the student entered,
+    // what the correct answer was, and whether the attempt was successful —
+    // so teachers can quickly spot misconceptions.
+    const quizLog = Array.isArray(window.__quizLog) ? window.__quizLog : [];
+    if (quizLog.length) {
+      const numCorrect = quizLog.filter(function(e) { return e.isMatch; }).length;
+      lines.push('');
+      lines.push('📋 Task / Quiz Log — ' + numCorrect + ' correct out of ' + quizLog.length + ' attempt(s):');
+      quizLog.forEach(function(e) {
+        const sym = e.isMatch ? '✅' : '❌';
+        const shortDesc = e.taskDescription && e.taskDescription.length > 60
+          ? e.taskDescription.substring(0, 57) + '…'
+          : (e.taskDescription || '');
+        lines.push(sym + ' Task ' + e.taskNumber + ' [' + e.taskType + ']: ' + shortDesc);
+        lines.push('&nbsp;&nbsp;&nbsp;📥 Entered (' + e.inputMode + '): <b>' + e.studentInput + '</b>');
+        lines.push('&nbsp;&nbsp;&nbsp;🔁 Result: <b>' + e.studentResult + '</b>');
+        lines.push('&nbsp;&nbsp;&nbsp;🎯 Target: ' + e.targetAnswer);
+        if (e.feedback) lines.push('&nbsp;&nbsp;&nbsp;💬 ' + e.feedback);
+      });
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+    const quizLog = Array.isArray(window.__quizLog) ? window.__quizLog.slice() : [];
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      quizLog,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        quizLog,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  // Expose flush trigger so script.js can fire a payload after every task attempt
+  window.__xapiFlushNow = scheduleFlush;
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const valueEl = entry.querySelector ? entry.querySelector('.log-value') : null;
+
+      const timeText = timeEl ? timeEl.textContent : (entry.textContent || '');
+      const actionText = actionEl ? actionEl.textContent : null;
+      const valueText = valueEl ? valueEl.textContent : null;
+
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+
+      const label = [actionText, valueText].filter(Boolean).join(' ').trim();
+      return {
+        timeSec: Number.isFinite(timeSec) ? timeSec : null,
+        action: actionText ? actionText.trim() : null,
+        details: valueText ? valueText.trim() : null,
+        label: label || null
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) {
+          const keep = Array.from(seen).slice(-200);
+          seen.clear();
+          keep.forEach(k => seen.add(k));
+        }
+
+        const ts = parsed.timeSec != null
+          ? (xapiState.startTime + Math.round(parsed.timeSec * 1000))
+          : Date.now();
+
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) {
+                recordEntry(node);
+              } else {
+                node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry);
+              }
+            });
+          });
+        });
+
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('logContainer') || document.querySelector('.analytics-content #logContainer');
+        if (container) {
+          attachToContainer(container);
+          return true;
+        }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) {
+          attachToContainer(entry.parentElement);
+          return true;
+        }
+        return false;
+      }
+
+      if (tryAttach()) return;
+
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts += 1;
+        if (tryAttach() || attempts > 20) {
+          clearInterval(timer);
+        }
+      }, 500);
+    } catch (e) {}
+  }
+
+  // Keyboard tracking for text-based inputs and textareas
+  // This logs each keystroke as a lightweight "key" action so it
+  // appears in the same timeline analytics as clicks.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+
+    // Limit to typical text input fields to avoid flooding from
+    // every key on the whole page.
+    const isTextField = (
+      tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')
+    ) || tag === 'textarea';
+
+    if (!isTextField) return;
+
+    logAction('key', {
+      tag,
+      id: t.id || null,
+      name: t.name || null,
+      value: t.value != null ? String(t.value).substring(0, 120) : null,
+      text: null,
+      key: String(e.key).substring(0, 40),
+      code: String(e.code || '').substring(0, 40)
+    });
+
+    // Group keystrokes slightly to avoid sending on every single key.
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      addSaveBtn();
+      hookLearningAnalyticsLog();
+    });
+  } else {
+    addSaveBtn();
+    hookLearningAnalyticsLog();
+  }
+})();
+    </script>
+    <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <!-- Main Container -->
+    <div id="main-container">
+        
+        <!-- MODIFIED: Tooltip for header information - now clickable to hide/show -->
+        <div id="header-tooltip" class="tooltip">
+            <span id="tooltip-text">🔢 P5 Percentage–Fraction–Decimal Converter Lab: Explore the relationships between percentages, fractions, and decimals through interactive conversion and visual representation.</span>
+            <button id="tooltip-close-btn" class="tooltip-close" title="Hide tooltip">✕</button>
+        </div>
+
+        <!-- Main Interactive Area -->
+        <div id="interactive-area">
+            
+            <!-- Left Panel: Input Controls -->
+            <div id="input-panel" class="panel">
+                <div class="panel-title">Input Value</div>
+                
+                <!-- Mode Selection -->
+                <div class="control-group">
+                    <label class="control-label">Input Type:</label>
+                    <div class="button-group">
+                        <button class="mode-btn active" data-mode="percentage">Percentage (%)</button>
+                        <button class="mode-btn" data-mode="fraction">Fraction</button>
+                        <button class="mode-btn" data-mode="decimal">Decimal</button>
+                    </div>
+                </div>
+
+                <!-- Percentage Input -->
+                <div id="percentage-input" class="input-section active">
+                    <label class="control-label">Enter Percentage:</label>
+                    <div class="slider-container">
+                        <input type="range" id="percentage-slider" min="0" max="100" value="50" step="0.1">
+                        <input type="number" id="percentage-number" min="0" max="100" value="50" step="0.1">
+                        <span class="unit-label">%</span>
+                    </div>
+                </div>
+
+                <!-- Fraction Input -->
+                <div id="fraction-input" class="input-section">
+                    <label class="control-label">Enter Fraction:</label>
+                    <div class="fraction-input-group">
+                        <input type="number" id="numerator" min="0" max="1000" value="1" placeholder="Numerator">
+                        <span class="fraction-bar">/</span>
+                        <input type="number" id="denominator" min="1" max="1000" value="2" placeholder="Denominator">
+                    </div>
+                    <button id="simplify-btn" class="action-btn">Simplify Fraction</button>
+                </div>
+
+                <!-- Decimal Input -->
+                <div id="decimal-input" class="input-section">
+                    <label class="control-label">Enter Decimal:</label>
+                    <div class="decimal-input-group">
+                        <input type="number" id="decimal-number" min="0" max="1" value="0.5" step="0.001">
+                    </div>
+                </div>
+
+                <!-- Investigation Tasks - ENHANCED with clearer instructions -->
+                <div class="investigation-box">
+                    <div class="investigation-title">🔍 Investigation Task</div>
+                    <div id="task-description" class="task-text">Try to find three different fractions that equal 0.5 (50%)</div>
+                    <!-- ADDED: Step-by-step instructions for completing the task -->
+                    <div id="task-instructions" class="task-instructions">
+                        💡 <strong>How to complete:</strong><br>
+                        1. Switch to the input type needed (Fraction, Decimal, or %)<br>
+                        2. Enter your answer using the input fields above<br>
+                        3. Click "Convert" to check your answer<br>
+                        4. Watch the results panel to see if you're correct!
+                    </div>
+                    <!-- ADDED: Task completion feedback area -->
+                    <div id="task-feedback" class="task-feedback"></div>
+                    <button id="new-task-btn" class="action-btn">New Task</button>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="button-container">
+                    <button id="convert-btn" class="primary-btn">Convert</button>
+                    <button id="reset-btn" class="secondary-btn">Reset</button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Visual Representation & Results -->
+            <div id="output-panel" class="panel">
+                <div class="panel-title">Conversions & Visualization</div>
+                
+                <!-- Conversion Results -->
+                <div id="results-display">
+                    <div class="result-item">
+                        <span class="result-label">Percentage:</span>
+                        <span id="result-percentage" class="result-value">50%</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Fraction:</span>
+                        <span id="result-fraction" class="result-value">1/2</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Decimal:</span>
+                        <span id="result-decimal" class="result-value">0.5</span>
+                    </div>
+                </div>
+
+                <!-- Visual Representation -->
+                <div id="visual-container">
+                    <canvas id="visualization-canvas"></canvas>
+                </div>
+
+                <!-- Explanation Panel -->
+                <div id="explanation-panel">
+                    <div class="explanation-title">💡 Understanding:</div>
+                    <div id="explanation-text" class="explanation-content">
+                        50% means 50 out of 100, which equals 1/2 or 0.5
+                    </div>
+                </div>
+
+                <!-- Compare Mode -->
+                <div id="compare-section">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="compare-mode">
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">Compare Mode</span>
+                    </label>
+                    <div id="compare-display" class="compare-hidden">
+                        <input type="number" id="compare-value" placeholder="Enter value to compare" step="0.01">
+                        <button id="add-compare-btn" class="action-btn">Add to Compare</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Panel (Collapsible) -->
+        <div id="analytics-panel">
+            <div id="analytics-header">
+                <span class="analytics-title">📊 Learning Analytics</span>
+                <div class="analytics-controls">
+                    <button id="clear-log-btn" class="analytics-btn">Clear Log</button>
+                    <button id="toggle-analytics-btn" class="analytics-btn">▼ Hide</button>
+                </div>
+            </div>
+            <div id="analytics-content">
+                <div id="action-log"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

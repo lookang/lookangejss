@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Leitner Maths Arena</title>
+<link rel="stylesheet" href="styles.css">
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+</head>
+<body class="game-home">
+
+<!-- ── Mood / SE Check-in overlay (shown once per day) ─────── -->
+<div class="mood-overlay" id="moodOverlay">
+  <div class="mood-card">
+    <div style="font-size:2rem;margin-bottom:8px">👋</div>
+    <h2>How are you feeling today?</h2>
+    <p>Check in before we start. Your feelings matter!</p>
+    <div class="mood-faces" role="group" aria-label="Choose your mood">
+      <button class="mood-btn" data-mood="happy"     aria-label="Happy"     type="button"><span class="mood-emoji">😊</span>Happy</button>
+      <button class="mood-btn" data-mood="okay"      aria-label="Okay"      type="button"><span class="mood-emoji">😐</span>Okay</button>
+      <button class="mood-btn" data-mood="worried"   aria-label="Worried"   type="button"><span class="mood-emoji">😟</span>Worried</button>
+      <button class="mood-btn" data-mood="sad"       aria-label="Sad"       type="button"><span class="mood-emoji">😢</span>Sad</button>
+      <button class="mood-btn" data-mood="frustrated" aria-label="Frustrated" type="button"><span class="mood-emoji">😤</span>Frustrated</button>
+    </div>
+    <div class="mood-alert" id="moodAlert">
+      💛 It's okay to feel this way. You don't have to do this alone.<br>
+      <strong>Please talk to your teacher or a trusted adult.</strong><br>
+      We'll still practise together — take it one card at a time. 🌟
+    </div>
+    <button class="mood-ok-btn" id="moodOkBtn" type="button" disabled>Let's start →</button>
+  </div>
+</div>
+
+<div class="container arena-shell">
+  <header class="arena-hero">
+    <div class="arena-copy">
+      <div class="eyebrow">Factual fluency ranked practice</div>
+      <h1>Leitner Maths Arena</h1>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:-10px;margin-bottom:4px;font-style:italic">(Senior Specialist Research 2027–28 by Juliet and Lawrence)</div>
+      <p>Train facts like chess tactics: solve the daily deck, climb leagues, protect your streak, and unlock milestones.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" id="dailyStartBtn" href="addition.html">Start Daily Arena</a>
+        <button class="btn btn-outline" id="loginOpenBtn">Player Login</button>
+      </div>
+    </div>
+    <div class="player-pass">
+      <div class="pass-top">
+        <div class="avatar-disc" id="avatarDisc">LM</div>
+        <div>
+          <div class="player-name" id="playerName">Student</div>
+          <div class="player-handle" id="playerHandle">@Student</div>
+        </div>
+      </div>
+      <div class="pass-stats">
+        <div><strong id="playerLeague">Bronze</strong><span>League</span></div>
+        <div><strong id="playerXp">0</strong><span>XP</span></div>
+        <div><strong id="playerStreak">0</strong><span>Streak</span></div>
+      </div>
+      <div class="goal-meter">
+        <div class="goal-label"><span>Daily goal</span><strong id="dailyGoalText">0/20</strong></div>
+        <div class="progress-bar"><div class="progress-fill" id="dailyGoalFill"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="arena-grid">
+    <article class="mission-panel">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">Today</div>
+          <h2 id="todayDay">Loading</h2>
+        </div>
+        <div class="pack-chips" id="todayPacks"></div>
+      </div>
+      <p id="todayNote" class="mission-copy"></p>
+      <div class="mission-map" aria-label="Daily practice loop">
+        <div class="mission-step active"><span>1</span><strong>Warm up</strong><small>Addition or Subtraction</small></div>
+        <div class="mission-line"></div>
+        <div class="mission-step"><span>2</span><strong>Tactics</strong><small>Multiplication or Division</small></div>
+        <div class="mission-line"></div>
+        <div class="mission-step"><span>3</span><strong>Boss puzzle</strong><small>Word Problem</small></div>
+      </div>
+    </article>
+
+    <article class="league-panel">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">League table</div>
+          <h2>Class Rivals</h2>
+        </div>
+        <span class="season-chip">Season 1</span>
+      </div>
+      <ol class="leaderboard" id="leaderboard"></ol>
+    </article>
+  </section>
+
+  <!-- Goal-setting panel -->
+  <section class="goal-panel" id="goalPanel">
+    <h2>🎯 My Learning Goals</h2>
+    <p>Mission: move all cards from Box 1 → Box 2 → Box 3 → 🏆 Mastery. Set a target date for each topic!</p>
+    <div class="goal-grid" id="goalGrid"></div>
+  </section>
+
+  <!-- Live activity ticker -->
+  <div class="activity-ticker" id="activityTicker">
+    <div class="ticker-left">
+      <span class="ticker-live">🔴 LIVE</span>
+      <span class="ticker-online"><strong id="tickerOnline">—</strong> online now</span>
+    </div>
+    <div class="ticker-scroll-wrap">
+      <div class="ticker-track" id="tickerTrack">
+        <div class="ticker-item"><span>📖</span><span>Loading activity…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="quickplay-section">
+    <div class="section-title">
+      <div>
+        <div class="eyebrow">Choose your board</div>
+        <h2>Quick Play</h2>
+      </div>
+      <a href="achievement.html" class="mini-link">View milestones</a>
+    </div>
+    <div class="topic-grid arena-topics">
+      <a href="addition.html" class="topic-card addition" id="cardAdd">
+        <div class="topic-icon">+</div>
+        <div class="topic-name">Addition</div>
+        <div class="topic-due" id="dueAdd">Loading</div>
+      </a>
+      <a href="subtraction.html" class="topic-card subtraction" id="cardSub">
+        <div class="topic-icon">-</div>
+        <div class="topic-name">Subtraction</div>
+        <div class="topic-due" id="dueSub">Loading</div>
+      </a>
+      <a href="multiplication.html" class="topic-card multiplication" id="cardMult">
+        <div class="topic-icon">x</div>
+        <div class="topic-name">Multiplication</div>
+        <div class="topic-due" id="dueMult">Loading</div>
+      </a>
+      <a href="division.html" class="topic-card division" id="cardDiv">
+        <div class="topic-icon">/</div>
+        <div class="topic-name">Division</div>
+        <div class="topic-due" id="dueDiv">Loading</div>
+      </a>
+      <a href="wordproblems.html" class="topic-card wordproblems" id="cardWP">
+        <div class="topic-icon">?</div>
+        <div class="topic-name">Word Problems</div>
+        <div class="topic-due">Boss puzzles</div>
+      </a>
+      <a href="record.html" class="topic-card record">
+        <div class="topic-icon">#</div>
+        <div class="topic-name">Record Sheet</div>
+        <div class="topic-due">Teacher view</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="arena-grid">
+    <article class="quest-panel">
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">Core loop</div>
+          <h2>Daily Quests</h2>
+        </div>
+        <strong id="accuracyBadge">0%</strong>
+      </div>
+      <div class="quest-list" id="questList"></div>
+    </article>
+
+    <article class="roadmap-panel" id="adminRoadmap" hidden>
+      <div class="panel-heading">
+        <div>
+          <div class="eyebrow">Chess.com-style plan</div>
+          <h2>Next Systems</h2>
+        </div>
+      </div>
+      <div class="system-list">
+        <div><strong>Login</strong><span>Cloud accounts save progress across devices after cPanel setup.</span></div>
+        <div><strong>Matchmaking</strong><span>Async puzzle races by skill band, not open chat. Class-safe competition first.</span></div>
+        <div><strong>Ratings</strong><span>Separate ratings for facts, word problems, speed, and consistency.</span></div>
+        <div><strong>Coach AI</strong><span>Use missed-answer patterns to recommend the next deck and hint style.</span></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="milestone-section arena-milestones">
+    <div class="section-title">
+      <div>
+        <div class="eyebrow">Campaign</div>
+        <h2>Milestone Journey</h2>
+      </div>
+      <span id="masteryText">0% mastered</span>
+    </div>
+    <div class="milestone-track" id="milestoneTrack"></div>
+  </section>
+
+  <section class="debug-footer-panel" id="accountDebugPanel">
+    <div class="panel-heading">
+      <div>
+        <div class="eyebrow">Live setup log</div>
+        <h2>Account Activity Feed</h2>
+      </div>
+      <button class="mini-link debug-refresh" id="refreshUsersBtn" type="button">Refresh</button>
+    </div>
+    <p class="debug-note">Social-style notices for debugging: account created, login, logout, and failed login attempts.</p>
+    <div class="debug-user-list" id="debugUserList">
+      <div class="debug-empty">Activity feed not checked yet.</div>
+    </div>
+  </section>
+
+  <section class="debug-footer-panel teacher-tools-panel" id="teacherToolsPanel" hidden>
+    <div class="panel-heading">
+      <div>
+        <div class="eyebrow">Teacher tools</div>
+        <h2>Password Reset And Teacher Approval</h2>
+      </div>
+      <button class="mini-link debug-refresh" id="refreshTeacherToolsBtn" type="button">Refresh</button>
+    </div>
+    <p class="debug-note">Teachers can reset passwords for students in their own class. Admins can approve pending teacher accounts.</p>
+    <div class="teacher-tool-grid">
+      <div class="teacher-tool-card">
+        <strong>Reset Student Password</strong>
+        <span>Select a student and set a temporary password.</span>
+        <select id="resetStudentSelect" class="teacher-select">
+          <option value="">Sign in as teacher/admin first</option>
+        </select>
+        <input type="text" id="resetPasswordInput" class="student-name-input login-input" placeholder="New temporary password">
+        <button class="btn btn-outline login-wide-btn" id="resetPasswordBtn" type="button">Reset selected student's password</button>
+      </div>
+      <div class="teacher-tool-card">
+        <strong>Approve Teacher Accounts</strong>
+        <span>Teacher-domain emails become pending teachers until admin approves them.</span>
+        <select id="pendingTeacherSelect" class="teacher-select">
+          <option value="">Sign in as admin first</option>
+        </select>
+        <button class="btn btn-outline login-wide-btn" id="approveTeacherBtn" type="button">Approve selected teacher</button>
+      </div>
+    </div>
+    <div class="cloud-status teacher-tool-status" id="teacherToolStatus">Teacher tools not checked yet.</div>
+  </section>
+
+  <div class="footer">
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a>, Juliet, and Lawrence &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a> &nbsp;|&nbsp;
+    <a href="https://www.iwant2study.moe.edu.sg" target="_blank" rel="noopener">iwant2study.moe.edu.sg</a>
+    &nbsp;|&nbsp; <span id="lastMod" style="color:var(--muted);font-size:.75rem"></span>
+  </div>
+  <script>document.getElementById('lastMod').textContent = 'Last updated: ' + new Date(document.lastModified).toLocaleString('en-SG', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});</script>
+</div>
+
+<dialog class="login-dialog" id="loginDialog">
+  <div class="login-card" id="loginCard">
+
+    <!-- Shared header -->
+    <div class="login-header">
+      <button class="login-back-btn" id="loginBackBtn" aria-label="Back" hidden>←</button>
+      <div class="login-header-text">
+        <div class="eyebrow" id="loginEyebrow">Player access</div>
+        <h2 id="loginTitle">How do you want to play?</h2>
+      </div>
+      <button class="icon-btn" id="loginCloseBtn" aria-label="Close">✕</button>
+    </div>
+
+    <!-- ── View 1: Choose path ── -->
+    <div id="loginViewChoose">
+      <button class="login-path-card" id="pathLocal" type="button" style="width:100%;text-align:left">
+        <div class="login-path-icon">📱</div>
+        <div>
+          <strong>Play on this device</strong>
+          <span>No password. Progress stays on this browser.</span>
+        </div>
+        <span class="login-path-arrow">→</span>
+      </button>
+      <button class="login-path-card" id="pathCloud" type="button" style="width:100%;text-align:left">
+        <div class="login-path-icon">🏫</div>
+        <div>
+          <strong>Sign in to class account</strong>
+          <span>Save progress and join the class leaderboard.</span>
+        </div>
+        <span class="login-path-arrow">→</span>
+      </button>
+    </div>
+
+    <!-- ── View 2: Local name entry ── -->
+    <div id="loginViewLocal" hidden>
+      <p class="login-intro">Your progress is saved on this device only.</p>
+      <label class="login-label" for="loginName">Your name</label>
+      <input type="text" id="loginName" class="student-name-input login-input" placeholder="e.g. Lookang" maxlength="30" autocomplete="off">
+      <button class="btn btn-primary login-wide-btn" id="localContinueBtn" type="button">Continue →</button>
+    </div>
+
+    <!-- ── View 3: Sign in ── -->
+    <div id="loginViewSignin" hidden>
+      <p class="login-intro">Enter your username or email, and password.</p>
+      <label class="login-label" for="siUsername">Username or email</label>
+      <input type="text" id="siUsername" class="student-name-input login-input" placeholder="e.g. juliet01 or you@moe.edu.sg" autocomplete="username email">
+      <label class="login-label" for="siPassword">Password</label>
+      <input type="password" id="siPassword" class="student-name-input login-input" placeholder="Your password" autocomplete="current-password">
+      <button class="btn btn-primary login-wide-btn" id="cloudLoginBtn" type="button">Sign in →</button>
+      <div class="login-switch">New here? <button class="login-text-btn" id="goRegisterBtn" type="button">Create a class account →</button></div>
+      <div class="login-switch" style="margin-top:8px"><button class="login-text-btn" id="goForgotBtn" type="button" style="color:var(--muted);font-weight:500">Forgot password?</button></div>
+    </div>
+
+    <!-- ── View 5: Forgot password ── -->
+    <div id="loginViewForgot" hidden>
+      <div style="font-size:2rem;text-align:center;margin-bottom:10px">🔑</div>
+      <p class="login-intro">Enter your email or username and we'll send you a reset link.</p>
+      <label class="login-label" for="forgotId">Email or username</label>
+      <input type="text" id="forgotId" class="student-name-input login-input"
+             placeholder="e.g. juliet01 or you@moe.edu.sg" autocomplete="email username">
+      <button class="btn btn-primary login-wide-btn" id="btnForgotSend" type="button">Send reset link →</button>
+      <div id="forgotSentMsg" style="display:none;margin-top:14px;padding:12px;background:#ecfdf5;border-radius:8px;color:#047857;font-size:.86rem;line-height:1.5">
+        ✅ If that account has an email address, a reset link has been sent.<br>Check your inbox (and spam folder).
+      </div>
+      <button class="btn btn-outline login-wide-btn" id="backToSigninBtn" type="button" style="margin-top:12px">← Back to sign in</button>
+    </div>
+
+    <!-- ── View 4: Create account ── -->
+    <div id="loginViewRegister" hidden>
+      <p class="login-intro">Students: ask your teacher for the class code.<br>
+        <strong>Teachers:</strong> use your MOE email (<em>@moe.edu.sg</em>) — your account will be reviewed by an admin before teacher tools activate.</p>
+      <div class="cloud-login-grid">
+        <label>
+          <span>Your name</span>
+          <input type="text" id="cloudDisplayName" class="student-name-input login-input" placeholder="e.g. Lookang" autocomplete="name">
+        </label>
+        <label>
+          <span>Username</span>
+          <input type="text" id="cloudUsername" class="student-name-input login-input" placeholder="e.g. juliet01" autocomplete="username">
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" id="cloudPassword" class="student-name-input login-input" placeholder="6 or more characters" autocomplete="new-password">
+        </label>
+        <label>
+          <span>Class code <em style="font-weight:400">(from your teacher)</em></span>
+          <input type="text" id="cloudClassCode" class="student-name-input login-input" placeholder="e.g. DEMO2026">
+        </label>
+        <label>
+          <span>Email <em style="font-weight:400">(optional)</em></span>
+          <input type="email" id="cloudEmail" class="student-name-input login-input" placeholder="you@example.com" autocomplete="email">
+        </label>
+      </div>
+      <button class="btn btn-primary login-wide-btn" id="cloudRegisterBtn" type="button">Create account →</button>
+      <div class="login-switch">Already have one? <button class="login-text-btn" id="goSigninBtn" type="button">Sign in →</button></div>
+    </div>
+
+    <div class="cloud-status" id="cloudStatus"></div>
+  </div>
+</dialog>
+
+<script src="leitner-engine.js"></script>
+<script src="backend-client.js"></script>
+<script>
+(function () {
+  const engine = LeitnerEngine.init();
+  const summary = engine.getGameSummary();
+  const profile = summary.profile;
+
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const today = new Date();
+  const packs = engine.getTodayPacks();
+  const noteArr = {
+    0:'Pack A is live. Keep the streak alive with a short accuracy run.',
+    1:'Pack A only. A clean warm-up day for building speed.',
+    2:'Pack A + B today. Promotion chances are higher.',
+    3:'Pack A only. Good day to fix weak facts.',
+    4:'Pack A + B today. Push cards toward mastery.',
+    5:'Pack A + B + C. Weekly review day: defend your league position.',
+    6:'Pack A only. A light session still protects the streak.'
+  };
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function initials(name) {
+    return (name || 'LM').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  function updateProfileUI() {
+    const fresh = engine.getGameSummary();
+    const p = fresh.profile;
+    setText('playerName', p.name);
+    setText('playerHandle', '@' + (p.handle || p.name.replace(/\s+/g, '')));
+    setText('playerLeague', p.league);
+    setText('playerXp', p.xp);
+    setText('playerStreak', p.streak);
+    setText('avatarDisc', initials(p.name));
+    setText('dailyGoalText', p.today.cards + '/' + p.dailyGoal);
+    setText('accuracyBadge', fresh.accuracy + '%');
+    setText('masteryText', fresh.masteryPct + '% mastered');
+    document.getElementById('dailyGoalFill').style.width = fresh.dailyGoalPct + '%';
+  }
+
+  function updateToday() {
+    setText('todayDay', DAYS[today.getDay()] + ', ' + today.toLocaleDateString('en-SG', { day:'numeric', month:'long' }));
+    setText('todayNote', noteArr[today.getDay()]);
+    const chips = document.getElementById('todayPacks');
+    packs.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'pack-chip ' + p;
+      chip.textContent = 'Pack ' + p;
+      chips.appendChild(chip);
+    });
+  }
+
+  function updateTopicCards() {
+    const stats = engine.getAllTopicStats();
+    const map = { addition:'dueAdd', subtraction:'dueSub', multiplication:'dueMult', division:'dueDiv' };
+    const resumeByTopic = {};
+    ['addition', 'subtraction', 'multiplication', 'division'].forEach(topic => {
+      resumeByTopic[topic] = engine.loadPracticeSession(topic);
+    });
+    stats.forEach(s => {
+      const sessionCount = Math.min(s.dueToday, LeitnerEngine.SESSION_CARD_LIMIT || 10);
+      const resume = resumeByTopic[s.topic];
+      const box2 = s.counts.B, box3 = s.counts.C;
+      const progressStr = box2 + box3 > 0
+        ? 'Box 2: ' + box2 + ' · Mastered: ' + box3
+        : 'All ' + s.counts.A + ' in Box 1';
+      const label = resume
+        ? 'Resume card ' + (resume.idx + 1) + ' of ' + resume.cards.length + ' · ' + progressStr
+        : (sessionCount || 0) + '-card session · ' + progressStr;
+      setText(map[s.topic], label);
+    });
+    const dailyBtn = document.getElementById('dailyStartBtn');
+    const firstResume = stats.find(s => resumeByTopic[s.topic]);
+    const firstDue = stats.find(s => s.dueToday > 0);
+    if (firstResume) {
+      dailyBtn.href = firstResume.topic + '.html';
+      dailyBtn.textContent = 'Resume Daily Arena';
+    } else if (firstDue) {
+      dailyBtn.href = firstDue.topic + '.html';
+      dailyBtn.textContent = 'Start Daily Arena';
+    }
+  }
+
+  function renderQuests() {
+    const fresh = engine.getGameSummary();
+    const quests = [
+      { name:'Solve 20 cards', progress:fresh.profile.today.cards, target:fresh.profile.dailyGoal, reward:'+60 XP' },
+      { name:'Reach 80% accuracy', progress:fresh.accuracy, target:80, reward:'Accuracy badge' },
+      { name:'Master 5 new cards', progress:Math.min(5, fresh.mastered % 6), target:5, reward:'League boost' },
+    ];
+    const wrap = document.getElementById('questList');
+    wrap.innerHTML = '';
+    quests.forEach(q => {
+      const pct = Math.min(100, Math.round((q.progress / q.target) * 100));
+      const row = document.createElement('div');
+      row.className = 'quest-row';
+      row.innerHTML = `<div><strong>${q.name}</strong><span>${q.progress}/${q.target} - ${q.reward}</span></div><div class="quest-meter"><i style="width:${pct}%"></i></div>`;
+      wrap.appendChild(row);
+    });
+  }
+
+  async function renderLeaderboard() {
+    const list = document.getElementById('leaderboard');
+    list.innerHTML = '<li style="color:var(--muted);font-size:.85rem;padding:6px 0">Loading class rivals…</li>';
+
+    // Try real cloud leaderboard first
+    if (window.LeitnerCloud) {
+      try {
+        const leaders = await window.LeitnerCloud.leaderboard(true);
+        if (leaders && leaders.length > 0) {
+          list.innerHTML = '';
+          leaders.forEach(r => {
+            const li = document.createElement('li');
+            li.className = r.me ? 'me' : '';
+            li.innerHTML = `<span>${r.rank}</span><strong>${r.name}</strong><em>${r.xp} XP</em>`;
+            list.appendChild(li);
+          });
+          return; // real data rendered — done
+        }
+      } catch (err) {
+        // cloud not available — fall through to local fallback
+      }
+    }
+
+    // Fallback: local player only + sign-in prompt
+    const p = engine.getGameSummary().profile;
+    list.innerHTML = '';
+    if (p.xp > 0) {
+      const li = document.createElement('li');
+      li.className = 'me';
+      li.innerHTML = `<span>1</span><strong>${p.name}</strong><em>${p.xp} XP</em>`;
+      list.appendChild(li);
+    }
+    const hint = document.createElement('li');
+    hint.style.cssText = 'color:var(--muted);font-size:.8rem;padding:8px 0;list-style:none;text-align:center';
+    hint.textContent = '🔒 Sign in with a class code to see real classmates';
+    list.appendChild(hint);
+  }
+
+  function authEventSentence(event) {
+    const name = event.displayName || event.username || 'Someone';
+    const user = event.username ? ' @' + event.username : '';
+    const classText = event.classCode ? ' for class ' + event.classCode : '';
+    if (event.type === 'account_created') return name + user + ' created a new account' + classText + '.';
+    if (event.type === 'login') return name + user + ' logged in.';
+    if (event.type === 'logout') return name + user + ' logged out.';
+    if (event.type === 'login_failed') return 'Failed login attempt for ' + (event.username ? '@' + event.username : 'an unknown username') + '.';
+    if (event.type === 'teacher_pending') return name + user + ' requested teacher access.';
+    if (event.type === 'teacher_approved') return name + user + ' was approved as a teacher.';
+    if (event.type === 'password_reset') return name + user + ' had a password reset by a teacher/admin.';
+    return name + user + ' had account activity.';
+  }
+
+  async function renderDebugUsers() {
+    const box = document.getElementById('debugUserList');
+    if (!box || !window.LeitnerCloud || typeof window.LeitnerCloud.authFeed !== 'function') return;
+    box.innerHTML = '<div class="debug-empty">Checking account activity...</div>';
+    try {
+      const events = await window.LeitnerCloud.authFeed();
+      if (!events.length) {
+        box.innerHTML = '<div class="debug-empty">No account activity yet. Create an account or sign in, then refresh.</div>';
+        return;
+      }
+      box.innerHTML = '';
+      events.forEach(event => {
+        const row = document.createElement('div');
+        row.className = 'debug-user-row event-' + event.type;
+        row.innerHTML = `
+          <div>
+            <strong>${authEventSentence(event)}</strong>
+            <span>${event.createdAt || 'just now'}</span>
+          </div>
+          <em>${event.type.replace('_', ' ')}</em>`;
+        box.appendChild(row);
+      });
+    } catch (err) {
+      box.innerHTML = '<div class="debug-empty">Activity feed not ready: ' + (err.message || 'check api/config.php') + '</div>';
+    }
+  }
+
+  function renderMilestones() {
+    const track = document.getElementById('milestoneTrack');
+    track.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+      if (i > 1) {
+        const conn = document.createElement('div');
+        conn.className = 'milestone-connector' + (engine.getAchievementDate(i) ? ' done' : '');
+        track.appendChild(conn);
+      }
+      const pct = engine.getMilestoneProgress(i);
+      const badge = document.createElement('a');
+      badge.href = 'achievement.html';
+      badge.className = 'milestone-badge' + (engine.getAchievementDate(i) ? ' achieved' : '');
+      badge.innerHTML = `<span class="milestone-num">${i}</span><span class="milestone-pct">${pct}%</span>`;
+      track.appendChild(badge);
+    }
+  }
+
+  function setupLogin() {
+    // handled inside setupCloudLogin() unified flow
+  }
+
+  async function renderTeacherTools() {
+    const status = document.getElementById('teacherToolStatus');
+    const studentSelect = document.getElementById('resetStudentSelect');
+    const pendingSelect = document.getElementById('pendingTeacherSelect');
+    if (!status || !window.LeitnerCloud) return;
+
+    status.textContent = 'Checking teacher/admin permissions...';
+    status.classList.remove('ok');
+
+    try {
+      const students = await window.LeitnerCloud.teacherStudents();
+      studentSelect.innerHTML = students.length
+        ? '<option value="">Select student</option>'
+        : '<option value="">No students available for this account</option>';
+      students.forEach(student => {
+        const opt = document.createElement('option');
+        opt.value = student.id;
+        opt.textContent = (student.displayName || student.username) + ' (@' + student.username + ')';
+        studentSelect.appendChild(opt);
+      });
+      status.textContent = 'Teacher reset list loaded.';
+      status.classList.add('ok');
+    } catch (err) {
+      studentSelect.innerHTML = '<option value="">Sign in as teacher/admin first</option>';
+      status.textContent = err.message || 'Teacher tools unavailable';
+    }
+
+    try {
+      const pending = await window.LeitnerCloud.pendingTeachers();
+      pendingSelect.innerHTML = pending.length
+        ? '<option value="">Select pending teacher</option>'
+        : '<option value="">No pending teacher accounts</option>';
+      pending.forEach(teacher => {
+        const opt = document.createElement('option');
+        opt.value = teacher.id;
+        opt.textContent = (teacher.displayName || teacher.username) + ' (@' + teacher.username + ') ' + (teacher.email || '');
+        pendingSelect.appendChild(opt);
+      });
+    } catch (err) {
+      pendingSelect.innerHTML = '<option value="">Admin login required</option>';
+    }
+  }
+
+  function setupTeacherTools() {
+    const resetBtn = document.getElementById('resetPasswordBtn');
+    const approveBtn = document.getElementById('approveTeacherBtn');
+    const refreshBtn = document.getElementById('refreshTeacherToolsBtn');
+    const status = document.getElementById('teacherToolStatus');
+
+    resetBtn.addEventListener('click', async () => {
+      const studentId = document.getElementById('resetStudentSelect').value;
+      const newPassword = document.getElementById('resetPasswordInput').value;
+      try {
+        const result = await window.LeitnerCloud.teacherResetPassword(studentId, newPassword);
+        status.textContent = result.message || 'Password reset complete.';
+        status.classList.add('ok');
+        document.getElementById('resetPasswordInput').value = '';
+        await renderDebugUsers();
+      } catch (err) {
+        status.textContent = err.message || 'Password reset failed';
+        status.classList.remove('ok');
+      }
+    });
+
+    approveBtn.addEventListener('click', async () => {
+      const teacherId = document.getElementById('pendingTeacherSelect').value;
+      try {
+        const result = await window.LeitnerCloud.approveTeacher(teacherId);
+        status.textContent = result.message || 'Teacher approved.';
+        status.classList.add('ok');
+        await renderTeacherTools();
+        await renderDebugUsers();
+      } catch (err) {
+        status.textContent = err.message || 'Teacher approval failed';
+        status.classList.remove('ok');
+      }
+    });
+
+    refreshBtn.addEventListener('click', renderTeacherTools);
+    renderTeacherTools();
+  }
+
+  function setupCloudLogin() {
+    const dialog     = document.getElementById('loginDialog');
+    const status     = document.getElementById('cloudStatus');
+    const views      = ['Choose','Local','Signin','Register','Forgot'];
+
+    function showView(name) {
+      views.forEach(v => {
+        const el = document.getElementById('loginView' + v);
+        if (el) el.hidden = (v !== name);
+      });
+      document.getElementById('loginBackBtn').hidden = (name === 'Choose');
+      status.textContent = '';
+      status.classList.remove('ok');
+      const titles = {
+        Choose:   ['Player access',    'How do you want to play?'],
+        Local:    ['Play on device',   'What\'s your name?'],
+        Signin:   ['Class account',    'Welcome back'],
+        Register: ['New account',      'Create your account'],
+        Forgot:   ['Password help',    'Reset your password'],
+      };
+      document.getElementById('loginEyebrow').textContent = titles[name][0];
+      document.getElementById('loginTitle').textContent   = titles[name][1];
+    }
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.classList.toggle('ok', !!ok);
+    }
+
+    function userLabel(user) {
+      const name = user.displayName || user.username || 'cloud account';
+      return user.username ? name + ' (@' + user.username + ')' : name;
+    }
+
+    function applyCloudUser(user) {
+      engine.setStudentName(user.displayName || user.username || 'Student');
+      const role = user.role || '';
+      const isTeacherOrAdmin = ['teacher', 'admin'].includes(role);
+      const roadmap = document.getElementById('adminRoadmap');
+      if (roadmap) roadmap.hidden = !isTeacherOrAdmin;
+      const teacherPanel = document.getElementById('teacherToolsPanel');
+      if (teacherPanel) teacherPanel.hidden = !isTeacherOrAdmin;
+      let tdBtn = document.getElementById('teacherDashboardBtn');
+      if (!tdBtn && isTeacherOrAdmin) {
+        tdBtn = document.createElement('a');
+        tdBtn.id = 'teacherDashboardBtn';
+        tdBtn.href = 'teacher.html';
+        tdBtn.className = 'btn btn-primary';
+        tdBtn.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:10px;width:100%;justify-content:center';
+        tdBtn.innerHTML = '📊 Open Teacher Dashboard';
+        document.getElementById('teacherToolsPanel').appendChild(tdBtn);
+      }
+      if (tdBtn) tdBtn.hidden = !isTeacherOrAdmin;
+      updateProfileUI(); renderQuests(); renderLeaderboard();
+    }
+
+    async function refreshFromCloud() {
+      if (!window.LeitnerCloud) return;
+      const user = await window.LeitnerCloud.me();
+      if (user) {
+        applyCloudUser(user);
+        await window.LeitnerCloud.loadProgress(engine).catch(() => null);
+        updateProfileUI(); updateTopicCards(); renderQuests();
+        renderLeaderboard(); renderMilestones();
+        renderDebugUsers(); renderTeacherTools();
+        setStatus('Signed in as ' + userLabel(user) + '. Progress will sync after practice.', true);
+      }
+    }
+
+    // ── Open dialog ──
+    document.getElementById('loginOpenBtn').addEventListener('click', () => {
+      showView('Choose');
+      dialog.showModal();
+    });
+
+    // ── Close / back ──
+    document.getElementById('loginCloseBtn').addEventListener('click', () => dialog.close());
+    document.getElementById('loginBackBtn').addEventListener('click', () => showView('Choose'));
+
+    // ── Path selection ──
+    document.getElementById('pathLocal').addEventListener('click', () => {
+      const nameInput = document.getElementById('loginName');
+      nameInput.value = engine.gameProfile && engine.gameProfile.name !== 'Student' ? engine.gameProfile.name : '';
+      showView('Local');
+      setTimeout(() => nameInput.focus(), 40);
+    });
+    document.getElementById('pathCloud').addEventListener('click', () => {
+      showView('Signin');
+      setTimeout(() => document.getElementById('siUsername').focus(), 40);
+    });
+
+    // ── Switch between sign-in / register / forgot ──
+    document.getElementById('goRegisterBtn').addEventListener('click', () => showView('Register'));
+    document.getElementById('goSigninBtn').addEventListener('click', () => showView('Signin'));
+    document.getElementById('goForgotBtn').addEventListener('click', () => {
+      showView('Forgot');
+      document.getElementById('forgotSentMsg').style.display = 'none';
+      document.getElementById('forgotId').value = '';
+      setTimeout(() => document.getElementById('forgotId').focus(), 40);
+    });
+    document.getElementById('backToSigninBtn').addEventListener('click', () => showView('Signin'));
+
+    // ── Forgot password — send reset link ──
+    document.getElementById('btnForgotSend').addEventListener('click', async () => {
+      const identifier = document.getElementById('forgotId').value.trim();
+      if (!identifier) { setStatus('Please enter your email or username.', false); return; }
+      setStatus('Sending…', false);
+      try {
+        const res = await fetch('api/forgot-password.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier }),
+        });
+        const data = await res.json();
+        status.textContent = '';
+        document.getElementById('forgotSentMsg').style.display = 'block';
+      } catch {
+        setStatus('Could not reach the server. Try again.', false);
+      }
+    });
+    document.getElementById('forgotId').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btnForgotSend').click();
+    });
+
+    // ── Local play ──
+    document.getElementById('localContinueBtn').addEventListener('click', () => {
+      const name = document.getElementById('loginName').value.trim() || 'Student';
+      engine.loginLocalProfile(name);
+      updateProfileUI(); renderQuests(); renderLeaderboard();
+      dialog.close();
+    });
+
+    // ── Cloud sign-in ──
+    document.getElementById('cloudLoginBtn').addEventListener('click', async () => {
+      const u = document.getElementById('siUsername').value.trim();
+      const p = document.getElementById('siPassword').value;
+      if (!u || !p) { setStatus('Please enter your username and password.', false); return; }
+      setStatus('Signing in…', false);
+      try {
+        const user = await window.LeitnerCloud.login(u, p);
+        applyCloudUser(user);
+        await refreshFromCloud();
+        dialog.close();
+      } catch (err) {
+        setStatus(err.message || 'Sign in failed. Check your username and password.', false);
+      }
+    });
+
+    // ── Cloud register ──
+    document.getElementById('cloudRegisterBtn').addEventListener('click', async () => {
+      const displayName = document.getElementById('cloudDisplayName').value.trim();
+      const username    = document.getElementById('cloudUsername').value.trim();
+      const password    = document.getElementById('cloudPassword').value;
+      const classCode   = document.getElementById('cloudClassCode').value.trim();
+      const email       = document.getElementById('cloudEmail').value.trim();
+      if (!username || !password || !classCode) {
+        setStatus('Please fill in username, password, and class code.', false); return;
+      }
+      setStatus('Creating account…', false);
+      try {
+        const user = await window.LeitnerCloud.register(displayName || username, username, password, classCode, email);
+        applyCloudUser(user);
+        await window.LeitnerCloud.saveProgress(engine);
+        await renderDebugUsers();
+        if (user.role === 'pending_teacher') {
+          // Don't close — show the pending message so teacher knows what to expect
+          setStatus('✅ Teacher account created! An admin will approve it before your teacher tools activate. You can practise as a student in the meantime.', true);
+        } else {
+          await refreshFromCloud();
+          dialog.close();
+        }
+      } catch (err) {
+        setStatus(err.message || 'Account creation failed. Try a different username.', false);
+      }
+    });
+
+    // ── Auto-check cloud session on load ──
+    refreshFromCloud().catch(() => {});
+    document.getElementById('refreshUsersBtn').addEventListener('click', renderDebugUsers);
+    renderDebugUsers();
+  }
+
+  // ── Mood check-in ─────────────────────────────────────────
+  function setupMoodCheckin() {
+    const overlay  = document.getElementById('moodOverlay');
+    const okBtn    = document.getElementById('moodOkBtn');
+    const alert    = document.getElementById('moodAlert');
+    const LOW_MOODS = ['sad', 'worried', 'frustrated'];
+
+    // Only show once per day
+    if (engine.getTodayMood()) {
+      overlay.classList.add('hidden');
+      return;
+    }
+
+    let chosenMood = null;
+    document.querySelectorAll('.mood-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        chosenMood = btn.dataset.mood;
+        okBtn.disabled = false;
+        alert.classList.toggle('visible', LOW_MOODS.includes(chosenMood));
+      });
+    });
+
+    okBtn.addEventListener('click', () => {
+      if (!chosenMood) return;
+      engine.saveMoodCheckin(chosenMood, '');
+      overlay.classList.add('hidden');
+    });
+  }
+
+  // ── Goal setting panel ──────────────────────────────────────
+  function renderGoalGrid() {
+    const topics = [
+      { id:'addition',       label:'➕ Addition' },
+      { id:'subtraction',    label:'➖ Subtraction' },
+      { id:'multiplication', label:'✖️ Multiplication' },
+      { id:'division',       label:'➗ Division' },
+      { id:'wordproblems',   label:'💬 Word Problems' },
+    ];
+    const grid = document.getElementById('goalGrid');
+    grid.innerHTML = '';
+    const today = new Date().toISOString().split('T')[0];
+    topics.forEach(t => {
+      const goal = engine.getGoal(t.id);
+      const row = document.createElement('div');
+      row.className = 'goal-row';
+      const val = goal ? goal.targetDate : '';
+      let daysLeft = '';
+      if (val) {
+        const diff = Math.ceil((new Date(val) - new Date(today)) / 86400000);
+        const cls  = diff <= 7 ? ' close' : '';
+        daysLeft = `<div class="goal-days-left${cls}">${diff > 0 ? diff + ' days left' : diff === 0 ? 'Today!' : Math.abs(diff) + ' days ago'}</div>`;
+      }
+      row.innerHTML = `
+        <label>${t.label}</label>
+        <input type="date" class="goal-date-input" min="${today}" value="${val}" data-topic="${t.id}" aria-label="${t.label} goal date">
+        ${daysLeft}`;
+      grid.appendChild(row);
+      row.querySelector('input').addEventListener('change', e => {
+        engine.setGoal(t.id, e.target.value);
+        renderGoalGrid();
+      });
+    });
+  }
+
+  updateProfileUI();
+  updateToday();
+  updateTopicCards();
+  renderQuests();
+  renderLeaderboard();
+  renderMilestones();
+  setupLogin();
+  setupTeacherTools();
+  setupCloudLogin();
+  setupMoodCheckin();
+  renderGoalGrid();
+
+  // ── Live activity ticker ───────────────────────────────────
+  function relTime(minAgo) {
+    if (minAgo < 1)  return 'just now';
+    if (minAgo < 60) return minAgo + ' min ago';
+    const h = Math.round(minAgo / 60);
+    return h + (h === 1 ? ' hr ago' : ' hrs ago');
+  }
+
+  async function loadTicker() {
+    if (!window.LeitnerCloud) return;
+    try {
+      const { events, onlineNow } = await window.LeitnerCloud.activityFeed();
+      document.getElementById('tickerOnline').textContent = onlineNow;
+      if (!events.length) return;
+      // Build items (duplicated for seamless loop)
+      const makeItems = () => events.map(e =>
+        `<div class="ticker-item"><span>${e.icon}</span><span>${e.text}</span><span class="ticker-time">· ${relTime(e.minutesAgo)}</span></div>`
+      ).join('');
+      const track = document.getElementById('tickerTrack');
+      track.innerHTML = makeItems() + makeItems(); // duplicate for seamless scroll
+      // Adjust animation speed based on content width
+      const totalW = track.scrollWidth / 2;
+      const speed  = Math.max(20, Math.round(totalW / 80)); // ~80px/s
+      track.style.animationDuration = speed + 's';
+    } catch { /* cloud offline — ticker stays hidden-ish */ }
+  }
+
+  loadTicker();
+  setInterval(loadTicker, 60000); // refresh every minute
+})();
+</script>
+</body>
+</html>

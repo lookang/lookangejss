@@ -1,0 +1,280 @@
+<!DOCTYPE html> 
+<html>
+<head>
+    <title>Singapore Young Physicists' Tournament (SYPT) Timer</title>
+    <!-- Google Analytics -->
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            background: #f0f2f5;
+            padding: 2rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .timer-segment {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .time {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 0.5rem 0;
+        }
+
+        .segment-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1a73e8;
+            margin-bottom: 0.5rem;
+        }
+
+        .segment-description {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 1rem;
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            margin: 1rem 0;
+        }
+
+        button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0 0.5rem;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #1557b0;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress {
+            height: 100%;
+            background: #1a73e8;
+            width: 0%;
+            transition: width 1s linear;
+        }
+
+        .complete {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+
+        .complete .time {
+            color: #4caf50;
+        }
+
+        .complete .progress {
+            background: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="timerContainer">
+    </div>
+
+    <script>
+        const segments = [
+            { duration: 2, description: "Reporter prepares presentation" },
+            { duration: 10, description: "Reporter presents" },
+            { duration: 2, description: "Opponent questions reporter" },
+            { duration: 4, description: "Opponent prepares presentation" },
+            { duration: 12, description: "Opponent leads discussion with reporter" },
+            { duration: 1, description: "Opponent summarises" },
+            { duration: 1, description: "Reporter concludes" },
+            { duration: 10, description: "Jurors question" },
+            { duration: 5, description: "Jurors write comments and scores" },
+            { duration: 5, description: "Open scoring, comments and feedback" }
+        ];
+
+        class Timer {
+            constructor(segment, index) {
+                this.duration = segment.duration * 60;
+                this.timeLeft = this.duration;
+                this.index = index;
+                this.description = segment.description;
+                this.interval = null;
+                this.isPaused = false;
+                this.isComplete = false;
+
+                this.element = this.createTimerElement();
+                this.timeDisplay = this.element.querySelector('.time');
+                this.progress = this.element.querySelector('.progress');
+                this.startBtn = this.element.querySelector('.startBtn');
+                this.pauseBtn = this.element.querySelector('.pauseBtn');
+                this.resetBtn = this.element.querySelector('.resetBtn');
+
+                this.updateDisplay();
+            }
+
+            createTimerElement() {
+                const div = document.createElement('div');
+                div.className = 'timer-segment';
+                div.innerHTML = `
+                    <div class="segment-title">Segment ${this.index + 1}: ${this.duration / 60} minutes</div>
+                    <div class="segment-description">${this.description}</div>
+                    <div class="time">00:00</div>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                    <div class="controls">
+                        <button class="startBtn">Start</button>
+                        <button class="pauseBtn" disabled>Pause</button>
+                        <button class="resetBtn" disabled>Reset</button>
+                    </div>
+                `;
+
+                div.querySelector('.startBtn').addEventListener('click', () => this.start());
+                div.querySelector('.pauseBtn').addEventListener('click', () => this.pause());
+                div.querySelector('.resetBtn').addEventListener('click', () => this.reset());
+
+                return div;
+            }
+
+            updateDisplay() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                this.timeDisplay.textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                const progressPercent = ((this.duration - this.timeLeft) / this.duration) * 100;
+                this.progress.style.width = `${progressPercent}%`;
+            }
+
+            start() {
+                if (!this.interval && !this.isComplete) {
+                    this.interval = setInterval(() => {
+                        this.timeLeft--;
+                        this.updateDisplay();
+
+                        if (this.timeLeft <= 0) {
+                            this.complete();
+                        }
+                    }, 1000);
+
+                    this.startBtn.disabled = true;
+                    this.pauseBtn.disabled = false;
+                    this.resetBtn.disabled = false;
+                }
+            }
+
+            pause() {
+                if (this.interval) {
+                    if (!this.isPaused) {
+                        clearInterval(this.interval);
+                        this.interval = null;
+                        this.isPaused = true;
+                        this.pauseBtn.textContent = 'Resume';
+                    } else {
+                        this.isPaused = false;
+                        this.pauseBtn.textContent = 'Pause';
+                        this.start();
+                    }
+                }
+            }
+
+            reset() {
+                clearInterval(this.interval);
+                this.interval = null;
+                this.timeLeft = this.duration;
+                this.isPaused = false;
+                this.isComplete = false;
+                this.updateDisplay();
+                this.startBtn.disabled = false;
+                this.pauseBtn.disabled = true;
+                this.resetBtn.disabled = true;
+                this.pauseBtn.textContent = 'Pause';
+                this.progress.style.width = '0%';
+                this.element.classList.remove('complete');
+            }
+
+            complete() {
+                clearInterval(this.interval);
+                this.interval = null;
+                this.isComplete = true;
+                this.playCompleteSound();
+                this.startBtn.disabled = true;
+                this.pauseBtn.disabled = true;
+                this.element.classList.add('complete');
+            }
+
+            playCompleteSound() {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(587.33, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5);
+            }
+        }
+
+        // Create all timer segments
+        segments.forEach((segment, index) => {
+            const timer = new Timer(segment, index);
+            document.getElementById('timerContainer').appendChild(timer.element);
+        });
+    </script>
+
+ <!-- Credit Footer --> 
+<footer style="text-align:center; margin-top:2rem; font-size:0.9rem; color:#666;">
+    Credit: <a href="https://iyptsypt.moe.edu.sg/" target="_blank" style="color:#1a73e8; text-decoration:none;">
+        Singapore Young Physicists' Tournament (SYPT)
+    </a> Timer created by weihao using Claude
+</footer>
+
+</body>
+</html>

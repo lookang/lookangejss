@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Pop Math - Addition & Subtraction Within 10</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+  
+<!-- xAPI AI Agent - Auto-generated tracking script -->
+<script>
+(function() {
+  try {
+    (function() {
+  'use strict';
+
+  // Get xAPI configuration from page context
+  const xapiConfig = getXapiConfig();
+  
+  if (!xapiConfig.endpoint || !xapiConfig.auth) {
+    console.warn('[xAPI] No LRS configuration found');
+    return;
+  }
+
+  function getXapiConfig() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      endpoint: params.get('endpoint') || '',
+      auth: params.get('auth') || '',
+      actor: parseActor(params.get('agent') || params.get('actor')),
+      stateId: params.get('stateId') || '',
+      activityId: params.get('activityId') || ''
+    };
+  }
+
+  function parseActor(actorJson) {
+    if (!actorJson) return null;
+    try {
+      return JSON.parse(decodeURIComponent(actorJson));
+    } catch {
+      return null;
+    }
+  }
+
+  function sendStatement(verb, object, result = null) {
+    if (!xapiConfig.endpoint || !xapiConfig.auth) return;
+
+    const statement = {
+      actor: xapiConfig.actor,
+      verb: verb,
+      object: object,
+      timestamp: new Date().toISOString()
+    };
+
+    if (result) statement.result = result;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', xapiConfig.endpoint + 'statements', true);
+    xhr.setRequestHeader('Authorization', xapiConfig.auth);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('X-Experience-API-Version', '1.0.3');
+
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log('[xAPI] Statement sent:', verb.id);
+      } else {
+        console.warn('[xAPI] Failed to send statement:', xhr.status);
+      }
+    };
+
+    xhr.onerror = function() {
+      console.error('[xAPI] Network error sending statement');
+    };
+
+    xhr.send(JSON.stringify(statement));
+  }
+
+  function trackEvent(verbId, objectId, display = verbId) {
+    const verb = {
+      id: 'http://adlnet.gov/expapi/verbs/' + verbId.toLowerCase(),
+      display: { 'en-US': display }
+    };
+    const obj = {
+      id: 'http://example.com/activities/' + objectId,
+      definition: { name: { 'en-US': objectId } }
+    };
+    sendStatement(verb, obj);
+  }
+
+  // Track page interactions
+  document.addEventListener('click', function(e) {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+      const btn = e.target.tagName === 'BUTTON' ? e.target : e.target.closest('button');
+      trackEvent('clicked', btn.id || btn.textContent.substring(0, 50), 'Button clicked');
+    }
+  });
+  
+  // Track media playback
+  document.addEventListener('play', function(e) {
+    trackEvent('played-media', e.target.id || e.target.tagName);
+  }, true);
+  document.addEventListener('pause', function(e) {
+    trackEvent('paused-media', e.target.id || e.target.tagName);
+  }, true);
+
+  // Track visibility changes (auto-save on pause)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      trackEvent('paused', 'session', 'Session paused');
+    }
+  });
+
+  console.log('[xAPI] Agent tracking initialized');
+})();
+  } catch (error) {
+    console.error('[xAPI Agent Error]', error);
+    // Fail silently to prevent breaking content
+  }
+})();
+</script>
+  </head>
+<body>
+    <!-- Main game container -->
+    <div id="gameContainer">
+        <!-- Top status bar with game information -->
+        <div id="statusBar">
+            <div class="status-item" title="Current Level">
+                <span class="label">Level:</span>
+                <span id="levelDisplay">1</span>
+            </div>
+            <div class="status-item" title="Your Score">
+                <span class="label">Score:</span>
+                <span id="scoreDisplay">0</span>
+            </div>
+            <div class="status-item" title="Time Remaining">
+                <span class="label">Time:</span>
+                <span id="timerDisplay">60</span>s
+            </div>
+            <div class="status-item" title="Lives Remaining">
+                <span class="label">Lives:</span>
+                <span id="livesDisplay">❤️❤️❤️</span>
+            </div>
+        </div>
+
+        <!-- Main game play area where bubbles appear -->
+        <div id="gameArea">
+            <!-- Bubbles will be dynamically added here -->
+        </div>
+
+        <!-- Start screen overlay -->
+        <!-- MODIFIED: Updated instructions to reflect new game rules -->
+        <div id="startScreen" class="overlay">
+            <div class="overlay-content">
+                <h1>🫧 Bubble Pop Math 🫧</h1>
+                <p>Pop the bubbles with <strong>CORRECT</strong> equations!</p>
+                <p>Let the <strong>WRONG</strong> equations float away.</p>
+                <div class="instructions">
+                    <p>✓ Pop correct equations = +10 points</p>
+                    <p>✗ Pop wrong equations = lose a life</p>
+                    <p>✗ Miss correct equations = lose a life</p>
+                    <p><strong>⚠️ You only have 3 lives for the entire game!</strong></p>
+                </div>
+                <button id="startBtn" class="game-btn">Start Game</button>
+            </div>
+        </div>
+
+        <!-- Level complete screen -->
+        <div id="levelCompleteScreen" class="overlay hidden">
+            <div class="overlay-content">
+                <h1>🎉 Level Complete! 🎉</h1>
+                <p id="levelScoreText"></p>
+                <button id="nextLevelBtn" class="game-btn">Next Level</button>
+            </div>
+        </div>
+
+        <!-- Game over screen -->
+        <!-- MODIFIED: Added mistake review section -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="overlay-content game-over-content">
+                <h1>Game Over</h1>
+                <p id="finalScoreText"></p>
+                <p id="levelsCompletedText"></p>
+                
+                <!-- NEW: Mistake review section -->
+                <div id="mistakeReview" class="mistake-review">
+                    <h2>📝 Review Your Mistakes</h2>
+                    <div id="mistakeList" class="mistake-list">
+                        <!-- Mistakes will be dynamically added here -->
+                    </div>
+                </div>
+                
+                <button id="restartBtn" class="game-btn">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Victory screen (all 10 levels completed) -->
+        <div id="victoryScreen" class="overlay hidden">
+            <div class="overlay-content">
+                <h1>🏆 Congratulations! 🏆</h1>
+                <p>You completed all 10 levels!</p>
+                <p id="victoryScoreText"></p>
+                <button id="playAgainBtn" class="game-btn">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Tooltip for feedback -->
+        <div id="tooltip" class="hidden"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

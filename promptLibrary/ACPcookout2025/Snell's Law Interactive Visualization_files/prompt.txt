@@ -1,0 +1,132 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Snell’s Law Interactive Visualization”** that lets students explore refraction and total internal reflection by adjusting incident angle and refractive indices of two media, with both a mathematical graph and a ray diagram.
+
+TARGET AUDIENCE:
+- Upper Secondary Physics (optics) or high-ability Lower Secondary (~13–16 years old)
+
+INTERACTIVE REQUIREMENTS:
+- Two synchronized visual panels:
+  - **Graph View**: plots the relationship between sin(θ₁) and sin(θ₂) according to Snell’s Law.
+  - **Ray Diagram**: shows an animated light ray crossing an interface between two media, with incident and refracted (or totally internally reflected) rays.
+- Top **control panel** with:
+  - Slider for **incident angle θ₁** (0–90°).
+  - Two medium selectors (**Medium 1**, **Medium 2**) with preset refractive indices and a **custom** option.
+  - Custom refractive index inputs (n₁, n₂) that appear only when “Custom” is selected.
+  - Buttons for:
+    - **Show Critical Angle / Hide Critical Angle**.
+    - **Toggle Normal** line visibility.
+    - **Reset** to default parameters.
+    - **Examples** to load preset scenarios.
+- Dynamic numeric display showing current values of **n₁, n₂, θ₁, θ₂**.
+- A text tooltip area giving guidance and context.
+- Self-contained HTML, CSS, and JavaScript (no external libraries), using canvas for rendering.
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Canvases and controls resize with window.
+  - Controls work on touch devices (no reliance on hover).
+
+SPECIFIC REQUIREMENTS:
+
+Physics model
+- Implement **Snell’s Law**: `n₁ sin(θ₁) = n₂ sin(θ₂)`.
+- Support both directions:
+  - Light entering a denser medium: normal refraction.
+  - Light going from denser to less dense medium: allow for **total internal reflection**.
+- When `n₁ > n₂`, compute **critical angle** θc with: `sin(θc) = n₂ / n₁` (if applicable).
+- If the calculated `sin(θ₂) > 1`, treat this as **total internal reflection** and set θ₂ to null / N/A.
+
+Control panel
+- **Incident angle slider**:
+  - Range 0–90°, step small enough (e.g., 1° or less).
+  - Live update `currentAngle`, display value next to label, and re-draw both panels.
+- **Medium 1 / Medium 2 selectors**:
+  - Options with fixed indices:
+    - Air (n = 1.00)
+    - Water (n = 1.33)
+    - Glass (n = 1.50)
+    - Diamond (n = 2.42)
+    - Custom
+  - Selecting “Custom” shows a numeric input for n with step 0.01 and min 1.0.
+- Buttons:
+  - **Show Critical Angle / Hide Critical Angle** toggles an internal `criticalAngleMode` and updates button label + style.
+  - **Toggle Normal / Hide Normal** toggles `showNormal` and re-draws ray diagram.
+  - **Reset** restores defaults (e.g., n₁ = 1.00 Air, n₂ = 1.33 Water, θ₁ = 30°, normal and graph options reset) and shows a brief tooltip message.
+  - **Examples** opens a modal listing preset scenarios.
+
+Graph View (sinθ graph)
+- Use `graphCanvas` for drawing.
+- Plot axes (x: sin(θ₁), y: sin(θ₂)) with range 0–1 on each axis.
+- Draw grid lines and labels at convenient increments (e.g., 0.0 to 1.0 in steps of 0.1).
+- Axis labels:
+  - x-axis: “sin(θ₁)”.
+  - y-axis: “sin(θ₂)”.
+- Draw the Snell’s law line/curve: for sin(θ₁) ∈ [0,1], compute sin(θ₂) = (n₁/n₂) sin(θ₁); draw only where sin(θ₂) ≤ 1.
+- Highlight the **current operating point** corresponding to the slider’s θ₁ and computed θ₂:
+  - Plot as a distinct coloured dot.
+  - Show text near the point, e.g., “(0.50, 0.37)”.
+- If **critical angle mode** is ON and a critical angle exists:
+  - Draw a vertical dashed line at sin(θc) on the x-axis.
+  - Label it “Critical: θc°”.
+
+Ray Diagram View
+- Use `rayCanvas` and split the canvas horizontally into two regions:
+  - Upper half: medium 1.
+  - Lower half: medium 2.
+- Use different background colours for each medium (based on a materials map), plus labels with names and indices.
+- Draw the interface as a horizontal line at the mid-height.
+- **Normal line**:
+  - Vertical dashed line through the interface at the centre; shown/hidden based on `showNormal`.
+- Rays:
+  - **Incident ray**: from upper region down to the interface at the centre, with angle θ₁ measured from the normal.
+  - If refraction occurs:
+    - **Refracted ray**: from the interface into the lower medium, angle θ₂ from the normal.
+  - If total internal reflection occurs:
+    - **Reflected ray**: in the first medium, symmetric to incident ray relative to the normal.
+- Rays should have arrowheads indicating direction of travel.
+- Show **angle arcs** (if normal is visible):
+  - An arc between normal and incident ray labelled with θ₁.
+  - If refraction occurs, an arc between normal and refracted ray labelled with θ₂.
+- Show text overlay “Total Internal Reflection!” when refractedAngle is null.
+
+Interactivity and visual feedback
+- Clicking on the **graph**:
+  - If the click is within the graph area, convert x-position to sin(θ₁) and update θ₁ accordingly (updating slider & number display).
+- Clicking on the **ray diagram**:
+  - Create a brief **ripple effect** animation around the click position, then redraw.
+- Tooltip behaviour:
+  - Elements with `title` attribute show a custom tooltip (not the browser default) near the cursor; on leave, restore the original title.
+  - `showTooltip(message)` displays a centred message at top (e.g., after reset or when loading examples), then fades after a few seconds.
+
+Example scenarios
+- Examples modal listing buttons, each loading a preset configuration:
+  - **Rainbow Formation**: Air → Water, θ₁ ~ 42°; note that this angle is relevant to dispersion and internal reflection in raindrops.
+  - **Fiber Optics**: Glass → Air, θ₁ large (e.g., 75°), n₁ > n₂, showing total internal reflection with critical angle highlighted.
+  - **Diamond Brilliance**: Air → Diamond, θ₁ moderate; highlight strong bending due to high n₂.
+  - **Underwater Vision**: Water → Air, θ₁ > critical angle; show TIR and critical angle.
+- Loading a scenario:
+  - Updates n₁, n₂, and θ₁, sets medium dropdowns to match, toggles critical-angle mode if needed.
+  - Shows an explanatory tooltip describing the scenario.
+
+Responsive behaviour
+- On window resize:
+  - Resize both canvases to fit their parent panels (minus headers/overlays).
+  - Recompute all drawing dimensions, then redraw graph and ray diagram.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Relate the **angle of incidence** and **angle of refraction** through Snell’s Law.
+  - Understand how **refractive index** affects the bending of light at an interface.
+  - Recognise the concept of **critical angle** and **total internal reflection**.
+  - Interpret graphical representations of sin(θ₁) vs sin(θ₂) and connect them to ray diagrams.
+- The interactive should encourage experimentation with different media and angles, making invisible mathematical relationships visible.
+
+INTERACTION FEATURES TO INCLUDE:
+- Adjustable incident angle and refractive indices (including custom values).
+- Dual representation: analytic graph and geometric ray diagram.
+- Visualisation of critical angle and total internal reflection.
+- Preset example scenarios that tie to real-world contexts (rainbows, fibre optics, diamonds, underwater vision).
+- Tooltips and visual cues to guide learning.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

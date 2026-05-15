@@ -1,0 +1,545 @@
+/* ===================================
+   GLOBAL STYLES & RESET
+   =================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow: hidden;
+    width: 100%;
+    height: 100vh;
+}
+
+/* ===================================
+   MAIN CONTAINER - Responsive Height
+   =================================== */
+#app-container {
+    width: 100%;
+    height: 450px; /* Default for iframe */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    overflow: hidden;
+}
+
+/* If opened in new tab, use 90vh */
+body.standalone #app-container {
+    height: 90vh;
+}
+
+/* ===================================
+   TOOLTIP (Header Information)
+   =================================== */
+.tooltip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    text-align: center;
+    max-width: 80%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+#game-area:hover ~ #header-tooltip {
+    opacity: 1;
+}
+
+/* ===================================
+   STATUS BAR (Timer, Score, Badges)
+   =================================== */
+#status-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    padding: 8px 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: white;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease;
+}
+
+.status-item:hover {
+    transform: scale(1.05);
+}
+
+.status-item .icon {
+    font-size: 20px;
+}
+
+/* Timer warning animation */
+.timer-warning {
+    animation: pulse 0.5s infinite;
+    background: #ff6b6b !important;
+    color: white !important;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* ===================================
+   GAME AREA (Main Layout)
+   =================================== */
+#game-area {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    overflow: hidden;
+}
+
+.game-panel {
+    flex: 1;
+    background: white;
+    border-radius: 15px;
+    padding: 10px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #764ba2;
+    text-align: center;
+    margin-bottom: 8px;
+    padding: 6px;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    border-radius: 10px;
+}
+
+/* ===================================
+   ART CARDS (Gallery Panel)
+   =================================== */
+.card-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.art-card {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    min-height: 100px;
+}
+
+.art-card:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+}
+
+.art-card.selected {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    border: 3px solid #f39c12;
+    transform: scale(1.05);
+}
+
+.art-card.completed {
+    background: linear-gradient(135deg, #a8e6cf 0%, #56ab2f 100%);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.art-card.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #27ae60;
+    color: white;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.art-emoji {
+    font-size: 40px;
+    margin-bottom: 5px;
+}
+
+.art-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* ===================================
+   DETECTIVE PANEL (Center)
+   =================================== */
+#detective-panel {
+    flex: 1.5;
+}
+
+.selected-display {
+    background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+    border-radius: 12px;
+    padding: 15px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.placeholder-text {
+    color: #7f8c8d;
+    font-size: 14px;
+    text-align: center;
+}
+
+.selected-art-display {
+    text-align: center;
+}
+
+.selected-art-display .art-emoji {
+    font-size: 50px;
+    margin-bottom: 8px;
+}
+
+.selected-art-display .art-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.options-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.option-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    text-align: left;
+    width: 100%;
+    white-space: normal;
+    line-height: 1.3;
+}
+
+.option-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.option-btn:active {
+    transform: translateY(0);
+}
+
+/* ===================================
+   BADGE PANEL (Right)
+   =================================== */
+.badge-container {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.badge-item {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    opacity: 0.3;
+    transition: all 0.5s ease;
+}
+
+.badge-item.earned {
+    opacity: 1;
+    animation: badgeEarn 0.6s ease;
+}
+
+@keyframes badgeEarn {
+    0% { transform: scale(0) rotate(0deg); }
+    50% { transform: scale(1.2) rotate(180deg); }
+    100% { transform: scale(1) rotate(360deg); }
+}
+
+.badge-emoji {
+    font-size: 35px;
+    margin-bottom: 5px;
+}
+
+.badge-name {
+    font-size: 11px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* ===================================
+   FEEDBACK OVERLAY
+   =================================== */
+#feedback-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.3s ease;
+}
+
+#feedback-overlay.hidden {
+    display: none;
+}
+
+#feedback-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: feedbackPop 0.4s ease;
+}
+
+@keyframes feedbackPop {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+#feedback-icon {
+    font-size: 60px;
+    margin-bottom: 15px;
+}
+
+#feedback-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* ===================================
+   OVERLAY SCREENS (Start/End)
+   =================================== */
+.overlay-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.overlay-screen.hidden {
+    display: none;
+}
+
+.screen-content {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    max-width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.screen-content h1 {
+    color: #764ba2;
+    margin-bottom: 15px;
+    font-size: 28px;
+}
+
+.intro-text {
+    font-size: 14px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+#final-stats {
+    margin: 20px 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+#achievement-message {
+    font-size: 16px;
+    color: #27ae60;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.game-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.game-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+.game-btn:active {
+    transform: translateY(0);
+}
+
+/* ===================================
+   SOUND TOGGLE BUTTON
+   =================================== */
+.sound-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    z-index: 50;
+}
+
+.sound-btn:hover {
+    transform: scale(1.1);
+}
+
+.sound-btn.muted {
+    opacity: 0.5;
+}
+
+/* ===================================
+   SCROLLBAR STYLING
+   =================================== */
+.card-container::-webkit-scrollbar,
+.options-container::-webkit-scrollbar,
+.badge-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-container::-webkit-scrollbar-track,
+.options-container::-webkit-scrollbar-track,
+.badge-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.card-container::-webkit-scrollbar-thumb,
+.options-container::-webkit-scrollbar-thumb,
+.badge-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.card-container::-webkit-scrollbar-thumb:hover,
+.options-container::-webkit-scrollbar-thumb:hover,
+.badge-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+@media (max-width: 768px) {
+    #game-area {
+        flex-direction: column;
+    }
+    
+    .game-panel {
+        min-height: 150px;
+    }
+    
+    .card-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.floating {
+    animation: float 2s ease-in-out infinite;
+}

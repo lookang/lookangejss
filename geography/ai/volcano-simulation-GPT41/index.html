@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Volcanic Eruption Simulation</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+  <style>
+    :root {
+      --font-main: 'Segoe UI', Arial, sans-serif;
+      --volcano-base: #5a4634;
+      --volcano-darker: #372c1e;
+      --magma-chamber: #b5460f;
+      --ash-color: #cccccc;
+      --label-bg: rgba(255,255,255,0.9);
+      --legend-bg: #f8f8f8;
+      --info-bg: #f2f6ff;
+      --danger-low: #5bc56f;
+      --danger-moderate: #f6c343;
+      --danger-high: #f88b2a;
+      --danger-extreme: #ef3b3b;
+      --label: #222;
+      --outline: #333;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #e6eaf0;
+      font-family: var(--font-main);
+      color: #212121;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    #eruption-app {
+      max-width: 1000px;
+      margin: 2rem auto;
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 2px 32px 0 rgba(60,80,120,0.11);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: linear-gradient(90deg,#ff7849 40%,#ffb457 100%);
+      color: #fff;
+      padding: 1.25rem 2rem;
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .eruption-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 1rem 2rem;
+      font-size: 1.05rem;
+      justify-content: space-between;
+    }
+    .eruption-controls label {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .eruption-controls select, .eruption-controls button {
+      font-size: 1rem;
+      padding: 0.4em 0.7em;
+      border-radius: 0.5em;
+      border: 1px solid #aaa;
+      background: #f3f7fa;
+      transition: background 0.2s;
+    }
+    .eruption-controls button {
+      border: none;
+      background: #3076d1;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      transition: background 0.2s;
+    }
+    .eruption-controls button[aria-pressed="true"] {
+      background: #d94343;
+    }
+    .eruption-controls button:focus, .eruption-controls select:focus {
+      outline: 2px solid #3076d1;
+      outline-offset: 1px;
+    }
+
+    /* Responsive for mobile */
+    @media (max-width: 600px) {
+      .eruption-controls, .eruption-main {
+        flex-direction: column;
+        padding: 1rem;
+      }
+      #eruption-canvas {
+        height: 320px !important;
+        max-width: 99vw;
+      }
+      .eruption-legend, .eruption-info {
+        font-size: 0.98rem;
+        padding: 0.7rem;
+      }
+      .eruption-legend ul {
+        gap: 0.2rem 0.7rem;
+      }
+    }
+
+    .eruption-main {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 1.5rem 2rem 1rem 2rem;
+      gap: 1.2rem 2rem;
+      background: #fcfcff;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    #eruption-canvas {
+      width: 380px;
+      height: 400px;
+      flex-shrink: 0;
+      background: #eef2f6;
+      border-radius: 1.1rem;
+      box-shadow: 0 0 0.5rem #b3bbc9a7;
+      margin-bottom: 1rem;
+      outline: none;
+      display: block;
+    }
+    .eruption-label {
+      font-size: 0.92rem;
+      fill: var(--label);
+      font-family: var(--font-main);
+      font-weight: 600;
+      paint-order: stroke fill;
+      stroke: #fff;
+      stroke-width: 6px;
+      stroke-linejoin: round;
+      /* text-shadow look */
+    }
+    .eruption-label-txt {
+      stroke: none;
+      fill: var(--label);
+    }
+    .eruption-legend, .eruption-info {
+      background: var(--info-bg);
+      border-radius: 0.7em;
+      padding: 1.2rem;
+      margin-top: 0.4rem;
+      box-shadow: 0 0.5px 3px #c4c7d0bb;
+      min-width: 260px;
+      max-width: 330px;
+    }
+    .eruption-legend {
+      background: var(--legend-bg);
+      border: 1.2px solid #d6dbe7;
+      font-size: 1rem;
+    }
+    .eruption-legend ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 1.3rem;
+    }
+    .eruption-legend li {
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+      font-size: 1em;
+    }
+    .eruption-legend span {
+      width: 1.4em;
+      height: 1.4em;
+      border-radius: 0.3em;
+      display: inline-block;
+      border: 1px solid #ccc;
+      vertical-align: middle;
+      margin-right: 0.4em;
+    }
+    .eruption-info {
+      background: var(--info-bg);
+      margin-top: 0;
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+    .eruption-info h3 {
+      margin-top: 0;
+      margin-bottom: 0.35em;
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #305099;
+      letter-spacing: 0.03em;
+    }
+    .eruption-params {
+      margin: 0.7em 0 0.7em 0;
+      padding: 0;
+      list-style: none;
+    }
+    .eruption-params li {
+      display: flex;
+      align-items: center;
+      margin: 0.4em 0;
+    }
+    .eruption-params-label {
+      flex: 1 0 110px;
+      color: #444;
+    }
+    .eruption-params-value {
+      font-weight: bold;
+      margin-left: 0.6em;
+    }
+    .danger-badge {
+      display: inline-block;
+      padding: 0.13em 0.8em 0.13em 0.8em;
+      border-radius: 0.7em;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.96em;
+      margin-left: 0.4em;
+    }
+    .danger-low { background: var(--danger-low);}
+    .danger-moderate {background: var(--danger-moderate);}
+    .danger-high {background: var(--danger-high);}
+    .danger-extreme {background: var(--danger-extreme);}
+    /* Accessibility for focus states */
+    [tabindex="0"]:focus {
+      outline: 2.5px solid #3076d1;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+<div id="eruption-app" role="main">
+  <header>
+    <span id="eruption-title">Volcanic Eruption Simulation</span>
+  </header>
+  <section class="eruption-controls">
+    <div>
+      <label for="eruption-type">Eruption Type:</label>
+      <select id="eruption-type" aria-label="Select Eruption Type">
+        <option value="strombolian">Strombolian</option>
+        <option value="plinian">Plinian</option>
+        <option value="hawaiian">Hawaiian</option>
+        <option value="vulcanian">Vulcanian</option>
+      </select>
+    </div>
+    <div>
+      <button id="playpause-btn" aria-label="Play simulation" aria-pressed="false">
+        <span id="playpause-icon" aria-hidden="true">▶️</span>
+        <span id="playpause-label">Play</span>
+      </button>
+    </div>
+  </section>
+  <section class="eruption-main">
+    <svg id="eruption-canvas" tabindex="0" aria-label="Volcano cross-section simulation"
+      width="380" height="400" role="img" viewBox="0 0 380 400">
+      <!-- SVG volcano and dynamic eruption visuals drawn here -->
+    </svg>
+    <aside>
+      <div class="eruption-legend" aria-label="Legend: Visual Elements">
+        <b>Legend</b>
+        <ul>
+          <li><span style="background:#ff9836;"></span> Lava Flow</li>
+          <li><span style="background:#b5460f;"></span> Magma Chamber</li>
+          <li><span style="background:#cccccc;"></span> Ash Cloud</li>
+          <li><span style="background:#705642;"></span> Volcano Rock</li>
+        </ul>
+      </div>
+      <div class="eruption-info" id="eruption-info" aria-live="polite">
+        <!-- Dynamic info/description panel -->
+      </div>
+    </aside>
+  </section>
+</div>
+<script>
+/* ----------------
+    DATA MODEL
+------------------- */
+// Eruption parameters & educational data
+const ERUPTION_TYPES = {
+  strombolian: {
+    name: "Strombolian",
+    title: "Strombolian Eruption",
+    description: `Strombolian eruptions are characterized by moderate, regular bursts of expanding gases that eject incandescent lava in short fountains. Lava is typically basaltic to andesitic in composition, resulting in moderate viscosity and relatively small ash clouds. These eruptions produce spectacular, but usually localized, firework-like displays.<br><br><b>Example volcanoes:</b> Stromboli (Italy), Parícutin (Mexico)`,
+    params: {
+      lavaIntensity: 8,
+      ashCloud: 70,     // px radius
+      ashHeight: 70,    // px above crater
+      dangerLevel: "moderate",
+      viscosity: "medium",
+      viscosityVal: 2,
+      colorLava: "#ff7927",   // Orange-red
+      colorMagma: "#ff7927",
+      lavaSpeed: 1.4,
+      ashOpacity: 0.55,
+      ashDensity: 0.27
+    },
+    characteristics: {
+      'Lava Intensity': 'Moderate',
+      'Ash Cloud Size': 'Small',
+      'Danger Level': 'Moderate',
+      'Magma Viscosity': 'Medium'
+    }
+  },
+  plinian: {
+    name: "Plinian",
+    title: "Plinian Eruption",
+    description: `Plinian eruptions are the most explosive and violent. They eject enormous ash columns into the stratosphere and produce widespread tephra fallout. Magma is highly viscous and gas-rich, resulting in powerful explosions but less lava flow. Plinian eruptions can have catastrophic impacts and long-lasting climatic effects.<br><br><b>Example volcanoes:</b> Mount Vesuvius (Italy, AD 79), Mount St. Helens (USA, 1980)`,
+    params: {
+      lavaIntensity: 4,
+      ashCloud: 150,     // px radius
+      ashHeight: 135,    // px above crater
+      dangerLevel: "extreme",
+      viscosity: "high",
+      viscosityVal: 3,
+      colorLava: "#a61411",   // Dark red
+      colorMagma: "#a61411",
+      lavaSpeed: 0.55,
+      ashOpacity: 0.77,
+      ashDensity: 0.45
+    },
+    characteristics: {
+      'Lava Intensity': 'Low',
+      'Ash Cloud Size': 'Massive',
+      'Danger Level': 'Extreme',
+      'Magma Viscosity': 'High'
+    }
+  },
+  hawaiian: {
+    name: "Hawaiian",
+    title: "Hawaiian Eruption",
+    description: `Hawaiian eruptions feature the effusion of very fluid (low-viscosity) basaltic lava, resulting in broad, fast-moving lava flows. These eruptions are typically non-explosive and produce minimal ash. Lava fountains may occur, but danger to life is generally low.<br><br><b>Example volcanoes:</b> Mauna Loa & Kīlauea (Hawaii, USA)`,
+    params: {
+      lavaIntensity: 12,
+      ashCloud: 40,     // px radius
+      ashHeight: 30,    // px above crater
+      dangerLevel: "low",
+      viscosity: "low",
+      viscosityVal: 1,
+      colorLava: "#ffb52d",   // Bright orange
+      colorMagma: "#ffb52d",
+      lavaSpeed: 2.2,
+      ashOpacity: 0.23,
+      ashDensity: 0.14
+    },
+    characteristics: {
+      'Lava Intensity': 'High',
+      'Ash Cloud Size': 'Minimal',
+      'Danger Level': 'Low',
+      'Magma Viscosity': 'Low'
+    }
+  },
+  vulcanian: {
+    name: "Vulcanian",
+    title: "Vulcanian Eruption",
+    description: `Vulcanian eruptions are short, violent explosions caused by the fragmentation of highly viscous magma. They produce thick lava domes, moderate ash clouds, and ejection of solid blocks and bombs. Ash columns are higher than Strombolian, but lower than Plinian eruptions.<br><br><b>Example volcanoes:</b> Sakurajima (Japan), Anak Krakatau (Indonesia)`,
+    params: {
+      lavaIntensity: 8,
+      ashCloud: 100,     // px radius
+      ashHeight: 85,     // px above crater
+      dangerLevel: "high",
+      viscosity: "high",
+      viscosityVal: 3,
+      colorLava: "#c72a19",   // Darker red
+      colorMagma: "#c72a19",
+      lavaSpeed: 0.75,
+      ashOpacity: 0.59,
+      ashDensity: 0.36
+    },
+    characteristics: {
+      'Lava Intensity': 'Moderate',
+      'Ash Cloud Size': 'Moderate',
+      'Danger Level': 'High',
+      'Magma Viscosity': 'High'
+    }
+  }
+};
+// Legend for danger level color
+const DANGER_COLORS = {
+  low: "danger-low",
+  moderate: "danger-moderate",
+  high: "danger-high",
+  extreme: "danger-extreme"
+};
+
+// Volcano geometry constants (for cross-section SVG)
+const VOLCANO = {
+  baseW: 320, // width of volcano base in px (SVG)
+  baseH: 220, // height of volcano in px
+  craterW: 50, // width of crater at top
+  craterH: 26, // height of crater opening
+  coneColor: "var(--volcano-base)",
+  coneDark: "var(--volcano-darker)",
+  rockColor: "#705642",
+  outline: "#373230",
+  conduitW: 22,
+  magmaR: 30,
+  magmaY: 280,
+  magmaX: 190,
+  conduitX: 190
+};
+const LABELS = [
+  {label: "Crater", x: 190, y: 48},
+  {label: "Conduit", x: 210, y: 130},
+  {label: "Magma Chamber", x: 230, y: 320},
+  {label: "Ash Cloud", x: 190, y: 15},
+  {label: "Lava Flow", x: 85, y: 260}
+];
+
+// Main state
+let animationFrame = null;
+let animationRunning = false;
+let eruptionType = "strombolian";
+let eruptionTick = 0;
+
+// HTML elements
+const svg = document.getElementById('eruption-canvas');
+const typeSelect = document.getElementById('eruption-type');
+const playPauseBtn = document.getElementById('playpause-btn');
+const playPauseIcon = document.getElementById('playpause-icon');
+const playPauseLabel = document.getElementById('playpause-label');
+const eruptionTitle = document.getElementById('eruption-title');
+const eruptionInfo = document.getElementById('eruption-info');
+
+// Accessibility: allow keyboard space/enter for play/pause
+playPauseBtn.addEventListener('keydown', (e)=>{
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();playPauseBtn.click();}
+});
+
+/* -------------------------
+    EDUCATIONAL INFO PANEL
+-------------------------- */
+function updateInfoPanel(typeKey) {
+  const data = ERUPTION_TYPES[typeKey];
+  let characs = "";
+  for(const k in data.characteristics){
+    let v = data.characteristics[k];
+    if(k==='Danger Level'){
+      let danger = data.params.dangerLevel;
+      characs += `<li><span class="eruption-params-label">${k}:</span>
+        <span class="eruption-params-value"><span class="danger-badge ${DANGER_COLORS[danger]}">${v}</span></span></li>`;
+    } else {
+      characs += `<li><span class="eruption-params-label">${k}:</span>
+        <span class="eruption-params-value">${v}</span></li>`;
+    }
+  }
+  eruptionInfo.innerHTML = `
+    <h3>${data.name} Eruption</h3>
+    <p>${data.description}</p>
+    <ul class="eruption-params">${characs}</ul>
+    <div style="font-size:.99em;color:#394b7c;"><b>Did you know?</b>
+      The eruption style depends mainly on the <b>viscosity</b> (thickness) of the magma and its gas content.
+      Higher viscosity and trapped gases cause more explosive eruptions!
+    </div>
+  `;
+}
+/* ---------------------------
+    SVG: Volcano cross-section
+---------------------------- */
+// Returns SVG string for volcano static structure (base, conduit, magma chamber, crater)
+function drawVolcanoBase(params) {
+  // Draw volcano cone as polygon for 3D look
+  const {baseW,baseH,craterW,craterH,coneColor,coneDark,rockColor,outline,
+    conduitW,magmaR,magmaY,magmaX,conduitX} = VOLCANO;
+  const centerX = 190, baseY = 350;
+  let cone = `
+    <polygon points="${centerX-baseW/2},${baseY} ${centerX-baseW*0.19},${baseY-baseH}
+      ${centerX+baseW*0.19},${baseY-baseH} ${centerX+baseW/2},${baseY}"
+      fill="${rockColor}" stroke="${outline}" stroke-width="2"/>
+    <polygon points="${centerX-baseW*0.19},${baseY-baseH}
+      ${centerX},${baseY-baseH+craterH} ${centerX+baseW*0.19},${baseY-baseH}"
+      fill="${coneColor}" stroke="${outline}" stroke-width="1"/>
+  `;
+  // Crater opening (ellipse)
+  let crater = `<ellipse cx="${centerX}" cy="${baseY-baseH+craterH*0.47}" rx="${craterW/2}" ry="${craterH/2}" fill="#87695d" stroke="${outline}" stroke-width="2"/>`;
+
+  // Conduit: color depends on viscosity
+  let conduitColor = params.colorMagma;
+  let conduitH = baseY-baseH+craterH*0.5 - (magmaY+7);
+  let conduit = `<rect x="${conduitX-conduitW/2}" y="${magmaY+7}" width="${conduitW}" height="${conduitH}"
+      rx="6" fill="${conduitColor}" fill-opacity="0.77" stroke="#803d1b" stroke-width="2"/>`;
+  // Magma chamber (ellipse)
+  let magma = `<ellipse cx="${magmaX}" cy="${magmaY+30}" rx="${magmaR+8}" ry="${magmaR*0.75+6}" fill="#f8b344" fill-opacity="0.18"/>
+      <ellipse cx="${magmaX}" cy="${magmaY}" rx="${magmaR}" ry="${magmaR*0.7}" fill="${params.colorMagma}" stroke="#803d1b" stroke-width="2" />
+      <ellipse cx="${magmaX}" cy="${magmaY}" rx="${magmaR-8}" ry="${magmaR*0.7-7}" fill="#ffe8aa" fill-opacity="0.24"/>`;
+  // Outlines
+  let outlineCone = `<polygon points="${centerX-baseW/2},${baseY} ${centerX-baseW*0.19},${baseY-baseH}
+      ${centerX+baseW*0.19},${baseY-baseH} ${centerX+baseW/2},${baseY}"
+      fill="none" stroke="#4b3727" stroke-width="2"/>`;
+
+  return cone + outlineCone + crater + conduit + magma;
+}
+
+/* ----------------------
+    DYNAMIC ERUPTION
+----------------------- */
+// Lava flow (drawn as a polygon or Bezier path to look like liquid)
+function drawLavaFlow(t, params) {
+  // Connect magma chamber to crater and then to surface flow
+  const {baseH, craterW, craterH, magmaY, magmaX, conduitX, magmaR} = VOLCANO;
+  const centerX = 190, baseY = 350, topY = baseY-baseH+craterH*0.75;
+  const intensity = params.lavaIntensity;
+  const viscosity = params.viscosityVal; // 1:low, 2:med, 3:high
+  const flowW = 45 + 15*(intensity/8) - 9*(viscosity-1);
+  const flowH = 44 + 15*Math.sin(t/15)*params.lavaSpeed;
+  let color = params.colorLava;
+  let opacity = 0.84 - 0.09*viscosity;
+
+  // Path: magma chamber -> up conduit -> crater -> surface flow
+  // Start at magma chamber center
+  const magmaTopY = magmaY - magmaR*0.7;
+  const conduitTopY = topY + 3;
+  const left = centerX-flowW/2, right = centerX+flowW/2;
+  const wave = 7*Math.sin(t/10), wave2 = 4*Math.sin(t/6 + 1.7);
+
+  // New path: start at bottom of magma chamber, up conduit, out crater, spread at surface
+  return `
+    <path d="
+      M ${magmaX},${magmaY + magmaR*0.7} 
+      C ${magmaX},${magmaY-20} ${centerX},${magmaY-60} ${centerX},${conduitTopY}
+      L ${left},${conduitTopY}
+      Q ${centerX},${conduitTopY + flowH*0.7} ${centerX-flowW*0.27+wave},${topY+flowH*0.74+wave2}
+      Q ${centerX},${topY+flowH*0.8+wave2} ${centerX+flowW*0.27+wave},${topY+flowH*0.72-wave2}
+      L ${right},${conduitTopY}
+      L ${centerX},${conduitTopY}
+      C ${centerX},${magmaY-60} ${magmaX},${magmaY-20} ${magmaX},${magmaY + magmaR*0.7}
+      Z"
+      fill="${color}" fill-opacity="${opacity}" stroke="#b33b0c" stroke-width="2"
+    />
+  `;
+}
+
+// Animated lava particles/fountains
+function drawLavaParticles(t, params) {
+  // Each "particle" is a short-lived ejection above the crater, animated
+  const count = params.lavaIntensity;
+  const {baseH, craterW, craterH} = VOLCANO;
+  const baseY = 350, topY = baseY-baseH+craterH*0.5;
+  let res = '';
+  let now = (Date.now()/105)%2000;
+  for(let i=0;i<count;i++){
+    // Each has a slightly different phase & trajectory
+    let pT = (t*0.5 + i*21 + now)%90;
+    let frac = (pT/90);
+    let angle = (-28 + (i/(count-1))*56) * Math.PI/180;
+    let height = 22 + 12*frac - 3*params.viscosityVal + 12*Math.sin(i+t/20)/2;
+    let x = 190 + Math.sin(angle)*15 + Math.sin(t/8+i)*4;
+    let y = topY - frac*height - Math.abs(Math.sin(angle)*4) - Math.sin(t/17+i)*1.2;
+    let size = 7 - 2*params.viscosityVal + 2.7*Math.abs(Math.cos(i*0.6+t/5));
+    if(frac<0.97)
+      res += `<ellipse cx="${x}" cy="${y}" rx="${size/2}" ry="${size/2.1}" fill="${params.colorLava}" fill-opacity="0.73"
+          stroke="#b33b0c" stroke-width="1.2" />`;
+  }
+  return res;
+}
+// Animated ash cloud (ellipse and particles)
+function drawAshCloud(t, params) {
+  const {baseH, craterW, craterH} = VOLCANO;
+  const baseY = 350, topY = baseY-baseH+craterH*0.5;
+  const cloudW = params.ashCloud * (1.05 + 0.07*Math.sin(t/13));
+  const cloudH = params.ashCloud*0.47 + 9*Math.sin(t/20+0.4);
+  const cloudY = topY - params.ashHeight + Math.sin(t/23)*3;
+  const cloudOpacity = params.ashOpacity;
+  const cloudDensity = params.ashDensity;
+  // Main cloud: large ellipse, animated opacity
+  let res = `<ellipse cx="190" cy="${cloudY}" rx="${cloudW}" ry="${cloudH}" fill="#cccccc" fill-opacity="${cloudOpacity}" />`;
+  // Sub-clouds: scatter smaller ellipses for realism
+  for(let i=0;i<6+(cloudW/25);i++){
+    let angle = -40 + (i/(6+(cloudW/25)-1))*80;
+    let a = angle * Math.PI/180;
+    let r = cloudW*0.7 + 8*Math.sin(i*0.73 + t/15);
+    let cx = 190 + Math.cos(a)*r*0.73 + Math.sin(i+t/10)*3.2;
+    let cy = cloudY - Math.abs(Math.sin(a))*cloudH*0.37 + Math.sin(t/9 + i)*2.1;
+    let cr = 19 + 10*Math.sin(i+t/12);
+    let cop = 0.13 + cloudDensity*0.58*Math.abs(Math.sin(a + t/23));
+    res += `<ellipse cx="${cx}" cy="${cy}" rx="${cr*(cloudW/150)}" ry="${cr*(cloudH/70)}" fill="#cccccc" fill-opacity="${cop}" />`;
+  }
+  // Animated ejected ash particles
+  for(let i=0;i<4+(cloudW/55);i++){
+    let prog = (t/22+i*17)%1.0;
+    let px = 190 + Math.sin(i+t/25)*cloudW*0.45;
+    let py = cloudY - prog*cloudH*1.14 - 14*Math.sin(i+t/15);
+    let size = 4 + 2*Math.sin(t/13+i*1.7);
+    res += `<ellipse cx="${px}" cy="${py}" rx="${size}" ry="${size*0.8}" fill="#b5b4ae" fill-opacity="${0.12+cloudDensity*0.3}" />`;
+  }
+  return res;
+}
+/* --------------
+    LABELS
+--------------- */
+function drawLabels() {
+  // (Positioned for cross-section, not animated)
+  return LABELS.map(({label,x,y}) =>
+    `<text x="${x}" y="${y}" class="eruption-label" aria-hidden="true">
+      <tspan class="eruption-label-txt">${label}</tspan>
+    </text>`
+  ).join('');
+}
+/* -----------------
+    MAIN RENDER
+------------------ */
+function renderEruption(t) {
+  // Main dynamic render function (called every animation frame)
+  const eruption = ERUPTION_TYPES[eruptionType];
+  // volcano static structure
+  let svgContent = drawVolcanoBase(eruption.params);
+  // Ash cloud, lava flow, lava particles
+  svgContent += drawAshCloud(t, eruption.params);
+  svgContent += drawLavaFlow(t, eruption.params);
+  svgContent += drawLavaParticles(t, eruption.params);
+  svgContent += drawLabels();
+  svg.innerHTML = svgContent;
+}
+
+/* -----------------
+    ANIMATION LOOP
+------------------ */
+function animate() {
+  if(!animationRunning) return;
+  eruptionTick += 1;
+  renderEruption(eruptionTick);
+  animationFrame = requestAnimationFrame(animate);
+}
+
+/* -------------
+    UI EVENTS
+-------------- */
+function setEruptionType(type) {
+  eruptionType = type;
+  eruptionTick = 0;
+  eruptionTitle.textContent = ERUPTION_TYPES[type].title;
+  updateInfoPanel(type);
+  renderEruption(eruptionTick);
+}
+function playAnimation() {
+  animationRunning = true;
+  playPauseBtn.setAttribute('aria-pressed','true');
+  playPauseIcon.textContent = "⏸️";
+  playPauseLabel.textContent = "Pause";
+  animate();
+}
+function pauseAnimation() {
+  animationRunning = false;
+  playPauseBtn.setAttribute('aria-pressed','false');
+  playPauseIcon.textContent = "▶️";
+  playPauseLabel.textContent = "Play";
+  cancelAnimationFrame(animationFrame);
+}
+typeSelect.addEventListener('change', (e)=>{
+  setEruptionType(e.target.value);
+  pauseAnimation();
+});
+playPauseBtn.addEventListener('click', ()=>{
+  if(animationRunning) pauseAnimation();
+  else playAnimation();
+});
+
+/* -----------
+    INIT
+------------ */
+setEruptionType('strombolian'); // Default
+renderEruption(eruptionTick);
+// Play animation on keyboard space/enter in SVG for accessibility
+svg.addEventListener('keydown', e=>{
+  if(e.key===' '||e.key==='Enter') playPauseBtn.click();
+});
+// For responsive SVG (canvas scales on window resize)
+window.addEventListener('resize', ()=>renderEruption(eruptionTick));
+
+/* -----------
+  ALT TEXT
+------------ */
+svg.setAttribute('aria-label',
+  'Cross-section of a volcano showing internal structure and dynamic eruption, with lava flow, ash cloud, and ejected particles.'
+);
+
+/* -----------
+  END
+------------ */
+</script>
+</body>
+</html>
+
+<footer style="background:#222;color:#fff;text-align:center;padding:1.2em 0;font-size:1.05em;letter-spacing:0.01em;">
+  Created using GPT-4.1 &mdash; <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/english" target="_blank" style="color:#ffd966;text-decoration:underline;">More English Interactive Resources</a>
+</footer>

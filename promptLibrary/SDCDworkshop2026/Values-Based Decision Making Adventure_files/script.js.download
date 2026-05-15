@@ -1,0 +1,588 @@
+// ============================================
+// VALUES-BASED DECISION MAKING ADVENTURE
+// Interactive learning experience for 10-year-olds
+// ============================================
+
+// Global state management
+const state = {
+    currentScenario: 0,
+    soundEnabled: true,
+    timerInterval: null,
+    timeRemaining: 30,
+    totalScenarios: 5,
+    draggedValue: null,
+    decisions: []
+};
+
+// Scenario data - adventure storyline with moral dilemmas
+const scenarios = [
+    {
+        story: "You're exploring the Enchanted Forest when you find a lost puppy. It looks hungry and scared. Your friend wants to take it home immediately, but you notice a 'Lost Pet' poster nearby.",
+        character: "🦊",
+        choiceA: {
+            text: "Take the puppy home to care for it right away",
+            correctValue: "kindness",
+            feedback: "Your kindness is wonderful! But remember, the owner might be worried. Responsibility means checking the poster first. The puppy's family is searching for them!"
+        },
+        choiceB: {
+            text: "Check the poster and contact the owner first",
+            correctValue: "responsibility",
+            feedback: "Excellent choice! You showed responsibility by thinking about the owner's feelings. The family was so grateful to have their puppy back safely!"
+        }
+    },
+    {
+        story: "During a treasure hunt game at school, you accidentally see where another team hid their treasure. Your team is losing, and your teammates are asking if you saw anything.",
+        character: "🏴‍☠️",
+        choiceA: {
+            text: "Tell your team where the treasure is hidden",
+            correctValue: "courage",
+            feedback: "It takes courage to want to help your team, but honesty is more important in games. Fair play makes everyone enjoy the game more!"
+        },
+        choiceB: {
+            text: "Tell the truth that you saw it by accident but won't use that information",
+            correctValue: "honesty",
+            feedback: "Wonderful! Your honesty makes you a true treasure hunter. Playing fairly is more valuable than any prize. Your team respects you even more now!"
+        }
+    },
+    {
+        story: "Your best friend is being teased by older students at the playground. The older students are much bigger, and you feel scared. Your friend looks upset and alone.",
+        character: "🦁",
+        choiceA: {
+            text: "Walk away and pretend you didn't see it",
+            correctValue: "kindness",
+            feedback: "It's natural to feel scared, but true kindness means helping friends in need. Courage helps us do the right thing even when we're afraid!"
+        },
+        choiceB: {
+            text: "Stand with your friend and ask a teacher for help",
+            correctValue: "courage",
+            feedback: "Amazing courage! You showed that being brave doesn't mean not being scared—it means doing the right thing anyway. Your friend is lucky to have you!"
+        }
+    },
+    {
+        story: "You borrowed your sibling's favorite toy without asking and accidentally broke it. Your sibling is looking everywhere for it and is getting upset.",
+        character: "🧸",
+        choiceA: {
+            text: "Hide the broken toy and say you don't know where it is",
+            correctValue: "kindness",
+            feedback: "Hiding mistakes might seem kind to yourself, but honesty and responsibility help fix problems. Your sibling deserves to know the truth so you can make it right together!"
+        },
+        choiceB: {
+            text: "Tell the truth, apologize, and offer to fix or replace it",
+            correctValue: "honesty",
+            feedback: "Excellent! Your honesty and responsibility show real maturity. Admitting mistakes is hard but important. Your sibling will trust you more because you were truthful!"
+        }
+    },
+    {
+        story: "You find a wallet with money in the school library. No one is around, and you really want to buy a new book. There's an ID card inside with a student's name.",
+        character: "💰",
+        choiceA: {
+            text: "Keep the money and throw away the wallet",
+            correctValue: "courage",
+            feedback: "It takes courage to resist temptation, but honesty and responsibility are more important. The right choice is to return what isn't ours!"
+        },
+        choiceB: {
+            text: "Take the wallet to the school office to return it",
+            correctValue: "responsibility",
+            feedback: "Outstanding! Your responsibility and honesty shine bright. The student was so relieved to get their wallet back. Doing the right thing always feels better than any reward!"
+        }
+    }
+];
+
+// Audio context for sound generation (Web Audio API)
+let audioContext;
+let masterGain;
+
+// Initialize the application
+function init() {
+    // Check if running in iframe or standalone
+    if (window.self === window.top) {
+        document.body.classList.add('standalone');
+    }
+    
+    // Initialize audio
+    initAudio();
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Load first scenario
+    loadScenario(0);
+    
+    // Update progress
+    updateProgress();
+}
+
+// Initialize Web Audio API for sound effects
+function initAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioContext.createGain();
+        masterGain.connect(audioContext.destination);
+        masterGain.gain.value = 0.3;
+    } catch (e) {
+        console.log('Web Audio API not supported');
+    }
+}
+
+// Play sound effect using Web Audio API
+function playSound(type) {
+    if (!state.soundEnabled || !audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(masterGain);
+    
+    const now = audioContext.currentTime;
+    
+    // Different sounds for different interactions
+    switch(type) {
+        case 'drag':
+            oscillator.frequency.setValueAtTime(400, now);
+            gainNode.gain.setValueAtTime(0.1, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            oscillator.start(now);
+            oscillator.stop(now + 0.1);
+            break;
+        case 'drop':
+            oscillator.frequency.setValueAtTime(600, now);
+            oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            oscillator.start(now);
+            oscillator.stop(now + 0.2);
+            break;
+        case 'success':
+            oscillator.frequency.setValueAtTime(523.25, now);
+            oscillator.frequency.setValueAtTime(659.25, now + 0.1);
+            oscillator.frequency.setValueAtTime(783.99, now + 0.2);
+            gainNode.gain.setValueAtTime(0.2, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            oscillator.start(now);
+            oscillator.stop(now + 0.4);
+            break;
+        case 'warning':
+            oscillator.frequency.setValueAtTime(300, now);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            oscillator.start(now);
+            oscillator.stop(now + 0.15);
+            break;
+        case 'tick':
+            oscillator.frequency.setValueAtTime(800, now);
+            gainNode.gain.setValueAtTime(0.05, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            oscillator.start(now);
+            oscillator.stop(now + 0.05);
+            break;
+    }
+}
+
+// Set up all event listeners
+function setupEventListeners() {
+    // Sound toggle
+    document.getElementById('soundToggle').addEventListener('click', toggleSound);
+    
+    // Continue button
+    document.getElementById('continueBtn').addEventListener('click', nextScenario);
+    
+    // Drag and drop for value cards
+    const valueCards = document.querySelectorAll('.value-card');
+    valueCards.forEach(card => {
+        // Mouse events
+        card.addEventListener('mousedown', handleDragStart);
+        card.addEventListener('touchstart', handleDragStart, { passive: false });
+        
+        // Tooltip on hover
+        card.addEventListener('mouseenter', showTooltip);
+        card.addEventListener('mouseleave', hideTooltip);
+    });
+    
+    // Drop zones
+    const dropZones = document.querySelectorAll('.drop-zone');
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('drop', handleDrop);
+        zone.addEventListener('dragleave', handleDragLeave);
+    });
+    
+    // Global mouse/touch move and up events
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('touchend', handleDragEnd);
+}
+
+// Load a scenario
+function loadScenario(index) {
+    if (index >= scenarios.length) {
+        showCompletion();
+        return;
+    }
+    
+    const scenario = scenarios[index];
+    state.currentScenario = index;
+    
+    // Update story text
+    document.getElementById('storyText').textContent = scenario.story;
+    document.getElementById('characterImage').textContent = scenario.character;
+    
+    // Update choices
+    document.getElementById('choiceADesc').textContent = scenario.choiceA.text;
+    document.getElementById('choiceBDesc').textContent = scenario.choiceB.text;
+    
+    // Reset drop zones
+    const dropZones = document.querySelectorAll('.drop-zone');
+    dropZones.forEach(zone => {
+        zone.classList.remove('filled', 'drag-over');
+        zone.innerHTML = '<span class="drop-hint">Drag a value here</span>';
+    });
+    
+    // Reset value cards
+    const valueCards = document.querySelectorAll('.value-card');
+    valueCards.forEach(card => {
+        card.classList.remove('used');
+    });
+    
+    // Hide feedback
+    document.getElementById('feedbackPanel').classList.add('hidden');
+    
+    // Start timer
+    startTimer();
+    
+    // Update progress
+    updateProgress();
+}
+
+// Start countdown timer
+function startTimer() {
+    state.timeRemaining = 30;
+    updateTimerDisplay();
+    
+    if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+    }
+    
+    state.timerInterval = setInterval(() => {
+        state.timeRemaining--;
+        updateTimerDisplay();
+        
+        if (state.timeRemaining <= 0) {
+            clearInterval(state.timerInterval);
+            handleTimeout();
+        } else if (state.timeRemaining === 10) {
+            playSound('warning');
+        } else if (state.timeRemaining <= 5) {
+            playSound('tick');
+        }
+    }, 1000);
+}
+
+// Update timer display
+function updateTimerDisplay() {
+    const timerBar = document.getElementById('timerBar');
+    const timerText = document.getElementById('timerText');
+    
+    const percentage = (state.timeRemaining / 30) * 100;
+    timerBar.style.width = percentage + '%';
+    timerText.textContent = `Time: ${state.timeRemaining}s`;
+    
+    // Change color based on time remaining
+    timerBar.classList.remove('warning', 'danger');
+    if (state.timeRemaining <= 5) {
+        timerBar.classList.add('danger');
+    } else if (state.timeRemaining <= 10) {
+        timerBar.classList.add('warning');
+    }
+}
+
+// Handle timeout
+function handleTimeout() {
+    showFeedback('⏰', 'Time\'s up! Take your time to think carefully about your decisions. Let\'s try this scenario again!', false);
+    
+    setTimeout(() => {
+        loadScenario(state.currentScenario);
+    }, 3000);
+}
+
+// Drag and drop handlers
+let draggedElement = null;
+let draggedClone = null;
+let touchOffset = { x: 0, y: 0 };
+
+function handleDragStart(e) {
+    e.preventDefault();
+    
+    if (this.classList.contains('used')) return;
+    
+    draggedElement = this;
+    state.draggedValue = this.dataset.value;
+    
+    // Create a clone for visual feedback
+    draggedClone = this.cloneNode(true);
+    draggedClone.style.position = 'fixed';
+    draggedClone.style.pointerEvents = 'none';
+    draggedClone.style.zIndex = '1000';
+    draggedClone.style.opacity = '0.8';
+    draggedClone.style.transform = 'scale(1.1)';
+    document.body.appendChild(draggedClone);
+    
+    // Get touch/mouse position
+    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    
+    const rect = this.getBoundingClientRect();
+    touchOffset.x = clientX - rect.left;
+    touchOffset.y = clientY - rect.top;
+    
+    this.classList.add('dragging');
+    playSound('drag');
+    
+    // Position clone
+    draggedClone.style.left = (clientX - touchOffset.x) + 'px';
+    draggedClone.style.top = (clientY - touchOffset.y) + 'px';
+}
+
+function handleDragMove(e) {
+    if (!draggedElement || !draggedClone) return;
+    
+    e.preventDefault();
+    
+    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+    
+    draggedClone.style.left = (clientX - touchOffset.x) + 'px';
+    draggedClone.style.top = (clientY - touchOffset.y) + 'px';
+    
+    // Check if over drop zone
+    const dropZones = document.querySelectorAll('.drop-zone');
+    let overZone = false;
+    
+    dropZones.forEach(zone => {
+        const rect = zone.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right &&
+            clientY >= rect.top && clientY <= rect.bottom) {
+            zone.classList.add('drag-over');
+            overZone = true;
+        } else {
+            zone.classList.remove('drag-over');
+        }
+    });
+}
+
+function handleDragEnd(e) {
+    if (!draggedElement || !draggedClone) return;
+    
+    const clientX = e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
+    
+    // Find drop zone under cursor
+    const dropZones = document.querySelectorAll('.drop-zone');
+    let droppedOnZone = null;
+    
+    dropZones.forEach(zone => {
+        const rect = zone.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right &&
+            clientY >= rect.top && clientY <= rect.bottom) {
+            droppedOnZone = zone;
+        }
+        zone.classList.remove('drag-over');
+    });
+    
+    if (droppedOnZone) {
+        handleDrop(droppedOnZone);
+    }
+    
+    // Clean up
+    draggedElement.classList.remove('dragging');
+    if (draggedClone && draggedClone.parentNode) {
+        draggedClone.parentNode.removeChild(draggedClone);
+    }
+    draggedElement = null;
+    draggedClone = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(zone) {
+    if (typeof zone.dataset === 'undefined') {
+        zone = zone.target.closest('.drop-zone');
+    }
+    
+    if (!zone || !state.draggedValue) return;
+    
+    const choiceZone = zone.dataset.zone;
+    const scenario = scenarios[state.currentScenario];
+    const choice = choiceZone === 'A' ? scenario.choiceA : scenario.choiceB;
+    
+    // Mark value as used
+    draggedElement.classList.add('used');
+    
+    // Update drop zone
+    zone.classList.add('filled');
+    zone.classList.remove('drag-over');
+    
+    const valueCard = document.querySelector(`[data-value="${state.draggedValue}"]`);
+    const valueIcon = valueCard.querySelector('.value-icon').textContent;
+    const valueName = valueCard.querySelector('.value-name').textContent;
+    
+    zone.innerHTML = `
+        <div class="dropped-value">
+            <span class="value-icon">${valueIcon}</span>
+            <span>${valueName}</span>
+        </div>
+    `;
+    
+    playSound('drop');
+    
+    // Stop timer
+    clearInterval(state.timerInterval);
+    
+    // Check if correct value
+    const isCorrect = state.draggedValue === choice.correctValue;
+    
+    // Store decision
+    state.decisions.push({
+        scenario: state.currentScenario,
+        choice: choiceZone,
+        value: state.draggedValue,
+        correct: isCorrect
+    });
+    
+    // Show feedback
+    setTimeout(() => {
+        if (isCorrect) {
+            showFeedback('🌟', choice.feedback, true);
+        } else {
+            showFeedback('💭', choice.feedback, false);
+        }
+    }, 500);
+    
+    state.draggedValue = null;
+}
+
+// Show feedback panel
+function showFeedback(icon, text, isCorrect) {
+    const feedbackPanel = document.getElementById('feedbackPanel');
+    const feedbackIcon = document.getElementById('feedbackIcon');
+    const feedbackText = document.getElementById('feedbackText');
+    
+    feedbackIcon.textContent = icon;
+    feedbackText.textContent = text;
+    
+    feedbackPanel.classList.remove('hidden');
+    
+    if (isCorrect) {
+        playSound('success');
+    } else {
+        playSound('warning');
+    }
+}
+
+// Move to next scenario
+function nextScenario() {
+    const nextIndex = state.currentScenario + 1;
+    
+    if (nextIndex >= scenarios.length) {
+        showCompletion();
+    } else {
+        loadScenario(nextIndex);
+    }
+}
+
+// Show completion screen
+function showCompletion() {
+    clearInterval(state.timerInterval);
+    
+    const correctCount = state.decisions.filter(d => d.correct).length;
+    const totalCount = state.decisions.length;
+    
+    let message = `🎉 Adventure Complete! 🎉\n\n`;
+    message += `You made ${correctCount} out of ${totalCount} thoughtful decisions.\n\n`;
+    
+    if (correctCount === totalCount) {
+        message += `Outstanding! You're a values champion! Your decisions showed wisdom beyond your years.`;
+    } else if (correctCount >= totalCount * 0.7) {
+        message += `Great job! You're learning to make values-based decisions. Keep thinking about what matters most!`;
+    } else {
+        message += `Good effort! Remember, every decision is a chance to practice your values. Let's try again!`;
+    }
+    
+    showFeedback('🏆', message, true);
+    
+    document.getElementById('continueBtn').textContent = 'Start New Adventure';
+    document.getElementById('continueBtn').onclick = () => {
+        state.currentScenario = 0;
+        state.decisions = [];
+        loadScenario(0);
+    };
+}
+
+// Update progress bar
+function updateProgress() {
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    const percentage = ((state.currentScenario + 1) / state.totalScenarios) * 100;
+    progressFill.style.width = percentage + '%';
+    progressText.textContent = `Scenario ${state.currentScenario + 1} of ${state.totalScenarios}`;
+}
+
+// Toggle sound
+function toggleSound() {
+    state.soundEnabled = !state.soundEnabled;
+    this.textContent = state.soundEnabled ? '🔊' : '🔇';
+    
+    if (state.soundEnabled) {
+        playSound('success');
+    }
+}
+
+// Tooltip functions
+function showTooltip(e) {
+    const tooltip = document.getElementById('tooltip');
+    const valueName = this.querySelector('.value-name').textContent;
+    
+    let description = '';
+    switch(valueName) {
+        case 'Honesty':
+            description = 'Being truthful and sincere in words and actions';
+            break;
+        case 'Kindness':
+            description = 'Showing care, compassion, and consideration for others';
+            break;
+        case 'Courage':
+            description = 'Being brave and doing what\'s right even when it\'s difficult';
+            break;
+        case 'Responsibility':
+            description = 'Being accountable for your actions and duties';
+            break;
+    }
+    
+    tooltip.textContent = description;
+    tooltip.classList.add('show');
+    
+    // Position tooltip
+    const rect = this.getBoundingClientRect();
+    tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 8) + 'px';
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('show');
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

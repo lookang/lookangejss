@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction Subtraction Quiz</title>
+    <script
+    async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+    <style>
+        /* Basic reset and body styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh; /* Use min-height to allow footer */
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0; /* Light background for contrast */
+        }
+
+        /* Controls container */
+        #controls {
+            display: flex; /* Use flexbox for controls */
+            justify-content: center; /* Center controls horizontally */
+            align-items: center;
+            padding: 10px;
+            background-color: #d3d3d3; /* Light grey background for controls */
+            border-bottom: 1px solid #ccc;
+            flex-shrink: 0; /* Prevent controls from shrinking */
+            flex-wrap: wrap; /* Allow controls to wrap on smaller screens */
+            gap: 5px; /* Add space between control elements */
+        }
+
+        /* Style for fraction input area */
+        .fraction-input {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 2px;
+        }
+
+        /* Style for select dropdowns */
+        select {
+            padding: 3px 5px;
+            font-size: 0.9em;
+            border: 1px solid #999;
+            border-radius: 4px;
+            background-color: white;
+            margin: 1px 0;
+            min-width: 45px; /* Ensure minimum width */
+            text-align: center;
+            -moz-appearance: textfield; /* Firefox */
+             appearance: textfield; /* Standard */
+        }
+         select::-webkit-outer-spin-button,
+         select::-webkit-inner-spin-button { /* Hide spinners for WebKit */
+            -webkit-appearance: none;
+             margin: 0;
+         }
+
+
+        /* Style for answer input fields */
+        .answer-input {
+            padding: 5px 8px;
+            font-size: 1.1em;
+            border: 2px solid #0066cc;
+            border-radius: 4px;
+            background-color: #f8f8ff;
+            margin: 2px 0;
+            min-width: 45px;
+            max-width: 60px;
+            text-align: center;
+            display: inline-block; /* Ensure inputs are visible */
+            box-shadow: 0 0 5px rgba(0, 102, 204, 0.3); /* Add blue shadow for better visibility */
+             -moz-appearance: textfield; /* Firefox */
+             appearance: textfield; /* Standard */
+        }
+         .answer-input::-webkit-outer-spin-button,
+         .answer-input::-webkit-inner-spin-button { /* Hide spinners for WebKit */
+            -webkit-appearance: none;
+             margin: 0;
+         }
+
+
+        /* Add focus state for better UX */
+        .answer-input:focus {
+            outline: none;
+            border-color: #0099ff;
+            box-shadow: 0 0 8px rgba(0, 153, 255, 0.5);
+        }
+
+        /* Highlight for correct/incorrect answers */
+        .correct-answer {
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 1px solid green;
+        }
+
+        .incorrect-answer {
+            background-color: rgba(255, 0, 0, 0.2);
+            border: 1px solid red;
+        }
+
+        /* Style for operators and result display */
+        .operator, #resultDisplay {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin: 0 5px;
+            align-self: center; /* Align vertically with buttons */
+        }
+
+        /* Style for buttons */
+        button {
+            padding: 8px 15px;
+            margin: 0 5px; /* Adjust margin */
+            font-size: 1em;
+            cursor: pointer;
+            border: 1px solid #888;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            transition: background-color 0.2s;
+            align-self: center;
+        }
+
+        button:hover:not(:disabled) { /* Only hover effect when not disabled */
+             background-color: #c0c0c0;
+        }
+
+        button:active:not(:disabled) { /* Only active effect when not disabled */
+             background-color: #a0a0a0;
+        }
+        button:disabled {
+            background-color: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+            opacity: 0.7; /* Make disabled buttons slightly faded */
+        }
+
+        /* Visualization container */
+        #visualization {
+            flex-grow: 1; /* Allow visualization to fill remaining space */
+            display: flex;
+            justify-content: space-around; /* Space out canvases */
+            align-items: center;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box; /* Include padding in width calculation */
+            overflow: hidden; /* Ensure canvases don't overflow */
+            flex-wrap: wrap; /* Allow canvases to wrap on very small screens */
+            position: relative; /* Needed for absolute positioning of error message */
+            min-height: 300px; /* Ensure minimum height for visualization */
+        }
+
+        /* Canvas styling */
+        canvas {
+            border: 1px solid #aaa;
+            background-color: #fff;
+            max-width: 45%; /* Limit canvas width */
+            height: auto; /* Maintain aspect ratio */
+            aspect-ratio: 1 / 1; /* Make canvas square */
+            max-height: 80%; /* Limit height relative to container */
+            box-sizing: border-box;
+            /* Add a subtle shadow for better visual separation */
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+         /* Style for the answer/error text */
+        #messageText {
+            position: absolute; /* Position absolutely relative to visualization div */
+            bottom: 5%; /* Position near the bottom */
+            left: 50%;
+            transform: translateX(-50%); /* Center horizontally */
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #0000CD; /* Default blue for answer */
+            padding: 5px 10px;
+            background-color: rgba(255, 255, 255, 0.9); /* Slightly less transparent white background */
+            border-radius: 5px;
+            display: none; /* Initially hidden */
+            text-align: center;
+            z-index: 10; /* Ensure it's above canvases */
+            border: 1px solid #ccc; /* Add a light border */
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Add subtle shadow */
+        }
+         #messageText.error {
+             color: red; /* Red color for errors */
+             border-color: red;
+         }
+         #messageText.correct {
+             color: green;
+             border-color: green;
+         }
+         #messageText.feedback { /* For non-error messages like 'enter answer' or 'not simplified' */
+             color: #0000CD; /* Blue */
+             border-color: #0000CD;
+         }
+
+
+        /* Quiz navigation and progress */
+        #quizControls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            background-color: #e8e8e8;
+            border-top: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+             gap: 10px; /* Add gap between items */
+        }
+
+        #questionCounter {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 0 15px;
+        }
+
+        #scoreDisplay {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 0 15px;
+            color: #006400;
+        }
+
+        #difficultyLevel {
+            font-size: 1em;
+            font-weight: bold;
+            margin: 0 15px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background-color: #f0f0f0;
+        }
+
+        .difficulty-simple {
+            color: #008000;
+            border: 1px solid #008000;
+        }
+
+        .difficulty-advanced {
+            color: #FFA500;
+            border: 1px solid #FFA500;
+        }
+
+        .difficulty-expert {
+            color: #FF0000;
+            border: 1px solid #FF0000;
+        }
+
+        /* Footer styling */
+        footer {
+            text-align: center;
+            padding: 10px;
+            margin-top: 15px; /* Add space above the footer */
+            font-size: 0.8em;
+            color: #555;
+            background-color: #e8e8e8;
+            border-top: 1px solid #ccc;
+            flex-shrink: 0; /* Prevent footer from shrinking */
+        }
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 700px) { /* Adjust breakpoint */
+             #controls {
+                 gap: 3px;
+             }
+            .operator, #resultDisplay {
+                 font-size: 1.2em;
+                 margin: 0 3px;
+             }
+             select {
+                 font-size: 0.8em;
+                 min-width: 35px;
+                 padding: 2px 3px;
+             }
+             .answer-input {
+                font-size: 1em;
+                min-width: 40px;
+                max-width: 50px;
+                padding: 4px 6px;
+             }
+             button {
+                 padding: 6px 10px;
+                 font-size: 0.9em;
+             }
+             #visualization {
+                 flex-direction: column; /* Stack canvases vertically */
+                 justify-content: center;
+                 padding: 10px;
+                 min-height: 400px; /* Adjust min-height for stacked layout */
+                 gap: 10px; /* Add gap between stacked canvases */
+             }
+             canvas {
+                 max-width: 80%; /* Allow canvases to take more width */
+                 margin-bottom: 0; /* Removed margin, using gap now */
+                 max-height: 40vh; /* Adjust max height for vertical layout */
+             }
+             #messageText {
+                 font-size: 1.1em;
+                 bottom: 2%; /* Adjust position */
+                 width: 90%; /* Make message wider on small screens */
+             }
+             #quizControls {
+                 flex-direction: column;
+                 gap: 5px;
+             }
+             #questionCounter, #scoreDisplay, #difficultyLevel {
+                 margin: 5px 0;
+             }
+         }
+         @media (max-height: 450px) {
+             #controls {
+                 padding: 5px;
+             }
+            .operator, #resultDisplay {
+                 font-size: 1em;
+             }
+             select {
+                 font-size: 0.7em;
+                 min-width: 30px;
+             }
+             button {
+                 padding: 4px 8px;
+                 font-size: 0.8em;
+             }
+             #messageText {
+                 font-size: 1em;
+             }
+             #visualization {
+                 min-height: 200px; /* Further adjust min-height */
+             }
+             canvas {
+                max-height: 60vh; /* Allow more height if width is constrained */
+             }
+         }
+
+    </style>
+</head>
+<body>
+    <div id="quizControls">
+        <div id="questionCounter">Question 1 of 10</div>
+        <div id="difficultyLevel" class="difficulty-simple">Simple</div>
+        <div id="scoreDisplay">Score: 0/0</div>
+        <button id="prevBtn" disabled>Previous</button>
+        <button id="nextBtn" disabled>Next</button>
+    </div>
+
+    <div id="controls">
+        <div class="fraction-input">
+            <select id="num1" disabled></select>
+            <hr width="80%">
+            <select id="den1" disabled></select>
+        </div>
+        <span class="operator">-</span>
+        <div class="fraction-input">
+            <select id="num2" disabled></select>
+            <hr width="80%">
+            <select id="den2" disabled></select>
+        </div>
+        <span class="operator" id="equalsSign">=</span>
+        <div class="fraction-input">
+            <div style="font-size: 0.8em; color: #0066cc; margin-bottom: 2px; font-weight: bold;">Your Answer</div>
+            <input type="number" id="answerNum" min="1" placeholder="Num" class="answer-input" disabled>
+            <hr width="80%">
+            <input type="number" id="answerDen" min="1" placeholder="Den" class="answer-input" disabled>
+        </div>
+
+        <button id="playBtn">Play</button>
+        <button id="checkBtn" disabled>Check</button> <!-- Initially disabled -->
+        <button id="resetBtn">Reset</button>
+    </div>
+
+    <div id="visualization">
+        <canvas id="canvas1" width="300" height="300"></canvas>
+        <canvas id="canvas2" width="300" height="300"></canvas>
+        <div id="messageText"></div>
+    </div>
+
+    <footer>
+        Created by weelookang@gmail.com using Gemini 1.5 Pro.
+        For more resources: go to <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/fractions" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/fractions</a>
+    </footer>
+
+    <script>
+        // Get UI elements
+        const num1Select = document.getElementById('num1');
+        const den1Select = document.getElementById('den1');
+        const num2Select = document.getElementById('num2');
+        const den2Select = document.getElementById('den2');
+        const answerNum = document.getElementById('answerNum');
+        const answerDen = document.getElementById('answerDen');
+        const playBtn = document.getElementById('playBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const messageText = document.getElementById('messageText');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const questionCounter = document.getElementById('questionCounter');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const difficultyLevel = document.getElementById('difficultyLevel');
+
+        const canvas1 = document.getElementById('canvas1');
+        const ctx1 = canvas1.getContext('2d');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+
+        // --- Configuration ---
+        const MAX_DENOMINATOR = 12;
+        const MIN_DENOMINATOR = 2; // Denominator cannot be 0 or 1
+        const RED_COLOR = 'rgba(255, 0, 0, 0.6)';
+        const GREEN_COLOR = 'rgba(0, 128, 0, 0.6)';
+        const BLUE_COLOR = 'rgba(0, 0, 255, 0.6)';
+        const OVERLAY_COLOR = 'rgba(0, 100, 0, 0.8)'; // Darker green for overlay
+
+        // --- Simulation State ---
+        let state = 'initial'; // 'initial', 'playing', 'finished', 'error'
+        let currentNum1, currentDen1, currentNum2, currentDen2;
+        let commonDen, eqNum1, eqNum2, resNum, resDenSimplified, resNumSimplified; // Added simplified vars
+        let animationFrameId = null;
+        let radius = 0, centerX = 0, centerY = 0; // Canvas drawing parameters, initialize to 0
+
+        // --- Quiz State ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let totalAttempted = 0;
+        let questions = [];
+        let userAnswers = new Array(10).fill(null); // Store user answers for each question
+        let questionStates = new Array(10).fill('unattempted'); // 'unattempted', 'correct', 'incorrect'
+
+        // --- Helper Functions ---
+
+        /** Greatest Common Divisor (GCD) using Euclidean algorithm */
+        function gcd(a, b) {
+            a = Math.abs(a);
+            b = Math.abs(b);
+            while (b) {
+                [a, b] = [b, a % b];
+            }
+            return a;
+        }
+
+        /** Least Common Multiple (LCM) */
+        function lcm(a, b) {
+            // Ensure denominators are positive integers > 1 for LCM calculation
+             if (a < MIN_DENOMINATOR || b < MIN_DENOMINATOR || !Number.isInteger(a) || !Number.isInteger(b)) {
+                 console.error("Invalid denominators for LCM:", a, b);
+                 return 0; // Indicate error
+             }
+            const result = (a * b) / gcd(a, b);
+            // Additional check for safety, though MIN_DENOMINATOR check helps
+            return Number.isFinite(result) && result > 0 ? result : 0;
+        }
+
+        /** Generate random questions with increasing difficulty */
+        function generateQuestions() {
+            questions = [];
+            const generatedPairs = new Set(); // Keep track of generated fraction pairs to avoid duplicates
+
+            const generateUniqueFractionPair = (minDen, maxDen) => {
+                let num1, den1, num2, den2, fraction1Value, fraction2Value, key;
+                let attempts = 0;
+                const maxAttempts = 100; // Prevent infinite loop
+
+                do {
+                    den1 = Math.floor(Math.random() * (maxDen - minDen + 1)) + minDen;
+                    den2 = Math.floor(Math.random() * (maxDen - minDen + 1)) + minDen;
+                    num2 = Math.floor(Math.random() * (den2 - 1)) + 1; // 1 to den2-1
+
+                    // Ensure num1 is chosen such that num1/den1 > num2/den2
+                    fraction2Value = num2 / den2;
+                    // Find min possible num1 that makes num1/den1 > num2/den2
+                    let minNum1 = 1;
+                    while (minNum1 / den1 <= fraction2Value && minNum1 < den1) {
+                        minNum1++;
+                    }
+
+                    // If no num1 works (e.g., fraction2 is close to 1), retry
+                    if (minNum1 >= den1 && den1/den1 <= fraction2Value) {
+                         attempts++;
+                         continue;
+                    }
+                    // Allow num1 = den1 only if den1/den1 > fraction2Value
+
+                    // Choose num1 from the valid range [minNum1, den1]
+                    const maxNum1 = den1;
+                    if (minNum1 > maxNum1) { // Should not happen with above logic, but safety check
+                        attempts++;
+                        continue;
+                    }
+                    num1 = Math.floor(Math.random() * (maxNum1 - minNum1 + 1)) + minNum1;
+
+                    fraction1Value = num1 / den1;
+                    key = `${num1}/${den1}-${num2}/${den2}`;
+                    attempts++;
+
+                } while ( (fraction1Value <= fraction2Value || generatedPairs.has(key)) && attempts < maxAttempts);
+
+                if (attempts >= maxAttempts) {
+                    console.warn("Could not generate unique fraction pair after", maxAttempts, "attempts. Allowing potential duplicate.");
+                    // Fallback: generate *any* valid pair even if potentially duplicate or non-ideal
+                    den1 = Math.floor(Math.random() * (maxDen - minDen + 1)) + minDen;
+                    den2 = Math.floor(Math.random() * (maxDen - minDen + 1)) + minDen;
+                    num1 = Math.floor(Math.random() * den1) + 1;
+                    num2 = Math.floor(Math.random() * (den2 -1)) + 1;
+                    // Simple check to ensure positive result
+                    if (num1/den1 <= num2/den2) {
+                       if(num1 < den1) num1++; else num2 = 1; // Try to adjust
+                    }
+                     key = `${num1}/${den1}-${num2}/${den2}`; // Update key for fallback
+                }
+
+                generatedPairs.add(key);
+                return { num1, den1, num2, den2 };
+            };
+
+            // Simple questions (1-5): Denominators 2-6
+            for (let i = 0; i < 5; i++) {
+                const pair = generateUniqueFractionPair(2, 6);
+                questions.push({ ...pair, difficulty: 'simple' });
+            }
+
+            // Advanced questions (6-9): Denominators 6-10
+            for (let i = 0; i < 4; i++) {
+                const pair = generateUniqueFractionPair(6, 10);
+                questions.push({ ...pair, difficulty: 'advanced' });
+            }
+
+            // Expert question (10): Denominators 10-12
+            const pair = generateUniqueFractionPair(10, 12);
+            questions.push({ ...pair, difficulty: 'expert' });
+
+            // Initialize user answers and question states
+            userAnswers = new Array(questions.length).fill(null);
+            questionStates = new Array(questions.length).fill('unattempted');
+        }
+
+        /** Populate select dropdown options for denominators */
+        function populateDenominatorSelect(selectElement, min, max, initialValue) {
+            selectElement.innerHTML = ''; // Clear existing options
+            for (let i = min; i <= max; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                selectElement.appendChild(option);
+            }
+            selectElement.value = initialValue; // Set default value
+        }
+
+        /** Populate select dropdown options for numerators based on denominator */
+        function populateNumeratorOptions(numeratorSelect, denominatorValue, currentNumeratorValue) {
+            numeratorSelect.innerHTML = ''; // Clear existing options
+            const maxNum = denominatorValue; // Numerator <= Denominator
+
+            // Ensure maxNum is a valid number before proceeding
+            if (isNaN(maxNum) || maxNum < 1) {
+                console.error("Invalid denominator value for populating numerator:", denominatorValue);
+                 // Add a default option like '1' or handle error
+                 const option = document.createElement('option');
+                 option.value = 1;
+                 option.textContent = 1;
+                 numeratorSelect.appendChild(option);
+                 numeratorSelect.value = 1;
+                return;
+            }
+
+            for (let i = 1; i <= maxNum; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                numeratorSelect.appendChild(option);
+            }
+
+             // Try to set the previous value if still valid, otherwise default to 1
+             if (currentNumeratorValue && currentNumeratorValue > 0 && currentNumeratorValue <= maxNum) {
+                 numeratorSelect.value = currentNumeratorValue;
+             } else {
+                 // Default to 1 if maxNum is >= 1, otherwise this case shouldn't be hit due to MIN_DENOMINATOR
+                 numeratorSelect.value = (maxNum >= 1) ? 1 : '';
+             }
+        }
+
+        /** Load a specific question */
+        function loadQuestion(index) {
+            if (index < 0 || index >= questions.length) return;
+
+            currentQuestionIndex = index;
+            const question = questions[index];
+            const qState = questionStates[index]; // Get state for this question
+
+            // Update UI to show current question number
+            questionCounter.textContent = `Question ${index + 1} of ${questions.length}`;
+
+            // Update difficulty level display
+            difficultyLevel.textContent = question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1);
+            difficultyLevel.className = ''; // Clear existing classes
+            difficultyLevel.classList.add(`difficulty-${question.difficulty}`);
+
+            // Set the fraction values in the dropdowns (they remain disabled)
+            populateDenominatorSelect(den1Select, MIN_DENOMINATOR, MAX_DENOMINATOR, question.den1);
+            populateDenominatorSelect(den2Select, MIN_DENOMINATOR, MAX_DENOMINATOR, question.den2);
+            populateNumeratorOptions(num1Select, question.den1, question.num1);
+            populateNumeratorOptions(num2Select, question.den2, question.num2);
+
+            // Update current values
+            currentNum1 = question.num1;
+            currentDen1 = question.den1;
+            currentNum2 = question.num2;
+            currentDen2 = question.den2;
+
+            // --- Manage UI State based on Question State ---
+             messageText.style.display = 'none'; // Hide message initially
+             messageText.className = ''; // Clear message styling
+             answerNum.classList.remove('correct-answer', 'incorrect-answer');
+             answerDen.classList.remove('correct-answer', 'incorrect-answer');
+
+            if (qState === 'unattempted') {
+                 answerNum.value = '';
+                 answerDen.value = '';
+                 answerNum.disabled = true; // Disabled until Play completes
+                 answerDen.disabled = true;
+                 playBtn.disabled = false; // Enable Play for unattempted
+                 checkBtn.disabled = true; // Disable Check until played
+            } else {
+                // Question has been attempted (correct or incorrect)
+                if (userAnswers[index]) {
+                     answerNum.value = userAnswers[index].num;
+                     answerDen.value = userAnswers[index].den;
+                } else {
+                     // Should have an answer if not unattempted, but handle defensively
+                     answerNum.value = '';
+                     answerDen.value = '';
+                }
+                 answerNum.disabled = true; // Keep disabled after answering
+                 answerDen.disabled = true;
+                 playBtn.disabled = true; // Disable Play if already attempted
+                 checkBtn.disabled = true; // Disable Check if already attempted
+
+                // Show feedback message and styling
+                 messageText.style.display = 'block';
+                 if (qState === 'correct') {
+                     answerNum.classList.add('correct-answer');
+                     answerDen.classList.add('correct-answer');
+                     messageText.textContent = "Correct! Well done!";
+                     messageText.classList.add('correct');
+                 } else { // 'incorrect'
+                     answerNum.classList.add('incorrect-answer');
+                     answerDen.classList.add('incorrect-answer');
+                     // Need to recalculate correct answer to display it
+                     if (calculateSubtraction()) { // Ensure calculation is possible
+                         messageText.textContent = "Incorrect. Correct: " + resNumSimplified + "/" + resDenSimplified;
+                         messageText.classList.add('error'); // Use error style for incorrect
+                     } else {
+                         messageText.textContent = "Incorrect."; // Fallback message
+                         messageText.classList.add('error');
+                     }
+                 }
+            }
+
+            // Update navigation buttons
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === questions.length - 1;
+
+            // Reset the visual simulation state and redraw initial fractions
+            resetSimulation(); // This calls updateAndDrawInitialState internally
+        }
+
+        /** Calculate the correct answer for the current question */
+        function calculateCorrectAnswer() {
+            // calculateSubtraction updates global vars resNumSimplified, resDenSimplified
+            if (!calculateSubtraction()) return null;
+
+            return {
+                num: resNum, // Raw result num
+                den: commonDen, // Raw result den
+                numSimplified: resNumSimplified, // Simplified num
+                denSimplified: resDenSimplified // Simplified den
+            };
+        }
+
+        /** Update the score display */
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `Score: ${score}/${totalAttempted}`;
+        }
+
+        // --- Drawing Functions ---
+        function clearCanvas(ctx, canvas) {
+             // Adjust for device pixel ratio scaling
+             const logicalWidth = canvas.width / (window.devicePixelRatio || 1);
+             const logicalHeight = canvas.height / (window.devicePixelRatio || 1);
+             ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+         }
+        function drawCircleOutline(ctx, x, y, r, style = '#888', dashed = false) {
+             if (r <= 0) return; // Don't draw if radius is invalid
+             ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.strokeStyle = style; ctx.lineWidth = 1;
+             if (dashed) { ctx.setLineDash([5, 5]); } else { ctx.setLineDash([]); }
+             ctx.stroke(); ctx.setLineDash([]);
+         }
+        function drawSegments(ctx, x, y, r, totalSegments, style = '#aaa', dashed = false) {
+             if (r <= 0 || totalSegments <= 0 || totalSegments > 150) return; // Safety limit
+             ctx.strokeStyle = style; ctx.lineWidth = 0.5; // Thinner lines for segments
+             if (dashed) { ctx.setLineDash([5, 5]); } else { ctx.setLineDash([]); }
+             const angleOffset = -Math.PI / 2;
+             for (let i = 0; i < totalSegments; i++) {
+                 const angle = angleOffset + (i / totalSegments) * Math.PI * 2;
+                 ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle)); ctx.stroke();
+             }
+             ctx.setLineDash([]);
+         }
+        function fillSegments(ctx, x, y, r, numerator, denominator, color, startAngleOffset = -Math.PI / 2) {
+             if (r <= 0 || denominator <= 0 || numerator < 0 || denominator > 150) return; // Allow numerator 0, safety limit
+             if (numerator === 0) return; // Nothing to fill
+
+             const segmentAngle = (Math.PI * 2) / denominator;
+             ctx.fillStyle = color; ctx.lineWidth = 0.5; ctx.strokeStyle = '#555'; // Outline filled segments
+
+             for (let i = 0; i < numerator; i++) {
+                 const startAngle = startAngleOffset + i * segmentAngle;
+                 const endAngle = startAngle + segmentAngle;
+                 // Add tiny overlap to avoid visual gaps due to anti-aliasing
+                 const epsilon = 0.001;
+                 ctx.beginPath();
+                 ctx.moveTo(x, y);
+                 ctx.arc(x, y, r, startAngle - epsilon, endAngle + epsilon);
+                 ctx.closePath();
+                 ctx.fill();
+                 // Redraw segment boundary line after filling
+                 // ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + r * Math.cos(startAngle), y + r * Math.sin(startAngle)); ctx.stroke();
+             }
+             // Draw the last line explicitly if needed, handled by drawSegments generally
+             // const finalAngle = startAngleOffset + numerator * segmentAngle;
+             // ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + r * Math.cos(finalAngle), y + r * Math.sin(finalAngle)); ctx.stroke();
+
+             // Re-outline the filled arc boundary for clarity
+             ctx.beginPath();
+             ctx.moveTo(x,y);
+             ctx.arc(x, y, r, startAngleOffset, startAngleOffset + numerator * segmentAngle);
+             ctx.closePath();
+             ctx.stroke();
+         }
+
+        function fillSingleSegment(ctx, x, y, r, segmentIndex, totalSegments, color, startAngleOffset = -Math.PI / 2) {
+            if (r <= 0 || totalSegments <= 0 || segmentIndex < 0 || segmentIndex >= totalSegments || totalSegments > 150) return; // Safety limit
+
+            const segmentAngle = (Math.PI * 2) / totalSegments;
+            ctx.fillStyle = color; ctx.lineWidth = 0.5; ctx.strokeStyle = '#555'; // Outline filled segments
+
+            const startAngle = startAngleOffset + segmentIndex * segmentAngle;
+            const endAngle = startAngle + segmentAngle;
+             // Add tiny overlap to avoid visual gaps due to anti-aliasing
+             const epsilon = 0.001;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.arc(x, y, r, startAngle - epsilon, endAngle + epsilon);
+            ctx.closePath();
+            ctx.fill();
+            // Redraw segment boundary lines after filling
+            // ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + r * Math.cos(startAngle), y + r * Math.sin(startAngle)); ctx.stroke();
+            // ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + r * Math.cos(endAngle), y + r * Math.sin(endAngle)); ctx.stroke();
+        }
+
+
+        // --- Simulation Logic ---
+
+        /** Reads values, validates, and updates the initial display */
+        function updateAndDrawInitialState() {
+            cancelAnimationFrame(animationFrameId); // Stop any animation
+            // state = 'initial'; // State is set by caller (resetSimulation or loadQuestion)
+
+            // Read values from current question data (dropdowns are disabled display)
+            currentNum1 = questions[currentQuestionIndex].num1;
+            currentDen1 = questions[currentQuestionIndex].den1;
+            currentNum2 = questions[currentQuestionIndex].num2;
+            currentDen2 = questions[currentQuestionIndex].den2;
+
+             // Reset answer input fields appearance if the question is unattempted
+             if (questionStates[currentQuestionIndex] === 'unattempted') {
+                // Values/disabled state are handled by loadQuestion
+                answerNum.classList.remove('correct-answer', 'incorrect-answer');
+                answerDen.classList.remove('correct-answer', 'incorrect-answer');
+             }
+
+            // Basic Validation (should always pass with generated questions, but good practice)
+            let errorMsg = null;
+            if (isNaN(currentNum1) || isNaN(currentDen1) || isNaN(currentNum2) || isNaN(currentDen2)) {
+                errorMsg = "Invalid question data.";
+            } else if (currentDen1 < MIN_DENOMINATOR || currentDen2 < MIN_DENOMINATOR) {
+                 errorMsg = `Denominator must be ${MIN_DENOMINATOR} or greater.`;
+            } else if (currentNum1 <= 0 || currentNum1 > currentDen1 || currentNum2 <= 0 || currentNum2 > currentDen2) {
+                 errorMsg = "Numerator must be between 1 and denominator.";
+            }
+             // Check if first fraction is smaller than or equal to the second
+             else if ((currentNum1 / currentDen1) <= (currentNum2 / currentDen2)) {
+                 errorMsg = "Subtraction would result in zero or negative. (Invalid Question)";
+                 console.error("Invalid Question Generated:", questions[currentQuestionIndex]);
+             }
+
+             // Update UI based on validation
+             // Message display is handled by loadQuestion based on attempt state,
+             // but if an error IS detected here, show it.
+             if (errorMsg) {
+                 messageText.textContent = errorMsg;
+                 messageText.style.display = 'block';
+                 messageText.className = 'error'; // Use specific class
+                 state = 'error';
+                 playBtn.disabled = true;
+                 checkBtn.disabled = true;
+                 // Clear canvases on error
+                 calculateCanvasDimensions(); // Ensure dimensions are set before drawing outlines
+                 clearCanvas(ctx1, canvas1);
+                 clearCanvas(ctx2, canvas2);
+                 if (radius > 0) { // Only draw if radius is valid
+                      drawCircleOutline(ctx1, centerX, centerY, radius, '#ccc'); // Faint outline
+                      drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc');
+                 }
+                 return; // Stop processing
+             } else {
+                 // If no error, ensure any previous error message is hidden IF unattempted
+                 if(questionStates[currentQuestionIndex] === 'unattempted') {
+                     messageText.style.display = 'none';
+                     messageText.className = '';
+                 }
+                 // Button states managed by loadQuestion
+                 state = 'initial'; // Ready to play
+             }
+
+            // Draw initial fractions if valid
+            drawInitialFractions();
+        }
+
+        /** Draws the fractions for the current question */
+        function drawInitialFractions() {
+            if (state === 'error') return; // Don't draw if state is error
+
+             // Recalculate dimensions (might have changed)
+             calculateCanvasDimensions();
+             if (radius <= 0) {
+                 console.warn("Cannot draw initial fractions: Invalid canvas dimensions.");
+                 // Optionally show an error message here?
+                 return; // Don't draw if canvas size is invalid
+             }
+
+            // Canvas 1: Draw first fraction (num1/den1)
+            clearCanvas(ctx1, canvas1);
+            drawCircleOutline(ctx1, centerX, centerY, radius);
+            fillSegments(ctx1, centerX, centerY, radius, currentNum1, currentDen1, RED_COLOR); // Red
+            drawSegments(ctx1, centerX, centerY, radius, currentDen1, '#555');
+
+            // Canvas 2: Draw second fraction (num2/den2)
+            clearCanvas(ctx2, canvas2);
+            drawCircleOutline(ctx2, centerX, centerY, radius);
+            fillSegments(ctx2, centerX, centerY, radius, currentNum2, currentDen2, GREEN_COLOR); // Green
+            drawSegments(ctx2, centerX, centerY, radius, currentDen2, '#aaa');
+
+            // Ensure message text visibility is correct based on question state
+            // (This is mostly handled by loadQuestion, but reinforces here)
+            if (questionStates[currentQuestionIndex] === 'unattempted') {
+                 messageText.style.display = 'none';
+            } else if (state !== 'playing') { // Don't show stored message during animation
+                 // Message text content/style set by loadQuestion
+                 messageText.style.display = 'block';
+            }
+        }
+
+
+        /** Performs the fraction subtraction calculation */
+        function calculateSubtraction() {
+            commonDen = lcm(currentDen1, currentDen2);
+             if (commonDen === 0 || !Number.isFinite(commonDen)) { // Handle potential LCM error
+                 messageText.textContent = "Invalid denominators for calculation.";
+                 messageText.style.display = 'block';
+                 messageText.className = 'error';
+                 state = 'error';
+                 playBtn.disabled = true;
+                 return false;
+             }
+            // Safety check for extremely large common denominators affecting visualization
+            if (commonDen > 150) { // Increased limit slightly for visualization
+                 messageText.textContent = "Resulting denominator too large for clear visualization.";
+                 messageText.style.display = 'block';
+                 messageText.className = 'error'; // Style as error
+                 state = 'error';
+                 playBtn.disabled = true;
+                 return false; // Indicate calculation failure
+             }
+            eqNum1 = Math.round(currentNum1 * (commonDen / currentDen1)); // Use Math.round for potential float issues
+            eqNum2 = Math.round(currentNum2 * (commonDen / currentDen2));
+            resNum = eqNum1 - eqNum2;
+
+            if (resNum < 0) {
+                // This should theoretically not happen with valid generated questions
+                console.error("Calculation resulted in negative number:", {eqNum1, eqNum2, resNum});
+                messageText.textContent = "Calculation Error: Negative Result.";
+                messageText.style.display = 'block';
+                messageText.className = 'error';
+                state = 'error';
+                playBtn.disabled = true;
+                return false;
+            }
+
+            // Simplify the result
+            const commonDivisor = gcd(resNum, commonDen);
+            resNumSimplified = resNum / commonDivisor;
+            resDenSimplified = commonDen / commonDivisor;
+
+            return true; // Indicate calculation success
+        }
+
+
+        /** Animates the subtraction process with overlay */
+        function playAnimation() {
+             // --- Safety Checks First ---
+             if (radius <= 0) {
+                 console.error("Cannot play animation: Invalid canvas dimensions (radius <= 0).");
+                 messageText.textContent = "Cannot display visualization. Please resize window or report issue.";
+                 messageText.style.display = 'block';
+                 messageText.className = 'error';
+                 state = 'error'; // Set error state
+                 playBtn.disabled = true; // Disable play
+                 resetBtn.disabled = false; // Allow reset attempt
+                 return;
+             }
+             if (state !== 'initial') { // Can only play from initial state
+                  console.warn("Cannot play animation: State is not 'initial'. Current state:", state);
+                  return;
+             }
+             if (!calculateSubtraction()) { // Perform calculation, handles errors internally
+                 console.log("Cannot play animation: Calculation failed.");
+                 return; // Error message shown by calculateSubtraction
+             }
+
+             // --- Start Animation ---
+             state = 'playing';
+             playBtn.disabled = true;
+             resetBtn.disabled = true; // Disable reset during animation
+             checkBtn.disabled = true; // Ensure check is disabled
+             answerNum.disabled = true; // Ensure answers are disabled
+             answerDen.disabled = true;
+             // Dropdowns and Nav buttons remain disabled (as set by quiz mode/loadQuestion)
+             cancelAnimationFrame(animationFrameId);
+             messageText.style.display = 'none'; // Hide messages during animation
+
+            // Animation parameters
+            let step = 0;
+            const totalSteps = 240; // Duration of animation
+            const conversionPoint = totalSteps * 0.3; // Phase 1 end: Denominators converted
+            const overlayPoint = totalSteps * 0.6;    // Phase 2 end: Green overlay complete
+            const subtractionPoint = totalSteps * 0.9; // Phase 3 end: Overlay removed (longer pause)
+                                                       // Phase 4: Result reveal (remaining steps)
+
+            function animate() {
+                 // Ensure state hasn't changed externally (e.g., by resize/reset)
+                 if (state !== 'playing') {
+                     cancelAnimationFrame(animationFrameId);
+                     return;
+                 }
+
+                 // --- Animation Complete ---
+                 if (step > totalSteps) {
+                     drawFinalState(); // Draw the final result clearly
+                     // State changed within drawFinalState
+                     return; // Stop animation
+                 }
+
+                 // --- Animation Phases ---
+
+                // Common setup for each frame
+                 clearCanvas(ctx1, canvas1);
+                 drawCircleOutline(ctx1, centerX, centerY, radius);
+                 clearCanvas(ctx2, canvas2); // Clear canvas 2 unless drawing in it
+
+                 if (step < conversionPoint) {
+                     // Phase 1: Convert Denominators
+                     const progress = step / conversionPoint;
+
+                     // Canvas 1: Convert Red
+                     fillSegments(ctx1, centerX, centerY, radius, eqNum1, commonDen, RED_COLOR);
+                     // Draw original denominator lines fading out
+                     drawSegments(ctx1, centerX, centerY, radius, currentDen1, `rgba(85, 85, 85, ${1 - progress})`);
+                     // Draw common denominator lines fading in
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, `rgba(85, 85, 85, ${progress})`);
+
+                     // Canvas 2: Convert Green
+                     drawCircleOutline(ctx2, centerX, centerY, radius); // Keep outline
+                     fillSegments(ctx2, centerX, centerY, radius, eqNum2, commonDen, GREEN_COLOR);
+                     // Draw original denominator lines fading out
+                     drawSegments(ctx2, centerX, centerY, radius, currentDen2, `rgba(170, 170, 170, ${1 - progress})`);
+                     // Draw common denominator lines fading in
+                     drawSegments(ctx2, centerX, centerY, radius, commonDen, `rgba(85, 85, 85, ${progress})`);
+
+                 } else if (step < overlayPoint) {
+                     // Phase 2: Overlay Green onto Red (on Canvas 1)
+                     const progress = (step - conversionPoint) / (overlayPoint - conversionPoint);
+
+                     // Canvas 1: Show Red base, overlay Green
+                     fillSegments(ctx1, centerX, centerY, radius, eqNum1, commonDen, RED_COLOR); // Draw base red
+                     // Overlay the segments corresponding to eqNum2 with a distinct overlay color, fading in
+                     const overlayAlpha = 0.8 * progress; // Fade in overlay
+                     const overlayColorCurrent = `rgba(0, 100, 0, ${overlayAlpha})`; // Darker green overlay
+                     // Overlay starts from the end of the *result* segments
+                     for (let i = 0; i < eqNum2; i++) {
+                          // Calculate the index relative to the start (0)
+                          const segmentIndex = (resNum + i) % commonDen; // Wrap around if needed (shouldn't be)
+                          fillSingleSegment(ctx1, centerX, centerY, radius, segmentIndex, commonDen, overlayColorCurrent);
+                     }
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Keep common denominator lines
+
+                     // Canvas 2: Fade out
+                     const fadeOutAlpha = 1 - progress;
+                     ctx2.globalAlpha = fadeOutAlpha; // Apply fade out
+                     drawCircleOutline(ctx2, centerX, centerY, radius);
+                     fillSegments(ctx2, centerX, centerY, radius, eqNum2, commonDen, GREEN_COLOR);
+                     drawSegments(ctx2, centerX, centerY, radius, commonDen, '#555');
+                     ctx2.globalAlpha = 1; // Reset alpha
+
+                 } else if (step < subtractionPoint) {
+                     // Phase 3: Remove Overlay (Fade out green overlay on Canvas 1)
+                     const progress = (step - overlayPoint) / (subtractionPoint - overlayPoint);
+
+                     // Canvas 1: Show only the result segments in red, fade out the removed part
+                     fillSegments(ctx1, centerX, centerY, radius, resNum, commonDen, RED_COLOR); // Result part remains red
+
+                     // Draw the segments being removed (red base + fading green overlay)
+                     const overlayAlpha = 0.8 * (1 - progress); // Fade out overlay
+                     const overlayColorCurrent = `rgba(0, 100, 0, ${overlayAlpha})`;
+                     const baseRedAlpha = 0.6 * (1 - progress); // Fade out base red underneath overlay
+                     const baseRedCurrent = `rgba(255, 0, 0, ${baseRedAlpha})`;
+
+                     for (let i = 0; i < eqNum2; i++) {
+                         const segmentIndex = (resNum + i) % commonDen;
+                         fillSingleSegment(ctx1, centerX, centerY, radius, segmentIndex, commonDen, baseRedCurrent); // Fading base red
+                         fillSingleSegment(ctx1, centerX, centerY, radius, segmentIndex, commonDen, overlayColorCurrent); // Fading overlay
+                     }
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Keep common denominator lines
+
+                     // Canvas 2: Keep clear
+                     drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc'); // Faint outline
+
+                 } else {
+                     // Phase 4: Result Reveal (Transition remaining red to blue on Canvas 1)
+                     const progress = (step - subtractionPoint) / (totalSteps - subtractionPoint);
+
+                     // Interpolate color from red to blue for the result segments
+                     const resultRedVal = Math.round(255 * (1 - progress));
+                     const resultBlueVal = Math.round(255 * progress);
+                     const resultColor = `rgba(${resultRedVal}, 0, ${resultBlueVal}, 0.6)`;
+
+                     // Draw the result segments transitioning color
+                     fillSegments(ctx1, centerX, centerY, radius, resNum, commonDen, resultColor);
+                     drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Keep common denominator lines
+
+                     // Canvas 2: Keep clear
+                     drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc'); // Faint outline
+                 }
+
+                 step++;
+                 animationFrameId = requestAnimationFrame(animate);
+             }
+             animate(); // Start the animation loop
+        }
+
+        /** Draws the final state after subtraction animation completes */
+        function drawFinalState() {
+             // Final state variables should be set by calculateSubtraction: resNum, commonDen
+             if (state === 'error' || typeof resNum === 'undefined' || typeof commonDen === 'undefined') {
+                  console.warn("Cannot draw final state: calculation results invalid or state is error.");
+                  // Ensure UI reflects an error or consistent state
+                  if (state !== 'error') state = 'error'; // Mark as error if results missing
+                  playBtn.disabled = true;
+                  checkBtn.disabled = true;
+                  resetBtn.disabled = false; // Allow reset
+                  return;
+             }
+
+             calculateCanvasDimensions(); // Ensure dimensions are up-to-date
+             if (radius <= 0) {
+                 console.warn("Cannot draw final state: Invalid canvas dimensions.");
+                 // Show error message?
+                  messageText.textContent = "Cannot display result visualization.";
+                  messageText.style.display = 'block';
+                  messageText.className = 'error';
+                  state = 'error';
+                  playBtn.disabled = true;
+                  checkBtn.disabled = true;
+                  resetBtn.disabled = false;
+                 return;
+             }
+
+             // Canvas 1: Shows the final result resNum/commonDen in blue
+             clearCanvas(ctx1, canvas1);
+             drawCircleOutline(ctx1, centerX, centerY, radius);
+             fillSegments(ctx1, centerX, centerY, radius, resNum, commonDen, BLUE_COLOR); // Result blue
+             drawSegments(ctx1, centerX, centerY, radius, commonDen, '#555'); // Show final common denominator lines
+
+             // Canvas 2: Clear
+             clearCanvas(ctx2, canvas2);
+             drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc'); // Faint outline
+
+             // --- Update UI for Answer Input ---
+             state = 'finished'; // Mark animation as finished
+             playBtn.disabled = true; // Keep play disabled
+             resetBtn.disabled = false; // Enable reset
+             checkBtn.disabled = false; // IMPORTANT: Enable check button
+             answerNum.disabled = false; // Enable answer input
+             answerDen.disabled = false;
+             answerNum.focus(); // Focus on the numerator input
+
+             // Prompt user to enter their answer
+             messageText.textContent = "Enter your answer (simplified)";
+             messageText.style.display = 'block';
+             messageText.className = 'feedback'; // Use feedback style
+
+             // Dropdowns remain disabled in quiz mode
+             // Navigation buttons state depends on checkAnswer result and current index
+             // Re-enable navigation buttons based on current question index if needed?
+             // Usually, navigation waits until check is pressed. Let's keep them disabled for now.
+             // prevBtn.disabled = currentQuestionIndex === 0;
+             // nextBtn.disabled = currentQuestionIndex === questions.length - 1;
+        }
+
+        /** Resets the simulation VISUALS to the initial state for the CURRENT question */
+        function resetSimulation() {
+            state = 'initial'; // Set state first
+            cancelAnimationFrame(animationFrameId);
+
+            // Reset button states based on the *current question's state*
+            const qState = questionStates[currentQuestionIndex];
+             playBtn.disabled = (qState !== 'unattempted'); // Enable play only if unattempted
+             checkBtn.disabled = true; // Always disable check on reset
+             resetBtn.disabled = false; // Reset always enabled? Maybe disable if state is already initial?
+             answerNum.disabled = true; // Always disable answer inputs on reset
+             answerDen.disabled = true;
+             answerNum.classList.remove('correct-answer', 'incorrect-answer');
+             answerDen.classList.remove('correct-answer', 'incorrect-answer');
+
+             // Dropdowns remain disabled (quiz mode)
+
+            // If the question was unattempted, clear any lingering input visually
+             if (qState === 'unattempted') {
+                answerNum.value = '';
+                answerDen.value = '';
+                messageText.style.display = 'none'; // Hide message
+                messageText.className = '';
+             } else {
+                 // If already attempted, keep the user's previous answer shown but disable inputs/buttons
+                 if (userAnswers[currentQuestionIndex]) {
+                     answerNum.value = userAnswers[currentQuestionIndex].num;
+                     answerDen.value = userAnswers[currentQuestionIndex].den;
+                 }
+                 // Re-show the previous feedback message
+                  if (qState === 'correct') {
+                     messageText.textContent = "Correct! Well done!";
+                     messageText.style.display = 'block';
+                     messageText.classList.add('correct');
+                     answerNum.classList.add('correct-answer'); // Reapply class
+                     answerDen.classList.add('correct-answer');
+                  } else if (qState === 'incorrect') {
+                     if (calculateSubtraction()) { // Need to recalc to show correct answer
+                        messageText.textContent = "Incorrect. Correct: " + resNumSimplified + "/" + resDenSimplified;
+                     } else { messageText.textContent = "Incorrect.";}
+                     messageText.style.display = 'block';
+                     messageText.classList.add('error');
+                     answerNum.classList.add('incorrect-answer'); // Reapply class
+                     answerDen.classList.add('incorrect-answer');
+                  }
+             }
+
+             // Redraw initial fractions based on current question data & re-validate
+             updateAndDrawInitialState();
+        }
+
+        /** Checks the user's answer against the correct result */
+        function checkAnswer() {
+             // Can only check if animation finished
+             if (state !== 'finished') {
+                  console.warn("Cannot check answer: State is not 'finished'. Current state:", state);
+                  return;
+             }
+
+            // Get user's answer
+            const userNum = parseInt(answerNum.value);
+            const userDen = parseInt(answerDen.value);
+
+            // Validate input
+            if (isNaN(userNum) || isNaN(userDen) || userDen <= 0 || userNum <= 0) { // Also check num > 0
+                 messageText.textContent = "Please enter valid positive numbers for your answer.";
+                 messageText.style.display = 'block';
+                 messageText.className = 'error'; // Error style for validation
+                 answerNum.classList.add('incorrect-answer'); // Mark fields as incorrect visually
+                 answerDen.classList.add('incorrect-answer');
+                return;
+            }
+
+            // Correct answer calculated previously and stored in resNumSimplified, resDenSimplified
+            if (typeof resNumSimplified === 'undefined' || typeof resDenSimplified === 'undefined') {
+                 console.error("Cannot check answer: Correct answer not calculated.");
+                 messageText.textContent = "Error: Cannot verify answer.";
+                 messageText.style.display = 'block';
+                 messageText.className = 'error';
+                 return;
+            }
+
+            // Check if the answer is correct (comparing simplified fractions)
+            const isSimplifiedCorrect = (userNum === resNumSimplified && userDen === resDenSimplified);
+            let isEquivalentCorrect = false;
+            let simplifiedUserNum = userNum;
+            let simplifiedUserDen = userDen;
+
+            // Check if unsimplified answer is equivalent
+            const userGcd = gcd(userNum, userDen);
+            if (userGcd > 1) { // If it can be simplified
+                simplifiedUserNum = userNum / userGcd;
+                simplifiedUserDen = userDen / userGcd;
+                if (simplifiedUserNum === resNumSimplified && simplifiedUserDen === resDenSimplified) {
+                    isEquivalentCorrect = true;
+                }
+            } else {
+                // If user input is already simplified, equivalent is same as simplified check
+                isEquivalentCorrect = isSimplifiedCorrect;
+            }
+
+
+            // Store the user's answer regardless of correctness
+             userAnswers[currentQuestionIndex] = { num: userNum, den: userDen };
+
+            // Update score and question state ONCE per question
+             if (questionStates[currentQuestionIndex] === 'unattempted') {
+                 totalAttempted++;
+                 if (isSimplifiedCorrect) { // Grant score only for fully correct simplified answer
+                     score++;
+                     questionStates[currentQuestionIndex] = 'correct';
+                 } else {
+                     questionStates[currentQuestionIndex] = 'incorrect'; // Mark incorrect if not simplified or wrong
+                 }
+                 updateScoreDisplay();
+             } else {
+                 // If re-checking an already answered question, don't change score/attempt count
+                 // Just update the visual feedback based on current input
+             }
+
+
+            // --- Provide Feedback ---
+            checkBtn.disabled = true; // Disable check after clicking
+            answerNum.disabled = true; // Disable inputs after checking
+            answerDen.disabled = true;
+             messageText.style.display = 'block'; // Make sure message is visible
+             answerNum.classList.remove('correct-answer', 'incorrect-answer'); // Clear previous styling
+             answerDen.classList.remove('correct-answer', 'incorrect-answer');
+
+            if (isSimplifiedCorrect) {
+                 messageText.textContent = "Correct! Well done!";
+                 messageText.className = 'correct';
+                 answerNum.classList.add('correct-answer');
+                 answerDen.classList.add('correct-answer');
+            } else if (isEquivalentCorrect) {
+                 // Correct value, but not simplified
+                 messageText.textContent = `Equivalent, but simplify please! Correct: ${resNumSimplified}/${resDenSimplified}`;
+                 messageText.className = 'feedback'; // Use feedback style (blue/orange)
+                 answerNum.classList.add('incorrect-answer'); // Still mark as 'needs fixing'
+                 answerDen.classList.add('incorrect-answer');
+                 // Question state remains 'incorrect' because it wasn't simplified
+            } else {
+                 // Incorrect answer
+                 messageText.textContent = `Incorrect. Correct: ${resNumSimplified}/${resDenSimplified}`;
+                 messageText.className = 'error';
+                 answerNum.classList.add('incorrect-answer');
+                 answerDen.classList.add('incorrect-answer');
+                 // Question state is already 'incorrect'
+            }
+
+            // Enable next button if not on the last question AFTER checking
+             if (currentQuestionIndex < questions.length - 1) {
+                 nextBtn.disabled = false;
+             }
+             // Keep prev button state as is (depends only on index)
+        }
+
+        // --- Event Listeners ---
+        playBtn.addEventListener('click', playAnimation);
+        checkBtn.addEventListener('click', checkAnswer);
+        resetBtn.addEventListener('click', resetSimulation);
+
+        // Navigation buttons
+        prevBtn.addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                loadQuestion(currentQuestionIndex - 1);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentQuestionIndex < questions.length - 1) {
+                loadQuestion(currentQuestionIndex + 1);
+            }
+        });
+
+        // Add enter key support for answer inputs
+        answerNum.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !checkBtn.disabled) { // Check if Enter is pressed and Check is enabled
+                 if (answerDen.value === '') {
+                     answerDen.focus(); // Move focus to denominator if empty
+                 } else {
+                     checkAnswer(); // Otherwise, check the answer
+                 }
+            }
+        });
+
+        answerDen.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !checkBtn.disabled) { // Check if Enter is pressed and Check is enabled
+                 checkAnswer(); // Check the answer
+            }
+        });
+
+
+         // --- Responsive Resizing ---
+         function calculateCanvasDimensions() {
+              const vizContainer = document.getElementById('visualization');
+              if (!vizContainer) {
+                 radius = 0; // Indicate error
+                 return;
+              }
+
+              const scale = window.devicePixelRatio || 1;
+              const vizWidth = vizContainer.clientWidth; // Use clientWidth for content area size
+              const vizHeight = vizContainer.clientHeight;
+
+              // Check layout based on current CSS (approximated by window width)
+              const isRowLayout = window.innerWidth > 700;
+
+              let availableWidth, availableHeight;
+               // Calculate available space per canvas based on layout and padding/gap
+               const padding = 15 * 2; // Total padding (left/right or top/bottom)
+               const gap = 10; // Gap between items
+
+              if (isRowLayout) {
+                   // Width: container width - padding - gap / 2 canvases
+                   availableWidth = (vizWidth - padding - gap) / 2;
+                   // Height: container height - padding
+                   availableHeight = vizHeight - padding;
+              } else {
+                   // Width: container width - padding
+                   availableWidth = vizWidth - padding;
+                   // Height: container height - padding - gap / 2 canvases
+                   availableHeight = (vizHeight - padding - gap) / 2;
+              }
+
+              // Ensure dimensions are not negative or zero
+              availableWidth = Math.max(10, availableWidth);
+              availableHeight = Math.max(10, availableHeight);
+
+              // Determine the limiting dimension for a square canvas
+              const size = Math.floor(Math.min(availableWidth, availableHeight)); // Use floor for integer size
+
+
+              // Check if size is valid before updating canvas
+              if (size <= 0 || !Number.isFinite(size)) {
+                  console.warn("Calculated invalid canvas size:", size);
+                  radius = 0; // Indicate invalid size
+                  // Clear existing canvases maybe?
+                  if (canvas1.width > 0) clearCanvas(ctx1, canvas1);
+                  if (canvas2.width > 0) clearCanvas(ctx2, canvas2);
+                  return;
+              }
+
+              // Update internal canvas resolution (backing store) only if size changed significantly or was invalid
+              // Use a tolerance to avoid excessive resizing/context resets
+              const tolerance = 2;
+              if (Math.abs(canvas1.width / scale - size) > tolerance || radius === 0 || canvas1.width === 0) {
+                  // console.log(`Resizing canvas from ${canvas1.width/scale} to ${size}`); // Debug log
+                  canvas1.width = size * scale;
+                  canvas1.height = size * scale;
+                  canvas2.width = size * scale;
+                  canvas2.height = size * scale;
+
+                  // Reset context scale after changing canvas dimensions
+                  ctx1.setTransform(scale, 0, 0, scale, 0, 0); // Apply new scale directly
+                  ctx2.setTransform(scale, 0, 0, scale, 0, 0);
+              }
+
+              // Update CSS size for display (redundant if using aspect-ratio and max-width, but safe)
+              canvas1.style.width = `${size}px`; canvas1.style.height = `${size}px`;
+              canvas2.style.width = `${size}px`; canvas2.style.height = `${size}px`;
+
+              // Update drawing parameters based on the logical (CSS) size
+              radius = size / 2 * 0.85; // 85% of half the size
+              centerX = size / 2;
+              centerY = size / 2;
+         }
+
+         function handleResize() {
+              calculateCanvasDimensions();
+              // Redraw based on the current state using the new dimensions
+              if (state === 'error') {
+                  // Attempt to redraw outlines if radius is now valid
+                  if (radius > 0) {
+                     clearCanvas(ctx1, canvas1); drawCircleOutline(ctx1, centerX, centerY, radius, '#ccc');
+                     clearCanvas(ctx2, canvas2); drawCircleOutline(ctx2, centerX, centerY, radius, '#ccc');
+                  }
+                  // Keep error message visible
+                  messageText.style.display = 'block';
+
+              } else if (state === 'initial') {
+                   drawInitialFractions(); // Redraw initial state
+              } else if (state === 'finished') {
+                   drawFinalState(); // Redraw final state (result)
+              }
+              // No redraw during 'playing' to avoid disrupting animation
+              // Animation will continue with potentially stale dimensions until it finishes or is reset
+         }
+
+         let resizeTimeout;
+         window.addEventListener('resize', () => {
+              // Debounce resize events to avoid excessive recalculations
+              clearTimeout(resizeTimeout);
+              resizeTimeout = setTimeout(handleResize, 150);
+         });
+
+        // --- Initial Setup ---
+        window.onload = () => {
+             console.log("Window loaded. Initializing quiz...");
+             // Generate random questions
+             generateQuestions();
+
+             // Calculate initial dimensions FIRST
+             calculateCanvasDimensions();
+
+             // Load the first question (this calls resetSimulation -> updateAndDrawInitialState)
+             loadQuestion(0); // Sets up dropdowns, state, draws initial fractions
+
+             // Ensure initial button/input states are correct after loadQuestion
+             answerNum.disabled = true;
+             answerDen.disabled = true;
+             checkBtn.disabled = true; // Should be disabled until played
+             playBtn.disabled = false; // Should be enabled for Q1 initially
+
+             // Auto-play the animation for the first question after a short delay
+             // ONLY if dimensions are valid and state is initial
+             setTimeout(() => {
+                 console.log("Attempting auto-play for Q1. State:", state, "Radius:", radius);
+                 if (currentQuestionIndex === 0 && state === 'initial' && radius > 0) {
+                     console.log("Auto-playing Q1 animation...");
+                     playAnimation();
+                 } else {
+                     console.warn("Skipping auto-play for Q1. Conditions not met.");
+                      if (radius <= 0) {
+                          messageText.textContent = "Visualization failed to load. Resize window or report issue.";
+                          messageText.style.display = 'block';
+                          messageText.className = 'error';
+                          playBtn.disabled = true; // Disable play if canvas is bad
+                      }
+                 }
+             }, 750); // Increased delay slightly
+          };
+
+    </script>
+
+</body>
+</html>

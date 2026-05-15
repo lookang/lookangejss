@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Math Facts Automaticity Builder</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const payload = {
+      score: raw,
+      max,
+      feedback: 'Quiz ' + reason + ': ' + raw + '/' + max + ' (correct ' + quizMeta.correct + '/' + max + ')',
+      reason,
+      quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+      history: history.slice(-80)
+    };
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /correct/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState({
+          score: scoreRaw,
+          max: max,
+          feedback: feedback || '',
+          quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+          history: history.slice(-80)
+        });
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    // If we know quizMeta.max, send a score on each change.
+    // Debounced by lastScoreSent.
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Score: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = qs.questions.length;
+    quizMeta.max = quizMeta.total;
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          pushHistory({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          qs.attempted++;
+          if (ok === true) quizMeta.correct++;
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        pushHistory({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          qs.attempted++;
+          if (result === 'correct') quizMeta.correct++;
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+  }
+})();
+    </script>
+  
+  
+<!-- xAPI AI Agent - Auto-generated tracking script -->
+<script>
+(function() {
+  function waitForStoreState(maxMs) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      (function tick() {
+        if (typeof window.storeState === 'function') return resolve(true);
+        if (Date.now() - started > maxMs) return resolve(false);
+        setTimeout(tick, 50);
+      })();
+    });
+  }
+
+  function run() {
+    try {
+      (function () {
+  // Auto-execute on DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', function () {
+    // Configuration for retrying window.storeState
+    var STORE_CHECK_INTERVAL = 200; // ms
+    var STORE_CHECK_TIMEOUT = 5000; // ms
+
+    // Internal buffers and state
+    var statementBuffer = [];
+    var storeAvailable = typeof window.storeState === 'function';
+    var activity = {
+      id: window.location.href,
+      definition: {
+        name: { 'en-US': document.title || 'Interactive Content' },
+        description: { 'en-US': 'Auto-tracked interactive content (injected script)' }
+      }
+    };
+
+    // Utility: ISO timestamp
+    function nowISO() {
+      return new Date().toISOString();
+    }
+
+    // Wait for storeState to appear, then flush buffer
+    function waitForStoreState(callback) {
+      if (storeAvailable) {
+        callback();
+        return;
+      }
+      var waited = 0;
+      var checker = setInterval(function () {
+        if (typeof window.storeState === 'function') {
+          storeAvailable = true;
+          clearInterval(checker);
+          callback();
+        } else {
+          waited += STORE_CHECK_INTERVAL;
+          if (waited >= STORE_CHECK_TIMEOUT) {
+            clearInterval(checker);
+            console.warn('xAPI injector: window.storeState not available after timeout. Statements will remain buffered until available.');
+            // still call callback to allow continued initialization; buffered statements remain queued
+            callback();
+          }
+        }
+      }, STORE_CHECK_INTERVAL);
+    }
+
+    // Send statement (buffer if storeState not yet available)
+    function sendStatement(statement) {
+      statement.timestamp = statement.timestamp || nowISO();
+      statement.object = statement.object || activity;
+      // If storeState available now, try to send buffer first
+      if (storeAvailable && typeof window.storeState === 'function') {
+        try {
+          // flush buffer first
+          while (statementBuffer.length) {
+            try {
+              window.storeState(statementBuffer.shift());
+            } catch (errBuffer) {
+              console.error('xAPI injector: Error sending buffered statement', errBuffer);
+              // re-buffer and break
+              statementBuffer.unshift(statementBuffer.shift());
+              break;
+            }
+          }
+          // send current
+          window.storeState(statement);
+        } catch (err) {
+          console.error('xAPI injector: error calling storeState, buffering statement', err);
+          statementBuffer.push(statement);
+        }
+      } else {
+        // Buffer and attempt to wait for storeState asynchronously
+        statementBuffer.push(statement);
+        if (!storeAvailable) {
+          // Try to detect storeState soon
+          waitForStoreState(function () {
+            if (storeAvailable) {
+              // try flush now
+              try {
+                while (statementBuffer.length) {
+                  window.storeState(statementBuffer.shift());
+                }
+              } catch (err) {
+                console.error('xAPI injector: error flushing buffer after storeState became available', err);
+              }
+            }
+          });
+        }
+      }
+    }
+
+    // Score normalization heuristics per custom instruction
+    function normalizeScore(rawScore, options) {
+      // options: { maxScore, questionCount }
+      var raw = Number(rawScore) || 0;
+      var max = typeof options === 'object' && options.maxScore ? Number(options.maxScore) : null;
+      var qCount = typeof options === 'object' && options.questionCount ? Number(options.questionCount) : null;
+      var note = [];
+      var scaled = raw;
+
+      // If questionCount present and raw > questionCount, try to detect per-item weighting
+      if (qCount && qCount > 0 && raw > qCount) {
+        var perItem = Math.round(raw / qCount);
+        if (perItem >= 2) {
+          // Likely each correct was given more than 1 mark (e.g., 10). Convert to 1 mark per correct.
+          var correctedCorrect = Math.round(raw / perItem);
+          scaled = correctedCorrect; // 1 mark per correct
+          note.push('Detected item-weight=' + perItem + ', converted to 1 mark per correct.');
+        }
+      }
+
+      // If still > 100, cap to 100
+      if (scaled > 100) {
+        scaled = 100;
+        note.push('Scaled/capped to 100.');
+      }
+
+      // If max provided and seems inflated (>100), adapt max
+      var scaledMax = null;
+      if (qCount && qCount > 0) {
+        scaledMax = qCount;
+      } else if (max) {
+        scaledMax = max > 100 ? 100 : max;
+      } else {
+        scaledMax = 100;
+      }
+
+      // percentage
+      var percent = scaledMax > 0 ? Math.round((scaled / scaledMax) * 100) : null;
+
+      return {
+        raw: raw,
+        scaled: scaled,
+        max: scaledMax,
+        scaledPercent: percent,
+        note: note.join(' ')
+      };
+    }
+
+    // Build a minimal xAPI-like statement object
+    function buildStatement(verbId, verbDisplay, object, result, context) {
+      var stmt = {
+        actor: undefined, // assume SLS will populate actor if needed
+        verb: {
+          id: verbId,
+          display: { 'en-US': verbDisplay }
+        },
+        object: object || activity, // default to page activity
+        context: context || {
+          extensions: {
+            'https://example.com/xapi/extensions/source': 'sls-injector'
+          }
+        },
+        result: result || {},
+        timestamp: nowISO()
+      };
+      return stmt;
+    }
+
+    // Helper to get element identity string
+    function elIdentity(el) {
+      if (!el) return undefined;
+      var id = el.id ? '#' + el.id : '';
+      var cls = el.className ? '.' + String(el.className).trim().split(/\s+/).join('.') : '';
+      var tag = el.tagName ? el.tagName.toLowerCase() : 'element';
+      return tag + id + cls;
+    }
+
+    // ---- Event handlers & registration ----
+
+    // 1) Session initialized
+    sendStatement(buildStatement(
+      'http://adlnet.gov/expapi/verbs/initialized',
+      'initialized',
+      activity,
+      { extensions: { 'https://example.com/xapi/extensions/initTime': nowISO() } },
+      { contextActivities: { parent: [activity] } }
+    ));
+
+    // 2) Media play/pause
+    function attachMediaListeners() {
+      var mediaEls = Array.prototype.slice.call(document.querySelectorAll('video, audio'));
+      mediaEls.forEach(function (m) {
+        // Play
+        m.addEventListener('play', function () {
+          var res = {
+            extensions: {
+              'https://example.com/xapi/extensions/currentTime': m.currentTime,
+              'https://example.com/xapi/extensions/duration': m.duration,
+              'https://example.com/xapi/extensions/mediaId': elIdentity(m)
+            }
+          };
+          sendStatement(buildStatement('http://activitystrea.ms/schema/1.0/play', 'played', {
+            id: m.currentSrc || m.src || activity.id + '#media'
+          }, res, { contextActivities: { parent: [activity] } }));
+        });
+        // Pause
+        m.addEventListener('pause', function () {
+          var res = {
+            extensions: {
+              'https://example.com/xapi/extensions/currentTime': m.currentTime,
+              'https://example.com/xapi/extensions/mediaId': elIdentity(m)
+            }
+          };
+          sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/paused', 'paused', {
+            id: m.currentSrc || m.src || activity.id + '#media'
+          }, res, { contextActivities: { parent: [activity] } }));
+        });
+        // Seeking / timeupdate optionally
+        m.addEventListener('seeked', function () {
+          sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', 'seeked', {
+            id: m.currentSrc || m.src || activity.id + '#media'
+          }, { extensions: { currentTime: m.currentTime } }, { contextActivities: { parent: [activity] } }));
+        });
+      });
+    }
+
+    // 3) Game controls (elements with data-game-control="start|pause|end")
+    function attachGameControlListeners() {
+      var controls = Array.prototype.slice.call(document.querySelectorAll('[data-game-control]'));
+      controls.forEach(function (ctl) {
+        var action = (ctl.getAttribute('data-game-control') || '').toLowerCase();
+        ctl.addEventListener('click', function (ev) {
+          var verb = action === 'start' ? 'http://adlnet.gov/expapi/verbs/started' :
+                     action === 'end' || action === 'finish' ? 'http://adlnet.gov/expapi/verbs/completed' :
+                     'http://adlnet.gov/expapi/verbs/interacted';
+          var display = action || 'game-control';
+          var state = ctl.getAttribute('data-game-state') || null;
+          var res = { extensions: { 'https://example.com/xapi/extensions/control': action, 'https://example.com/xapi/extensions/element': elIdentity(ctl) } };
+          if (state) res.extensions['https://example.com/xapi/extensions/gameState'] = state;
+          sendStatement(buildStatement(verb, display, {
+            id: activity.id + '#game'
+          }, res, { contextActivities: { parent: [activity] } }));
+        });
+      });
+
+      // Also listen for custom game state events on document
+      document.addEventListener('game:stateChanged', function (e) {
+        try {
+          var detail = e && e.detail ? e.detail : {};
+          var stateName = detail.state || detail.gameState || 'unknown';
+          var res = { extensions: { 'https://example.com/xapi/extensions/gameState': stateName, 'https://example.com/xapi/extensions/details': detail } };
+          sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', 'game-state-changed', {
+            id: activity.id + '#game'
+          }, res, { contextActivities: { parent: [activity] } }));
+        } catch (err) {
+          console.error('xAPI injector: error handling game:stateChanged', err);
+        }
+      });
+    }
+
+    // 4) Score updates - elements with data-score (attribute change) or custom event 'score:update'
+    function attachScoreListeners() {
+      // Helper to process a score event
+      function processScore(rawScore, opts) {
+        var normalized = normalizeScore(rawScore, opts || {});
+        var res = {
+          score: {
+            raw: normalized.scaled,
+            min: 0,
+            max: normalized.max
+          },
+          extensions: {
+            'https://example.com/xapi/extensions/rawScore': normalized.raw,
+            'https://example.com/xapi/extensions/scaledScore': normalized.scaled,
+            'https://example.com/xapi/extensions/scaledPercent': normalized.scaledPercent,
+            'https://example.com/xapi/extensions/notes': normalized.note
+          }
+        };
+        sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/scored', 'scored', {
+          id: activity.id + '#score'
+        }, res, { contextActivities: { parent: [activity] } }));
+      }
+
+      // Observe mutations for data-score attributes
+      var scoreEls = Array.prototype.slice.call(document.querySelectorAll('[data-score]'));
+      scoreEls.forEach(function (el) {
+        // initial read
+        var raw = el.getAttribute('data-score');
+        if (raw != null) {
+          var qCount = el.getAttribute('data-question-count');
+          processScore(Number(raw), { questionCount: qCount ? Number(qCount) : null, maxScore: el.getAttribute('data-max-score') });
+        }
+      });
+
+      // MutationObserver to watch attribute changes (data-score)
+      try {
+        var mo = new MutationObserver(function (mutations) {
+          mutations.forEach(function (m) {
+            if (m.type === 'attributes' && m.attributeName === 'data-score') {
+              var el = m.target;
+              var raw = el.getAttribute('data-score');
+              var qCount = el.getAttribute('data-question-count');
+              processScore(Number(raw), { questionCount: qCount ? Number(qCount) : null, maxScore: el.getAttribute('data-max-score') });
+            }
+          });
+        });
+        // Observe whole document for elements that might be added later
+        mo.observe(document.documentElement || document.body, { attributes: true, subtree: true, attributeFilter: ['data-score'] });
+      } catch (err) {
+        // MutationObserver not supported in some environments
+        console.warn('xAPI injector: MutationObserver unavailable; attribute-based score tracking may be limited.', err);
+      }
+
+      // Custom event listener for score:update
+      document.addEventListener('score:update', function (e) {
+        try {
+          var d = e && e.detail ? e.detail : {};
+          // Expect detail: { rawScore, maxScore, questionCount }
+          processScore(d.rawScore || 0, { questionCount: d.questionCount, maxScore: d.maxScore });
+        } catch (err) {
+          console.error('xAPI injector: error handling score:update', err);
+        }
+      });
+    }
+
+    // 5) Form submissions
+    function attachFormListeners() {
+      var forms = Array.prototype.slice.call(document.querySelectorAll('form'));
+      forms.forEach(function (f) {
+        f.addEventListener('submit', function (ev) {
+          try {
+            // Gather simple key:value pairs
+            var fd = {};
+            try {
+              var formData = new FormData(f);
+              for (var pair of formData.entries()) {
+                // show only keys and anonymized presence of values (do NOT send sensitive data here if you don't want)
+                fd[pair[0]] = pair[1];
+              }
+            } catch (fmErr) {
+              console.warn('xAPI injector: could not gather full form data', fmErr);
+            }
+            var res = {
+              extensions: {
+                'https://example.com/xapi/extensions/formId': f.id || elIdentity(f),
+                'https://example.com/xapi/extensions/formData': fd
+              }
+            };
+            sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/submitted', 'submitted', {
+              id: activity.id + '#form'
+            }, res, { contextActivities: { parent: [activity] } }));
+          } catch (err) {
+            console.error('xAPI injector: error handling form submit', err);
+          }
+        }, false);
+      });
+    }
+
+    // 6) Drag & Drop interactions
+    function attachDragDropListeners() {
+      // draggable elements
+      var draggables = Array.prototype.slice.call(document.querySelectorAll('[draggable="true"]'));
+      draggables.forEach(function (d) {
+        d.addEventListener('dragstart', function (ev) {
+          ev.dataTransfer && ev.dataTransfer.setData && ev.dataTransfer.setData('text/plain', d.id || elIdentity(d));
+          sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', 'dragstart', {
+            id: activity.id + '#drag'
+          }, { extensions: { element: elIdentity(d) } }, { contextActivities: { parent: [activity] } }));
+        });
+        d.addEventListener('dragend', function (ev) {
+          sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', 'dragend', {
+            id: activity.id + '#drag'
+          }, { extensions: { element: elIdentity(d) } }, { contextActivities: { parent: [activity] } }));
+        });
+      });
+
+      // dropzones - [data-dropzone]
+      var dropzones = Array.prototype.slice.call(document.querySelectorAll('[data-dropzone]'));
+      dropzones.forEach(function (dz) {
+        dz.addEventListener('dragover', function (ev) {
+          ev.preventDefault && ev.preventDefault();
+        });
+        dz.addEventListener('drop', function (ev) {
+          ev.preventDefault && ev.preventDefault();
+          var payloadId = null;
+          try {
+            payloadId = ev.dataTransfer && ev.dataTransfer.getData && ev.dataTransfer.getData('text/plain');
+          } catch (ex) { /* ignore */ }
+          sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', 'dropped', {
+            id: activity.id + '#drop'
+          }, { extensions: { dropzone: elIdentity(dz), dropped: payloadId } }, { contextActivities: { parent: [activity] } }));
+        });
+      });
+    }
+
+    // 7) Canvas drawing: strokes and durations
+    function attachCanvasListeners() {
+      var canvases = Array.prototype.slice.call(document.querySelectorAll('canvas'));
+      canvases.forEach(function (c) {
+        var drawing = false;
+        var strokeCount = 0;
+        var strokeStart = null;
+        var strokeTimes = [];
+        function pointerDown(e) {
+          drawing = true;
+          strokeStart = Date.now();
+        }
+        function pointerUp(e) {
+          if (drawing) {
+            drawing = false;
+            strokeCount++;
+            var dt = Date.now() - (strokeStart || Date.now());
+            strokeTimes.push(dt);
+            sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', 'canvas-stroke', {
+              id: activity.id + '#canvas'
+            }, {
+              extensions: {
+                canvas: elIdentity(c),
+                strokeCount: strokeCount,
+                lastStrokeDurationMs: dt,
+                strokeTimes: strokeTimes.slice(-10) // keep recent
+              }
+            }, { contextActivities: { parent: [activity] } }));
+          }
+        }
+        c.addEventListener('pointerdown', pointerDown);
+        c.addEventListener('pointerup', pointerUp);
+        c.addEventListener('pointercancel', pointerUp);
+        // Also on mouse events fallback
+        c.addEventListener('mousedown', pointerDown);
+        c.addEventListener('mouseup', pointerUp);
+      });
+    }
+
+    // 8) Session terminated
+    window.addEventListener('beforeunload', function () {
+      sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/terminated', 'terminated', activity, {
+        extensions: { endTime: nowISO() }
+      }, { contextActivities: { parent: [activity] } }));
+      // Do not attempt to flush buffer via network here; storeState is synchronous in SLS environment typically
+    });
+
+    // Attach all listeners
+    try { attachMediaListeners(); } catch (err) { console.error('xAPI injector: media listener setup failed', err); }
+    try { attachGameControlListeners(); } catch (err) { console.error('xAPI injector: game control listener setup failed', err); }
+    try { attachScoreListeners(); } catch (err) { console.error('xAPI injector: score listener setup failed', err); }
+    try { attachFormListeners(); } catch (err) { console.error('xAPI injector: form listener setup failed', err); }
+    try { attachDragDropListeners(); } catch (err) { console.error('xAPI injector: drag-drop listener setup failed', err); }
+    try { attachCanvasListeners(); } catch (err) { console.error('xAPI injector: canvas listener setup failed', err); }
+
+    // If storeState is not immediately available, start waiting and flush when ready
+    waitForStoreState(function () {
+      if (storeAvailable && typeof window.storeState === 'function') {
+        try {
+          while (statementBuffer.length) {
+            window.storeState(statementBuffer.shift());
+          }
+        } catch (err) {
+          console.error('xAPI injector: error flushing initial buffer', err);
+        }
+      } else {
+        // Keep buffered until storeState arrives; that's OK
+      }
+    });
+
+    // Expose a safe debug/send function so page scripts can trigger tracking via window.slsTrackEvent(...)
+    try {
+      if (!window.slsTrackEvent) {
+        window.slsTrackEvent = function (type, detail) {
+          try {
+            switch (type) {
+              case 'score:update':
+                document.dispatchEvent(new CustomEvent('score:update', { detail: detail || {} }));
+                break;
+              case 'game:stateChanged':
+                document.dispatchEvent(new CustomEvent('game:stateChanged', { detail: detail || {} }));
+                break;
+              default:
+                sendStatement(buildStatement('http://adlnet.gov/expapi/verbs/interacted', type || 'interacted', activity, { extensions: { detail: detail } }));
+            }
+          } catch (err) {
+            console.error('xAPI injector: slsTrackEvent error', err);
+          }
+        };
+      }
+    } catch (err) {
+      // ignore if cannot write to window
+    }
+
+  }); // end DOMContentLoaded
+})();
+    } catch (error) {
+      console.error('[xAPI Agent Error]', error);
+      // Fail silently to prevent breaking content
+    }
+  }
+
+  const start = () => waitForStoreState(2000).then(run);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+</script>
+  </head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Game Area -->
+        <div class="game-area">
+            <!-- Status Bar with tooltips -->
+            <div class="status-bar">
+                <div class="status-item" title="Current Level - Click to see level details">
+                    <span class="status-label">Level</span>
+                    <span class="status-value" id="level">1</span>
+                </div>
+                <div class="status-item" title="Your current score - Earn points for correct answers">
+                    <span class="status-label">Score</span>
+                    <span class="status-value" id="score">0</span>
+                </div>
+                <div class="status-item" title="Time remaining for this question">
+                    <span class="status-label">Time</span>
+                    <span class="status-value" id="timer">10s</span>
+                </div>
+                <div class="status-item" title="Current streak of correct answers">
+                    <span class="status-label">Streak</span>
+                    <span class="status-value" id="streak">0</span>
+                </div>
+            </div>
+
+            <!-- Question Display -->
+            <div class="question-container">
+                <div class="question-text" id="question">2 × 3 = ?</div>
+                <div class="progress-indicator">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+
+            <!-- Answer Options -->
+            <div class="answer-grid" id="answerGrid">
+                <!-- Answer buttons will be generated dynamically -->
+            </div>
+
+            <!-- Feedback Message -->
+            <div class="feedback-message" id="feedbackMessage"></div>
+
+            <!-- Control Buttons -->
+            <div class="control-buttons">
+                <button class="btn btn-secondary" id="pauseBtn" title="Pause the game">⏸ Pause</button>
+                <button class="btn btn-secondary" id="resetBtn" title="Reset and start over">🔄 Reset</button>
+                <button class="btn btn-info" id="helpBtn" title="Show game instructions">❓ Help</button>
+            </div>
+        </div>
+
+        <!-- Analytics Panel (Collapsible) -->
+        <div class="analytics-panel">
+            <div class="analytics-header" id="analyticsToggle">
+                <span>📊 Learning Analytics</span>
+                <span class="toggle-icon" id="toggleIcon">▼</span>
+            </div>
+            <div class="analytics-content" id="analyticsContent">
+                <div class="analytics-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Attempts:</span>
+                        <span class="summary-value" id="totalAttempts">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Correct:</span>
+                        <span class="summary-value" id="correctCount">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Accuracy:</span>
+                        <span class="summary-value" id="accuracy">0%</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Avg Response:</span>
+                        <span class="summary-value" id="avgResponse">0s</span>
+                    </div>
+                </div>
+                <div class="action-log-header">
+                    <span>Action Log</span>
+                    <button class="btn-clear" id="clearLogBtn" title="Clear all logs">Clear</button>
+                </div>
+                <div class="action-log" id="actionLog">
+                    <div class="log-entry">
+                        <span class="log-time">t=0s</span>
+                        <span class="log-icon">🎮</span>
+                        <span class="log-text">Game initialized - Ready to start!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How to Play</h2>
+                <button class="modal-close" id="closeModal">×</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>🎯 Goal:</strong> Answer multiplication questions quickly and correctly to build automaticity!</p>
+                <p><strong>⏱️ Time:</strong> You have 10 seconds per question. Answer quickly for bonus points!</p>
+                <p><strong>📈 Levels:</strong> Complete 5 questions correctly to advance to the next level.</p>
+                <p><strong>🔥 Streak:</strong> Answer consecutively correct to build your streak and earn bonus points!</p>
+                <p><strong>⭐ Scoring:</strong></p>
+                <ul>
+                    <li>Correct answer: 10 points + time bonus</li>
+                    <li>Streak bonus: +5 points per streak</li>
+                    <li>Wrong answer: No points, streak resets</li>
+                </ul>
+                <p><strong>💡 Tip:</strong> Practice makes perfect! The more you play, the faster you'll get!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div class="modal" id="pauseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Game Paused</h2>
+            </div>
+            <div class="modal-body">
+                <p>Take your time! Click "Resume" when you're ready to continue.</p>
+                <button class="btn btn-primary btn-large" id="resumeBtn">▶️ Resume Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration Overlay -->
+    <div class="celebration-overlay" id="celebrationOverlay">
+        <div class="celebration-content">
+            <div class="celebration-emoji" id="celebrationEmoji">🎉</div>
+            <div class="celebration-text" id="celebrationText">Level Up!</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

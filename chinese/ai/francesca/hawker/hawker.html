@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore Hawker Centre 3D Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Poppins:wght@400;600&display=swap');
+        
+        body { margin: 0; overflow: hidden; font-family: 'Poppins', sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 0; }
+        
+        /* Custom Scrollbar for UI */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
+        ::-webkit-scrollbar-thumb { background: #FF6B6B; border-radius: 4px; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .chinese-text {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .wiggle:hover {
+            animation: wiggle 0.5s ease-in-out infinite;
+        }
+
+        @keyframes wiggle {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        #loading {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+        }
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+    <!-- 3D Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-br from-red-500 to-orange-400 text-white transition-opacity duration-500">
+        <div class="mb-6 text-6xl animate-bounce">🍜</div>
+        <h1 class="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">Hawker Centre Adventure</h1>
+        <h2 class="text-2xl chinese-text mb-6">小贩中心探险</h2>
+        <p class="max-w-md text-lg mb-8 bg-black/20 p-4 rounded-lg">
+            Explore a 3D Singapore Hawker Centre.<br>
+            Click on stalls to learn vocabulary and practice ordering food!
+        </p>
+        <button id="start-btn" class="bg-white text-red-500 hover:bg-yellow-100 font-bold py-4 px-10 rounded-full shadow-xl transform transition hover:scale-105 text-xl">
+            Start Learning / 开始学习
+        </button>
+    </div>
+
+    <!-- Main UI Overlay (Hidden initially) -->
+    <div id="ui-layer" class="fixed inset-0 pointer-events-none z-10 hidden">
+        
+        <!-- Top Bar -->
+        <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-start">
+            <div class="glass-panel pointer-events-auto p-3 rounded-xl flex flex-col gap-2">
+                <h3 class="font-bold text-gray-800">Mode: <span id="mode-display" class="text-red-600">Explore</span></h3>
+                <div class="flex gap-2">
+                    <button onclick="setMode('explore')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm transition">Explore</button>
+                    <button onclick="setMode('quiz')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm transition">Quiz</button>
+                </div>
+            </div>
+            
+            <div class="glass-panel pointer-events-auto p-3 rounded-xl">
+                <div class="text-right">
+                    <p class="text-xs text-gray-500 uppercase font-bold">Score</p>
+                    <p id="score-display" class="text-2xl font-bold text-green-600">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Instructions -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 glass-panel px-6 py-3 rounded-full pointer-events-auto transition-all duration-300 hover:scale-105 cursor-pointer" onclick="resetCamera()">
+            <p class="text-sm font-semibold text-gray-700">
+                <i class="fas fa-mouse pointer-events-none mr-2"></i> Drag to Rotate • Scroll to Zoom • Click Stalls
+            </p>
+        </div>
+
+        <!-- Info Card (Modal) -->
+        <div id="info-card" class="absolute top-1/2 right-4 md:right-10 transform -translate-y-1/2 w-80 md:w-96 glass-panel rounded-2xl p-6 pointer-events-auto shadow-2xl transition-all duration-300 opacity-0 translate-x-20">
+            <button onclick="closeCard()" class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            
+            <div class="flex items-center gap-4 mb-4 border-b pb-4 border-gray-200">
+                <div id="card-icon" class="text-4xl">🍲</div>
+                <div>
+                    <h2 id="card-title" class="text-2xl font-bold text-gray-800">Stall Name</h2>
+                    <p id="card-chinese" class="text-xl text-red-600 font-bold chinese-text">中文名</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Vocabulary Section -->
+                <div class="bg-white/50 p-3 rounded-lg">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Vocabulary (生词)</h4>
+                    <ul id="vocab-list" class="space-y-2">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+
+                <!-- Conversation Section -->
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <h4 class="text-xs font-bold text-blue-500 uppercase mb-2">Conversation (会话)</h4>
+                    <p id="conv-text" class="text-gray-700 italic text-sm mb-2">"Uncle, I want one packet of Chicken Rice."</p>
+                    <p id="conv-chinese" class="text-lg text-blue-800 font-bold chinese-text cursor-pointer hover:text-blue-600" onclick="speakText(this.innerText)">
+                        老板，我要一包鸡饭。 <i class="fas fa-volume-up text-sm ml-1"></i>
+                    </p>
+                    <p id="conv-pinyin" class="text-xs text-gray-500 mt-1">Lǎobǎn, wǒ yào yī bāo jī fàn.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Overlay -->
+        <div id="quiz-overlay" class="absolute top-24 left-1/2 transform -translate-x-1/2 glass-panel px-8 py-4 rounded-xl pointer-events-auto shadow-xl hidden">
+            <h3 class="text-lg font-bold text-gray-700 mb-1 text-center">Find this stall:</h3>
+            <div class="flex flex-col items-center gap-2">
+                <h2 id="quiz-target" class="text-3xl font-bold text-red-600 chinese-text">???</h2>
+                <button onclick="playQuizAudio()" class="text-blue-500 hover:text-blue-700"><i class="fas fa-volume-up"></i> Listen</button>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- Data Configuration ---
+    const stallData = [
+        {
+            id: 'chicken_rice',
+            name: 'Chicken Rice',
+            chinese: '海南鸡饭',
+            pinyin: 'Hǎinán jī fàn',
+            color: 0xFF6B6B,
+            icon: '🍚',
+            vocab: [
+                { ch: '鸡饭', en: 'Chicken Rice', py: 'Jī fàn' },
+                { ch: '辣椒', en: 'Chilli', py: 'Là jiāo' },
+                { ch: '黄瓜', en: 'Cucumber', py: 'Huáng guā' }
+            ],
+            phrase: {
+                en: "Uncle, one plate of Roasted Chicken Rice, eat here.",
+                ch: "老板，一盘烧鸡饭，在这边吃。",
+                py: "Lǎobǎn, yī pán shāo jī fàn, zài zhè biān chī."
+            }
+        },
+        {
+            id: 'drinks',
+            name: 'Drinks Stall',
+            chinese: '茶水档',
+            pinyin: 'Chá shuǐ dàng',
+            color: 0x4ECDC4,
+            icon: '☕',
+            vocab: [
+                { ch: '咖啡', en: 'Coffee (Kopi)', py: 'Kā fēi' },
+                { ch: '茶', en: 'Tea (Teh)', py: 'Chá' },
+                { ch: '冰', en: 'Ice (Peng)', py: 'Bīng' },
+                { ch: '少糖', en: 'Less Sugar (Siew Dai)', py: 'Shǎo táng' }
+            ],
+            phrase: {
+                en: "Auntie, one Kopi-O Kosong, take away.",
+                ch: "安娣，一杯咖啡乌Kosong，打包。",
+                py: "Āndì, yībēi kāfēi wū Kosong, dǎbāo."
+            }
+        },
+        {
+            id: 'laksa',
+            name: 'Laksa',
+            chinese: '叻沙',
+            pinyin: 'Lè shā',
+            color: 0xFFD93D,
+            icon: '🍜',
+            vocab: [
+                { ch: '粗米粉', en: 'Thick Bee Hoon', py: 'Cū mǐ fěn' },
+                { ch: '虾', en: 'Prawn', py: 'Xiā' },
+                { ch: '椰浆', en: 'Coconut Milk', py: 'Yē jiāng' }
+            ],
+            phrase: {
+                en: "Boss, one bowl of Laksa, add cockles.",
+                ch: "老板，一碗叻沙，加蛤。",
+                py: "Lǎobǎn, yī wǎn lèshā, jiā há."
+            }
+        },
+        {
+            id: 'fruit',
+            name: 'Fruit Juice',
+            chinese: '果汁',
+            pinyin: 'Guǒ zhī',
+            color: 0x95E1D3,
+            icon: '🍉',
+            vocab: [
+                { ch: '西瓜汁', en: 'Watermelon Juice', py: 'Xī guā zhī' },
+                { ch: '甘蔗水', en: 'Sugarcane Juice', py: 'Gān zhè shuǐ' },
+                { ch: '木瓜', en: 'Papaya', py: 'Mù guā' }
+            ],
+            phrase: {
+                en: "One cup of Sugarcane Juice, no ice.",
+                ch: "一杯甘蔗水，不要冰。",
+                py: "Yī bēi gānzhè shuǐ, bùyào bīng."
+            }
+        }
+    ];
+
+    // --- Global Variables ---
+    let scene, camera, renderer, controls, raycaster, mouse;
+    let interactables = []; // Array to store meshes we can click
+    let currentMode = 'explore'; // 'explore' or 'quiz'
+    let currentQuizTarget = null;
+    let score = 0;
+    let isCardOpen = false;
+    
+    // Sound Synth
+    const synth = window.speechSynthesis;
+    let preferredVoice = null;
+
+    function loadVoices() {
+        const voices = synth.getVoices();
+        // Try to find Singapore Chinese, fallback to Mainland Chinese, then generic Chinese
+        preferredVoice = voices.find(voice => voice.lang === 'zh-SG') || 
+                         voices.find(voice => voice.lang === 'zh-CN') || 
+                         voices.find(voice => voice.lang.startsWith('zh'));
+    }
+
+    // Chrome loads voices asynchronously
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    // --- Initialization ---
+    document.getElementById('start-btn').addEventListener('click', () => {
+        loadVoices(); // Ensure voices are loaded on start click
+        document.getElementById('start-screen').style.opacity = 0;
+        setTimeout(() => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('ui-layer').classList.remove('hidden');
+        }, 500);
+        init();
+        animate();
+        playSound('start');
+    });
+
+    function init() {
+        // Scene Setup
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
+
+        // Camera
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 8, 12);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1; // Don't go below floor
+        controls.minDistance = 5;
+        controls.maxDistance = 20;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        sunLight.position.set(10, 20, 10);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        scene.add(sunLight);
+
+        // Raycaster
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        // Build Environment
+        buildFloor();
+        buildStalls();
+        buildTables();
+        
+        // Event Listeners
+        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('pointerdown', onPointerDown);
+    }
+
+    // --- Scene Building Functions ---
+
+    function createTextureFromCanvas(text, bgColor, width=256, height=128, fontSize=40) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, width, height);
+        
+        // Border
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(2, 2, width-4, height-4);
+
+        // Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${fontSize}px "Noto Sans SC", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(text, width / 2, height / 2);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        return texture;
+    }
+
+    function buildFloor() {
+        // Procedural Tile Texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#eeeeee';
+        ctx.fillRect(0,0,64,64);
+        ctx.strokeStyle = '#cccccc';
+        ctx.strokeRect(0,0,64,64);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(20, 20);
+
+        const geometry = new THREE.PlaneGeometry(40, 40);
+        const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });
+        const floor = new THREE.Mesh(geometry, material);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+    }
+
+    function buildStalls() {
+        // Arrangement logic: A semi-circle of stalls
+        const radius = 8;
+        const count = stallData.length;
+        
+        stallData.forEach((data, index) => {
+            const angle = (index / (count - 1)) * Math.PI - Math.PI; // Spread across 180 degrees
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+
+            createStallMesh(x, z, angle, data);
+        });
+    }
+
+    function createStallMesh(x, z, rot, data) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        group.rotation.y = -rot - Math.PI / 2; // Face center
+
+        // 1. Counter Body
+        const bodyGeo = new THREE.BoxGeometry(3, 1.2, 1.5);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.6;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        // 2. Columns
+        const colGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.5);
+        const colMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        const col1 = new THREE.Mesh(colGeo, colMat);
+        col1.position.set(-1.4, 1.25, 0.7);
+        const col2 = new THREE.Mesh(colGeo, colMat);
+        col2.position.set(1.4, 1.25, 0.7);
+        group.add(col1, col2);
+
+        // 3. Roof/Signboard
+        const signGeo = new THREE.BoxGeometry(3.2, 0.8, 0.2);
+        const signTexture = createTextureFromCanvas(data.chinese, '#' + data.color.toString(16));
+        // Apply texture only to front face (index 4 in BoxGeometry usually, but let's map array)
+        const plainMat = new THREE.MeshStandardMaterial({ color: data.color });
+        const faceMat = new THREE.MeshBasicMaterial({ map: signTexture });
+        
+        const materials = [
+            plainMat, plainMat, plainMat, plainMat,
+            faceMat, // Front
+            plainMat
+        ];
+        
+        const sign = new THREE.Mesh(signGeo, materials);
+        sign.position.set(0, 2.5, 0.7);
+        sign.castShadow = true;
+        
+        // Add User Data for Interaction
+        sign.userData = { isStall: true, data: data };
+        group.add(sign);
+        
+        // Also make the body clickable
+        body.userData = { isStall: true, data: data };
+
+        // 4. Food Items (Abstract representations)
+        if (data.id === 'chicken_rice') {
+            const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.2, 0.1), new THREE.MeshStandardMaterial({color:0xffffff}));
+            plate.position.set(0, 1.25, 0);
+            const chicken = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.2), new THREE.MeshStandardMaterial({color:0xA52A2A}));
+            chicken.position.set(0, 0.1, 0);
+            plate.add(chicken);
+            group.add(plate);
+        } else if (data.id === 'drinks') {
+            const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.1, 0.4), new THREE.MeshStandardMaterial({color:0xffffff}));
+            cup.position.set(0, 1.4, 0);
+            group.add(cup);
+        }
+
+        // Add to interactables
+        interactables.push(sign, body);
+        scene.add(group);
+    }
+
+    function buildTables() {
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const stoolMat = new THREE.MeshStandardMaterial({ color: 0xDD0000 });
+
+        // Create a few tables in the center
+        const positions = [
+            {x: 0, z: 0}, {x: -3, z: 2}, {x: 3, z: 2}, {x: 0, z: 4}
+        ];
+
+        positions.forEach(pos => {
+            const tableGroup = new THREE.Group();
+            tableGroup.position.set(pos.x, 0, pos.z);
+
+            // Table Top
+            const top = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.1, 32), tableMat);
+            top.position.y = 1;
+            top.castShadow = true;
+            top.receiveShadow = true;
+            tableGroup.add(top);
+
+            // Leg
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1), new THREE.MeshStandardMaterial({color: 0x333333}));
+            leg.position.y = 0.5;
+            tableGroup.add(leg);
+
+            // Stools
+            for(let i=0; i<4; i++) {
+                const angle = (i/4) * Math.PI * 2;
+                const sx = Math.cos(angle) * 1.5;
+                const sz = Math.sin(angle) * 1.5;
+                
+                const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6), stoolMat);
+                stool.position.set(sx, 0.3, sz);
+                stool.castShadow = true;
+                tableGroup.add(stool);
+            }
+
+            scene.add(tableGroup);
+        });
+    }
+
+    // --- Interaction Logic ---
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onPointerDown(event) {
+        // Calculate mouse position in normalized device coordinates
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(interactables);
+
+        if (intersects.length > 0) {
+            const object = intersects[0].object;
+            if (object.userData.isStall) {
+                handleStallClick(object.userData.data);
+            }
+        }
+    }
+
+    function handleStallClick(data) {
+        playSound('click');
+
+        if (currentMode === 'explore') {
+            openCard(data);
+            // Move camera slightly towards stall
+            // (Simplified animation logic here, just focus usually better handled with Tween libraries, 
+            // but keeping it simple for vanilla JS)
+        } else if (currentMode === 'quiz') {
+            checkQuizAnswer(data);
+        }
+    }
+
+    // --- UI & Game Logic ---
+
+    function openCard(data) {
+        isCardOpen = true;
+        const card = document.getElementById('info-card');
+        
+        // Populate Data
+        document.getElementById('card-icon').innerText = data.icon;
+        document.getElementById('card-title').innerText = data.name;
+        document.getElementById('card-chinese').innerText = data.chinese;
+        
+        // Vocab List
+        const vocabList = document.getElementById('vocab-list');
+        vocabList.innerHTML = '';
+        data.vocab.forEach(word => {
+            const li = document.createElement('li');
+            li.className = "flex justify-between items-center bg-white p-2 rounded hover:bg-gray-50 cursor-pointer transition";
+            li.innerHTML = `
+                <div>
+                    <span class="font-bold text-gray-800 chinese-text text-lg">${word.ch}</span>
+                    <span class="text-xs text-gray-500 block">${word.py}</span>
+                </div>
+                <span class="text-sm text-gray-600">${word.en}</span>
+            `;
+            li.onclick = () => speakText(word.ch);
+            vocabList.appendChild(li);
+        });
+
+        // Conversation
+        document.getElementById('conv-text').innerText = `"${data.phrase.en}"`;
+        const convCh = document.getElementById('conv-chinese');
+        convCh.innerHTML = `${data.phrase.ch} <i class="fas fa-volume-up text-sm ml-1"></i>`;
+        convCh.onclick = () => speakText(data.phrase.ch);
+        document.getElementById('conv-pinyin').innerText = data.phrase.py;
+
+        // Speak the Stall Name immediately
+        speakText(data.chinese);
+
+        // Animation
+        card.style.opacity = 1;
+        card.style.transform = 'translateY(-50%) translateX(0)';
+    }
+
+    function closeCard() {
+        isCardOpen = false;
+        const card = document.getElementById('info-card');
+        card.style.opacity = 0;
+        card.style.transform = 'translateY(-50%) translateX(100%)';
+    }
+
+    function speakText(text) {
+        if(synth.speaking) {
+            console.log('Already speaking');
+            return;
+        }
+        const utterThis = new SpeechSynthesisUtterance(text);
+        
+        // Use the preferred voice if found
+        if (preferredVoice) {
+            utterThis.voice = preferredVoice;
+            utterThis.lang = preferredVoice.lang;
+        } else {
+            utterThis.lang = 'zh-CN'; // Hard fallback
+        }
+        
+        utterThis.rate = 0.9; // Singaporean mandarin can be quite fast, but we keep it clear for learners
+        synth.speak(utterThis);
+    }
+
+    function playSound(type) {
+        // Simple Web Audio API Bleeps
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if(!AudioContext) return;
+        
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = ctx.currentTime;
+        
+        if (type === 'start') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+        } else if (type === 'click') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, now);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } else if (type === 'correct') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(500, now);
+            osc.frequency.setValueAtTime(800, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        } else if (type === 'wrong') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+    }
+
+    // --- Quiz Logic ---
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('mode-display').innerText = mode === 'explore' ? 'Explore' : 'Quiz Time!';
+        closeCard();
+
+        const quizOverlay = document.getElementById('quiz-overlay');
+        if (mode === 'quiz') {
+            quizOverlay.classList.remove('hidden');
+            startNextQuizQuestion();
+        } else {
+            quizOverlay.classList.add('hidden');
+        }
+    }
+
+    function startNextQuizQuestion() {
+        // Pick random stall
+        const randomStall = stallData[Math.floor(Math.random() * stallData.length)];
+        currentQuizTarget = randomStall;
+        document.getElementById('quiz-target').innerText = randomStall.chinese;
+        playQuizAudio();
+    }
+
+    function playQuizAudio() {
+        if(currentQuizTarget) {
+            // Changed to Chinese: "[Name] zai nali?"
+            speakText(currentQuizTarget.chinese + "在哪里？");
+        }
+    }
+
+    function checkQuizAnswer(data) {
+        if (data.id === currentQuizTarget.id) {
+            playSound('correct');
+            score += 10;
+            document.getElementById('score-display').innerText = score;
+            // Changed to Chinese: "Dui le! Hen bang!" (Correct! Awesome!)
+            speakText("对了！很棒！"); 
+            // Small delay before next question
+            setTimeout(startNextQuizQuestion, 2000);
+        } else {
+            playSound('wrong');
+            // Changed to Chinese: "Bu dui, zai shi yi ci." (Incorrect, try again.)
+            speakText("不对，再试一次。");
+        }
+    }
+
+    function resetCamera() {
+        controls.reset();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // Add subtle animation to interactables
+        const time = Date.now() * 0.001;
+        interactables.forEach((obj, i) => {
+             if(obj.userData.isStall && obj.geometry.type === "BoxGeometry" && obj.position.y > 2) {
+                 // Floating signs effect
+                 obj.position.y = 2.5 + Math.sin(time + i) * 0.05;
+             }
+        });
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+</script>
+</body>
+</html>

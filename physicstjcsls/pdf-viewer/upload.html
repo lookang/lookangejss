@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+              max-width: 500px;
+              margin-top: 20px;
+              padding: 20px;
+              background-color: #fff;
+              border-radius: 8px;
+              box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+        label {
+      display: block;
+      background-color: #007bff;
+      color: #fff;
+      padding: 10px 20px;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    label:hover {
+      background-color: #0056b3;
+    }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <h2>Packaging a PDF file for SLS</h2>
+    <p>Select a single pdf file that you would like to display in SLS without requiring students to download.</p>
+    <p>When the new zip file is uploaded into SLS, it will display the pdf file as shown below.</p>
+    <p>Note the <a href="https://www.learning.moe.edu.sg/teacher-user-guide/author/file-size-limits/">maximum file size limits</a>.</p>   
+    <p align="center"><img src="pdf-viewer.png">
+    <input type="file" id="pdfFile" accept=".pdf" required> 
+
+    <button onclick="handleUpload()">Process PDF</button>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script>
+        function handleUpload() {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file.');
+                return;
+            }
+
+            const zip = new JSZip();
+		 const fileNameWithoutExtension = file.name.split('.').slice(0, -1).join('.'); // Extract filename without extension
+            zip.file(file.name, file); // Include the uploaded PDF file in the ZIP
+
+            zip.file('index.html', `<!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Download PDF</title>
+            <style>
+                #pdf-viewer {
+                    width: 100%;
+                    height: 100vh;
+                }
+            </style>
+            </head>
+            <body>
+                <div id="pdf-viewer">
+                    <embed src="${file.name}" type="application/pdf" width="100%" height="100%">
+                </div>
+            </body>
+            </html>`);
+            zip.generateAsync({ type: 'blob' }).then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${fileNameWithoutExtension}.zip`; // Set the zip file name
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+    </script>
+</body>
+</html>

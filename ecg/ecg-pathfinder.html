@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECG Pathfinder — Discover Your Purpose</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #007dbc;
+      --secondary: #30458e;
+      --text: #333;
+      --bg: #f5fcff;
+      --error: #d32f2f;
+      --success: #2e7d32;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Rubik', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── PAGES ─────────────────────────────── */
+    .page { display: none; flex-direction: column; min-height: 100vh; }
+    .page.active { display: flex; }
+
+    /* ── HEADER ────────────────────────────── */
+    .hdr {
+      background: var(--primary);
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .hdr-back {
+      background: none; border: none; color: #fff;
+      font-size: 22px; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+      line-height: 1;
+    }
+    .hdr-back:hover { background: rgba(255,255,255,0.15); }
+    .hdr h1 { font-size: 17px; font-weight: 600; }
+    .hdr p  { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+
+    /* ── PROGRESS ──────────────────────────── */
+    .prog { height: 5px; background: var(--secondary); flex-shrink: 0; }
+    .prog-bar { height: 100%; background: #4dd0e1; transition: width .4s ease; }
+
+    /* ── CONTENT ───────────────────────────── */
+    .content {
+      flex: 1;
+      padding: 20px;
+      max-width: 780px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── CARD ──────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    }
+    .card h2 { color: var(--secondary); font-size: 19px; margin-bottom: 6px; }
+    .card > p { color: #666; font-size: 13.5px; line-height: 1.55; margin-bottom: 14px; }
+
+    /* ── FORM ──────────────────────────────── */
+    .q { margin-bottom: 18px; }
+    .q label {
+      display: block; font-weight: 500; font-size: 14px;
+      color: var(--secondary); margin-bottom: 6px;
+    }
+    textarea, .mindmap-input {
+      width: 100%; border: 2px solid #ddd; border-radius: 8px;
+      padding: 10px 12px; font-family: 'Rubik', sans-serif;
+      font-size: 13.5px; resize: vertical; transition: border-color .2s;
+    }
+    textarea:focus, .mindmap-input:focus { outline: none; border-color: var(--primary); }
+    textarea.err, .mindmap-input.err { border-color: var(--error) !important; }
+    .char-cnt {
+      text-align: right; font-size: 11.5px; color: #aaa; margin-top: 3px;
+    }
+    .char-cnt.at-limit { color: var(--error); }
+
+    /* ── BUTTONS ───────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 11px 22px; border-radius: 8px; border: none;
+      cursor: pointer; font-family: 'Rubik', sans-serif;
+      font-size: 14.5px; font-weight: 500; transition: all .18s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #006499; }
+    .btn-outline {
+      background: transparent; color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .btn-outline:hover { background: #f0f8ff; }
+    .btn-full { width: 100%; margin-top: 10px; }
+    .btn-danger { background: #f44336; color: #fff; }
+    .btn-danger:hover { background: #c62828; }
+
+    /* ── FOOTER NAV ────────────────────────── */
+    .fnav {
+      padding: 14px 20px; background: #fff;
+      border-top: 1px solid #eee;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* ── ERROR BANNER ──────────────────────── */
+    .err-banner {
+      background: #fff3f3; border-left: 4px solid var(--error);
+      padding: 10px 14px; border-radius: 4px; margin-bottom: 14px;
+      font-size: 13px; color: var(--error); display: none;
+    }
+    .err-banner.show { display: block; }
+
+    /* ── SPLASH ────────────────────────────── */
+    #pg-splash {
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+      align-items: center; justify-content: center;
+      text-align: center; color: #fff;
+    }
+    .splash-icon {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin: 0 auto 20px;
+    }
+    #pg-splash h1 { font-size: 34px; font-weight: 700; margin-bottom: 10px; }
+    #pg-splash .sub { font-size: 16px; opacity: .88; margin-bottom: 6px; }
+    #pg-splash .tiny { font-size: 13px; opacity: .6; margin-top: 28px; }
+
+    /* ── STEP CHIPS ────────────────────────── */
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+    .chip {
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 500;
+    }
+    .chip-active { background: var(--primary); color: #fff; }
+    .chip-done   { background: var(--success); color: #fff; }
+    .chip-todo   { background: #eee; color: #999; }
+
+    /* ── TARGET CARDS ──────────────────────── */
+    .tgrid { display: grid; gap: 14px; }
+    .tc {
+      border: 2px solid #e8edf5; border-radius: 10px; padding: 15px;
+    }
+    .tc h3 {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 15px; color: var(--secondary); margin-bottom: 4px;
+    }
+    .tc .tc-hint { font-size: 12px; color: #888; margin-bottom: 8px; }
+
+    /* ── DRAG & DROP ───────────────────────── */
+    .drag-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .drag-item {
+      background: #fff; border: 2px solid var(--primary);
+      border-radius: 8px; padding: 12px 14px;
+      cursor: grab; font-size: 13.5px; user-select: none;
+      transition: all .2s; display: flex; align-items: center; gap: 10px;
+    }
+    .drag-item:hover { background: #f0f8ff; box-shadow: 0 3px 10px rgba(0,125,188,.18); }
+    .drag-item.dragging { opacity: .4; cursor: grabbing; }
+    .drag-item.hidden { display: none; }
+    .drag-handle { color: #bbb; font-size: 17px; flex-shrink: 0; }
+
+    .drop-list { display: flex; flex-direction: column; gap: 10px; }
+    .dz {
+      border: 2px dashed #ccc; border-radius: 8px;
+      padding: 14px; min-height: 58px;
+      transition: all .18s; position: relative;
+    }
+    .dz.over  { border-color: var(--primary); background: #f0f8ff; }
+    .dz.filled{ border-style: solid; border-color: var(--success); background: #f1f9f3; }
+    .dz.err   { border-color: var(--error); }
+    .dz-label {
+      font-size: 11px; font-weight: 600; color: #aaa;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px;
+    }
+    .dz-text { font-size: 13.5px; color: var(--text); min-height: 20px; }
+    .dz-text.empty { color: #ccc; font-style: italic; }
+    .dz-clear {
+      position: absolute; top: 8px; right: 8px;
+      background: none; border: none; cursor: pointer;
+      color: #aaa; font-size: 15px; padding: 2px 6px;
+      border-radius: 4px; display: none;
+    }
+    .dz-clear:hover { background: #fee; color: var(--error); }
+    .dz.filled .dz-clear { display: block; }
+
+    /* ── MINDMAP ───────────────────────────── */
+    #mindmap-svg {
+      display: block; width: 100%; max-width: 480px;
+      margin: 0 auto 18px;
+    }
+    .mm-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .mm-grp { display: flex; flex-direction: column; gap: 3px; }
+    .mm-grp label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: .4px; }
+
+    /* ── PATHWAY CARDS ─────────────────────── */
+    .pw-card {
+      border-left: 4px solid var(--primary); padding: 14px 16px;
+      background: #f9fdff; border-radius: 0 8px 8px 0; margin-bottom: 14px;
+    }
+    .pw-card h3 { color: var(--primary); font-size: 13px; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .4px; }
+
+    /* ── CONCLUSION ────────────────────────── */
+    .concl-icon { font-size: 60px; text-align: center; margin: 16px 0; }
+    .sum-row {
+      display: flex; gap: 12px; padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .sum-row:last-child { border-bottom: none; }
+    .sum-lbl { font-size: 11.5px; color: #aaa; text-transform: uppercase; letter-spacing: .4px; min-width: 130px; flex-shrink: 0; }
+    .sum-val { font-size: 13.5px; color: var(--text); }
+
+    /* ── RESPONSIVE ────────────────────────── */
+    @media (max-width: 520px) {
+      .mm-grid { grid-template-columns: 1fr; }
+      #pg-splash h1 { font-size: 27px; }
+    }
+
+    /* ── PRINT ─────────────────────────────── */
+    @media print {
+      .hdr, .fnav, .btn, .prog, .err-banner { display: none !important; }
+      .page { display: none !important; }
+      #pg-conclusion { display: block !important; }
+      body { background: #fff; }
+      .card { box-shadow: none; border: 1px solid #ddd; margin-bottom: 12px; }
+      .content { padding: 10px; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+  SPLASH
+══════════════════════════════════════════ -->
+<div id="pg-splash" class="page active">
+  <div class="splash-icon">🧭</div>
+  <h1>ECG Pathfinder</h1>
+  <p class="sub">Discover Your Purpose</p>
+  <p class="sub" style="font-size:14px;opacity:.75;">Education &amp; Career Guidance</p>
+  <p class="tiny">Loading your journey…</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+  INTRO
+══════════════════════════════════════════ -->
+<div id="pg-intro" class="page">
+  <div class="hdr">
+    <div>
+      <h1>Welcome to ECG Pathfinder</h1>
+      <p>Your journey to self-discovery begins here</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:0%"></div></div>
+  <div class="content">
+    <div class="card">
+      <h2>What is ECG Pathfinder?</h2>
+      <p>ECG Pathfinder guides you through a structured self-discovery journey — helping you reflect on your strengths, set meaningful goals, and map out career possibilities.</p>
+      <p>You will go through <strong>5 key stages</strong>:</p>
+      <div class="chips">
+        <span class="chip chip-active">1 · Purpose</span>
+        <span class="chip chip-todo">2 · Targets</span>
+        <span class="chip chip-todo">3 · Opportunities</span>
+        <span class="chip chip-todo">4 · Mind Map</span>
+        <span class="chip chip-todo">5 · Pathways</span>
+      </div>
+      <p style="margin-top:6px; font-size:13px; color:#888;">
+        💾 Your answers are saved automatically and stay private on your device for 30 days.
+      </p>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="goTo('purpose')">Begin My Journey →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  DISCOVERING PURPOSE
+══════════════════════════════════════════ -->
+<div id="pg-purpose" class="page">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goTo('intro')">←</button>
+    <div>
+      <h1>Discovering Purpose</h1>
+      <p>Reflect on who you are</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:20%"></div></div>
+  <div class="content">
+    <div class="err-banner" id="err-purpose">Please answer all three questions before continuing.</div>
+    <div class="card">
+      <h2>Who Are You?</h2>
+      <p>Take a moment to think deeply. There are no right or wrong answers.</p>
+
+      <div class="q">
+        <label>1. How would you want others to describe you?</label>
+        <textarea id="q1" rows="3" maxlength="200" placeholder="e.g. kind, creative, determined…"></textarea>
+        <div class="char-cnt"><span id="c1">0</span>/200</div>
+      </div>
+      <div class="q">
+        <label>2. What is one new habit you would like to develop to improve yourself?</label>
+        <textarea id="q2" rows="3" maxlength="200" placeholder="e.g. read for 20 minutes every day…"></textarea>
+        <div class="char-cnt"><span id="c2">0</span>/200</div>
+      </div>
+      <div class="q">
+        <label>3. What topics or activities do you find most engaging?</label>
+        <textarea id="q3" rows="3" maxlength="200" placeholder="e.g. coding, design, helping others…"></textarea>
+        <div class="char-cnt"><span id="c3">0</span>/200</div>
+      </div>
+    </div>
+  </div>
+  <div class="fnav">
+    <button class="btn btn-outline" onclick="goTo('intro')">← Back</button>
+    <button class="btn btn-primary" onclick="validateAndGo('purpose','targets')">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  SETTING TARGETS
+══════════════════════════════════════════ -->
+<div id="pg-targets" class="page">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goTo('purpose')">←</button>
+    <div>
+      <h1>Setting Targets</h1>
+      <p>Define your goals</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:40%"></div></div>
+  <div class="content">
+    <div class="err-banner" id="err-targets">Please fill in all three areas before continuing.</div>
+    <div class="card">
+      <h2>My Goals</h2>
+      <p>Think about what you want to achieve in these key areas of your life.</p>
+      <div class="tgrid">
+        <div class="tc">
+          <h3>📚 Education</h3>
+          <p class="tc-hint">Academic and learning goals</p>
+          <textarea id="te" rows="3" maxlength="300" placeholder="e.g. improve my grades in Science by studying 30 min daily…"></textarea>
+          <div class="char-cnt"><span id="ce">0</span>/300</div>
+        </div>
+        <div class="tc">
+          <h3>🌟 Wellbeing</h3>
+          <p class="tc-hint">Health and personal wellness goals</p>
+          <textarea id="tw" rows="3" maxlength="300" placeholder="e.g. exercise 3 times a week, sleep by 10 pm…"></textarea>
+          <div class="char-cnt"><span id="cw">0</span>/300</div>
+        </div>
+        <div class="tc">
+          <h3>🤝 Social</h3>
+          <p class="tc-hint">Relationships and community goals</p>
+          <textarea id="ts" rows="3" maxlength="300" placeholder="e.g. volunteer at a community event, make new friends…"></textarea>
+          <div class="char-cnt"><span id="cs">0</span>/300</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fnav">
+    <button class="btn btn-outline" onclick="goTo('purpose')">← Back</button>
+    <button class="btn btn-primary" onclick="validateAndGo('targets','opportunities')">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  EXPLORING OPPORTUNITIES
+══════════════════════════════════════════ -->
+<div id="pg-opportunities" class="page">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goTo('targets')">←</button>
+    <div>
+      <h1>Exploring Opportunities</h1>
+      <p>Choose your purpose statements</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:60%"></div></div>
+  <div class="content">
+    <div class="err-banner" id="err-opps">Please fill all three priority slots before continuing.</div>
+    <div class="card">
+      <h2>What Drives You?</h2>
+      <p>Drag each purpose statement into the priority slot that fits you best. You must fill all three slots.</p>
+
+      <p style="font-size:13px; font-weight:600; color:var(--secondary); margin-bottom:8px;">Purpose Statements — drag into slots below:</p>
+      <div class="drag-list" id="drag-list">
+        <div class="drag-item" draggable="true" data-id="d1" id="d1">
+          <span class="drag-handle">⠿</span>
+          <span class="drag-text">I want to create meaningful experiences that help others grow.</span>
+        </div>
+        <div class="drag-item" draggable="true" data-id="d2" id="d2">
+          <span class="drag-handle">⠿</span>
+          <span class="drag-text">I want to use technology and innovation to solve real-world problems.</span>
+        </div>
+        <div class="drag-item" draggable="true" data-id="d3" id="d3">
+          <span class="drag-handle">⠿</span>
+          <span class="drag-text">I want to lead communities toward a better and more equitable future.</span>
+        </div>
+      </div>
+
+      <p style="font-size:13px; font-weight:600; color:var(--secondary); margin-bottom:8px;">My Top 3 Purpose Statements:</p>
+      <div class="drop-list">
+        <div class="dz" id="z1">
+          <div class="dz-label">Priority 1 — Most Important</div>
+          <div class="dz-text empty" id="z1t">Drop a statement here</div>
+          <button class="dz-clear" onclick="clearZone('z1')" title="Remove">✕</button>
+        </div>
+        <div class="dz" id="z2">
+          <div class="dz-label">Priority 2</div>
+          <div class="dz-text empty" id="z2t">Drop a statement here</div>
+          <button class="dz-clear" onclick="clearZone('z2')" title="Remove">✕</button>
+        </div>
+        <div class="dz" id="z3">
+          <div class="dz-label">Priority 3</div>
+          <div class="dz-text empty" id="z3t">Drop a statement here</div>
+          <button class="dz-clear" onclick="clearZone('z3')" title="Remove">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fnav">
+    <button class="btn btn-outline" onclick="goTo('targets')">← Back</button>
+    <button class="btn btn-primary" onclick="validateAndGo('opportunities','mindmap')">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  MIND MAP
+══════════════════════════════════════════ -->
+<div id="pg-mindmap" class="page">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goTo('opportunities')">←</button>
+    <div>
+      <h1>Create Your Mind Map</h1>
+      <p>Map out your career possibilities</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:80%"></div></div>
+  <div class="content">
+    <div class="err-banner" id="err-mindmap">Please fill in all 8 job roles to complete your mind map.</div>
+    <div class="card">
+      <h2>Career Mind Map</h2>
+      <p>Your top purpose: <strong id="mm-purpose" style="color:var(--primary)">—</strong></p>
+      <p style="margin-bottom:14px;">Brainstorm <strong>8 possible job roles</strong> that connect to your purpose. Type them in the fields below — they will appear in the map!</p>
+
+      <!-- SVG Mind Map (live-updating) -->
+      <svg id="mindmap-svg" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <!-- Spokes -->
+        <line x1="250" y1="200" x2="250"  y2="52"  stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="384"  y2="73"  stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="435"  y2="200" stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="384"  y2="327" stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="250"  y2="348" stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="116"  y2="327" stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="65"   y2="200" stroke="#007dbc" stroke-width="2" opacity=".35"/>
+        <line x1="250" y1="200" x2="116"  y2="73"  stroke="#007dbc" stroke-width="2" opacity=".35"/>
+
+        <!-- Center node -->
+        <circle cx="250" cy="200" r="56" fill="#30458e"/>
+        <text x="250" y="195" text-anchor="middle" fill="#fff" font-size="10" font-family="Rubik,sans-serif" font-weight="600">MY PURPOSE</text>
+        <text id="mm-svg-center" x="250" y="210" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="8.5" font-family="Rubik,sans-serif">—</text>
+
+        <!-- Outer node backgrounds -->
+        <circle cx="250"  cy="38"  r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="390"  cy="62"  r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="440"  cy="200" r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="390"  cy="338" r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="250"  cy="362" r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="110"  cy="338" r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="60"   cy="200" r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+        <circle cx="110"  cy="62"  r="30" fill="#e8f4fb" stroke="#007dbc" stroke-width="1.5"/>
+
+        <!-- Node labels (updated by JS) -->
+        <text class="nl" id="nl1" x="250"  y="42"  text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">1</text>
+        <text class="nl" id="nl2" x="390"  y="66"  text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">2</text>
+        <text class="nl" id="nl3" x="440"  y="204" text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">3</text>
+        <text class="nl" id="nl4" x="390"  y="342" text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">4</text>
+        <text class="nl" id="nl5" x="250"  y="366" text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">5</text>
+        <text class="nl" id="nl6" x="110"  y="342" text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">6</text>
+        <text class="nl" id="nl7" x="60"   y="204" text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">7</text>
+        <text class="nl" id="nl8" x="110"  y="66"  text-anchor="middle" fill="#007dbc" font-size="8" font-family="Rubik,sans-serif" font-weight="500">8</text>
+      </svg>
+
+      <div class="mm-grid">
+        <div class="mm-grp"><label>Role 1 · Top</label>          <input class="mindmap-input" id="r1" type="text" maxlength="18" placeholder="e.g. Teacher"></div>
+        <div class="mm-grp"><label>Role 2 · Top-Right</label>    <input class="mindmap-input" id="r2" type="text" maxlength="18" placeholder="e.g. Social Worker"></div>
+        <div class="mm-grp"><label>Role 3 · Right</label>        <input class="mindmap-input" id="r3" type="text" maxlength="18" placeholder="e.g. Counsellor"></div>
+        <div class="mm-grp"><label>Role 4 · Bottom-Right</label> <input class="mindmap-input" id="r4" type="text" maxlength="18" placeholder="e.g. Trainer"></div>
+        <div class="mm-grp"><label>Role 5 · Bottom</label>       <input class="mindmap-input" id="r5" type="text" maxlength="18" placeholder="e.g. Coach"></div>
+        <div class="mm-grp"><label>Role 6 · Bottom-Left</label>  <input class="mindmap-input" id="r6" type="text" maxlength="18" placeholder="e.g. Mentor"></div>
+        <div class="mm-grp"><label>Role 7 · Left</label>         <input class="mindmap-input" id="r7" type="text" maxlength="18" placeholder="e.g. Manager"></div>
+        <div class="mm-grp"><label>Role 8 · Top-Left</label>     <input class="mindmap-input" id="r8" type="text" maxlength="18" placeholder="e.g. Researcher"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fnav">
+    <button class="btn btn-outline" onclick="goTo('opportunities')">← Back</button>
+    <button class="btn btn-primary" onclick="validateAndGo('mindmap','pathways')">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  EXPLORE PATHWAYS
+══════════════════════════════════════════ -->
+<div id="pg-pathways" class="page">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goTo('mindmap')">←</button>
+    <div>
+      <h1>Explore Pathways</h1>
+      <p>Build your action plan</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:95%"></div></div>
+  <div class="content">
+    <div class="err-banner" id="err-pathways">Please write an action plan for all three pathways.</div>
+    <div class="card">
+      <h2>My Action Plans</h2>
+      <p>Choose your top 3 career roles from your mind map and write a concrete action for each one.</p>
+
+      <div class="pw-card">
+        <h3>Pathway 1 — <span id="pr1">Role 1</span></h3>
+        <div class="q">
+          <label>What will you do to explore this path?</label>
+          <textarea id="p1" rows="3" maxlength="300" placeholder="e.g. attend a workshop, talk to someone in this field…"></textarea>
+          <div class="char-cnt"><span id="cp1">0</span>/300</div>
+        </div>
+      </div>
+
+      <div class="pw-card">
+        <h3>Pathway 2 — <span id="pr2">Role 2</span></h3>
+        <div class="q">
+          <label>What will you do to explore this path?</label>
+          <textarea id="p2" rows="3" maxlength="300" placeholder="e.g. research online courses, join a related CCA…"></textarea>
+          <div class="char-cnt"><span id="cp2">0</span>/300</div>
+        </div>
+      </div>
+
+      <div class="pw-card">
+        <h3>Pathway 3 — <span id="pr3">Role 3</span></h3>
+        <div class="q">
+          <label>What will you do to explore this path?</label>
+          <textarea id="p3" rows="3" maxlength="300" placeholder="e.g. find a mentor, try job shadowing…"></textarea>
+          <div class="char-cnt"><span id="cp3">0</span>/300</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fnav">
+    <button class="btn btn-outline" onclick="goTo('mindmap')">← Back</button>
+    <button class="btn btn-primary" onclick="validateAndGo('pathways','conclusion')">Finish →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  CONCLUSION
+══════════════════════════════════════════ -->
+<div id="pg-conclusion" class="page">
+  <div class="hdr">
+    <div>
+      <h1>Journey Complete! 🎉</h1>
+      <p>Your ECG Pathfinder Summary</p>
+    </div>
+  </div>
+  <div class="prog"><div class="prog-bar" style="width:100%"></div></div>
+  <div class="content">
+    <div class="concl-icon">🎉</div>
+    <div class="card">
+      <h2 style="text-align:center;margin-bottom:18px;">Your Pathfinder Summary</h2>
+      <div id="summary"></div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="goTo('purpose')">← Review My Answers</button>
+    <button class="btn btn-danger btn-full" style="margin-top:8px;" onclick="restartJourney()">↩ Start Over</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+  JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+// ── Storage ───────────────────────────────────────────────────────────
+const SK = 'ecg_v1';
+const store = {
+  get(k, fb = '')    { return (JSON.parse(localStorage.getItem(SK)||'{}')[k] ?? fb); },
+  set(k, v)          { const d = JSON.parse(localStorage.getItem(SK)||'{}'); d[k]=v; localStorage.setItem(SK,JSON.stringify(d)); },
+  clear()            { localStorage.removeItem(SK); }
+};
+
+// ── Page routing ──────────────────────────────────────────────────────
+const PAGES = ['splash','intro','purpose','targets','opportunities','mindmap','pathways','conclusion'];
+
+function goTo(id) {
+  PAGES.forEach(p => { const el = document.getElementById('pg-'+p); if(el) el.classList.remove('active'); });
+  const pg = document.getElementById('pg-'+id);
+  if (pg) { pg.classList.add('active'); window.scrollTo(0,0); }
+  if (id === 'mindmap')    initMindmap();
+  if (id === 'pathways')   initPathways();
+  if (id === 'conclusion') initConclusion();
+}
+
+// ── Character counter helper ──────────────────────────────────────────
+function wireCounter(inputId, spanId, max) {
+  const el = document.getElementById(inputId);
+  const sp = document.getElementById(spanId);
+  if (!el || !sp) return;
+  const saved = store.get(inputId);
+  if (saved) el.value = saved;
+  sp.textContent = el.value.length;
+  el.addEventListener('input', () => {
+    sp.textContent = el.value.length;
+    sp.parentElement.classList.toggle('at-limit', el.value.length >= max);
+    store.set(inputId, el.value);
+    el.classList.remove('err');
+  });
+}
+
+// ── Validation ────────────────────────────────────────────────────────
+function validateAndGo(from, to) {
+  let ok = true;
+
+  if (from === 'purpose') {
+    ['q1','q2','q3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('err'); ok = false; }
+    });
+    document.getElementById('err-purpose').classList.toggle('show', !ok);
+  }
+
+  if (from === 'targets') {
+    ['te','tw','ts'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('err'); ok = false; }
+    });
+    document.getElementById('err-targets').classList.toggle('show', !ok);
+  }
+
+  if (from === 'opportunities') {
+    ['z1','z2','z3'].forEach(id => {
+      const filled = !!store.get('dz_'+id);
+      document.getElementById(id).classList.toggle('err', !filled);
+      if (!filled) ok = false;
+    });
+    document.getElementById('err-opps').classList.toggle('show', !ok);
+  }
+
+  if (from === 'mindmap') {
+    for (let i=1; i<=8; i++) {
+      const el = document.getElementById('r'+i);
+      if (!el.value.trim()) { el.classList.add('err'); ok = false; }
+    }
+    document.getElementById('err-mindmap').classList.toggle('show', !ok);
+  }
+
+  if (from === 'pathways') {
+    ['p1','p2','p3'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { el.classList.add('err'); ok = false; }
+    });
+    document.getElementById('err-pathways').classList.toggle('show', !ok);
+  }
+
+  if (ok) goTo(to);
+}
+
+// ── Drag and Drop ─────────────────────────────────────────────────────
+let dragId = null;
+
+function setupDragDrop() {
+  // Restore saved state
+  ['z1','z2','z3'].forEach(zid => {
+    const text  = store.get('dz_'+zid);
+    const optId = store.get('dz_'+zid+'_src');
+    if (text && optId) applyDrop(zid, text, optId);
+  });
+
+  // Hide already-placed drag items
+  ['d1','d2','d3'].forEach(did => {
+    if (isPlaced(did)) document.getElementById(did).classList.add('hidden');
+  });
+
+  // Drag item events
+  document.querySelectorAll('.drag-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragId = item.dataset.id;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+  });
+
+  // Drop zone events
+  document.querySelectorAll('.dz').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('over');
+      if (!dragId) return;
+
+      // Return previous occupant to list
+      const prev = store.get('dz_'+zone.id+'_src');
+      if (prev) {
+        const prevEl = document.getElementById(prev);
+        if (prevEl) prevEl.classList.remove('hidden');
+      }
+
+      const srcEl = document.getElementById(dragId);
+      const text  = srcEl.querySelector('.drag-text').textContent.trim();
+      applyDrop(zone.id, text, dragId);
+      srcEl.classList.add('hidden');
+      zone.classList.remove('err');
+      dragId = null;
+    });
+  });
+}
+
+function applyDrop(zoneId, text, srcId) {
+  const tEl = document.getElementById(zoneId+'t');
+  tEl.textContent = text;
+  tEl.classList.remove('empty');
+  document.getElementById(zoneId).classList.add('filled');
+  store.set('dz_'+zoneId, text);
+  store.set('dz_'+zoneId+'_src', srcId);
+}
+
+function clearZone(zoneId) {
+  const srcId = store.get('dz_'+zoneId+'_src');
+  if (srcId) {
+    const el = document.getElementById(srcId);
+    if (el) el.classList.remove('hidden');
+  }
+  const tEl = document.getElementById(zoneId+'t');
+  tEl.textContent = 'Drop a statement here';
+  tEl.classList.add('empty');
+  document.getElementById(zoneId).classList.remove('filled','err');
+  store.set('dz_'+zoneId, '');
+  store.set('dz_'+zoneId+'_src', '');
+}
+
+function isPlaced(did) {
+  return ['z1','z2','z3'].some(z => store.get('dz_'+z+'_src') === did);
+}
+
+// ── Mind Map ──────────────────────────────────────────────────────────
+function initMindmap() {
+  const purpose = store.get('dz_z1') || 'Your purpose statement';
+  document.getElementById('mm-purpose').textContent = purpose;
+
+  const short = purpose.length > 26 ? purpose.slice(0,23)+'…' : purpose;
+  document.getElementById('mm-svg-center').textContent = short;
+
+  for (let i=1; i<=8; i++) {
+    const el = document.getElementById('r'+i);
+    el.value = store.get('r'+i);
+    updateNode(i, el.value);
+    el.addEventListener('input', () => {
+      store.set('r'+i, el.value);
+      updateNode(i, el.value);
+      el.classList.remove('err');
+    });
+  }
+}
+
+function updateNode(i, val) {
+  const lbl = document.getElementById('nl'+i);
+  if (!lbl) return;
+  const display = val.trim() ? (val.length>14 ? val.slice(0,13)+'…' : val) : String(i);
+  lbl.textContent = display;
+}
+
+// ── Pathways ──────────────────────────────────────────────────────────
+function initPathways() {
+  for (let i=1; i<=3; i++) {
+    document.getElementById('pr'+i).textContent = store.get('r'+i) || 'Role '+i;
+    const ta = document.getElementById('p'+i);
+    ta.value = store.get('p'+i);
+    const sp = document.getElementById('cp'+i);
+    sp.textContent = ta.value.length;
+    ta.addEventListener('input', () => {
+      store.set('p'+i, ta.value);
+      sp.textContent = ta.value.length;
+      ta.classList.remove('err');
+    });
+  }
+}
+
+// ── Conclusion ────────────────────────────────────────────────────────
+function initConclusion() {
+  const rows = [
+    ['How others describe me',  'q1'],
+    ['Habit to develop',        'q2'],
+    ['Engaging topics',         'q3'],
+    ['Education goal',          'te'],
+    ['Wellbeing goal',          'tw'],
+    ['Social goal',             'ts'],
+    ['Purpose 1',               'dz_z1'],
+    ['Purpose 2',               'dz_z2'],
+    ['Purpose 3',               'dz_z3'],
+    ['Career role 1',           'r1'],
+    ['Career role 2',           'r2'],
+    ['Career role 3',           'r3'],
+    ['Action plan 1',           'p1'],
+    ['Action plan 2',           'p2'],
+    ['Action plan 3',           'p3'],
+  ];
+  document.getElementById('summary').innerHTML = rows.map(([lbl, key]) => {
+    const val = store.get(key) || '<em style="color:#ccc">—</em>';
+    return `<div class="sum-row"><div class="sum-lbl">${lbl}</div><div class="sum-val">${val}</div></div>`;
+  }).join('');
+}
+
+function restartJourney() {
+  if (confirm('Start over? All your answers will be cleared.')) {
+    store.clear();
+    document.querySelectorAll('textarea, .mindmap-input').forEach(el => el.value = '');
+    document.querySelectorAll('.char-cnt span').forEach(el => el.textContent = '0');
+    ['z1','z2','z3'].forEach(clearZone);
+    ['d1','d2','d3'].forEach(id => document.getElementById(id).classList.remove('hidden'));
+    goTo('intro');
+  }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Wire counters + load saved data
+  wireCounter('q1','c1',200);
+  wireCounter('q2','c2',200);
+  wireCounter('q3','c3',200);
+  wireCounter('te','ce',300);
+  wireCounter('tw','cw',300);
+  wireCounter('ts','cs',300);
+
+  setupDragDrop();
+
+  // Splash auto-advance after 2.8 s
+  setTimeout(() => {
+    if (document.getElementById('pg-splash').classList.contains('active')) {
+      goTo('intro');
+    }
+  }, 2800);
+});
+</script>
+</body>
+</html>

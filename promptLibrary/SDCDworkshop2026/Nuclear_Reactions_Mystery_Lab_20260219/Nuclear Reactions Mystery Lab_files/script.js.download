@@ -1,0 +1,495 @@
+// ===================================
+// NUCLEAR REACTIONS MYSTERY LAB
+// Educational game for Secondary 4 students
+// Topic: Nuclear Fission vs Fusion
+// MODIFIED: Button labels changed to "Nuclear Fission" and "Nuclear Fusion"
+// ===================================
+
+// ===================================
+// GAME STATE MANAGEMENT
+// ===================================
+const gameState = {
+    currentReactionIndex: 0,
+    score: 0,
+    correctAnswers: 0,
+    incorrectAnswers: 0,
+    timeRemaining: 60,
+    timerInterval: null,
+    reactions: [],
+    isGameActive: false
+};
+
+// ===================================
+// NUCLEAR REACTIONS DATABASE
+// Descriptions avoid using "fission", "fusion", "split", "combine"
+// ===================================
+const nuclearReactions = [
+    // FISSION REACTIONS
+    {
+        type: 'fission',
+        equation: '²³⁵U + n → ¹⁴¹Ba + ⁹²Kr + 3n',
+        description: 'A uranium-235 nucleus absorbs a neutron and breaks apart into barium-141 and krypton-92, releasing three neutrons and enormous energy.'
+    },
+    {
+        type: 'fission',
+        equation: '²³⁹Pu + n → ¹³⁷Cs + ⁹⁹Ru + 4n',
+        description: 'When a neutron strikes plutonium-239, it transforms into caesium-137 and ruthenium-99, ejecting four neutrons in the process.'
+    },
+    {
+        type: 'fission',
+        equation: '²³⁵U + n → ⁹⁰Sr + ¹⁴³Xe + 3n',
+        description: 'A heavy uranium nucleus captures a neutron and disintegrates into strontium-90 and xenon-143, liberating three neutrons.'
+    },
+    {
+        type: 'fission',
+        equation: '²³³U + n → ⁹⁵Y + ¹³⁸I + 2n',
+        description: 'Uranium-233 undergoes a reaction where it breaks down into yttrium-95 and iodine-138 after neutron bombardment.'
+    },
+    {
+        type: 'fission',
+        equation: '²³⁹Pu + n → ¹⁰³Ru + ¹³⁴Te + 3n',
+        description: 'A plutonium-239 atom absorbs a neutron and fragments into ruthenium-103 and tellurium-134, releasing multiple neutrons.'
+    },
+    {
+        type: 'fission',
+        equation: '²³⁵U + n → ⁸⁹Rb + ¹⁴⁴Cs + 3n',
+        description: 'The heavy nucleus of uranium-235 disassembles into rubidium-89 and caesium-144 when impacted by a neutron.'
+    },
+    {
+        type: 'fission',
+        equation: '²³⁸U + n → ²³⁹U → ²³⁹Np → ²³⁹Pu',
+        description: 'Uranium-238 captures a neutron and transforms through a series of decay steps into plutonium-239.'
+    },
+    {
+        type: 'fission',
+        equation: '²³⁵U + n → ⁹⁴Zr + ¹⁴⁰Te + 2n',
+        description: 'A large uranium nucleus breaks apart into zirconium-94 and tellurium-140 after neutron absorption, releasing energy.'
+    },
+
+    // FUSION REACTIONS
+    {
+        type: 'fusion',
+        equation: '²H + ³H → ⁴He + n',
+        description: 'Deuterium and tritium nuclei collide at extreme temperatures, forming helium-4 and releasing a high-energy neutron.'
+    },
+    {
+        type: 'fusion',
+        equation: '²H + ²H → ³He + n',
+        description: 'Two deuterium nuclei merge together under intense heat and pressure, creating helium-3 and a neutron.'
+    },
+    {
+        type: 'fusion',
+        equation: '²H + ²H → ³H + ¹H',
+        description: 'When two deuterium atoms collide with sufficient energy, they form tritium and a proton, releasing energy.'
+    },
+    {
+        type: 'fusion',
+        equation: '³He + ³He → ⁴He + 2¹H',
+        description: 'Two helium-3 nuclei unite at stellar temperatures to produce helium-4 and two protons.'
+    },
+    {
+        type: 'fusion',
+        equation: '¹H + ¹H → ²H + e⁺ + νₑ',
+        description: 'Two hydrogen nuclei merge in the Sun\'s core, creating deuterium, a positron, and a neutrino - the first step of stellar energy production.'
+    },
+    {
+        type: 'fusion',
+        equation: '²H + ³He → ⁴He + ¹H',
+        description: 'A deuterium nucleus and helium-3 nucleus join together, producing helium-4 and a proton with tremendous energy release.'
+    },
+    {
+        type: 'fusion',
+        equation: '⁶Li + n → ⁴He + ³H',
+        description: 'Lithium-6 reacts with a neutron to produce helium-4 and tritium, used in thermonuclear reactions.'
+    },
+    {
+        type: 'fusion',
+        equation: '³He + ²H → ⁴He + ¹H',
+        description: 'Helium-3 and deuterium nuclei merge at high temperatures, creating helium-4 and releasing a proton.'
+    }
+];
+
+// ===================================
+// AUDIO CONTEXT (Web Audio API)
+// Generate sounds without external files
+// ===================================
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Play a tone with specified frequency and duration
+function playTone(frequency, duration, type = 'sine') {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Sound effects for different interactions
+const sounds = {
+    correct: () => {
+        playTone(523.25, 0.1); // C5
+        setTimeout(() => playTone(659.25, 0.1), 100); // E5
+        setTimeout(() => playTone(783.99, 0.2), 200); // G5
+    },
+    incorrect: () => {
+        playTone(311.13, 0.1); // Eb4
+        setTimeout(() => playTone(246.94, 0.3), 100); // B3
+    },
+    click: () => {
+        playTone(440, 0.05, 'square');
+    },
+    gameStart: () => {
+        playTone(261.63, 0.1); // C4
+        setTimeout(() => playTone(329.63, 0.1), 100); // E4
+        setTimeout(() => playTone(392.00, 0.1), 200); // G4
+        setTimeout(() => playTone(523.25, 0.2), 300); // C5
+    },
+    gameEnd: () => {
+        playTone(523.25, 0.15);
+        setTimeout(() => playTone(493.88, 0.15), 150);
+        setTimeout(() => playTone(440.00, 0.15), 300);
+        setTimeout(() => playTone(392.00, 0.3), 450);
+    }
+};
+
+// ===================================
+// DOM ELEMENT REFERENCES
+// ===================================
+const elements = {
+    storyPanel: document.getElementById('story-panel'),
+    gameArea: document.getElementById('game-area'),
+    resultsPanel: document.getElementById('results-panel'),
+    startBtn: document.getElementById('start-btn'),
+    restartBtn: document.getElementById('restart-btn'),
+    score: document.getElementById('score'),
+    timer: document.getElementById('timer'),
+    progress: document.getElementById('progress'),
+    reactionCard: document.getElementById('reaction-card'),
+    reactionEquation: document.getElementById('reaction-equation'),
+    reactionDescription: document.getElementById('reaction-description'),
+    cardNumber: document.getElementById('card-number'),
+    feedback: document.getElementById('feedback'),
+    classifyButtons: document.querySelectorAll('.classify-btn'),
+    finalScore: document.getElementById('final-score'),
+    correctCount: document.getElementById('correct-count'),
+    incorrectCount: document.getElementById('incorrect-count'),
+    accuracy: document.getElementById('accuracy'),
+    performanceFeedback: document.getElementById('performance-feedback')
+};
+
+// ===================================
+// GAME INITIALIZATION
+// ===================================
+function initGame() {
+    // Shuffle reactions for randomization
+    gameState.reactions = shuffleArray([...nuclearReactions]);
+    
+    // Limit to 15 reactions for time constraint
+    gameState.reactions = gameState.reactions.slice(0, 15);
+    
+    // Reset game state
+    gameState.currentReactionIndex = 0;
+    gameState.score = 0;
+    gameState.correctAnswers = 0;
+    gameState.incorrectAnswers = 0;
+    gameState.timeRemaining = 60;
+    gameState.isGameActive = true;
+    
+    // Update UI
+    updateUI();
+    displayCurrentReaction();
+    startTimer();
+    
+    // Play start sound
+    sounds.gameStart();
+}
+
+// Fisher-Yates shuffle algorithm
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// ===================================
+// TIMER MANAGEMENT
+// ===================================
+function startTimer() {
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+        elements.timer.textContent = gameState.timeRemaining;
+        
+        // Visual warning when time is running low
+        if (gameState.timeRemaining <= 10) {
+            elements.timer.style.color = '#ff6b6b';
+            elements.timer.style.fontWeight = 'bold';
+        }
+        
+        // End game when time runs out
+        if (gameState.timeRemaining <= 0) {
+            endGame();
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+}
+
+// ===================================
+// DISPLAY CURRENT REACTION
+// ===================================
+function displayCurrentReaction() {
+    if (gameState.currentReactionIndex >= gameState.reactions.length) {
+        endGame();
+        return;
+    }
+    
+    const reaction = gameState.reactions[gameState.currentReactionIndex];
+    
+    // Update card content with animation
+    elements.reactionCard.style.animation = 'none';
+    setTimeout(() => {
+        elements.reactionCard.style.animation = 'slideIn 0.4s ease';
+    }, 10);
+    
+    elements.reactionEquation.textContent = reaction.equation;
+    elements.reactionDescription.textContent = reaction.description;
+    elements.cardNumber.textContent = `${gameState.currentReactionIndex + 1}/15`;
+}
+
+// ===================================
+// UPDATE UI ELEMENTS
+// ===================================
+function updateUI() {
+    elements.score.textContent = gameState.score;
+    elements.progress.textContent = `${gameState.currentReactionIndex}/15`;
+}
+
+// ===================================
+// HANDLE CLASSIFICATION
+// ===================================
+function handleClassification(selectedType) {
+    if (!gameState.isGameActive) return;
+    
+    const currentReaction = gameState.reactions[gameState.currentReactionIndex];
+    const isCorrect = selectedType === currentReaction.type;
+    
+    // Disable buttons temporarily
+    elements.classifyButtons.forEach(btn => btn.disabled = true);
+    
+    // Show feedback
+    showFeedback(isCorrect);
+    
+    // Update game state
+    if (isCorrect) {
+        gameState.correctAnswers++;
+        gameState.score += 10;
+        sounds.correct();
+    } else {
+        gameState.incorrectAnswers++;
+        sounds.incorrect();
+    }
+    
+    // Move to next reaction after delay
+    setTimeout(() => {
+        elements.classifyButtons.forEach(btn => btn.disabled = false);
+        gameState.currentReactionIndex++;
+        updateUI();
+        displayCurrentReaction();
+    }, 1500);
+}
+
+// ===================================
+// FEEDBACK DISPLAY
+// ===================================
+function showFeedback(isCorrect) {
+    elements.feedback.classList.remove('hidden', 'correct', 'incorrect');
+    
+    if (isCorrect) {
+        elements.feedback.textContent = '✓ Correct! +10 points';
+        elements.feedback.classList.add('correct');
+    } else {
+        elements.feedback.textContent = '✗ Incorrect';
+        elements.feedback.classList.add('incorrect');
+    }
+    
+    // Hide feedback after 1.2 seconds
+    setTimeout(() => {
+        elements.feedback.classList.add('hidden');
+    }, 1200);
+}
+
+// ===================================
+// END GAME & SHOW RESULTS
+// ===================================
+function endGame() {
+    gameState.isGameActive = false;
+    stopTimer();
+    
+    // Hide game area
+    elements.gameArea.classList.add('hidden');
+    
+    // Calculate statistics
+    const totalAttempts = gameState.correctAnswers + gameState.incorrectAnswers;
+    const accuracy = totalAttempts > 0 ? Math.round((gameState.correctAnswers / totalAttempts) * 100) : 0;
+    
+    // Update results display
+    elements.finalScore.textContent = gameState.score;
+    elements.correctCount.textContent = gameState.correctAnswers;
+    elements.incorrectCount.textContent = gameState.incorrectAnswers;
+    elements.accuracy.textContent = `${accuracy}%`;
+    
+    // Generate personalized feedback based on performance
+    generatePerformanceFeedback(accuracy, gameState.correctAnswers, gameState.incorrectAnswers);
+    
+    // Show results panel
+    elements.resultsPanel.classList.remove('hidden');
+    
+    // Play end sound
+    sounds.gameEnd();
+}
+
+// ===================================
+// PERFORMANCE FEEDBACK GENERATION
+// Identifies gaps in understanding
+// MODIFIED: Updated terminology to use "Nuclear Fission" and "Nuclear Fusion"
+// ===================================
+function generatePerformanceFeedback(accuracy, correct, incorrect) {
+    let feedbackHTML = '<strong>Dr. Atom\'s Assessment:</strong>';
+    
+    if (accuracy >= 90) {
+        feedbackHTML += '<p>🌟 Excellent work! You have a strong understanding of nuclear reactions. You can clearly distinguish between reactions where heavy nuclei break apart (Nuclear Fission) and light nuclei join together (Nuclear Fusion).</p>';
+    } else if (accuracy >= 70) {
+        feedbackHTML += '<p>👍 Good job! You understand the basic concepts. Review the key differences: Nuclear Fission involves heavy nuclei breaking into lighter fragments, while Nuclear Fusion involves light nuclei merging into heavier ones.</p>';
+    } else if (accuracy >= 50) {
+        feedbackHTML += '<p>📚 You\'re on the right track, but need more practice. Focus on these key points:<br>• Nuclear Fission: Heavy nucleus → Lighter nuclei + neutrons<br>• Nuclear Fusion: Light nuclei → Heavier nucleus + energy</p>';
+    } else {
+        feedbackHTML += '<p>💡 Let\'s strengthen your understanding! Remember:<br>• Nuclear Fission reactions start with ONE heavy nucleus (like Uranium) and produce MULTIPLE lighter products<br>• Nuclear Fusion reactions start with MULTIPLE light nuclei (like Hydrogen isotopes) and produce ONE heavier nucleus<br>Try again and pay attention to the mass numbers!</p>';
+    }
+    
+    // Additional feedback based on common errors
+    if (incorrect > correct) {
+        feedbackHTML += '<p><strong>Study Tip:</strong> Look at the equation carefully. If you see a heavy element (like Uranium or Plutonium) on the left side breaking into smaller pieces, it\'s Nuclear Fission. If you see small elements (like Hydrogen or Helium) coming together, it\'s Nuclear Fusion.</p>';
+    }
+    
+    elements.performanceFeedback.innerHTML = feedbackHTML;
+}
+
+// ===================================
+// EVENT LISTENERS
+// ===================================
+
+// Start button
+elements.startBtn.addEventListener('click', () => {
+    sounds.click();
+    elements.storyPanel.classList.add('hidden');
+    elements.gameArea.classList.remove('hidden');
+    initGame();
+});
+
+// Restart button
+elements.restartBtn.addEventListener('click', () => {
+    sounds.click();
+    elements.resultsPanel.classList.add('hidden');
+    elements.storyPanel.classList.remove('hidden');
+    
+    // Reset dialogue for replay
+    document.getElementById('dialogue-text').textContent = 
+        "Ready for another mission? Let's classify more nuclear reactions and improve your score!";
+});
+
+// Classification buttons
+elements.classifyButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+        sounds.click();
+        const selectedType = button.getAttribute('data-type');
+        handleClassification(selectedType);
+    });
+    
+    // Visual feedback on hover
+    button.addEventListener('mouseenter', () => {
+        if (!button.disabled) {
+            button.style.transform = 'translateY(-3px)';
+        }
+    });
+    
+    button.addEventListener('mouseleave', () => {
+        if (!button.disabled) {
+            button.style.transform = 'translateY(0)';
+        }
+    });
+});
+
+// ===================================
+// KEYBOARD SUPPORT (Accessibility)
+// MODIFIED: Updated keyboard shortcut descriptions
+// ===================================
+document.addEventListener('keydown', (e) => {
+    if (!gameState.isGameActive) return;
+    
+    // '1' or 'A' for Nuclear Fission
+    if (e.key === '1' || e.key.toLowerCase() === 'a') {
+        handleClassification('fission');
+    }
+    
+    // '2' or 'B' for Nuclear Fusion
+    if (e.key === '2' || e.key.toLowerCase() === 'b') {
+        handleClassification('fusion');
+    }
+});
+
+// ===================================
+// RESPONSIVE HEIGHT DETECTION
+// Detect if running in iframe or standalone
+// ===================================
+function detectViewMode() {
+    try {
+        if (window.self !== window.top) {
+            // Running in iframe
+            document.body.classList.add('iframe-mode');
+        }
+    } catch (e) {
+        // Cross-origin iframe, assume iframe mode
+        document.body.classList.add('iframe-mode');
+    }
+}
+
+// ===================================
+// INITIALIZATION ON PAGE LOAD
+// ===================================
+window.addEventListener('DOMContentLoaded', () => {
+    detectViewMode();
+    
+    // Resume audio context on user interaction (browser requirement)
+    document.addEventListener('click', () => {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    }, { once: true });
+});
+
+// ===================================
+// PREVENT ACCIDENTAL PAGE UNLOAD
+// ===================================
+window.addEventListener('beforeunload', (e) => {
+    if (gameState.isGameActive) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});

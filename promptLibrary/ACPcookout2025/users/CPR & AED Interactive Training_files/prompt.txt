@@ -1,0 +1,139 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“CPR & AED Interactive Training”** module that walks learners through key concepts of cardiac emergencies, CPR, and AED use in 6 short modules, with scenarios, quiz questions, immediate feedback, tooltips, and a final completion summary.
+
+TARGET AUDIENCE:
+- Upper Secondary / post-secondary students (e.g., Sec 3–5, JC, poly)
+- Health/PE / First Aid enrichment
+
+INTERACTIVE REQUIREMENTS:
+- A single-page training interface with:
+  - **Top progress bar** showing module progress (Module X of 6).
+  - **Content area** that loads one module at a time (via JS) with:
+    - Scenario description.
+    - One interactive challenge question (MCQ or decision type).
+    - A practice/summary section with key bullet points.
+  - **Navigation controls** (Previous, Next/Complete Training) at the bottom.
+  - **Score tracker** displaying cumulative correct answers out of total questions.
+  - A **tooltip** system for key headings (e.g., module title) providing extra info on hover/touch.
+  - A **modal dialog** that shows training completion summary and key takeaways.
+- Self-contained HTML, CSS, JavaScript without external libraries.
+
+SPECIFIC REQUIREMENTS:
+
+Modules & content
+- Organise content into **6 modules**, each defined in code as an object in an array. Each module has:
+  - `id` (1–6)
+  - `title` and `icon` (emoji)
+  - `scenario` (title, situation description)
+  - `challenge`:
+    - `type` (e.g. knowledge_check, decision_tree, symptom_checker, risk_assessment, procedure_check, safety_check)
+    - `title`
+    - `question` (one MCQ per module)
+    - `options` (array of 4 text options)
+    - `correct` (index of correct option)
+    - `feedback`: `correct` and `incorrect` messages
+  - `practice`:
+    - `title`
+    - `content` (short explanatory paragraph)
+    - `steps` (array of bullet points)
+  - `tooltip` (short extra info string for module header)
+- Example module topics (as per implementation):
+  1. Understanding the heart & Chain of Survival.
+  2. Clinical vs biological death; emergency timelines.
+  3. Recognising cardiac arrest and heart attack symptoms.
+  4. Risk factors & heart-healthy living.
+  5. CPR assessment sequence & technique.
+  6. AED operation & safety.
+
+Dynamic content loading
+- Use a `CPRTrainingSystem` class to:
+  - Maintain `currentModule`, `totalModules`, `score`, `totalQuestions`, and `moduleProgress` (per-module attempt tracking).
+  - Render module HTML into `#contentArea` by reading from the module data array.
+- `loadModule(index)` should:
+  - Fade out current content.
+  - Replace content with a new `.module` element including:
+    - Module header (`.module-header` with icon, title, and `data-tooltip`).
+    - Scenario box (`Scenario Setup`).
+    - Interactive challenge box (`.question`, `.options`, `.feedback`).
+    - Practice section with key steps.
+  - Fade content back in and call `setupModuleInteractions`.
+- `setupModuleInteractions(module)`:
+  - Attach click handlers to each `.option` for that module's question.
+  - On first click only, check answer and show feedback.
+
+Assessment & scoring
+- When an option is clicked:
+  - If no selection has been made yet (`.options` not `.answered`):
+    - Mark the container `.answered`.
+    - Highlight the correct option with `correct` class.
+    - If the selected option is wrong, highlight the selected one with `incorrect`.
+    - Compare chosen index to `module.challenge.correct`.
+    - If module not yet in `moduleProgress`, increment `totalQuestions` and record result.
+    - If correct, increment `score`.
+    - Update score display (`Score: X/Y`).
+    - Show feedback text block (`feedback-[module.id]`) with green/red styling.
+    - Enable the Next button.
+- Score tracker always displays current score vs total questions attempted.
+
+Progress & navigation
+- `updateProgress()`:
+  - Compute percent = `(currentModule + 1) / totalModules * 100`.
+  - Update CSS custom property `--progress` on `#progressBar`.
+  - Set progress text to `Module X of 6`.
+- `updateNavigation()`:
+  - Disable Previous on first module.
+  - Disable Next when on last module.
+  - Change Next button text to “Complete Training” when on the final module.
+- Next/Previous behaviour:
+  - **Previous**: loads previous module if available.
+  - **Next**: loads next module, or if on last module, calls `completeTraining()`.
+
+Training completion
+- `completeTraining()`:
+  - Compute completion rate = `(score / totalQuestions) * 100`, round to nearest percent.
+  - Consider pass threshold (e.g., 70%).
+  - Build modal content with:
+    - Large emoji (e.g., ✅ if pass, 📚 if retry needed).
+    - `Your Score: X/Y (Z%)`.
+    - Message coloured green/red for pass/fail.
+    - “Key Takeaways” list: e.g., CPR improves survival, early defib is crucial, every minute counts, safety & technique matter.
+    - A **Restart Training** button that reloads the page (`location.reload()`).
+  - Display this content in `#modalBody` and show `.modal`.
+
+Tooltips & accessibility
+- Elements with `data-tooltip` show a tooltip on hover/mouseover and on touch.
+- Tooltip behaviour:
+  - On `mouseover` of `[data-tooltip]`: show `#tooltip` above the element with its text.
+  - On `mouseout`: hide tooltip.
+  - On touchstart on `[data-tooltip]`: show tooltip briefly, then hide after a timeout.
+- Keyboard support:
+  - ArrowLeft/ArrowRight navigate modules via Prev/Next.
+  - Set ARIA attributes on Next/Prev buttons and `#progressBar` (`role="progressbar"`, `aria-label`="Training progress").
+
+UI/UX behaviour
+- Smooth visual transitions when changing modules (fade in/out).
+- Options visually indicate selected/correct/incorrect state.
+- Layout is responsive and works inside SLS iframe.
+- Language and explanations are concise, clear, and student-friendly.
+
+LEARNING OUTCOMES:
+- Learners should be able to:
+  - Explain the **Chain of Survival** and the roles of CPR and AED.
+  - Distinguish between **clinical** and **biological** death and understand why time is critical.
+  - Recognise key **heart attack and cardiac arrest symptoms**.
+  - Identify **modifiable risk factors** and outline a heart-healthy lifestyle.
+  - Describe and sequence core **CPR steps** (assessment sequence and compression/ventilation details).
+  - Perform basic **AED safety checks** and summarise AED operation steps.
+- The module is meant to serve as a formative, self-paced training with immediate feedback.
+
+INTERACTION FEATURES TO INCLUDE:
+- Per-module MCQ challenge with instant feedback.
+- Scenario descriptions that anchor the learning in real-life contexts.
+- Progress bar and navigation indicating completion status.
+- Persistent scoring and a final completion summary.
+- Tooltips and accessible keyboard navigation.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

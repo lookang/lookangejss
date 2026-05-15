@@ -1,0 +1,143 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Parts of a Flower – Concept Mapping”** activity where students drag word cards (petals, stem, roots, leaves) to the correct parts of a flower diagram and see immediate feedback on their understanding of structure and function.
+
+TARGET AUDIENCE:
+- Primary 5 Science (lower progress learners, ~11 years old)
+
+INTERACTIVE REQUIREMENTS:
+- A central **flower diagram** (SVG or canvas) showing key parts:
+  - Roots
+  - Stem
+  - Leaves
+  - Petals
+- **Drag-and-drop word cards** representing each part + function:
+  - “Petals – Make the flower beautiful to attract insects”
+  - “Stem – Holds up the flower and carries water”
+  - “Roots – Take in water and nutrients from soil”
+  - “Leaves – Make food for the plant using sunlight”
+- Students drag these cards to **drop zones** over the corresponding diagram parts.
+- Visual connection lines drawn between each card and its target part when placed.
+- Two main controls:
+  - **“Check My Work”**: evaluate all current placements.
+  - **“Try Again”**: reset the activity.
+- Feedback mechanisms:
+  - Immediate, local feedback when placing a card (brief tooltip message, highlight on target).
+  - Overall summary feedback after checking (score-style message with encouragement).
+- Self-contained HTML + CSS + JavaScript (no external frameworks).
+- **MOBILE-RESPONSIVE & TOUCH-ENABLED**:
+  - Drag-and-drop must work with both mouse and touch.
+  - Layout adapts for iframe and full-browser modes.
+
+SPECIFIC REQUIREMENTS:
+
+Flower diagram and drop zones
+- Use an SVG-based flower composed of groups (`<g>`) for each part:
+  - **Roots** group with stylised root paths near the bottom, and a circular drop zone around them.
+  - **Stem** group with a vertical rectangle, and a drop zone around the stem.
+  - **Leaves** group with two leaf shapes on the sides, each with a drop zone (both represent the same part).
+  - **Petals** group with petals and central disc, and a circular drop zone around the petals.
+- Each drop zone must have a data attribute indicating the part it represents, e.g. `data-part="roots"`, `data-part="stem"`, etc.
+
+Word cards
+- List word cards in a dedicated `word-cards-container`:
+  - Each card is a `.word-card` element with:
+    - `data-word` attribute (e.g. "petals", "stem", "roots", "leaves").
+    - Visible text for the part name (e.g. `<span class="word-text">Petals</span>`).
+    - A short description of function (e.g. `<span class="function-text">Make the flower beautiful to attract insects</span>`).
+- Cards must be **draggable** and visually distinct (e.g., borders, background colour).
+- Cards that have been placed should be styled differently (e.g., `placed` class) and not draggable again until reset.
+
+Drag-and-drop behaviour
+- Support **mouse-based drag-and-drop**:
+  - `dragstart`, `dragover`, `drop`, `dragenter`, `dragleave`, `dragend` events.
+  - Only allow dragging word cards that are not yet placed.
+- Support **touch-based drag-and-drop**:
+  - `touchstart`, `touchmove`, `touchend` events.
+  - On `touchmove`, move the card with the finger (using fixed positioning and high z-index).
+  - On `touchend`, determine the element under the finger via `document.elementFromPoint()` and treat it as a drop event if it’s a drop zone.
+- When hovering over or touching a drop zone while dragging:
+  - Add a `highlight` class to that drop zone so students know they can drop there.
+- When a card is dropped on a drop zone:
+  - If that drop zone already has a placement, clear/move the previous card back.
+  - Record the placement mapping (e.g., `placements[part] = word`).
+  - Mark the word card as placed (`.placed`).
+  - Create a **connection line** from the card to the drop zone.
+
+Connections
+- Implement a separate SVG group (`.connection-lines`) that contains `<line>` elements representing connections between cards and parts.
+- When a card is placed:
+  - Compute the positions of the card centre and the drop zone centre relative to the container.
+  - Create a line from card centre to drop zone centre.
+  - Tag the line with a data attribute, e.g. `data-connection="petals-petals"`.
+- When resetting/removing placements, remove or update their corresponding lines.
+- Lines may gain a `correct` class when the match is correct during checking.
+
+Answer key and immediate feedback
+- Maintain a **correct answers mapping**, for example:
+  - `petals → petals`
+  - `stem → stem`
+  - `roots → roots`
+  - `leaves → leaves`
+- When a card is placed on a drop zone:
+  - Determine if the placement is correct using the mapping.
+  - Briefly highlight the drop zone:
+    - Add `correct` class for correct placement.
+    - Add `incorrect` class for incorrect placement.
+  - Show a short message via a temporary tooltip, e.g.:
+    - Correct: “Great job! That’s correct!”
+    - Incorrect: “Try again! Think about what this part does.”
+  - Remove these highlight classes after a short duration (e.g., 2 seconds).
+
+Check and feedback logic
+- On “Check My Work” button click:
+  - Iterate over all expected parts and compare `placements[part]` with the answer key.
+  - Count the number of correct matches.
+  - Add persistent feedback classes to drop zones and lines (e.g., `correct` for fully correct connections, `incorrect` for wrong or missing ones).
+  - Display overall feedback in a dedicated `#feedback` area:
+    - If all correct: success message, e.g. `🌸 Excellent! You got all 4 correct! You understand how flower parts work together!`.
+    - If mostly correct: partial success message, e.g. `🌱 Good work! You got 3 out of 4 correct. Check the red ones and try again!`.
+    - If few correct: encouragement to try again, e.g. `🌿 Keep trying! You got 1 out of 4 correct. Remember: each part has a special job!`.
+  - For a perfect score, trigger a small **celebration animation** on all placed cards (e.g., sequential bounce effect).
+  - Temporarily disable the “Check My Work” button (e.g., for 3 seconds) to prevent spamming.
+
+Reset behaviour
+- On “Try Again” button click:
+  - Clear `placements` and any feedback classes from drop zones and lines.
+  - Move all word cards back to their original container and remove `placed` styles.
+  - Clear the connection lines group.
+  - Reset the feedback area.
+  - Show a short tooltip message such as “Activity reset! Try again!”.
+
+Tooltips and accessibility
+- Tooltip system:
+  - A global tooltip (`#tooltip`) moves near the cursor when hovering over elements with `title` attributes.
+  - On `mouseenter`, show the tooltip text from `title` and temporarily remove the `title` to avoid default browser tooltip.
+  - On `mouseleave`, hide the custom tooltip and restore the original `title` from a stored `data-original-title` attribute.
+  - On `mousemove`, update tooltip position relative to the container.
+- When showing custom messages (e.g., after reset or correct placement), create a temporary tooltip-like overlay centred in the container; remove after a few seconds.
+
+Responsive handling
+- Adjust container height based on environment:
+  - If running inside an iframe, limit height (e.g., 450px) for SLS embedding.
+  - If in full browser, use a percentage of viewport height (e.g., 90vh).
+- On window resize:
+  - Optionally recalculate line positions if needed (or accept minor drift if simple).
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Identify the **roots**, **stem**, **leaves**, and **petals** of a flowering plant.
+  - Match each part with its **function** (e.g., roots absorb water, leaves make food, etc.).
+  - See how all parts are connected in a whole plant system.
+- The activity should support **concept mapping** by visually linking labels and parts, reinforcing both terminology and function.
+
+INTERACTION FEATURES TO INCLUDE:
+- Drag-and-drop of labelled cards to diagram parts (mouse + touch).
+- Visual connection lines between cards and parts.
+- Immediate placement feedback and overall checking feedback.
+- Reset/try-again function for repeated practice.
+- Custom tooltip system improving clarity and accessibility.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

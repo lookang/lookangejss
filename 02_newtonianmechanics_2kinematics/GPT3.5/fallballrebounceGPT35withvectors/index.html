@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Falling Ball with Vectors</title>
+  <style>
+    #canvas {
+      border: 1px solid black;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+    }
+    .slider-container label {
+      margin-right: 10px;
+    }
+    .button-container {
+      margin-top: 10px;
+    }
+    .button-container button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="slider-container">
+    <label for="gravitySlider">Gravity (g) = </label>
+    <input type="range" min="-20" max="20" value="9.81" step="0.1" id="gravitySlider">
+    <span id="gravityValue">9.81</span>
+  </div>
+  <div class="slider-container">
+    <label for="restitutionSlider">Coefficient of Restitution (e) = </label>
+    <input type="range" min="0" max="1" value="0.8" step="0.01" id="restitutionSlider">
+    <span id="restitutionValue">0.8</span>
+  </div>
+  <div class="button-container">
+    <button id="toggleButton">Play</button>
+    <button id="stepButton">Step</button>
+    <button id="resetButton">Reset</button>
+  </div>
+  <br>
+  <canvas id="canvas" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let ball = {
+      x: canvas.width / 2,
+      y: canvas.height - 350,
+      radius: 15,
+      color: 'blue',
+      velocity: { x: 0, y: 0 },
+      gravity: 9.81,
+      restitution: 0.8
+    };
+
+    let initialPosition = { x: ball.x, y: ball.y };
+    let isDragging = false;
+    let dragStartX, dragStartY;
+    let dragStartTime;
+    let animationId;
+    let isPlaying = false;
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = ball.color;
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawVector(startX, startY, vecX, vecY, color, label) {
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(startX + vecX, startY + vecY);
+      ctx.strokeStyle = color;
+      ctx.stroke();
+
+      // Calculate angle for arrowhead
+      let angle = Math.atan2(vecY, vecX);
+      let arrowHeadLength = 10;
+      let arrowAngle = Math.PI / 6;
+
+      // Draw arrowhead
+      ctx.beginPath();
+      ctx.moveTo(startX + vecX, startY + vecY);
+      ctx.lineTo(startX + vecX - arrowHeadLength * Math.cos(angle - arrowAngle), 
+                 startY + vecY - arrowHeadLength * Math.sin(angle - arrowAngle));
+      ctx.lineTo(startX + vecX - arrowHeadLength * Math.cos(angle + arrowAngle), 
+                 startY + vecY - arrowHeadLength * Math.sin(angle + arrowAngle));
+      ctx.lineTo(startX + vecX, startY + vecY);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // Label
+      ctx.fillStyle = 'black';
+      ctx.fillText(label, startX + vecX + 5, startY + vecY - 5);
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawBall();
+
+      if (!isDragging && isPlaying) {
+        ball.velocity.y += ball.gravity / 60; // Adjust for FPS
+        ball.x += ball.velocity.x;
+        ball.y += ball.velocity.y;
+
+        if (ball.y + ball.radius > canvas.height) {
+          ball.y = canvas.height - ball.radius;
+          ball.velocity.y *= -ball.restitution; // Apply restitution
+        }
+      }
+
+      // Draw vectors
+      drawVector(ball.x, ball.y, ball.velocity.x * 10, ball.velocity.y * 10, 'red', 'Velocity');
+      drawVector(ball.x, ball.y, 0, ball.gravity * 5, 'blue', 'Acceleration');
+
+      animationId = requestAnimationFrame(update);
+    }
+
+    function toggleAnimation() {
+      isPlaying = !isPlaying;
+      document.getElementById('toggleButton').textContent = isPlaying ? 'Pause' : 'Play';
+      if (!isPlaying) {
+        cancelAnimationFrame(animationId);
+      } else {
+        update();
+      }
+    }
+
+    function stepAnimation() {
+      if (!isPlaying) {
+        update();
+      }
+    }
+
+    function resetAnimation() {
+      cancelAnimationFrame(animationId);
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height - 350; // Reset to initial height
+      ball.velocity = { x: 0, y: 0 };
+      animationId = null;
+      initialPosition = { x: ball.x, y: ball.y };
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBall();
+    }
+
+    document.getElementById('toggleButton').addEventListener('click', toggleAnimation);
+    document.getElementById('stepButton').addEventListener('click', stepAnimation);
+    document.getElementById('resetButton').addEventListener('click', resetAnimation);
+
+    canvas.addEventListener('mousedown', function(event) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      const dx = mouseX - ball.x;
+      const dy = mouseY - ball.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance <= ball.radius) {
+        isDragging = true;
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+        dragStartTime = Date.now();
+      }
+    });
+
+    canvas.addEventListener('mousemove', function(event) {
+      if (isDragging) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+
+        const dx = mouseX - dragStartX;
+        const dy = mouseY - dragStartY;
+
+        ball.x += dx;
+        ball.y += dy;
+
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+      }
+    });
+
+    canvas.addEventListener('mouseup', function() {
+      if (isDragging) {
+        const dragEndTime = Date.now();
+        const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
+        const dx = ball.x - dragStartX;
+        const dy = ball.y - dragStartY;
+
+        // Calculate velocity based on drag distance and duration
+        ball.velocity.x = dx / dragDuration;
+        ball.velocity.y = dy / dragDuration;
+        isDragging = false;
+      }
+    });
+
+    const gravitySlider = document.getElementById('gravitySlider');
+    gravitySlider.addEventListener('input', function() {
+      ball.gravity = parseFloat(this.value);
+      document.getElementById('gravityValue').textContent = this.value;
+    });
+
+    const restitutionSlider = document.getElementById('restitutionSlider');
+    restitutionSlider.addEventListener('input', function() {
+      ball.restitution = parseFloat(this.value);
+      document.getElementById('restitutionValue').textContent = this.value;
+    });
+
+    resetAnimation(); // Initialize the scene
+  </script>
+</body>
+</html>
+

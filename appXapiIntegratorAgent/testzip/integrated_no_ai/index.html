@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Math Facts Automaticity Builder</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+  const answerDedup = { lastSig: '', lastAt: 0 };
+  const metricsState = { lastKey: '', timer: null };
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function toNumber(val) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function readDomNumber(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      return toNumber(text);
+    } catch {
+      return null;
+    }
+  }
+
+  function getQuestionText() {
+    try {
+      const el = document.getElementById('question');
+      if (el && el.textContent) return el.textContent.trim().substring(0, 160);
+    } catch {}
+    return null;
+  }
+
+  function getGameState() {
+    try { return window.gameState || null; } catch { return null; }
+  }
+
+  function getMetricsFromGameState() {
+    const gs = getGameState();
+    if (!gs) return null;
+    const attempted = toNumber(gs.totalAttempts != null ? gs.totalAttempts : null);
+    const correct = toNumber(gs.correctCount != null ? gs.correctCount : null);
+    const points = toNumber(gs.score != null ? gs.score : null);
+    const max = toNumber(gs.questionsToAdvance != null ? gs.questionsToAdvance : null);
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetricsFromDom() {
+    const attempted = readDomNumber('totalAttempts');
+    const correct = readDomNumber('correctCount');
+    const points = readDomNumber('score');
+    const max = readDomNumber('totalQuestions');
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetrics() {
+    return getMetricsFromGameState() || getMetricsFromDom() || null;
+  }
+
+  function syncFromMetrics() {
+    const m = getMetrics();
+    if (!m) return;
+    if (m.attempted != null) qs.attempted = m.attempted;
+    if (m.correct != null) quizMeta.correct = m.correct;
+    if (m.max != null) quizMeta.max = m.max;
+  }
+
+  function startMetricsWatcher() {
+    if (metricsState.timer) return;
+    metricsState.timer = setInterval(() => {
+      const m = getMetrics();
+      if (!m) return;
+      const key = [m.attempted, m.correct, m.points, m.max].join('|');
+      if (key === metricsState.lastKey) return;
+      metricsState.lastKey = key;
+      syncFromMetrics();
+      scheduleFlush('auto-metrics');
+      maybeComputeAndSendScore();
+    }, 1200);
+  }
+
+  function recordAnswer(evt) {
+    try {
+      const sig = [evt.q, evt.value, evt.correct, evt.expected].join('|');
+      const now = Date.now();
+      if (sig === answerDedup.lastSig && now - answerDedup.lastAt < 800) return;
+      answerDedup.lastSig = sig;
+      answerDedup.lastAt = now;
+      pushHistory(evt);
+
+      const gs = getGameState();
+      const hasCounts = gs && (gs.totalAttempts != null || gs.correctCount != null);
+      if (!hasCounts) {
+        qs.attempted++;
+        if (evt.correct === true) quizMeta.correct++;
+      }
+    } catch (e) {}
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    syncFromMetrics();
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const m = getMetrics();
+    const payload = {
+      score: raw,
+      max,
+      feedback: 'Quiz ' + reason + ': ' + raw + '/' + max + ' (correct ' + quizMeta.correct + '/' + max + ')',
+      reason,
+      quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max, points: m && m.points != null ? m.points : null },
+      history: history.slice(-80)
+    };
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /correct/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState({
+          score: scoreRaw,
+          max: max,
+          feedback: feedback || '',
+          quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+          history: history.slice(-80)
+        });
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    // If we know quizMeta.max, send a score on each change.
+    // Debounced by lastScoreSent.
+    syncFromMetrics();
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Score: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = qs.questions.length;
+    quizMeta.max = quizMeta.total;
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          recordAnswer({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Button-based answers (common in Claude-generated interactives)
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('button,[role="button"],.answer-btn') : null;
+      if (!btn) return;
+      const inGrid = btn.closest && btn.closest('#answerGrid');
+      const looksLikeAnswer = inGrid || btn.classList.contains('answer-btn') || btn.dataset.answer != null;
+      if (!looksLikeAnswer) return;
+
+      const valueRaw = btn.dataset.answer != null ? btn.dataset.answer : (btn.textContent || '');
+      const value = String(valueRaw).trim().substring(0, 120);
+      const gs = getGameState();
+      const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+      const correct = expected != null ? (String(value) === String(expected)) : null;
+
+      recordAnswer({
+        type: 'answer_click',
+        q: getQuestionText(),
+        value,
+        correct,
+        expected
+      });
+
+      scheduleFlush('answer_click');
+      maybeComputeAndSendScore();
+    }, true);
+
+    startMetricsWatcher();
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        recordAnswer({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  function hookCheckAnswer() {
+    try {
+      if (window.__xapiCheckAnswerHooked) return;
+      if (typeof window.checkAnswer !== 'function') return;
+      const original = window.checkAnswer;
+      window.checkAnswer = function(selectedAnswer, btn) {
+        try {
+          const gs = getGameState();
+          const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+          const value = selectedAnswer != null ? String(selectedAnswer).substring(0, 120) : null;
+          const correct = expected != null && value != null ? (String(value) === String(expected)) : null;
+          recordAnswer({
+            type: 'answer_check',
+            q: getQuestionText(),
+            value,
+            correct,
+            expected
+          });
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } catch (e) {}
+        return original.apply(this, arguments);
+      };
+      window.__xapiCheckAnswerHooked = true;
+    } catch (e) {}
+  }
+
+  function startCheckAnswerWatcher() {
+    if (window.__xapiCheckAnswerWatch) return;
+    window.__xapiCheckAnswerWatch = true;
+    const timer = setInterval(() => {
+      hookCheckAnswer();
+      if (window.__xapiCheckAnswerHooked) clearInterval(timer);
+    }, 600);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+      startCheckAnswerWatcher();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+    startCheckAnswerWatcher();
+  }
+})();
+    </script>
+  </head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Game Area -->
+        <div class="game-area">
+            <!-- Status Bar with tooltips -->
+            <div class="status-bar">
+                <div class="status-item" title="Current Level - Click to see level details">
+                    <span class="status-label">Level</span>
+                    <span class="status-value" id="level">1</span>
+                </div>
+                <div class="status-item" title="Your current score - Earn points for correct answers">
+                    <span class="status-label">Score</span>
+                    <span class="status-value" id="score">0</span>
+                </div>
+                <div class="status-item" title="Time remaining for this question">
+                    <span class="status-label">Time</span>
+                    <span class="status-value" id="timer">10s</span>
+                </div>
+                <div class="status-item" title="Current streak of correct answers">
+                    <span class="status-label">Streak</span>
+                    <span class="status-value" id="streak">0</span>
+                </div>
+            </div>
+
+            <!-- Question Display -->
+            <div class="question-container">
+                <div class="question-text" id="question">2 × 3 = ?</div>
+                <div class="progress-indicator">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+            </div>
+
+            <!-- Answer Options -->
+            <div class="answer-grid" id="answerGrid">
+                <!-- Answer buttons will be generated dynamically -->
+            </div>
+
+            <!-- Feedback Message -->
+            <div class="feedback-message" id="feedbackMessage"></div>
+
+            <!-- Control Buttons -->
+            <div class="control-buttons">
+                <button class="btn btn-secondary" id="pauseBtn" title="Pause the game">⏸ Pause</button>
+                <button class="btn btn-secondary" id="resetBtn" title="Reset and start over">🔄 Reset</button>
+                <button class="btn btn-info" id="helpBtn" title="Show game instructions">❓ Help</button>
+            </div>
+        </div>
+
+        <!-- Analytics Panel (Collapsible) -->
+        <div class="analytics-panel">
+            <div class="analytics-header" id="analyticsToggle">
+                <span>📊 Learning Analytics</span>
+                <span class="toggle-icon" id="toggleIcon">▼</span>
+            </div>
+            <div class="analytics-content" id="analyticsContent">
+                <div class="analytics-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Attempts:</span>
+                        <span class="summary-value" id="totalAttempts">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Correct:</span>
+                        <span class="summary-value" id="correctCount">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Accuracy:</span>
+                        <span class="summary-value" id="accuracy">0%</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Avg Response:</span>
+                        <span class="summary-value" id="avgResponse">0s</span>
+                    </div>
+                </div>
+                <div class="action-log-header">
+                    <span>Action Log</span>
+                    <button class="btn-clear" id="clearLogBtn" title="Clear all logs">Clear</button>
+                </div>
+                <div class="action-log" id="actionLog">
+                    <div class="log-entry">
+                        <span class="log-time">t=0s</span>
+                        <span class="log-icon">🎮</span>
+                        <span class="log-text">Game initialized - Ready to start!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How to Play</h2>
+                <button class="modal-close" id="closeModal">×</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>🎯 Goal:</strong> Answer multiplication questions quickly and correctly to build automaticity!</p>
+                <p><strong>⏱️ Time:</strong> You have 10 seconds per question. Answer quickly for bonus points!</p>
+                <p><strong>📈 Levels:</strong> Complete 5 questions correctly to advance to the next level.</p>
+                <p><strong>🔥 Streak:</strong> Answer consecutively correct to build your streak and earn bonus points!</p>
+                <p><strong>⭐ Scoring:</strong></p>
+                <ul>
+                    <li>Correct answer: 10 points + time bonus</li>
+                    <li>Streak bonus: +5 points per streak</li>
+                    <li>Wrong answer: No points, streak resets</li>
+                </ul>
+                <p><strong>💡 Tip:</strong> Practice makes perfect! The more you play, the faster you'll get!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div class="modal" id="pauseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Game Paused</h2>
+            </div>
+            <div class="modal-body">
+                <p>Take your time! Click "Resume" when you're ready to continue.</p>
+                <button class="btn btn-primary btn-large" id="resumeBtn">▶️ Resume Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration Overlay -->
+    <div class="celebration-overlay" id="celebrationOverlay">
+        <div class="celebration-content">
+            <div class="celebration-emoji" id="celebrationEmoji">🎉</div>
+            <div class="celebration-text" id="celebrationText">Level Up!</div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

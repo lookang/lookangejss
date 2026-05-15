@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Handwriting Practice</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- xAPI SLS Integration -->
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT: Use window.storeState() from lib/xAPI.js — never fetch/XHR directly (CORS)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try { if (typeof window.storeState === 'function') window.storeState(payload); } catch (e) {}
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch { return {}; }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    if (xapiState.actions.length > 2000) xapiState.actions.shift(); // keep full session log
+  }
+
+  function captureDashboardSnapshot() {
+    try {
+      const selectors = ['[id*="dashboard" i]','[class*="dashboard" i]','[id*="result" i]','[class*="result" i]','[id*="score" i]','[class*="score" i]'];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch { return null; }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch { return null; }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const directScore =
+        readDomNumberById('xapi-score') ??
+        readDomNumberById('score') ?? readDomNumberById('points') ??
+        readDomNumberById('correctCount') ?? readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ?? readDomNumberById('correctAnswersCount');
+      const directMax =
+        readDomNumberById('xapi-total') ??
+        readDomNumberById('max') ?? readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ?? readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ?? readDomNumberById('attempts') ?? readDomNumberById('totalAttempts');
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+      const selectors = ['[id*="score" i]','[class*="score" i]','[id*="result" i]','[class*="result" i]','[id*="correct" i]','[class*="correct" i]','[data-score]','[data-points]','[data-max]'];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const m = text.match(/(\d+)\s*\/\s*(\d+)/);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0, seqMulti = 0, headOn = 0, extremes = 0;
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes).map(k => k + ': ' + summary.actionTypes[k]).join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions; // full session log — no slice
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+    // Full action log from t=0 — no slice
+    const actionLog = actions.map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback, reason,
+      startedAt: xapiState.startTime,
+      summary, actionLog, actions,
+      dashboard: captureDashboardSnapshot(),
+      details: { summary, actionLog, dashboard: captureDashboardSnapshot() }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch { return String(Date.now()); }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const stateEl = entry.querySelector ? entry.querySelector('.log-state') : null;
+      const timeText = timeEl ? timeEl.textContent : (entry.textContent || '');
+      const actionText = actionEl ? actionEl.textContent : null;
+      const stateText = stateEl ? stateEl.textContent : null;
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+      const label = [actionText, stateText].filter(Boolean).join(' — ').trim();
+      return { timeSec: Number.isFinite(timeSec) ? timeSec : null, action: actionText ? actionText.trim() : null, details: stateText ? stateText.trim() : null, label: label || null };
+    } catch (e) { return null; }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) { const keep = Array.from(seen).slice(-200); seen.clear(); keep.forEach(k => seen.add(k)); }
+        const ts = parsed.timeSec != null ? (xapiState.startTime + Math.round(parsed.timeSec * 1000)) : Date.now();
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) { recordEntry(node); }
+              else { node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry); }
+            });
+          });
+        });
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('analyticsLog');
+        if (container) { attachToContainer(container); return true; }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) { attachToContainer(entry.parentElement); return true; }
+        return false;
+      }
+
+      if (tryAttach()) return;
+      let attempts = 0;
+      const timer = setInterval(() => { attempts += 1; if (tryAttach() || attempts > 20) clearInterval(timer); }, 500);
+    } catch (e) {}
+  }
+
+  // Track keystrokes in text inputs
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+    const isTextField = (tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')) || tag === 'textarea';
+    if (!isTextField) return;
+    logAction('key', { tag, id: t.id || null, name: t.name || null, value: t.value != null ? String(t.value).substring(0, 120) : null, text: null, key: String(e.key).substring(0, 40) });
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t) return;
+    logAction('click', summarizeTarget(t));
+    scheduleFlush('auto-click');
+  }, true);
+
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flush('pause'); });
+  window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999;font-size:13px;cursor:pointer;';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { addSaveBtn(); hookLearningAnalyticsLog(); });
+  } else {
+    addSaveBtn();
+    hookLearningAnalyticsLog();
+  }
+})();
+    </script>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <!-- Sticky Header with Global Stats -->
+    <div class="header" id="header" title="Track your overall writing accuracy and progress">
+        <div class="stat-item">
+            <span class="stat-label">Overall Accuracy</span>
+            <span class="stat-value" id="globalAccuracy">--%</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Progress</span>
+            <span class="stat-value" id="progress">0/15</span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Character Info Box -->
+        <div class="info-box" id="infoBox">
+            <div class="character-display" id="currentChar">视</div>
+            <div class="pinyin-toggle">
+                <label class="toggle-switch" title="Show/hide Pinyin pronunciation">
+                    <input type="checkbox" id="pinyinToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">Pinyin</span>
+            </div>
+            <div class="pinyin" id="pinyin">shì</div>
+            <div class="english-toggle">
+                <label class="toggle-switch" title="Show/hide English meaning">
+                    <input type="checkbox" id="englishToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label">English</span>
+            </div>
+            <div class="english" id="english">to look at, to view</div>
+        </div>
+
+        <!-- Tian Zi Ge Canvas Container -->
+        <div class="canvas-container">
+            <div id="characterTarget" class="tian-zi-ge"></div>
+            <div class="canvas-hint" title="Write the character by following the stroke order">
+                Trace the character above
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="control-dock">
+            <button class="control-btn" id="animateBtn" title="Watch the stroke order animation">
+                <span class="btn-icon">▶</span>
+                <span class="btn-text">Animate Stroke Order</span>
+            </button>
+            <button class="control-btn" id="resetBtn" title="Clear and restart current character">
+                <span class="btn-icon">↻</span>
+                <span class="btn-text">Reset Character</span>
+            </button>
+            <button class="control-btn" id="nextBtn" title="Move to the next character">
+                <span class="btn-icon">→</span>
+                <span class="btn-text">Next Character</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Analytics Panel -->
+    <div class="analytics-panel" id="analyticsPanel">
+        <div class="analytics-header">
+            <span class="analytics-title">📊 Action Log</span>
+            <div class="analytics-controls">
+                <button class="analytics-btn" id="clearLogBtn" title="Clear action log">🗑 Clear</button>
+                <button class="analytics-btn analytics-toggle-btn" id="toggleAnalyticsBtn" title="Collapse analytics panel">▼</button>
+            </div>
+        </div>
+        <div class="analytics-body" id="analyticsBody">
+            <div class="analytics-log" id="analyticsLog">
+                <div class="analytics-empty">Interactions will appear here…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Overlay (Hidden by default) -->
+    <div class="score-overlay" id="scoreOverlay">
+        <div class="score-card">
+            <div class="score-title">Character Complete!</div>
+            <div class="score-character" id="scoreChar">视</div>
+            <div class="score-percentage" id="scorePercentage">95%</div>
+            <div class="score-feedback" id="scoreFeedback">Writing Master! (书法大师)</div>
+            <div class="score-details" id="scoreDetails">
+                Strokes: <span id="strokesCorrect">8</span>/<span id="strokesTotal">8</span>
+            </div>
+            <button class="continue-btn" id="continueBtn">Continue</button>
+        </div>
+    </div>
+
+    <!-- Hidden xAPI score holders: updated by script.js on each character completion -->
+    <span id="xapi-score" style="display:none">0</span>
+    <span id="xapi-total" style="display:none">15</span>
+
+    <!-- Hanzi Writer Library -->
+    <script src="hanzi-writer.min.js"></script>
+    <!-- Local character stroke data (avoids CSP-blocked CDN fetches on SLS) -->
+    <script src="hanzi-data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

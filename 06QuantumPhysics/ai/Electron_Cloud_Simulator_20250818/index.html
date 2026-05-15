@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electron Cloud Simulator</title>
+    <!-- Google tag (gtag.js) -->
+    <script async="true" src="external_0.txt"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <style>
+        /* General styling to ensure the interactive takes up the full viewport and has a clean background. */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Allow scrolling by default for mobile-first approach */
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8; /* A light, neutral background color */
+        }
+        
+        /* For desktop, where we expect everything to fit, hide scrollbars */
+        @media (min-width: 769px) and (min-height: 501px) {
+            html, body {
+                overflow: hidden;
+            }
+        }
+
+        /* The main container for the simulation. 
+        It uses flexbox to center the content and handle layout.
+        */
+        #simulation-container {
+            position: relative;
+            width: 100%;
+            height: 90vh; /* Default height for standalone view */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Media query to adjust height when embedded in an iframe of a specific height */
+        @media (max-height: 500px) {
+            #simulation-container {
+                height: 450px;
+            }
+        }
+        
+        /* Container to hold both the 3D and 2D views, stacked vertically */
+        #views-wrapper {
+            display: flex;
+            flex-direction: column; /* Stack 3D view on top of 2D views */
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: calc(100% - 60px); /* Leave space for controls */
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Container for the main 3D canvas */
+        #view-3d-container {
+            /* flex property is now controlled by JavaScript */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            min-height: 0; /* Fix for flexbox sizing issue */
+            transition: flex 0.3s ease; /* Smooth transition for resizing */
+        }
+
+        /* Styling for the main 3D canvas where the orbitals are drawn. */
+        #orbitalCanvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 1 / 1;
+            cursor: grab; /* Indicate that the canvas is draggable */
+            touch-action: none; /* Prevents default browser actions like scrolling on canvas */
+        }
+        
+        /* Container for the 2D plane views, arranged in a row */
+        #views-2d-container {
+            /* flex and display properties are now controlled by JavaScript */
+            flex-direction: row; /* Arrange 2D views horizontally */
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            min-height: 0; /* Fix for flexbox sizing issue */
+            gap: 10px;
+            transition: flex 0.3s ease; /* Smooth transition for resizing */
+        }
+        
+        /* Styling for each individual 2D view wrapper */
+        .view-2d {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .view-2d canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        
+        .view-2d-label {
+            font-size: 12px;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        /* Styling for the control buttons container. */
+        #controls {
+            position: absolute;
+            bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: center; /* Align checkbox with buttons */
+            padding: 0 10px;
+        }
+
+        /* Styling for individual control buttons. */
+        .control-btn {
+            padding: 8px 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #f9fafb;
+            color: #374151;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        /* Hover state for buttons to provide visual feedback. */
+        .control-btn:hover {
+            background-color: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        /* Styling for the currently active button. */
+        .control-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        /* Styling for the new checkbox container */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #374151;
+            font-size: 14px;
+            padding: 8px;
+        }
+        .checkbox-wrapper label {
+            cursor: pointer;
+        }
+
+        /* Styling for the tooltip. */
+        #tooltip {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #simulation-container:hover #tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Styling for the credit text */
+        #credit {
+            position: absolute;
+            bottom: -25px; /* Position below the main container */
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+        }
+        #credit a {
+            color: #666;
+            text-decoration: none;
+        }
+        #credit a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Mobile Responsive Styles --- */
+        @media (max-width: 768px) {
+            #simulation-container {
+                height: auto; /* Let content determine height */
+                min-height: 90vh; /* Ensure it still takes up most of the screen */
+            }
+
+            #views-2d-container {
+                flex-direction: column; /* Stack 2D views vertically on mobile */
+                width: 100%;
+                height: auto;
+                gap: 5px;
+            }
+            
+            .view-2d {
+                width: 60%; /* Make them smaller than the main view */
+                margin: 0 auto;
+            }
+
+            #controls {
+                position: relative; /* Make it part of the flow on mobile */
+                bottom: auto;
+                margin-top: 10px;
+            }
+            
+            #credit {
+                position: relative;
+                bottom: auto;
+                margin-top: 15px;
+                padding-bottom: 10px;
+            }
+        }
+
+        /* --- Mobile Landscape Specific Styles --- */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #simulation-container {
+                width: 90vh; /* Constrain width to leave scrollable area on the sides */
+                margin: 20px auto; /* Center the container and add vertical spacing */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="simulation-container">
+        <!-- A tooltip that appears on hover to provide a title without taking up vertical space. -->
+        <div id="tooltip">The Electron Cloud: Quantum View of the Atom</div>
+
+        <!-- Wrapper for both 3D and 2D views -->
+        <div id="views-wrapper">
+            <!-- Container for the main 3D view -->
+            <div id="view-3d-container">
+                <canvas id="orbitalCanvas"></canvas>
+            </div>
+            <!-- Container for the 2D plane views -->
+            <div id="views-2d-container">
+                <div class="view-2d">
+                    <canvas id="xy-plane-canvas"></canvas>
+                    <span class="view-2d-label">XY Plane</span>
+                </div>
+                <div class="view-2d">
+                    <canvas id="xz-plane-canvas"></canvas>
+                    <span class="view-2d-label">XZ Plane</span>
+                </div>
+                <div class="view-2d">
+                    <canvas id="yz-plane-canvas"></canvas>
+                    <span class="view-2d-label">YZ Plane</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container for the control buttons -->
+        <div id="controls">
+            <button class="control-btn active" data-orbital="px">p<sub>x</sub> Orbital</button>
+            <button class="control-btn" data-orbital="py">p<sub>y</sub> Orbital</button>
+            <button class="control-btn" data-orbital="pz">p<sub>z</sub> Orbital</button>
+            <button class="control-btn" data-orbital="all">Show All</button>
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="show-2d-views">
+                <label for="show-2d-views">Show Planar Views</label>
+            </div>
+        </div>
+        
+        <div id="credit">
+            made by lookang, using Gemini 2.5 Pro | for more resources <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/06-modern-physics" target="_blank">click here</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get references to the canvases and their 2D rendering contexts.
+            const canvas3D = document.getElementById('orbitalCanvas');
+            const ctx3D = canvas3D.getContext('2d');
+            const canvasXY = document.getElementById('xy-plane-canvas');
+            const ctxXY = canvasXY.getContext('2d');
+            const canvasXZ = document.getElementById('xz-plane-canvas');
+            const ctxXZ = canvasXZ.getContext('2d');
+            const canvasYZ = document.getElementById('yz-plane-canvas');
+            const ctxYZ = canvasYZ.getContext('2d');
+
+            const controls = document.getElementById('controls');
+            const container3D = document.getElementById('view-3d-container');
+            const container2D = document.getElementById('views-2d-container');
+            const show2DCheckbox = document.getElementById('show-2d-views');
+
+            // --- Configuration Constants ---
+            const PARTICLE_COUNT = 3000;
+            const PARTICLE_SIZE = 1;
+            const BOUNDING_BOX_SIZE = 150;
+            const COLORS = {
+                lobe1: 'rgba(255, 165, 0, 0.7)',
+                lobe2: 'rgba(0, 191, 255, 0.7)'
+            };
+
+            // --- State Variables ---
+            let particles = []; // Stores the original, un-rotated particle coordinates
+            let currentOrbital = 'px';
+            let animationFrameId;
+            
+            // --- Interaction Variables ---
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            let rotationX = 0.3; // Initial rotation for a better starting view
+            let rotationY = -0.3;
+            let zoomLevel = 1.0;
+            let initialPinchDistance = null;
+
+
+            /**
+             * Handles window resizing to make all canvases responsive.
+             */
+            function resizeCanvases() {
+                const size3D = Math.min(container3D.clientWidth, container3D.clientHeight);
+                canvas3D.width = size3D;
+                canvas3D.height = size3D;
+                
+                if (container2D.style.display !== 'none') {
+                    const size2D = canvasXY.parentElement.clientHeight;
+                    [canvasXY, canvasXZ, canvasYZ].forEach(canvas => {
+                        canvas.width = size2D;
+                        canvas.height = size2D;
+                    });
+                }
+                
+                draw(); // Redraw everything after resizing
+            }
+
+            /**
+             * Updates the flex layout and visibility of the 3D and 2D view containers.
+             */
+            function updateLayout() {
+                const show2D = show2DCheckbox.checked && !show2DCheckbox.disabled;
+
+                if (show2D) {
+                    // When 2D views are visible, split the space
+                    container2D.style.display = 'flex';
+                    container3D.style.flex = '3';
+                    container2D.style.flex = '1';
+                } else {
+                    // When 2D views are hidden, 3D view takes all space
+                    container2D.style.display = 'none';
+                    container3D.style.flex = '1';
+                    container2D.style.flex = '0';
+                }
+                // Use a short timeout to allow the browser to reflow the layout before resizing the canvas
+                setTimeout(resizeCanvases, 50);
+            }
+
+
+            function getRandom(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function generateParticles(orbitalType) {
+                const newParticles = [];
+                const scale = BOUNDING_BOX_SIZE;
+                while (newParticles.length < PARTICLE_COUNT) {
+                    const x = getRandom(-scale, scale);
+                    const y = getRandom(-scale, scale);
+                    const z = getRandom(-scale, scale);
+                    const r = Math.sqrt(x * x + y * y + z * z);
+                    if (r === 0 || r > scale) continue;
+
+                    let probability;
+                    let color;
+                    switch (orbitalType) {
+                        case 'px':
+                            probability = Math.pow(x / r, 2);
+                            color = x > 0 ? COLORS.lobe1 : COLORS.lobe2;
+                            break;
+                        case 'py':
+                            probability = Math.pow(y / r, 2);
+                            color = y > 0 ? COLORS.lobe1 : COLORS.lobe2;
+                            break;
+                        case 'pz':
+                            probability = Math.pow(z / r, 2);
+                            color = z > 0 ? COLORS.lobe1 : COLORS.lobe2;
+                            break;
+                    }
+                    if (Math.random() < probability) {
+                        newParticles.push({ x, y, z, color });
+                    }
+                }
+                return newParticles;
+            }
+
+            function draw2DPlane(ctx, particlesToDraw, axis1, axis2) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.save();
+                ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+                
+                const scale = ctx.canvas.width / (BOUNDING_BOX_SIZE * 2.2);
+
+                particlesToDraw.forEach(p => {
+                    const x = p[axis1] * scale;
+                    const y = -p[axis2] * scale; // Invert y-axis for standard cartesian plot
+                    ctx.beginPath();
+                    ctx.arc(x, y, PARTICLE_SIZE * 0.7, 0, 2 * Math.PI);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+
+            function rotatePoint(point) {
+                const rotatedY1 = point.y * Math.cos(rotationX) - point.z * Math.sin(rotationX);
+                const rotatedZ1 = point.y * Math.sin(rotationX) + point.z * Math.cos(rotationX);
+                const rotatedX2 = point.x * Math.cos(rotationY) + rotatedZ1 * Math.sin(rotationY);
+                const rotatedZ2 = -point.x * Math.sin(rotationY) + rotatedZ1 * Math.cos(rotationY);
+                return { x: rotatedX2, y: rotatedY1, z: rotatedZ2 };
+            }
+
+            function draw() {
+                const rotatedParticles = particles.map(p => ({ ...rotatePoint(p), color: p.color }));
+
+                ctx3D.clearRect(0, 0, canvas3D.width, canvas3D.height);
+                ctx3D.save();
+                ctx3D.translate(canvas3D.width / 2, canvas3D.height / 2);
+                
+                const axisLength = canvas3D.width / 3;
+                const axes = [
+                    { x: axisLength, y: 0, z: 0, label: 'x', color: '#ff6347' },
+                    { x: 0, y: axisLength, z: 0, label: 'y', color: '#90ee90' },
+                    { x: 0, y: 0, z: axisLength, label: 'z', color: '#87cefa' },
+                ];
+
+                const rotatedAxes = axes.map(axis => {
+                    const rotatedEnd = rotatePoint(axis);
+                    const scaleFactor = (rotatedEnd.z + BOUNDING_BOX_SIZE * 2) / (BOUNDING_BOX_SIZE * 3) * zoomLevel;
+                    return {
+                        x: rotatedEnd.x * scaleFactor, 
+                        y: -rotatedEnd.y * scaleFactor, // CORRECTED: Invert Y for proper right-hand rule view
+                        z: rotatedEnd.z, 
+                        label: axis.label, 
+                        color: axis.color
+                    };
+                });
+                
+                rotatedAxes.sort((a, b) => a.z - b.z);
+
+                rotatedAxes.forEach(axis => {
+                    ctx3D.beginPath(); 
+                    ctx3D.moveTo(0, 0); 
+                    ctx3D.lineTo(axis.x, axis.y);
+                    ctx3D.strokeStyle = axis.color; 
+                    ctx3D.lineWidth = 2; 
+                    ctx3D.stroke();
+                    ctx3D.fillStyle = '#000'; 
+                    ctx3D.font = '14px Arial';
+                    ctx3D.fillText(axis.label, axis.x + 5, axis.y + 5);
+                });
+
+                rotatedParticles.sort((a, b) => a.z - b.z);
+
+                rotatedParticles.forEach(p => {
+                    const scaleFactor = (p.z + BOUNDING_BOX_SIZE * 2) / (BOUNDING_BOX_SIZE * 3) * zoomLevel;
+                    const projectedX = p.x * scaleFactor;
+                    const projectedY = -p.y * scaleFactor; // CORRECTED: Invert Y for proper right-hand rule view
+                    const projectedSize = PARTICLE_SIZE * scaleFactor;
+
+                    ctx3D.beginPath();
+                    ctx3D.arc(projectedX, projectedY, projectedSize, 0, 2 * Math.PI);
+                    ctx3D.fillStyle = p.color;
+                    ctx3D.fill();
+                });
+                ctx3D.restore();
+
+                if (container2D.style.display !== 'none') {
+                    draw2DPlane(ctxXY, rotatedParticles, 'x', 'y');
+                    draw2DPlane(ctxXZ, rotatedParticles, 'x', 'z');
+                    draw2DPlane(ctxYZ, rotatedParticles, 'y', 'z');
+                }
+            }
+
+            function animate() {
+                draw();
+                animationFrameId = requestAnimationFrame(animate);
+            }
+
+            function setOrbital(orbitalName) {
+                currentOrbital = orbitalName;
+                particles = [];
+                if (orbitalName === 'all') {
+                    show2DCheckbox.checked = false;
+                    show2DCheckbox.disabled = true;
+                    particles.push(...generateParticles('px'), ...generateParticles('py'), ...generateParticles('pz'));
+                } else {
+                    show2DCheckbox.disabled = false;
+                    particles = generateParticles(orbitalName);
+                }
+                updateLayout();
+            }
+
+            // --- Event Listeners for Manual Rotation and Zoom ---
+            function getEventPosition(e) {
+                if (e.touches && e.touches.length > 0) {
+                    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+                return { x: e.clientX, y: e.clientY };
+            }
+
+            function onDragStart(e) {
+                if (e.touches && e.touches.length > 1) {
+                    // Handle pinch start
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+                } else {
+                    // Handle drag start
+                    isDragging = true;
+                    previousMousePosition = getEventPosition(e);
+                    canvas3D.style.cursor = 'grabbing';
+                }
+            }
+
+            function onDragEnd() {
+                isDragging = false;
+                initialPinchDistance = null;
+                canvas3D.style.cursor = 'grab';
+            }
+
+            function onDragMove(e) {
+                if (e.touches && e.touches.length > 1 && initialPinchDistance) {
+                    // Handle pinch move
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const currentPinchDistance = Math.sqrt(dx * dx + dy * dy);
+                    const zoomChange = currentPinchDistance / initialPinchDistance;
+                    zoomLevel *= zoomChange;
+                    // Clamp zoom level
+                    zoomLevel = Math.max(0.5, Math.min(zoomLevel, 5.0));
+                    initialPinchDistance = currentPinchDistance; // Update for continuous zoom
+                } else if (isDragging) {
+                    // Handle drag move
+                    e.preventDefault(); // Prevent scrolling on touch devices
+                    const currentPosition = getEventPosition(e);
+                    const deltaX = currentPosition.x - previousMousePosition.x;
+                    const deltaY = currentPosition.y - previousMousePosition.y;
+                    rotationY += deltaX * 0.005;
+                    rotationX += deltaY * 0.005;
+                    previousMousePosition = currentPosition;
+                }
+            }
+            
+            function handleWheel(e) {
+                e.preventDefault();
+                const zoomAmount = e.deltaY < 0 ? 1.1 : 0.9;
+                zoomLevel *= zoomAmount;
+                // Clamp zoom level
+                zoomLevel = Math.max(0.5, Math.min(zoomLevel, 5.0));
+            }
+
+            // Mouse events
+            canvas3D.addEventListener('mousedown', onDragStart);
+            window.addEventListener('mouseup', onDragEnd);
+            window.addEventListener('mousemove', onDragMove);
+            canvas3D.addEventListener('wheel', handleWheel);
+
+            // Touch events
+            canvas3D.addEventListener('touchstart', onDragStart);
+            window.addEventListener('touchend', onDragEnd);
+            window.addEventListener('touchmove', onDragMove, { passive: false });
+
+
+            controls.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (button) {
+                    const orbital = button.dataset.orbital;
+                    document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    setOrbital(orbital);
+                }
+            });
+
+            show2DCheckbox.addEventListener('change', () => {
+                updateLayout(); // Recalculate layout
+            });
+
+            window.addEventListener('resize', updateLayout);
+
+            function init() {
+                setOrbital(currentOrbital);
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+                animate();
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>

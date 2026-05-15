@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜灯谜 (Advanced) - Lantern Riddle Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+        :root {
+            --primary-bg: #1a2a45;
+            --secondary-bg: #2a3a55;
+            --accent-color: #f9a826;
+            --text-light: #f0f0f0;
+            --text-dark: #b0c0d0;
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+        
+        .game-box {
+            background-color: var(--secondary-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--accent-color);
+        }
+        
+        h1, h2 { 
+            color: var(--accent-color);
+            font-size: 1.8em;
+            margin: 0 0 15px 0;
+        }
+        
+        .hidden { display: none; }
+        
+        .start-screen button, .control-btn {
+            padding: 15px 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: 2px solid var(--accent-color);
+            background-color: transparent;
+            color: var(--accent-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 44px;
+            min-width: 120px;
+            margin: 5px;
+        }
+        
+        .start-screen button:hover, .control-btn:hover,
+        .start-screen button:focus, .control-btn:focus {
+            background-color: var(--accent-color);
+            color: var(--primary-bg);
+            outline: none;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 1em;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        #tries-left, #timer { 
+            color: var(--accent-color); 
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        .pictograph { 
+            font-size: 3.5em; 
+            margin: 15px 0; 
+            color: #ffde7a;
+            line-height: 1.2;
+        }
+        
+        .riddle-text { 
+            font-size: 1.3em; 
+            margin: 15px 0;
+            line-height: 1.4;
+        }
+        
+        .riddle-pinyin { 
+            color: var(--text-dark);
+            font-size: 1em;
+            margin-bottom: 20px;
+        }
+        
+        #guess-input {
+            font-size: 1.8em; 
+            width: 80px; 
+            height: 80px; 
+            text-align: center;
+            border: 3px solid #506070; 
+            border-radius: 10px;
+            background-color: var(--primary-bg); 
+            color: var(--text-light); 
+            margin: 20px 0;
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        #guess-input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 10px rgba(249, 168, 38, 0.3);
+        }
+        
+        #feedback { 
+            min-height: 30px; 
+            margin: 15px 0; 
+            font-size: 1.1em;
+            line-height: 1.4;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .results-table { 
+            width: 100%; 
+            margin-top: 20px; 
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        
+        .results-table th, .results-table td { 
+            padding: 8px; 
+            border: 1px solid #506070;
+            text-align: left;
+        }
+        
+        .results-table th { 
+            background-color: #3a4a65; 
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        
+        .correct-answer { 
+            color: var(--correct-color); 
+            font-weight: bold; 
+        }
+        
+        .incorrect-answer { 
+            color: var(--incorrect-color); 
+            text-decoration: line-through; 
+        }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            .game-box {
+                padding: 15px;
+                margin: 5px;
+            }
+            
+            h1, h2 {
+                font-size: 1.5em;
+            }
+            
+            .pictograph {
+                font-size: 2.8em;
+                margin: 10px 0;
+            }
+            
+            .riddle-text {
+                font-size: 1.1em;
+            }
+            
+            #guess-input {
+                font-size: 1.5em;
+                width: 70px;
+                height: 70px;
+            }
+            
+            .game-header {
+                font-size: 0.9em;
+                justify-content: center;
+                text-align: center;
+            }
+            
+            .control-btn, .start-screen button {
+                font-size: 1em;
+                padding: 12px 20px;
+                min-width: 100px;
+            }
+            
+            .results-table {
+                font-size: 0.8em;
+            }
+            
+            .results-table th, .results-table td {
+                padding: 6px 4px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+            
+            .game-box {
+                padding: 10px;
+            }
+            
+            h1, h2 {
+                font-size: 1.3em;
+            }
+            
+            .pictograph {
+                font-size: 2.5em;
+            }
+            
+            .riddle-text {
+                font-size: 1em;
+            }
+            
+            #guess-input {
+                font-size: 1.3em;
+                width: 60px;
+                height: 60px;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-btn, .start-screen button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            .start-screen button, .control-btn {
+                transition: none;
+            }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            :root {
+                --primary-bg: #000000;
+                --secondary-bg: #1a1a1a;
+                --text-light: #ffffff;
+                --accent-color: #ffff00;
+            }
+        }
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <div class="container">
+        <div id="start-screen" class="game-box">
+            <h1>高级版灯谜 (Advanced Riddles)</h1>
+            <p>You will have 3 tries for each of the 20 riddles. Your time will be recorded. Answers will be shown at the end. Good luck!</p>
+            <button id="start-btn" aria-label="Start the riddle challenge">开始挑战 (Start Challenge)</button>
+        </div>
+
+        <div id="game-screen" class="game-box hidden">
+            <div class="game-header">
+                <span id="progress" aria-live="polite"></span>
+                <span id="tries-left" aria-live="polite"></span>
+                <span id="timer" aria-live="polite">Time: 0s</span>
+            </div>
+            <div id="pictograph" class="pictograph" aria-label="Visual riddle representation"></div>
+            <p id="riddle-text" class="riddle-text"></p>
+            <p id="riddle-pinyin" class="riddle-pinyin"></p>
+            <label for="guess-input" class="sr-only">Enter your answer (one Chinese character):</label>
+            <input type="text" id="guess-input" maxlength="1" placeholder="字" 
+                   aria-label="Enter your answer" autocomplete="off" inputmode="text">
+            <div id="feedback" aria-live="assertive"></div>
+            <div class="control-buttons">
+                <button id="hint-btn" class="control-btn" aria-label="Get a hint for this riddle">提示 (Hint)</button>
+                <button id="submit-btn" class="control-btn" aria-label="Submit your answer">提交 (Submit)</button>
+            </div>
+        </div>
+
+        <div id="results-screen" class="game-box hidden">
+            <h2>挑战完成 (Challenge Complete!)</h2>
+            <p id="final-stats" aria-live="polite"></p>
+            <table class="results-table" role="table" aria-label="Game results summary">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Riddle</th>
+                        <th scope="col">Your Answer</th>
+                        <th scope="col">Correct Answer</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+            </table>
+            <button id="restart-btn" class="control-btn" style="margin-top: 20px;" aria-label="Start a new game">重新开始 (Restart)</button>
+        </div>
+    </div>
+
+<script>
+const riddleData = [
+    { pictograph: "🌞+🌙", text: "日月同在，带来光明。", pinyin: "Rì yuè tóng zài, dài lái guāng míng.", hint: "Made of 'sun' (日) and 'moon' (月).", answer: "明" },
+    { pictograph: "🧍+🌳", text: "一人靠树旁，正好歇一歇。", pinyin: "Yī rén kào shù páng, zhèng hǎo xiē yī xiē.", hint: "Combine 'person' (人) and 'tree' (木).", answer: "休" },
+    { pictograph: "🌲🌲", text: "两棵树木，相依相伴。", pinyin: "Liǎng kē shù mù, xiāng yī xiāng bàn.", hint: "Two 'tree' (木) characters together.", answer: "林" },
+    { pictograph: "🌲🌲🌲", text: "三木相聚，树木成群。", pinyin: "Sān mù xiāng jù, shù mù chéng qún.", hint: "What is more than a '林' (woods)?", answer: "森" },
+    { pictograph: "小 on 大", text: "上面小，下面大，像座宝塔。", pinyin: "Shàng miàn xiǎo, xià miàn dà, xiàng zuò bǎo tǎ.", hint: "Place 'small' (小) on top of 'big' (大).", answer: "尖" },
+    { pictograph: "🧍 in ☐", text: "四面墙壁一个人，有翅也难飞。", pinyin: "Sì miàn qiáng bì yī gè rén, yǒu chì yě nán fēi.", hint: "A 'person' (人) inside an 'enclosure' (囗).", answer: "囚" },
+    { pictograph: "不+正", text: "不是正的，就是什么？", pinyin: "Bù shì zhèng de, jiù shì shén me?", hint: "Combine 'not' (不) and 'straight' (正).", answer: "歪" },
+    { pictograph: "👋+👀", text: "手在目上，仔细瞧瞧。", pinyin: "Shǒu zài mù shàng, zǐ xì qiáo qiáo.", hint: "A 'hand' (手) over an 'eye' (目).", answer: "看" },
+    { pictograph: "👩+👦", text: "女子并坐，其乐融融。", pinyin: "Nǚ zǐ bìng zuò, qí lè róng róng.", hint: "Combine 'woman' (女) and 'child' (子).", answer: "好" },
+    { pictograph: "💧+👀", text: "眼里出的水，是什么？", pinyin: "Yǎn lǐ chū de shuǐ, shì shén me?", hint: "'Water' (氵) from the 'eye' (目).", answer: "泪" },
+    { pictograph: "🧍+🧍", text: "一人跟着另一人，寸步不离。", pinyin: "Yī rén gēn zhe lìng yī rén, cùn bù bù lí.", hint: "Two 'person' (人) radicals, one after the other.", answer: "从" },
+    { pictograph: "🧍🧍 on 土", text: "两人坐在土地上。", pinyin: "Liǎng rén zuò zài tǔ dì shàng.", hint: "Two 'people' (人) on 'earth' (土).", answer: "坐" },
+    { pictograph: "🧍+言", text: "人说的话，要有信用。", pinyin: "Rén shuō de huà, yào yǒu xìn yòng.", hint: "A 'person' (人) next to 'speech' (言).", answer: "信" },
+    { pictograph: "👄+🐕", text: "狗用嘴巴做什么？", pinyin: "Gǒu yòng zuǐ bā zuò shén me?", hint: "A 'mouth' (口) next to a 'dog' (犬).", answer: "吠" },
+    { pictograph: "小+土", text: "土地上微小的东西。", pinyin: "Tǔ dì shàng wēi xiǎo de dōng xi.", hint: "'Small' (小) on top of 'earth' (土).", answer: "尘" },
+    { pictograph: "🌊+🔥", text: "一边是水，一边是火。", pinyin: "Yī biān shì shuǐ, yī biān shì huǒ.", hint: "Made of 'river' (川) and 'fire' (火).", answer: "灾" },
+    { pictograph: "艹+田", text: "田里长出的草。", pinyin: "Tián lǐ zhǎng chū de cǎo.", hint: "'Grass' (艹) growing in a 'field' (田).", answer: "苗" },
+    { pictograph: "🧍🧍🧍", text: "三个人在一起。", pinyin: "Sān ge rén zài yī qǐ.", hint: "What do you call a group of people? (3 x 人)", answer: "众" },
+    { pictograph: "✋分✋", text: "用手分开。", pinyin: "Yòng shǒu fēn kāi.", hint: "The character for 'divide' (分) between two 'hands' (手).", answer: "掰" },
+    { pictograph: "不+用", text: "合起来说就不用了。", pinyin: "Hé qǐ lái shuō jiù bù yòng le.", hint: "A contraction of 'bù' (不) and 'yòng' (用).", answer: "甭" }
+];
+
+const startBtn = document.getElementById('start-btn');
+const startScreen = document.getElementById('start-screen');
+const gameScreen = document.getElementById('game-screen');
+const resultsScreen = document.getElementById('results-screen');
+const restartBtn = document.getElementById('restart-btn');
+
+let currentQuestionIndex, triesLeft, score, timerInterval, seconds, userAnswers;
+
+// DOM elements
+const progressEl = document.getElementById('progress');
+const triesLeftEl = document.getElementById('tries-left');
+const timerEl = document.getElementById('timer');
+const pictographEl = document.getElementById('pictograph');
+const riddleTextEl = document.getElementById('riddle-text');
+const riddlePinyinEl = document.getElementById('riddle-pinyin');
+const guessInput = document.getElementById('guess-input');
+const feedbackEl = document.getElementById('feedback');
+const hintBtn = document.getElementById('hint-btn');
+const submitBtn = document.getElementById('submit-btn');
+
+// Event listeners
+startBtn.addEventListener('click', startGame);
+submitBtn.addEventListener('click', handleSubmit);
+hintBtn.addEventListener('click', showHint);
+restartBtn.addEventListener('click', () => {
+    resultsScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+});
+
+guessInput.addEventListener('keydown', (e) => { 
+    if (e.key === 'Enter') handleSubmit(); 
+});
+
+// Prevent zoom on iOS when focusing input
+guessInput.addEventListener('focus', function() {
+    this.style.fontSize = '16px';
+    setTimeout(() => {
+        this.style.fontSize = '';
+    }, 100);
+});
+
+function startGame() {
+    currentQuestionIndex = 0;
+    score = 0;
+    userAnswers = [];
+    seconds = 0;
+    startScreen.classList.add('hidden');
+    resultsScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    loadQuestion();
+    startTimer();
+}
+
+function startTimer() {
+    timerInterval = setInterval(() => {
+        seconds++;
+        timerEl.textContent = `Time: ${seconds}s`;
+    }, 1000);
+}
+
+function loadQuestion() {
+    if (currentQuestionIndex >= riddleData.length) {
+        endGame();
+        return;
+    }
+    triesLeft = 3;
+    feedbackEl.textContent = '';
+    feedbackEl.style.color = '';
+    const riddle = riddleData[currentQuestionIndex];
+    progressEl.textContent = `Question ${currentQuestionIndex + 1}/${riddleData.length}`;
+    updateTriesDisplay();
+    pictographEl.textContent = riddle.pictograph;
+    riddleTextEl.textContent = riddle.text;
+    riddlePinyinEl.textContent = riddle.pinyin;
+    guessInput.value = '';
+    guessInput.focus();
+}
+
+function updateTriesDisplay() {
+    triesLeftEl.textContent = `Tries: ${'❤️'.repeat(triesLeft)}`;
+}
+
+function showHint() {
+    feedbackEl.textContent = `Hint: ${riddleData[currentQuestionIndex].hint}`;
+    feedbackEl.style.color = '#17a2b8';
+}
+
+function handleSubmit() {
+    const userAnswer = guessInput.value.trim();
+    if (!userAnswer) {
+        feedbackEl.textContent = 'Please enter an answer.';
+        feedbackEl.style.color = 'var(--incorrect-color)';
+        return;
+    }
+
+    const correctAnswer = riddleData[currentQuestionIndex].answer;
+    
+    if (userAnswer === correctAnswer) {
+        feedbackEl.textContent = 'Correct! Moving to the next question...';
+        feedbackEl.style.color = 'var(--correct-color)';
+        userAnswers.push({ guess: userAnswer, correct: true });
+        score++;
+        moveToNext();
+    } else {
+        triesLeft--;
+        updateTriesDisplay();
+        if (triesLeft > 0) {
+            feedbackEl.textContent = `Incorrect. You have ${triesLeft} trie(s) left.`;
+            feedbackEl.style.color = 'var(--incorrect-color)';
+            guessInput.value = '';
+            guessInput.focus();
+        } else {
+            feedbackEl.textContent = `No more tries. The answer was ${correctAnswer}. Moving on...`;
+            feedbackEl.style.color = 'var(--incorrect-color)';
+            userAnswers.push({ guess: userAnswer, correct: false });
+            moveToNext();
+        }
+    }
+}
+
+function moveToNext() {
+    setTimeout(() => {
+        currentQuestionIndex++;
+        loadQuestion();
+    }, 1500);
+}
+
+function endGame() {
+    clearInterval(timerInterval);
+    gameScreen.classList.add('hidden');
+    resultsScreen.classList.remove('hidden');
+    displayResults();
+}
+
+function displayResults() {
+    const percentage = Math.round((score / riddleData.length) * 100);
+    document.getElementById('final-stats').textContent = 
+        `You scored ${score}/${riddleData.length} (${percentage}%) in ${seconds} seconds.`;
+    
+    const resultsBody = document.getElementById('results-body');
+    resultsBody.innerHTML = '';
+    
+    riddleData.forEach((riddle, index) => {
+        const userAnswer = userAnswers[index] || { guess: 'No Answer', correct: false };
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${riddle.text}</td>
+            <td class="${userAnswer.correct ? 'correct-answer' : 'incorrect-answer'}">${userAnswer.guess}</td>
+            <td class="correct-answer">${riddle.answer}</td>
+        `;
+        resultsBody.appendChild(row);
+    });
+}
+
+// Add screen reader only class for accessibility
+const style = document.createElement('style');
+style.textContent = `
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+`;
+document.head.appendChild(style);
+</script>
+</body>
+</html>

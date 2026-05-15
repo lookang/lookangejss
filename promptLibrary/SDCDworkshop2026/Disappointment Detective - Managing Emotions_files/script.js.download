@@ -1,0 +1,692 @@
+// ===================================
+// GAME STATE MANAGEMENT
+// Tracks the current state of the learning experience
+// ===================================
+const gameState = {
+    currentLevel: 0,
+    score: 0,
+    totalLevels: 5,
+    timeLimit: 60,
+    timeRemaining: 60,
+    timerInterval: null,
+    soundEnabled: true,
+    completedLevels: []
+};
+
+// ===================================
+// STORY AND LEARNING CONTENT
+// Adventure narrative with disappointment scenarios
+// Aligned with Singapore curriculum for SEL
+// ===================================
+const storyLevels = [
+    {
+        character: "😊",
+        story: "Hi! I'm Detective Sam. Today, we're on a mission to help people manage their disappointments. Are you ready to be my partner?",
+        situations: [],
+        categories: []
+    },
+    {
+        character: "⚽",
+        story: "Level 1: Sports Day Surprise! Help sort these situations into healthy ways to handle disappointment.",
+        situations: [
+            { text: "Talk to a friend about how you feel", category: "healthy", emoji: "💬" },
+            { text: "Blame others for losing", category: "unhealthy", emoji: "😠" },
+            { text: "Practice more for next time", category: "healthy", emoji: "💪" },
+            { text: "Give up and never try again", category: "unhealthy", emoji: "😔" }
+        ],
+        categories: [
+            { id: "healthy", icon: "✅", title: "Healthy Response", description: "Good ways to cope" },
+            { id: "unhealthy", icon: "❌", title: "Unhealthy Response", description: "Not helpful ways" }
+        ]
+    },
+    {
+        character: "🎵",
+        story: "Level 2: Music Audition! Your friend didn't get the solo part. What should they do?",
+        situations: [
+            { text: "Congratulate the person who got it", category: "healthy", emoji: "🎉" },
+            { text: "Refuse to be in the performance", category: "unhealthy", emoji: "🚫" },
+            { text: "Ask the teacher for feedback", category: "healthy", emoji: "📝" },
+            { text: "Say mean things about the winner", category: "unhealthy", emoji: "😤" }
+        ],
+        categories: [
+            { id: "healthy", icon: "✅", title: "Healthy Response", description: "Shows maturity" },
+            { id: "unhealthy", icon: "❌", title: "Unhealthy Response", description: "Makes it worse" }
+        ]
+    },
+    {
+        character: "🏆",
+        story: "Level 3: Team Challenge! Sort these feelings that help us grow from disappointment.",
+        situations: [
+            { text: "It's okay to feel sad sometimes", category: "helpful", emoji: "😢" },
+            { text: "I must be perfect at everything", category: "unhelpful", emoji: "😰" },
+            { text: "I can learn from my mistakes", category: "helpful", emoji: "📚" },
+            { text: "Everyone is better than me", category: "unhelpful", emoji: "😞" }
+        ],
+        categories: [
+            { id: "helpful", icon: "🌟", title: "Helpful Thinking", description: "Helps you grow" },
+            { id: "unhelpful", icon: "⛈️", title: "Unhelpful Thinking", description: "Keeps you stuck" }
+        ]
+    },
+    {
+        character: "🎮",
+        story: "Level 4: Gaming Tournament! What actions help you bounce back from disappointment?",
+        situations: [
+            { text: "Take a break and calm down", category: "bounce-back", emoji: "🧘" },
+            { text: "Break things when angry", category: "stay-stuck", emoji: "💥" },
+            { text: "Set a new goal to work towards", category: "bounce-back", emoji: "🎯" },
+            { text: "Keep thinking about what went wrong", category: "stay-stuck", emoji: "🔄" }
+        ],
+        categories: [
+            { id: "bounce-back", icon: "🌈", title: "Bounce Back", description: "Helps recovery" },
+            { id: "stay-stuck", icon: "🕳️", title: "Stay Stuck", description: "Keeps you down" }
+        ]
+    },
+    {
+        character: "🎓",
+        story: "Final Level: Master Detective! Sort these support strategies when facing disappointment.",
+        situations: [
+            { text: "Ask a trusted adult for help", category: "good-support", emoji: "👨‍👩‍👧" },
+            { text: "Keep all feelings bottled up inside", category: "poor-support", emoji: "🔒" },
+            { text: "Write in a journal about feelings", category: "good-support", emoji: "📖" },
+            { text: "Pretend everything is fine", category: "poor-support", emoji: "🎭" }
+        ],
+        categories: [
+            { id: "good-support", icon: "🤝", title: "Good Support", description: "Helps you heal" },
+            { id: "poor-support", icon: "🚷", title: "Poor Support", description: "Doesn't help" }
+        ]
+    }
+];
+
+// ===================================
+// AUDIO SYSTEM
+// Musical score and sound effects
+// Using Web Audio API for offline functionality
+// ===================================
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Create simple tones for sound effects
+function playTone(frequency, duration, type = 'sine') {
+    if (!gameState.soundEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Sound effects for different interactions
+const sounds = {
+    click: () => playTone(800, 0.1, 'square'),
+    correct: () => {
+        playTone(523.25, 0.15, 'sine'); // C5
+        setTimeout(() => playTone(659.25, 0.15, 'sine'), 100); // E5
+        setTimeout(() => playTone(783.99, 0.2, 'sine'), 200); // G5
+    },
+    incorrect: () => {
+        playTone(200, 0.2, 'sawtooth');
+        setTimeout(() => playTone(150, 0.2, 'sawtooth'), 150);
+    },
+    complete: () => {
+        playTone(523.25, 0.1, 'sine');
+        setTimeout(() => playTone(659.25, 0.1, 'sine'), 100);
+        setTimeout(() => playTone(783.99, 0.1, 'sine'), 200);
+        setTimeout(() => playTone(1046.50, 0.3, 'sine'), 300);
+    },
+    tick: () => playTone(600, 0.05, 'square')
+};
+
+// Background music loop (simple melody)
+let musicInterval = null;
+function startBackgroundMusic() {
+    if (!gameState.soundEnabled) return;
+    
+    const melody = [523.25, 587.33, 659.25, 783.99, 659.25, 587.33];
+    let noteIndex = 0;
+    
+    musicInterval = setInterval(() => {
+        if (gameState.soundEnabled) {
+            playTone(melody[noteIndex], 0.3, 'triangle');
+            noteIndex = (noteIndex + 1) % melody.length;
+        }
+    }, 2000);
+}
+
+function stopBackgroundMusic() {
+    if (musicInterval) {
+        clearInterval(musicInterval);
+        musicInterval = null;
+    }
+}
+
+// ===================================
+// DOM ELEMENTS
+// Cache frequently accessed elements
+// ===================================
+const elements = {
+    tooltip: document.getElementById('tooltip'),
+    character: document.getElementById('character'),
+    storyText: document.getElementById('story-text'),
+    progressText: document.getElementById('progress-text'),
+    progressFill: document.getElementById('progress-fill'),
+    timer: document.getElementById('time-left'),
+    cardsContainer: document.getElementById('cards-container'),
+    categoriesContainer: document.getElementById('categories-container'),
+    startBtn: document.getElementById('start-btn'),
+    nextBtn: document.getElementById('next-btn'),
+    restartBtn: document.getElementById('restart-btn'),
+    soundToggle: document.getElementById('sound-toggle')
+};
+
+// ===================================
+// INITIALIZATION
+// Set up event listeners and check display mode
+// ===================================
+function init() {
+    // Check if running in standalone mode (new tab) vs iframe
+    if (window.self === window.top) {
+        document.body.classList.add('standalone');
+    }
+    
+    // Set up event listeners
+    elements.startBtn.addEventListener('click', startGame);
+    elements.nextBtn.addEventListener('click', nextLevel);
+    elements.restartBtn.addEventListener('click', restartGame);
+    elements.soundToggle.addEventListener('click', toggleSound);
+    
+    // Add hover tooltips for educational context
+    elements.soundToggle.addEventListener('mouseenter', () => {
+        showTooltip('Toggle sound effects and music on/off');
+    });
+    elements.soundToggle.addEventListener('mouseleave', hideTooltip);
+    
+    // Show initial story
+    loadLevel(0);
+}
+
+// ===================================
+// TOOLTIP SYSTEM
+// Shows information without taking vertical space
+// Implements Mayer's Spatial Contiguity Principle
+// ===================================
+function showTooltip(text) {
+    elements.tooltip.textContent = text;
+    elements.tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    elements.tooltip.classList.remove('show');
+}
+
+// ===================================
+// GAME FLOW CONTROL
+// ===================================
+function startGame() {
+    sounds.click();
+    gameState.currentLevel = 1;
+    gameState.score = 0;
+    gameState.completedLevels = [];
+    elements.startBtn.style.display = 'none';
+    startBackgroundMusic();
+    loadLevel(1);
+    startTimer();
+}
+
+function nextLevel() {
+    sounds.click();
+    gameState.currentLevel++;
+    
+    if (gameState.currentLevel > gameState.totalLevels) {
+        showCompletion();
+    } else {
+        elements.nextBtn.style.display = 'none';
+        loadLevel(gameState.currentLevel);
+        resetTimer();
+    }
+}
+
+function restartGame() {
+    sounds.click();
+    stopTimer();
+    stopBackgroundMusic();
+    gameState.currentLevel = 0;
+    gameState.score = 0;
+    gameState.timeRemaining = gameState.timeLimit;
+    gameState.completedLevels = [];
+    elements.restartBtn.style.display = 'none';
+    elements.startBtn.style.display = 'flex';
+    updateProgress();
+    loadLevel(0);
+}
+
+// ===================================
+// LEVEL LOADING
+// Implements Cognitive Load Theory by chunking information
+// ===================================
+function loadLevel(levelIndex) {
+    const level = storyLevels[levelIndex];
+    
+    // Update character and story
+    elements.character.textContent = level.character;
+    elements.storyText.textContent = level.story;
+    
+    // Clear previous content
+    elements.cardsContainer.innerHTML = '';
+    elements.categoriesContainer.innerHTML = '';
+    
+    // If it's the intro level, don't show game elements
+    if (levelIndex === 0) {
+        updateProgress();
+        return;
+    }
+    
+    // Create category zones first (drop targets)
+    level.categories.forEach(category => {
+        const zone = createCategoryZone(category);
+        elements.categoriesContainer.appendChild(zone);
+    });
+    
+    // Create situation cards (draggable items)
+    // Shuffle for variety (reduces predictability)
+    const shuffledSituations = [...level.situations].sort(() => Math.random() - 0.5);
+    shuffledSituations.forEach(situation => {
+        const card = createSituationCard(situation);
+        elements.cardsContainer.appendChild(card);
+    });
+    
+    updateProgress();
+}
+
+// ===================================
+// CARD CREATION
+// Creates draggable situation cards
+// ===================================
+function createSituationCard(situation) {
+    const card = document.createElement('div');
+    card.className = 'situation-card fade-in';
+    card.textContent = `${situation.emoji} ${situation.text}`;
+    card.draggable = true;
+    card.dataset.category = situation.category;
+    
+    // Drag and drop event handlers
+    card.addEventListener('dragstart', handleDragStart);
+    card.addEventListener('dragend', handleDragEnd);
+    
+    // Touch support for mobile devices
+    card.addEventListener('touchstart', handleTouchStart, { passive: false });
+    card.addEventListener('touchmove', handleTouchMove, { passive: false });
+    card.addEventListener('touchend', handleTouchEnd);
+    
+    // Hover tooltip for additional context
+    card.addEventListener('mouseenter', () => {
+        showTooltip('Drag this card to the correct category zone');
+    });
+    card.addEventListener('mouseleave', hideTooltip);
+    
+    return card;
+}
+
+// ===================================
+// CATEGORY ZONE CREATION
+// Creates drop zones for sorting
+// ===================================
+function createCategoryZone(category) {
+    const zone = document.createElement('div');
+    zone.className = 'category-zone fade-in';
+    zone.dataset.categoryId = category.id;
+    
+    const icon = document.createElement('div');
+    icon.className = 'category-icon';
+    icon.textContent = category.icon;
+    
+    const title = document.createElement('div');
+    title.className = 'category-title';
+    title.textContent = category.title;
+    
+    const description = document.createElement('div');
+    description.className = 'category-description';
+    description.textContent = category.description;
+    
+    zone.appendChild(icon);
+    zone.appendChild(title);
+    zone.appendChild(description);
+    
+    // Drop zone event handlers
+    zone.addEventListener('dragover', handleDragOver);
+    zone.addEventListener('dragleave', handleDragLeave);
+    zone.addEventListener('drop', handleDrop);
+    
+    // Hover tooltip
+    zone.addEventListener('mouseenter', () => {
+        showTooltip(`${category.title}: ${category.description}`);
+    });
+    zone.addEventListener('mouseleave', hideTooltip);
+    
+    return zone;
+}
+
+// ===================================
+// DRAG AND DROP HANDLERS (Mouse)
+// Implements sorting/categorization mechanic
+// ===================================
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    sounds.click();
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    draggedElement = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    if (!draggedElement) return;
+    
+    const categoryId = e.currentTarget.dataset.categoryId;
+    const cardCategory = draggedElement.dataset.category;
+    
+    checkAnswer(draggedElement, categoryId, cardCategory);
+}
+
+// ===================================
+// TOUCH HANDLERS (Mobile Support)
+// Ensures accessibility on touch devices
+// ===================================
+let touchedElement = null;
+let touchStartX = 0;
+let touchStartY = 0;
+
+function handleTouchStart(e) {
+    touchedElement = e.target;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    e.target.classList.add('dragging');
+    sounds.click();
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!touchedElement) return;
+    
+    const touch = e.touches[0];
+    touchedElement.style.position = 'fixed';
+    touchedElement.style.left = touch.clientX - 50 + 'px';
+    touchedElement.style.top = touch.clientY - 20 + 'px';
+    touchedElement.style.zIndex = '1000';
+}
+
+function handleTouchEnd(e) {
+    if (!touchedElement) return;
+    
+    const touch = e.changedTouches[0];
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Reset position
+    touchedElement.style.position = '';
+    touchedElement.style.left = '';
+    touchedElement.style.top = '';
+    touchedElement.style.zIndex = '';
+    touchedElement.classList.remove('dragging');
+    
+    // Check if dropped on a category zone
+    const categoryZone = dropTarget?.closest('.category-zone');
+    if (categoryZone) {
+        const categoryId = categoryZone.dataset.categoryId;
+        const cardCategory = touchedElement.dataset.category;
+        checkAnswer(touchedElement, categoryId, cardCategory);
+    }
+    
+    touchedElement = null;
+}
+
+// ===================================
+// ANSWER CHECKING
+// Provides immediate feedback (Mayer's Feedback Principle)
+// ===================================
+function checkAnswer(card, selectedCategory, correctCategory) {
+    const isCorrect = selectedCategory === correctCategory;
+    
+    if (isCorrect) {
+        sounds.correct();
+        card.classList.add('correct');
+        card.draggable = false;
+        gameState.score++;
+        
+        // Add celebration effect
+        createCelebration(card);
+        
+        // Remove card after animation
+        setTimeout(() => {
+            card.style.opacity = '0';
+            setTimeout(() => card.remove(), 300);
+        }, 500);
+        
+        // Check if level is complete
+        checkLevelCompletion();
+    } else {
+        sounds.incorrect();
+        card.classList.add('incorrect');
+        
+        // Remove incorrect class after animation
+        setTimeout(() => {
+            card.classList.remove('incorrect');
+        }, 500);
+    }
+}
+
+// ===================================
+// CELEBRATION EFFECTS
+// Visual feedback for correct answers
+// ===================================
+function createCelebration(element) {
+    const emojis = ['⭐', '✨', '🎉', '🌟', '💫'];
+    const rect = element.getBoundingClientRect();
+    
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            celebration.style.left = rect.left + rect.width / 2 + 'px';
+            celebration.style.top = rect.top + 'px';
+            document.body.appendChild(celebration);
+            
+            setTimeout(() => celebration.remove(), 1000);
+        }, i * 100);
+    }
+}
+
+// ===================================
+// LEVEL COMPLETION CHECK
+// ===================================
+function checkLevelCompletion() {
+    const remainingCards = elements.cardsContainer.querySelectorAll('.situation-card:not(.correct)');
+    
+    if (remainingCards.length === 0) {
+        sounds.complete();
+        stopTimer();
+        gameState.completedLevels.push(gameState.currentLevel);
+        updateProgress();
+        
+        // Show next button
+        setTimeout(() => {
+            elements.nextBtn.style.display = 'flex';
+            showTooltip('Great job! Click Continue to move to the next level.');
+            setTimeout(hideTooltip, 3000);
+        }, 1000);
+    }
+}
+
+// ===================================
+// TIMER SYSTEM
+// Creates time pressure for engagement
+// ===================================
+function startTimer() {
+    gameState.timeRemaining = gameState.timeLimit;
+    updateTimerDisplay();
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+        updateTimerDisplay();
+        
+        // Sound effect for last 10 seconds
+        if (gameState.timeRemaining <= 10 && gameState.timeRemaining > 0) {
+            sounds.tick();
+        }
+        
+        if (gameState.timeRemaining <= 0) {
+            stopTimer();
+            handleTimeUp();
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+}
+
+function resetTimer() {
+    stopTimer();
+    startTimer();
+}
+
+function updateTimerDisplay() {
+    elements.timer.querySelector('#time-left').textContent = gameState.timeRemaining;
+    
+    // Visual warning when time is running out
+    if (gameState.timeRemaining <= 10) {
+        elements.timer.style.color = '#ff1744';
+        elements.timer.style.fontWeight = 'bold';
+    } else {
+        elements.timer.style.color = '#ff6b6b';
+        elements.timer.style.fontWeight = 'bold';
+    }
+}
+
+function handleTimeUp() {
+    sounds.incorrect();
+    showTooltip("Time's up! Don't worry, you can try again!");
+    
+    setTimeout(() => {
+        hideTooltip();
+        elements.restartBtn.style.display = 'flex';
+    }, 2000);
+}
+
+// ===================================
+// PROGRESS TRACKING
+// Visual representation of learning progress
+// ===================================
+function updateProgress() {
+    const completed = gameState.completedLevels.length;
+    const total = gameState.totalLevels;
+    const percentage = (completed / total) * 100;
+    
+    elements.progressText.textContent = `${completed}/${total}`;
+    elements.progressFill.style.width = percentage + '%';
+}
+
+// ===================================
+// COMPLETION SCREEN
+// Celebrates achievement and reinforces learning
+// ===================================
+function showCompletion() {
+    stopBackgroundMusic();
+    sounds.complete();
+    
+    elements.character.textContent = '🏆';
+    elements.storyText.textContent = `Amazing work, Detective! You've completed all missions and learned how to manage disappointments like a pro! You sorted ${gameState.score} situations correctly!`;
+    
+    elements.cardsContainer.innerHTML = '';
+    elements.categoriesContainer.innerHTML = '';
+    
+    // Create completion message
+    const completionDiv = document.createElement('div');
+    completionDiv.style.cssText = `
+        text-align: center;
+        padding: 20px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 16px;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        margin: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    `;
+    completionDiv.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 10px;">🎉🌟🎊</div>
+        <div>You're now a Disappointment Detective Master!</div>
+        <div style="font-size: 14px; margin-top: 10px;">Remember: It's okay to feel disappointed, but how we respond makes all the difference!</div>
+    `;
+    elements.cardsContainer.appendChild(completionDiv);
+    
+    elements.nextBtn.style.display = 'none';
+    elements.restartBtn.style.display = 'flex';
+    
+    // Create multiple celebration effects
+    for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = ['🎉', '⭐', '🏆', '🌟', '✨'][Math.floor(Math.random() * 5)];
+            celebration.style.left = Math.random() * window.innerWidth + 'px';
+            celebration.style.top = Math.random() * 200 + 'px';
+            document.body.appendChild(celebration);
+            
+            setTimeout(() => celebration.remove(), 1000);
+        }, i * 200);
+    }
+}
+
+// ===================================
+// SOUND TOGGLE
+// ===================================
+function toggleSound() {
+    gameState.soundEnabled = !gameState.soundEnabled;
+    elements.soundToggle.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+    elements.soundToggle.classList.toggle('muted');
+    
+    if (gameState.soundEnabled) {
+        sounds.click();
+        if (gameState.currentLevel > 0 && gameState.currentLevel <= gameState.totalLevels) {
+            startBackgroundMusic();
+        }
+    } else {
+        stopBackgroundMusic();
+    }
+}
+
+// ===================================
+// START APPLICATION
+// ===================================
+document.addEventListener('DOMContentLoaded', init);

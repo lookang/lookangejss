@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation File Upload and Zip App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #file-info {
+            margin-top: 20px;
+        }
+        button {
+            margin-top: 10px;
+        }
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simulation File Upload and Zip App</h1>
+    <input type="file" id="file-input" accept=".xhtml">
+    <div id="file-info"></div>
+    <button id="create-zip" disabled>Create Zip</button>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const createZipButton = document.getElementById('create-zip');
+        let simulationFile = null;
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.name === '_simulation.xhtml') {
+                simulationFile = file;
+                fileInfo.innerHTML = `<p>Selected file: ${file.name}</p>`;
+                createZipButton.disabled = false;
+            } else {
+                simulationFile = null;
+                fileInfo.innerHTML = '<p>Please select a file named "_simulation.xhtml".</p>';
+                createZipButton.disabled = true;
+            }
+        });
+
+        createZipButton.addEventListener('click', async () => {
+            if (!simulationFile) {
+                alert('Please select the "_simulation.xhtml" file.');
+                return;
+            }
+
+            const zip = new JSZip();
+
+            // Read the simulation file and add it to the zip as index.html
+            const content = await readFileAsArrayBuffer(simulationFile);
+            zip.file('index.html', content);
+
+            // Generate the zip file
+            const zipContent = await zip.generateAsync({type: 'blob'});
+            saveAs(zipContent, 'simulation_app.zip');
+        });
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e.target.error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+    </script>
+
+    <footer>
+        Created by weelookang@gmail.com
+    </footer>
+</body>
+</html>

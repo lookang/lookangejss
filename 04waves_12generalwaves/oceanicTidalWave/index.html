@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oceanic Tides Simulation</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #e0f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      color: #17324d;
+    }
+
+    #controlPanel {
+      width: 100%;
+      max-width: 880px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid #c7dbe8;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 10px rgba(30, 136, 229, 0.08);
+    }
+
+    #controlPanel .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    #controlPanel button {
+      padding: 8px 12px;
+      margin: 0;
+      font-size: 1em;
+      border: none;
+      background: #1e88e5;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #controlPanel button:hover {
+      background: #1565c0;
+    }
+
+    #controlPanel .preset-btn {
+      background: #26a69a;
+    }
+
+    #controlPanel .preset-btn:hover {
+      background: #1f8d82;
+    }
+
+    #controlPanel label,
+    #controlPanel .group-label {
+      font-size: 0.9em;
+    }
+
+    #controlPanel .group-label {
+      font-weight: 700;
+      color: #37546c;
+    }
+
+    #controlPanel .toggleLabel {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f4fbff;
+      border: 1px solid #cbe9f4;
+      border-radius: 999px;
+      padding: 6px 10px;
+    }
+
+    #controlPanel .toggleLabel input {
+      margin: 0;
+    }
+
+    #controlPanel input[type="range"] {
+      margin: 0 4px;
+      width: 180px;
+    }
+
+    canvas {
+      width: 100%;
+      max-width: 800px;
+      background: #e0f7fa;
+      border: 1px solid #c7dbe8;
+      border-radius: 10px;
+      height: auto;
+      box-shadow: 0 2px 10px rgba(30, 136, 229, 0.08);
+    }
+
+    #pedagogyPanel {
+      width: 100%;
+      max-width: 800px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .ped-card {
+      background: #ffffff;
+      border: 1px solid #cbe9f4;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 2px 10px rgba(30, 136, 229, 0.08);
+    }
+
+    .ped-card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: #0d47a1;
+    }
+
+    .ped-card p,
+    .ped-card li {
+      margin: 0 0 8px;
+      line-height: 1.45;
+      color: #2d3a45;
+    }
+
+    .ped-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .ped-tag {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #e3f2fd;
+      color: #0d47a1;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    #footerPanel {
+      width: 100%;
+      max-width: 800px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    #footerPanel a {
+      color: #1565c0;
+      font-weight: 600;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .ghost-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid #b9d9ec;
+      background: rgba(255, 255, 255, 0.7);
+      color: #24506e;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .ghost-pill:hover {
+      background: #eef8fd;
+      border-color: #7bb8da;
+      color: #0d47a1;
+    }
+
+    .ghost-pill-muted {
+      color: #5b7488;
+      background: rgba(244, 251, 255, 0.95);
+    }
+
+    .credit-line {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #d7ebf7;
+      font-size: 0.92em;
+      color: #446074;
+    }
+  </style>
+</head>
+<body>
+  <div id="controlPanel">
+    <div class="control-group">
+      <label for="timeSlider">Time: <span id="timeLabel">00:00</span></label>
+      <input type="range" id="timeSlider" min="0" max="24" step="0.01" value="0">
+    </div>
+
+    <div class="control-group">
+      <button id="playPauseBtn">Pause</button>
+      <button id="stepBtn">Step</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <div class="control-group">
+      <span class="group-label">Jump to:</span>
+      <button class="preset-btn" data-hour="0">0 h</button>
+      <button class="preset-btn" data-hour="6">6 h</button>
+      <button class="preset-btn" data-hour="12">12 h</button>
+      <button class="preset-btn" data-hour="18">18 h</button>
+    </div>
+
+    <label class="toggleLabel">
+      <input type="checkbox" id="showCuesToggle" checked>
+      Show teaching cues
+    </label>
+
+    <label>Moon angle: <span id="moonAngleLabel">0 deg</span></label>
+  </div>
+
+  <canvas id="tidesCanvas"></canvas>
+
+  <div style="width: 100%; max-width: 800px; margin-top: 20px; display: flex; justify-content: center;">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/XY-g4Y1bTLY?si=hmUhjQBZma8ET4PA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>
+
+  <div id="pedagogyPanel">
+    <div class="ped-card" id="learningGoalsCard">
+      <span class="ped-tag">Learning goals</span>
+      <h3>What students should notice</h3>
+      <ul>
+        <li>High tides form on both the Moon-facing side and the opposite side of Earth.</li>
+        <li>Low tides form in the two directions perpendicular to the Earth-Moon line.</li>
+        <li>The bulges rotate with the Moon position in this simplified rotating-frame model.</li>
+      </ul>
+    </div>
+
+    <div class="ped-card" id="teachingSupportCard">
+      <span class="ped-tag">Live teaching support</span>
+      <h3>Explain and predict</h3>
+      <p id="liveState"></p>
+      <p id="tidePrediction"></p>
+      <p id="challengePrompt"></p>
+    </div>
+  </div>
+
+  <div id="footerPanel">
+    <div class="ped-card" id="simulationNotesCard">
+      <span class="ped-tag">Simulation notes</span>
+      <h3>About this simulation</h3>
+      <p>
+        This simulation illustrates the oceanic tides induced by the gravitational pull of a tide-generating body, here represented by the Moon.
+        The deformation of the Earth's water envelope is exaggerated for visualization. One full cycle corresponds to 24 simulated hours in a
+        geocentric rotating frame.
+      </p>
+      <p>
+        Use the controls above to play or pause the animation, step frame by frame, jump to key positions, or hide the cues and ask students to
+        predict the next high-tide locations before revealing them.
+      </p>
+      <p class="credit-line">
+        Credit: made by weelookang@gmail.com using GPTo3 mini high. Updated 2026-04-28 and improved by Codex GPT5.4 High.
+      </p>
+    </div>
+
+    <div class="ped-card" id="moreResourcesCard">
+      <span class="ped-tag">Useful links</span>
+      <h3>More resources</h3>
+      <p>Explore more open educational resources, related waves interactives, and the MOE mirror here:</p>
+      <div class="pill-group">
+        <a class="ghost-pill" href="https://iwant2study.org/" target="_blank" rel="noopener noreferrer">iwant2study.org</a>
+        <a class="ghost-pill" href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/02-general-waves" target="_blank" rel="noopener noreferrer">General Waves</a>
+        <a class="ghost-pill" href="https://iwant2study.moe.edu.sg" target="_blank" rel="noopener noreferrer">MOE mirror</a>
+      </div>
+      <p style="margin-top: 12px;">Follow the broader project directory style with these quick-access ghost pills:</p>
+      <div class="pill-group">
+        <span class="ghost-pill ghost-pill-muted">Work</span>
+        <span class="ghost-pill ghost-pill-muted">Teacher</span>
+        <span class="ghost-pill ghost-pill-muted">Personal</span>
+        <span class="ghost-pill ghost-pill-muted">Bot</span>
+        <a class="ghost-pill" href="https://www.youtube.com/@lookang" target="_blank" rel="noopener noreferrer">YouTube</a>
+        <a class="ghost-pill" href="https://www.facebook.com/lookang/" target="_blank" rel="noopener noreferrer">Facebook</a>
+        <a class="ghost-pill" href="https://www.facebook.com/OpenSourcePhysicsSG/" target="_blank" rel="noopener noreferrer">FB (OSPSG)</a>
+        <a class="ghost-pill" href="https://www.instagram.com/lookang_ai/?hl=en" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <a class="ghost-pill" href="https://x.com/lookang" target="_blank" rel="noopener noreferrer">X</a>
+        <a class="ghost-pill" href="https://www.linkedin.com/in/loo-kang-lawrence-wee-22442010/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        <a class="ghost-pill" href="https://www.tiktok.com/@lookang1" target="_blank" rel="noopener noreferrer">TikTok</a>
+        <a class="ghost-pill" href="https://scholar.google.com.sg/citations?hl=en&user=Tvy7ptIAAAAJ" target="_blank" rel="noopener noreferrer">Scholar</a>
+        <a class="ghost-pill" href="https://ar5iv.org/a/wee_l_1" target="_blank" rel="noopener noreferrer">arXiv</a>
+        <a class="ghost-pill" href="https://orcid.org/0000-0002-5708-0430" target="_blank" rel="noopener noreferrer">ORCID</a>
+        <a class="ghost-pill" href="https://github.com/lookang" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a class="ghost-pill" href="https://weelookang.blogspot.com/?m=0" target="_blank" rel="noopener noreferrer">Blog</a>
+        <a class="ghost-pill" href="https://ko-fi.com/lookang" target="_blank" rel="noopener noreferrer">Ko-fi</a>
+      </div>
+    </div>
+  </div>
+
+  <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+  <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+  <script>
+    const canvas = document.getElementById('tidesCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let centerX;
+    let centerY;
+    let R;
+
+    const tideAmplitude = 0.2;
+    const periodSim = 24 * 3600000;
+    const simulationSpeed = 576 * 50;
+
+    let simulationTime = 0;
+    let lastUpdateTime = Date.now();
+    let paused = false;
+    let showTeachingCues = true;
+
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const stepBtn = document.getElementById('stepBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const timeSlider = document.getElementById('timeSlider');
+    const timeLabel = document.getElementById('timeLabel');
+    const moonAngleLabel = document.getElementById('moonAngleLabel');
+    const showCuesToggle = document.getElementById('showCuesToggle');
+    const presetButtons = document.querySelectorAll('.preset-btn');
+    const liveState = document.getElementById('liveState');
+    const tidePrediction = document.getElementById('tidePrediction');
+    const challengePrompt = document.getElementById('challengePrompt');
+
+    const earthImg = new Image();
+    earthImg.src = "assets/earth_north_pole_noaa20_square.png";
+
+    const moonImg = new Image();
+    moonImg.src = "https://www.solarsystemscope.com/textures/download/2k_moon.jpg";
+
+    function resizeCanvas() {
+      const h = Math.min(window.innerWidth * 0.7, 700);
+      const w = h * 1.2;
+      const scaleFactor = 1.2;
+      canvas.width = w * scaleFactor;
+      canvas.height = h * scaleFactor;
+      centerX = canvas.width / 2;
+      centerY = canvas.height / 2;
+      R = h / 3;
+    }
+
+    function formatSimTime(simTimeMs) {
+      let totalHours = (simTimeMs / 3600000) % 24;
+      if (totalHours < 0) totalHours += 24;
+      const hours = Math.floor(totalHours);
+      const minutes = Math.floor((totalHours - hours) * 60);
+      return String(hours).padStart(2, '0') + ":" + String(minutes).padStart(2, '0');
+    }
+
+    function tideRadius(theta, moonAngle) {
+      return R * (1 + (tideAmplitude / 2) * (3 * Math.cos(theta - moonAngle) ** 2 - 1));
+    }
+
+    function getMoonDirectionText(angleDeg) {
+      const sectors = [
+        "to the right of Earth",
+        "to the upper right of Earth",
+        "above Earth",
+        "to the upper left of Earth",
+        "to the left of Earth",
+        "to the lower left of Earth",
+        "below Earth",
+        "to the lower right of Earth"
+      ];
+      const normalized = ((angleDeg % 360) + 360) % 360;
+      const index = Math.round(normalized / 45) % 8;
+      return sectors[index];
+    }
+
+    function getChallengeForHour(hours) {
+      const wrapped = ((hours % 24) + 24) % 24;
+      if (wrapped < 3 || wrapped >= 21) {
+        return "Try this: hide the cues, pause the sim, and explain why both the right and left sides can be high tide at the same time.";
+      }
+      if (wrapped < 9) {
+        return "Try this: step forward slowly and identify which two sides stay perpendicular to the Earth-Moon line.";
+      }
+      if (wrapped < 15) {
+        return "Try this: compare this frame with 00:00. Which sides have swapped between high tide and low tide after half a cycle?";
+      }
+      return "Try this: jump between 6 h and 18 h. What stays the same about the pattern, even though the Moon is on the opposite side?";
+    }
+
+    function updateTeachingText(simHours) {
+      const angleDeg = simHours * 15;
+      const directionText = getMoonDirectionText(angleDeg);
+      liveState.textContent =
+        "Moon position: " + directionText + ". The Earth-Moon line points through the two strongest tidal bulges.";
+      tidePrediction.textContent =
+        "Prediction: expect high tide on the Moon-facing side and the opposite side, with low tide on the two perpendicular sides.";
+      challengePrompt.textContent = getChallengeForHour(simHours);
+    }
+
+    function updateControlsAndTeaching() {
+      const simHours = simulationTime / 3600000;
+      timeSlider.value = simHours;
+      timeLabel.textContent = formatSimTime(simulationTime);
+      moonAngleLabel.textContent = Math.round(simHours * 15) + " deg";
+      updateTeachingText(simHours);
+    }
+
+    function setSimulationHours(hours) {
+      const wrapped = ((hours % 24) + 24) % 24;
+      simulationTime = wrapped * 3600000;
+      updateControlsAndTeaching();
+    }
+
+    function drawCueLine(moonAngle) {
+      const reach = R * 1.45;
+      ctx.save();
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(centerX - reach * Math.cos(moonAngle), centerY - reach * Math.sin(moonAngle));
+      ctx.lineTo(centerX + reach * Math.cos(moonAngle), centerY + reach * Math.sin(moonAngle));
+      ctx.strokeStyle = "rgba(255, 87, 34, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawCueMarker(theta, moonAngle, label, fill, stroke) {
+      const r = tideRadius(theta, moonAngle);
+      const markerX = centerX + r * Math.cos(theta);
+      const markerY = centerY + r * Math.sin(theta);
+      const labelOffset = R * 0.2;
+      const labelX = markerX + labelOffset * Math.cos(theta);
+      const labelY = markerY + labelOffset * Math.sin(theta);
+
+      ctx.beginPath();
+      ctx.arc(markerX, markerY, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.font = "bold 14px sans-serif";
+      const width = ctx.measureText(label).width + 12;
+      const boxX = labelX - width / 2;
+      const boxY = labelY - 12;
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
+      ctx.fillRect(boxX, boxY, width, 20);
+      ctx.strokeStyle = "rgba(13, 71, 161, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(boxX, boxY, width, 20);
+      ctx.fillStyle = "#0d47a1";
+      ctx.fillText(label, boxX + 6, boxY + 14);
+    }
+
+    function drawTeachingCues(moonAngle) {
+      drawCueLine(moonAngle);
+      drawCueMarker(moonAngle, moonAngle, "High tide", "#64b5f6", "#1565c0");
+      drawCueMarker(moonAngle + Math.PI, moonAngle, "High tide", "#64b5f6", "#1565c0");
+      drawCueMarker(moonAngle + Math.PI / 2, moonAngle, "Low tide", "#cfd8dc", "#546e7a");
+      drawCueMarker(moonAngle - Math.PI / 2, moonAngle, "Low tide", "#cfd8dc", "#546e7a");
+    }
+
+    function drawEarth() {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, R, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.clip();
+      if (earthImg.complete && earthImg.naturalWidth > 0) {
+        ctx.drawImage(earthImg, centerX - R, centerY - R, 2 * R, 2 * R);
+      } else {
+        const oceanGradient = ctx.createRadialGradient(
+          centerX - R * 0.25,
+          centerY - R * 0.3,
+          R * 0.12,
+          centerX,
+          centerY,
+          R
+        );
+        oceanGradient.addColorStop(0, "#8de4ff");
+        oceanGradient.addColorStop(0.55, "#1e88e5");
+        oceanGradient.addColorStop(1, "#0d47a1");
+        ctx.fillStyle = oceanGradient;
+        ctx.fillRect(centerX - R, centerY - R, 2 * R, 2 * R);
+
+        ctx.fillStyle = "rgba(118, 191, 113, 0.9)";
+        ctx.beginPath();
+        ctx.moveTo(centerX - R * 0.48, centerY - R * 0.08);
+        ctx.bezierCurveTo(centerX - R * 0.18, centerY - R * 0.44, centerX + R * 0.02, centerY - R * 0.08, centerX - R * 0.08, centerY + R * 0.12);
+        ctx.bezierCurveTo(centerX - R * 0.24, centerY + R * 0.3, centerX - R * 0.52, centerY + R * 0.2, centerX - R * 0.48, centerY - R * 0.08);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX + R * 0.08, centerY - R * 0.28);
+        ctx.bezierCurveTo(centerX + R * 0.36, centerY - R * 0.42, centerX + R * 0.48, centerY - R * 0.06, centerX + R * 0.28, centerY + R * 0.02);
+        ctx.bezierCurveTo(centerX + R * 0.12, centerY + R * 0.08, centerX - R * 0.02, centerY - R * 0.06, centerX + R * 0.08, centerY - R * 0.28);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX + R * 0.02, centerY + R * 0.16);
+        ctx.bezierCurveTo(centerX + R * 0.22, centerY + R * 0.08, centerX + R * 0.36, centerY + R * 0.32, centerX + R * 0.16, centerY + R * 0.44);
+        ctx.bezierCurveTo(centerX - R * 0.06, centerY + R * 0.48, centerX - R * 0.14, centerY + R * 0.24, centerX + R * 0.02, centerY + R * 0.16);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawMoon(x, y, radius) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.clip();
+      if (moonImg.complete && moonImg.naturalWidth > 0) {
+        ctx.drawImage(moonImg, x - radius, y - radius, 2 * radius, 2 * radius);
+      } else {
+        const moonGradient = ctx.createRadialGradient(
+          x - radius * 0.28,
+          y - radius * 0.28,
+          radius * 0.18,
+          x,
+          y,
+          radius
+        );
+        moonGradient.addColorStop(0, "#f5f5f5");
+        moonGradient.addColorStop(0.7, "#c7c9cc");
+        moonGradient.addColorStop(1, "#8f9397");
+        ctx.fillStyle = moonGradient;
+        ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+
+        ctx.fillStyle = "rgba(120, 124, 128, 0.28)";
+        ctx.beginPath();
+        ctx.arc(x - radius * 0.24, y - radius * 0.12, radius * 0.2, 0, 2 * Math.PI);
+        ctx.arc(x + radius * 0.12, y + radius * 0.04, radius * 0.16, 0, 2 * Math.PI);
+        ctx.arc(x + radius * 0.2, y - radius * 0.24, radius * 0.1, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawEarthLabel() {
+      const titleSize = Math.max(18, Math.round(R * 0.12));
+      const subtitleSize = Math.max(12, Math.round(R * 0.075));
+      const title = "Earth";
+      const subtitle = "from the North Pole";
+
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      ctx.font = "700 " + titleSize + "px sans-serif";
+      const titleWidth = ctx.measureText(title).width;
+      ctx.font = "600 " + subtitleSize + "px sans-serif";
+      const subtitleWidth = ctx.measureText(subtitle).width;
+
+      const boxWidth = Math.max(titleWidth, subtitleWidth) + 26;
+      const boxHeight = titleSize + subtitleSize + 22;
+      const boxX = centerX - boxWidth / 2;
+      const boxY = centerY - boxHeight / 2;
+
+      ctx.fillStyle = "rgba(13, 71, 161, 0.42)";
+      ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.68)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+      ctx.font = "700 " + titleSize + "px sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(title, centerX, centerY - subtitleSize * 0.55);
+
+      ctx.font = "600 " + subtitleSize + "px sans-serif";
+      ctx.fillText(subtitle, centerX, centerY + titleSize * 0.35);
+      ctx.restore();
+    }
+
+    playPauseBtn.addEventListener('click', function() {
+      paused = !paused;
+      if (!paused) {
+        lastUpdateTime = Date.now();
+        this.textContent = "Pause";
+      } else {
+        this.textContent = "Play";
+      }
+    });
+
+    stepBtn.addEventListener('click', function() {
+      if (paused) {
+        simulationTime = (simulationTime + 0.1 * 3600000) % periodSim;
+        updateControlsAndTeaching();
+      }
+    });
+
+    resetBtn.addEventListener('click', function() {
+      setSimulationHours(0);
+    });
+
+    timeSlider.addEventListener('input', function() {
+      setSimulationHours(Number(this.value));
+    });
+
+    presetButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        paused = true;
+        playPauseBtn.textContent = "Play";
+        setSimulationHours(Number(this.dataset.hour));
+      });
+    });
+
+    showCuesToggle.addEventListener('change', function() {
+      showTeachingCues = this.checked;
+    });
+
+    function draw() {
+      const now = Date.now();
+      if (!paused) {
+        simulationTime = (simulationTime + (now - lastUpdateTime) * simulationSpeed) % periodSim;
+      }
+      lastUpdateTime = now;
+      updateControlsAndTeaching();
+
+      const moonAngle = 2 * Math.PI * ((simulationTime / 3600000) / 24);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#e0f7fa";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawEarth();
+
+      ctx.beginPath();
+      for (let i = 0; i <= 360; i++) {
+        const theta = i * Math.PI / 180;
+        const r = tideRadius(theta, moonAngle);
+        const x = centerX + r * Math.cos(theta);
+        const y = centerY + r * Math.sin(theta);
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.strokeStyle = "#1e88e5";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, R, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      const arrowMargin = R * 0.7;
+      const arrowX = centerX + (R + arrowMargin) * Math.cos(moonAngle);
+      const arrowY = centerY + (R + arrowMargin) * Math.sin(moonAngle);
+
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(arrowX, arrowY);
+      ctx.strokeStyle = "#ff5722";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      const moonRadius = 15;
+      drawMoon(arrowX, arrowY, moonRadius);
+
+      ctx.beginPath();
+      ctx.arc(arrowX, arrowY, moonRadius, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#e64a19";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      if (showTeachingCues) {
+        drawTeachingCues(moonAngle);
+      }
+
+      drawEarthLabel();
+
+      ctx.font = "16px sans-serif";
+      ctx.fillStyle = "#000";
+      ctx.fillText("Moon", arrowX + moonRadius + 5, arrowY);
+
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    updateControlsAndTeaching();
+    draw();
+  </script>
+</body>
+</html>

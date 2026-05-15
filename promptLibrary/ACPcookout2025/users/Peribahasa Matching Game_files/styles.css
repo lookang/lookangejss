@@ -1,0 +1,382 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* Container with responsive height */
+.container {
+    width: 100%;
+    height: 450px; /* Default iframe height */
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Responsive height for new tab */
+@media (min-height: 600px) {
+    .container {
+        height: 90vh;
+        padding: 15px;
+        gap: 12px;
+    }
+}
+
+/* Header with tooltip */
+.header-tooltip {
+    position: relative;
+    text-align: center;
+    cursor: help;
+}
+
+.game-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.header-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Progress indicator */
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.9);
+    padding: 8px 15px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.progress-text {
+    font-weight: bold;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+/* Game area layout */
+.game-area {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    min-height: 0;
+}
+
+.column {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.column h3 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #4a5568;
+    font-size: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 5px;
+}
+
+/* Items container */
+.items-container, .drop-zones {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+/* Draggable peribahasa items */
+.peribahasa-item {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    min-height: 44px; /* Touch-friendly minimum */
+    display: flex;
+    align-items: center;
+}
+
+.peribahasa-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.peribahasa-item:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.peribahasa-item.dragging {
+    opacity: 0.7;
+    transform: rotate(5deg);
+}
+
+/* Drop zones */
+.drop-zone {
+    background: #f8f9fa;
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    color: #4a5568;
+}
+
+.drop-zone:hover {
+    border-color: #a0aec0;
+    background: #edf2f7;
+}
+
+.drop-zone.drag-over {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transform: scale(1.02);
+}
+
+.drop-zone.filled {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+    border-color: #38a169;
+}
+
+.drop-zone.incorrect {
+    background: linear-gradient(135deg, #f56565, #e53e3e);
+    color: white;
+    border-color: #e53e3e;
+    animation: shake 0.5s ease-in-out;
+}
+
+.drop-zone.correct {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+    border-color: #38a169;
+    animation: pulse 0.5s ease-in-out;
+}
+
+/* Animations */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Control buttons */
+.controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 44px; /* Touch-friendly */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-reset {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+}
+
+.btn-check {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Feedback area */
+.feedback {
+    text-align: center;
+    font-weight: bold;
+    min-height: 20px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Center tooltip for detailed information */
+.center-tooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.tooltip-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+}
+
+.tooltip-header span {
+    font-weight: bold;
+    color: #2d3748;
+}
+
+.close-tooltip {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #718096;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tooltip-body {
+    padding: 20px;
+    line-height: 1.6;
+    color: #4a5568;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding: 8px;
+        gap: 6px;
+    }
+    
+    .game-area {
+        gap: 10px;
+    }
+    
+    .column {
+        padding: 10px;
+    }
+    
+    .peribahasa-item, .drop-zone {
+        font-size: 0.8rem;
+        padding: 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+    }
+    
+    .game-title {
+        font-size: 1.2rem;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+    .game-area {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}

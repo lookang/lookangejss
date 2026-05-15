@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accuracy vs Precision</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+            flex-direction: column;
+            overflow: hidden; /* Prevent scrollbars during fireworks */
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 600px;
+            position: relative; /* For positioning canvas */
+            z-index: 1; /* Ensure container is above canvas initially */
+        }
+
+        #top-controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        #top-controls button {
+            margin: 5px 10px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        #top-controls button:hover {
+            background-color: #0056b3;
+        }
+
+        #target-area {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin-bottom: 20px;
+        }
+
+        .target {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid black;
+            box-sizing: border-box;
+        }
+
+        .target.outer {
+            width: 200px;
+            height: 200px;
+            top: 0;
+            left: 0;
+        }
+
+        .target.middle {
+            width: 130px;
+            height: 130px;
+            top: 35px;
+            left: 35px;
+            border-width: 3px;
+        }
+
+        .target.inner {
+            width: 60px;
+            height: 60px;
+            top: 70px;
+            left: 70px;
+            border-width: 4px;
+            background-color: lightgray;
+        }
+
+        .shot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%); /* Center shot on coordinates */
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        #controls button {
+            margin: 5px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        #controls button:hover {
+            background-color: #0056b3;
+        }
+
+        #explanation {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #explanation p {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        #explanation p.normal {
+            font-weight: normal;
+        }
+
+        #credit {
+            font-size: 0.8em;
+            color: #777;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #score {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Continue Popup Styles */
+        #continue-popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #continue-popup {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        #continue-popup button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        #continue-popup button:hover {
+            background-color: #218838;
+        }
+
+        /* Fireworks Canvas Styles */
+        #fireworks-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Make it non-interactive */
+            z-index: 0; /* Behind the container initially */
+            opacity: 0; /* Initially hidden */
+        }
+    </style>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script src="xapiwrapper.min.js"></script>
+
+<script>
+  // Using a namespace to prevent global variable clashes
+  const XAPIUtils = {
+    parameters: null, // Parameters store
+    getParameters: function () {
+      if (!this.parameters) { // Ensure fetch once
+        var urlParams = new URLSearchParams(window.location.search);
+        var endpoint = urlParams.get('endpoint');
+        var auth = urlParams.get('auth');
+        var agent = JSON.parse(urlParams.get('agent'));
+        var stateId = urlParams.get('stateId');
+        var activityId = urlParams.get('activityId');
+        ADL.XAPIWrapper.changeConfig({"endpoint": endpoint + "/", "auth": `Basic ${auth}`});
+        this.parameters = { agent, stateId, activityId };
+      }
+      return this.parameters;
+    }
+  };
+  // Immediately invoke getParameters on page load
+  document.addEventListener("DOMContentLoaded", function() { XAPIUtils.getParameters(); });
+
+</script>
+
+<script>
+  function sendScore(score) {
+    try {
+      const parameters = XAPIUtils.getParameters(); // Retrieve parameters from store
+      const activityid = parameters.activityId;
+      const stateId = parameters.stateId;
+      const agent = parameters.agent;
+      const registration = null;
+      const stateValue = { score: score };
+      ADL.XAPIWrapper.sendState(activityid, agent, stateId, registration, stateValue);
+    } catch (err) { console.error("An error has occurred!", err); }
+  }
+  </script>
+
+
+</head>
+<body>
+
+    <canvas id="fireworks-canvas"></canvas>
+
+    <div id="container">
+        
+
+        <div id="top-controls">
+            <h2>Accuracy vs. Precision</h2><button id="practice">Practice</button>
+            <button id="reset">Reset</button>
+        </div>
+
+        <div id="target-area">
+            <div class="target outer"></div>
+            <div class="target middle"></div>
+            <div class="target inner"></div>
+            <div id="shots-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+        </div>
+
+        <div id="controls">
+            <button id="accurate-precise">Accurate & Precise</button>
+            <button id="accurate-imprecise">Accurate & Imprecise</button>
+            <button id="inaccurate-precise">Inaccurate & Precise</button>
+            <button id="inaccurate-imprecise">Inaccurate & Imprecise</button>
+        </div>
+
+        <div id="explanation">
+            <p id="feedback-desc"></p>
+            <p id="accuracy-desc" class="normal"></p>
+            <p id="precision-desc" class="normal"></p>
+        </div>
+
+        <div id="score">Score: <span id="score-value">0</span> / <span id="round-value">0</span></div>
+
+    </div>
+
+    <div id="credit">
+        Created by <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using Google AI studio Gemini Thinking Model
+    </div>
+
+    <!-- Continue Popup Structure -->
+    <div id="continue-popup-overlay">
+        <div id="continue-popup">
+            <p id="continue-message"></p>
+            <button id="continue-button">Continue</button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const shotsContainer = document.getElementById('shots-container');
+            const accuracyDesc = document.getElementById('accuracy-desc');
+            const precisionDesc = document.getElementById('precision-desc');
+            const feedbackDesc = document.getElementById('feedback-desc');
+            const buttons = document.querySelectorAll('#controls button');
+            const topButtons = document.querySelectorAll('#top-controls button');
+            const scenarioButtons = document.querySelectorAll('#controls button');
+            const targetArea = document.getElementById('target-area');
+            const scoreValueDisplay = document.getElementById('score-value');
+            const roundValueDisplay = document.getElementById('round-value');
+
+            // Continue Popup Elements
+            const continuePopupOverlay = document.getElementById('continue-popup-overlay');
+            const continuePopupMessage = document.getElementById('continue-message');
+            const continueButton = document.getElementById('continue-button');
+
+            // Fireworks Canvas Element
+            const fireworksCanvas = document.getElementById('fireworks-canvas');
+            const fireworksCtx = fireworksCanvas.getContext('2d');
+            fireworksCanvas.width = window.innerWidth;
+            fireworksCanvas.height = window.innerHeight;
+
+
+            const targetCenterX = targetArea.offsetWidth / 2;
+            const targetCenterY = targetArea.offsetHeight / 2;
+
+            let isPracticeMode = false;
+            let currentPracticeType = null;
+            let practiceRoundCount = 0;
+            let practiceScore = 0;
+            const maxPracticeRounds = 10;
+
+            function createShot(x, y) {
+                const shot = document.createElement('div');
+                shot.classList.add('shot');
+                shot.style.left = `${x}px`;
+                shot.style.top = `${y}px`;
+                shotsContainer.appendChild(shot);
+            }
+
+            function clearShots() {
+                shotsContainer.innerHTML = '';
+                accuracyDesc.textContent = '';
+                precisionDesc.textContent = '';
+                feedbackDesc.textContent = '';
+            }
+
+            function generateShots(type) {
+                clearShots();
+                let shots = [];
+                let accuracyText = "";
+                let precisionText = "";
+
+                if (type === 'accurate-precise') {
+                    accuracyText = "High Accuracy: Shots are close to the center (bullseye).";
+                    precisionText = "High Precision: Shots are tightly clustered together.";
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        shots.push({ x: targetCenterX + offsetX, y: targetCenterY + offsetY });
+                    }
+                } else if (type === 'accurate-imprecise') {
+                    accuracyText = "High Accuracy: Shots are, on average, centered around the bullseye.";
+                    precisionText = "Low Precision: Shots are widely scattered, not tightly clustered.";
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 80;
+                        const offsetY = (Math.random() - 0.5) * 80;
+                        shots.push({ x: targetCenterX + offsetX, y: targetCenterY + offsetY });
+                    }
+                } else if (type === 'inaccurate-precise') {
+                    accuracyText = "Low Accuracy: Shots are consistently off-center, away from the bullseye.";
+                    precisionText = "High Precision: Shots are still tightly clustered, just not around the bullseye.";
+                    const accuracyOffsetX = 50;
+                    const accuracyOffsetY = 50;
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        shots.push({ x: targetCenterX + accuracyOffsetX + offsetX, y: targetCenterY + accuracyOffsetY + offsetY });
+                    }
+                } else if (type === 'inaccurate-imprecise') {
+                    accuracyText = "Low Accuracy: Shots are not centered around the bullseye.";
+                    precisionText = "Low Precision: Shots are scattered and not tightly clustered.";
+                    const accuracyOffsetX = 50;
+                    const accuracyOffsetY = 50;
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 80;
+                        const offsetY = (Math.random() - 0.5) * 80;
+                        shots.push({ x: targetCenterX + accuracyOffsetX + offsetX, y: targetCenterY + accuracyOffsetY + offsetY });
+                    }
+                } else if (type === 'reset') {
+                    resetGame();
+                    return;
+                }
+
+                shots.forEach(shot => createShot(shot.x, shot.y));
+                accuracyDesc.textContent = accuracyText;
+                precisionDesc.textContent = precisionText;
+            }
+
+            function startPracticeRound() {
+                if (practiceRoundCount >= maxPracticeRounds) {
+                    feedbackDesc.textContent = `Practice Finished! Final Score: ${practiceScore} / ${maxPracticeRounds}. Reset to play again.`;
+                    disableScenarioButtons();
+                    launchFireworks(); // Launch fireworks on completing 10 rounds
+                    sendScore(practiceScore); // Send the practice score to LRS here
+                    return;
+                }
+
+                practiceRoundCount++;
+                roundValueDisplay.textContent = practiceRoundCount;
+                clearShots();
+                feedbackDesc.textContent = "";
+                currentPracticeType = getRandomPracticeType();
+                generatePracticeShots(currentPracticeType);
+                enableScenarioButtons();
+            }
+
+            function generatePracticeShots(type) {
+                clearShots();
+                let shots = [];
+
+                if (type === 'accurate-precise') {
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        shots.push({ x: targetCenterX + offsetX, y: targetCenterY + offsetY });
+                    }
+                } else if (type === 'accurate-imprecise') {
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 80;
+                        const offsetY = (Math.random() - 0.5) * 80;
+                        shots.push({ x: targetCenterX + offsetX, y: targetCenterY + offsetY });
+                    }
+                } else if (type === 'inaccurate-precise') {
+                    const accuracyOffsetX = 50;
+                    const accuracyOffsetY = 50;
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 30;
+                        const offsetY = (Math.random() - 0.5) * 30;
+                        shots.push({ x: targetCenterX + accuracyOffsetX + offsetX, y: targetCenterY + accuracyOffsetY + offsetY });
+                    }
+                } else if (type === 'inaccurate-imprecise') {
+                    const accuracyOffsetX = 50;
+                    const accuracyOffsetY = 50;
+                    for (let i = 0; i < 10; i++) {
+                        const offsetX = (Math.random() - 0.5) * 80;
+                        const offsetY = (Math.random() - 0.5) * 80;
+                        shots.push({ x: targetCenterX + accuracyOffsetX + offsetX, y: targetCenterY + accuracyOffsetY + offsetY });
+                    }
+                }
+                shots.forEach(shot => createShot(shot.x, shot.y));
+                accuracyDesc.textContent = "";
+                precisionDesc.textContent = "";
+            }
+
+            function getRandomPracticeType() {
+                const types = ['accurate-precise', 'accurate-imprecise', 'inaccurate-precise', 'inaccurate-imprecise'];
+                return types[Math.floor(Math.random() * types.length)];
+            }
+
+            function checkPracticeAnswer(selectedType) {
+                disableScenarioButtons();
+                let message = "";
+                if (selectedType === currentPracticeType) {
+                    message = "Correct! Well done!";
+                    practiceScore++;
+                    scoreValueDisplay.textContent = practiceScore;
+                } else {
+                    message = `Incorrect. The answer was ${currentPracticeType.replace('-', ' & ')}.`;
+                }
+                feedbackDesc.textContent = message; // Still show feedback textually
+                showContinuePopup(message); // Show popup with the same message
+                generateShots(currentPracticeType);
+            }
+
+
+            function resetGame() {
+                clearShots();
+                isPracticeMode = false;
+                practiceRoundCount = 0;
+                practiceScore = 0;
+                scoreValueDisplay.textContent = practiceScore;
+                roundValueDisplay.textContent = practiceRoundCount;
+                feedbackDesc.textContent = "";
+                hideContinuePopup();
+                hideFireworks(); // Hide fireworks canvas on reset
+                enableScenarioButtons();
+            }
+
+            function disableScenarioButtons() {
+                scenarioButtons.forEach(button => button.disabled = true);
+            }
+
+            function enableScenarioButtons() {
+                scenarioButtons.forEach(button => button.disabled = false);
+            }
+
+            // Continue Popup Functions
+            function showContinuePopup(message) {
+                continuePopupMessage.textContent = message;
+                continuePopupOverlay.style.display = 'flex';
+            }
+
+            function hideContinuePopup() {
+                continuePopupOverlay.style.display = 'none';
+            }
+
+
+            // Event listener for "Continue" button in popup
+            continueButton.addEventListener('click', () => {
+                hideContinuePopup();
+                startNextPracticeRound();
+            });
+
+            function startNextPracticeRound() {
+                if (isPracticeMode) {
+                    startPracticeRound();
+                }
+            }
+
+
+            // Event listeners for buttons
+            topButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const buttonId = this.id;
+                    if (buttonId === 'practice') {
+                        if (!isPracticeMode) {
+                            isPracticeMode = true;
+                            practiceRoundCount = 0;
+                            practiceScore = 0;
+                            scoreValueDisplay.textContent = practiceScore;
+                            roundValueDisplay.textContent = practiceRoundCount;
+                            startPracticeRound();
+                        } else {
+                            feedbackDesc.textContent = "Practice already in progress. Reset to start over.";
+                        }
+                    } else if (buttonId === 'reset') {
+                        resetGame();
+                    }
+                });
+            });
+
+            scenarioButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    if (isPracticeMode) {
+                        checkPracticeAnswer(this.id);
+                    } else {
+                        generateShots(this.id);
+                    }
+                });
+            });
+
+
+            // --- Fireworks code ---
+            const fireworksParticles = [];
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff']; // Example colors
+
+            function launchFireworks() {
+                fireworksCanvas.style.opacity = 1; // Make canvas visible
+                fireworksParticles.length = 0; // Clear existing particles
+                for (let i = 0; i < 50; i++) { // Launch multiple fireworks
+                    createFirework();
+                }
+                animateFireworks();
+            }
+
+            function hideFireworks() {
+                fireworksCanvas.style.opacity = 0; // Hide canvas
+            }
+
+
+            function createFirework() {
+                const startX = Math.random() * fireworksCanvas.width;
+                const startY = fireworksCanvas.height;
+                const endX = startX + (Math.random() - 0.5) * 200; // Slight horizontal variation
+                const endY = Math.random() * fireworksCanvas.height * 0.4; // Fireworks end in top half
+
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const particleCount = 100 + Math.random() * 100; // Varying particle count
+
+                fireworksParticles.push({
+                    startX: startX,
+                    startY: startY,
+                    endX: endX,
+                    endY: endY,
+                    color: color,
+                    particles: [],
+                    particleCount: particleCount,
+                    exploded: false
+                });
+            }
+
+
+            function animateFireworks() {
+                fireworksCtx.clearRect(0, 0, fireworksCanvas.width, fireworksCanvas.height);
+
+                fireworksParticles.forEach(firework => {
+                    if (!firework.exploded) {
+                        // Rocket ascent
+                        fireworksCtx.beginPath();
+                        fireworksCtx.moveTo(firework.startX, firework.startY);
+                        fireworksCtx.lineTo(firework.endX, firework.endY);
+                        fireworksCtx.strokeStyle = firework.color;
+                        fireworksCtx.stroke();
+
+                        // Check if rocket reached peak (crude check, can be improved)
+                        if (firework.startY > firework.endY -5 ) { // -5 to allow for some overshooting
+                            firework.exploded = true;
+                            explodeFirework(firework);
+                        } else {
+                             firework.startY -= 5; // Rocket speed, adjust as needed
+                        }
+                    } else {
+                        // Draw explosion particles
+                        firework.particles.forEach(particle => {
+                            fireworksCtx.beginPath();
+                            fireworksCtx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                            fireworksCtx.fillStyle = particle.color;
+                            fireworksCtx.globalAlpha = particle.alpha; // Apply alpha for fading
+                            fireworksCtx.fill();
+
+                            // Update particle position and fade out
+                            particle.x += particle.vx;
+                            particle.y += particle.vy;
+                            particle.alpha -= 0.01; // Fade speed, adjust as needed
+                            particle.size *= 0.98; // Shrink size slightly
+
+                        });
+                        // Remove firework after explosion fades out
+                        firework.particles = firework.particles.filter(p => p.alpha > 0); // Keep only visible particles
+                    }
+                });
+
+                requestAnimationFrame(animateFireworks);
+            }
+
+
+            function explodeFirework(firework) {
+                for (let i = 0; i < firework.particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 5 + 2; // Explosion speed
+
+                    firework.particles.push({
+                        x: firework.endX,
+                        y: firework.endY,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        color: firework.color,
+                        alpha: 1,
+                        size: 3  // Particle size
+                    });
+                }
+            }
+
+        });
+    </script>
+
+</body>
+</html>

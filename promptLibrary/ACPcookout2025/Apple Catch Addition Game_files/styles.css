@@ -1,0 +1,418 @@
+/* Reset and base styles for consistent display across devices */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+    overflow: hidden;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+/* Main game container - adapts to iframe or full browser */
+.game-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 50%, #90EE90 100%);
+    overflow: hidden;
+}
+
+/* Detect if running in iframe and adjust height accordingly */
+@media (max-height: 500px) {
+    .game-container {
+        height: 450px;
+    }
+}
+
+/* Game header contains score, question, and lives */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 2px solid #4CAF50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 50px;
+    flex-shrink: 0;
+}
+
+/* Score display styling with visual emphasis */
+.score-display, .lives-display {
+    background: #4CAF50;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease;
+}
+
+.score-display:hover, .lives-display:hover {
+    transform: scale(1.05);
+}
+
+/* Question display - central focus element */
+.question-display {
+    background: #FF6B6B;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    animation: pulse 2s infinite;
+}
+
+/* Pulse animation for question to draw attention */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Main game area where interaction happens */
+.game-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(to bottom, rgba(135, 206, 235, 0.3) 0%, rgba(152, 251, 152, 0.3) 100%);
+}
+
+/* Container for falling apples */
+.apples-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Individual apple styling */
+.apple {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle at 30% 30%, #FF6B6B, #DC143C);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    z-index: 10;
+}
+
+/* Apple hover effect for desktop */
+.apple:hover {
+    transform: scale(1.1);
+}
+
+/* Apple stem decoration */
+.apple::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 8px;
+    background: #8B4513;
+    border-radius: 2px;
+}
+
+/* Apple leaf decoration */
+.apple::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 15px;
+    width: 8px;
+    height: 6px;
+    background: #228B22;
+    border-radius: 50%;
+    transform: rotate(45deg);
+}
+
+/* Player's basket styling */
+.basket {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 40px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    z-index: 5;
+}
+
+/* Basket body - main catching area */
+.basket-body {
+    width: 100%;
+    height: 30px;
+    background: linear-gradient(to bottom, #D2691E, #8B4513);
+    border-radius: 0 0 40px 40px;
+    border: 3px solid #654321;
+    position: relative;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+/* Basket handle decoration */
+.basket-handle {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 10px;
+    border: 3px solid #654321;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    background: transparent;
+}
+
+/* Basket hover effect */
+.basket:hover {
+    transform: translateX(-50%) scale(1.05);
+}
+
+/* Feedback display for immediate response */
+.feedback-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 15px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    transition: opacity 0.3s ease;
+}
+
+/* Correct answer feedback styling */
+.feedback-display.correct {
+    background: #4CAF50;
+    color: white;
+    opacity: 1;
+    animation: feedbackPop 1.5s ease-out;
+}
+
+/* Incorrect answer feedback styling */
+.feedback-display.incorrect {
+    background: #F44336;
+    color: white;
+    opacity: 1;
+    animation: feedbackPop 1.5s ease-out;
+}
+
+/* Feedback animation */
+@keyframes feedbackPop {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* Happy face celebration animation */
+.happy-face {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 60px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+}
+
+/* Happy face animation when correct */
+.happy-face.show {
+    animation: happyBounce 1s ease-out;
+}
+
+@keyframes happyBounce {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: translate(-50%, -50%) scale(1.2) rotate(180deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); opacity: 0; }
+}
+
+/* Game controls section */
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-top: 2px solid #4CAF50;
+    flex-shrink: 0;
+}
+
+/* Control button styling */
+.control-btn {
+    background: linear-gradient(to bottom, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    min-height: 36px;
+    white-space: nowrap;
+}
+
+/* Button hover and active states */
+.control-btn:hover {
+    background: linear-gradient(to bottom, #45a049, #3d8b40);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.control-btn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Instructions tooltip */
+.instructions-tooltip {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 12px;
+    max-width: 250px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 30;
+    transition: opacity 0.3s ease;
+}
+
+.instructions-tooltip.show {
+    opacity: 1;
+}
+
+/* Game over screen */
+.game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 40;
+    transition: opacity 0.3s ease;
+}
+
+.game-over-screen.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.game-over-content {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    max-width: 300px;
+}
+
+.game-over-content h2 {
+    color: #4CAF50;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.game-over-content p {
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #333;
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 480px) {
+    .game-header {
+        padding: 5px 10px;
+        height: 45px;
+    }
+    
+    .score-display, .lives-display {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+    
+    .question-display {
+        font-size: 16px;
+        padding: 6px 15px;
+    }
+    
+    .apple {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+    
+    .basket {
+        width: 70px;
+        height: 35px;
+    }
+    
+    .control-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        min-height: 32px;
+    }
+    
+    .game-controls {
+        padding: 8px;
+        gap: 8px;
+    }
+}
+
+/* Touch-friendly interactions for mobile */
+@media (hover: none) and (pointer: coarse) {
+    .apple:active {
+        transform: scale(1.1);
+    }
+    
+    .basket:active {
+        transform: translateX(-50%) scale(1.05);
+    }
+    
+    .control-btn:active {
+        background: linear-gradient(to bottom, #45a049, #3d8b40);
+    }
+}

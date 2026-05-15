@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Body Systems Drag & Drop (Credit Updated)</title>
+    <style>
+        /* Basic Reset & Body Styling */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: sans-serif;
+            overflow: hidden; /* Prevent scrollbars on the body itself */
+            background-color: #f0f4f8; /* Light background */
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 10px; /* Add padding around the whole content */
+            height: 100vh; /* Use viewport height */
+        }
+
+        /* Header/Control Area */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #d1e0ec; /* Lighter blue header */
+            border-radius: 8px;
+            margin-bottom: 10px;
+            flex-shrink: 0; /* Prevent controls from shrinking */
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        }
+
+        .controls button {
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4a90e2; /* Blue buttons */
+            color: white;
+            transition: background-color 0.2s ease;
+            margin: 2px; /* Add small margin for wrapping */
+        }
+
+        .controls button:hover {
+            background-color: #357abd; /* Darker blue on hover */
+        }
+
+        .controls button:active {
+            background-color: #2a65a0; /* Even darker when clicked */
+        }
+
+        .system-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            text-align: center; /* Center title */
+            flex-grow: 1; /* Allow title to take space */
+            margin: 5px 10px; /* Add some margin */
+        }
+
+        .timer {
+            font-size: 1em;
+            font-weight: bold;
+            color: #333;
+            min-width: 80px; /* Ensure space for timer */
+            text-align: right;
+            margin: 5px;
+        }
+
+        /* Main Content Area */
+        .game-area {
+            display: flex;
+            flex-grow: 1; /* Allow game area to fill remaining space */
+            gap: 10px; /* Space between body and organ list */
+            min-height: 0; /* Important for flex-grow in flex column */
+            width: 100%;
+            margin-bottom: 5px; /* Space before footer */
+        }
+
+        /* Body Outline Area (Left) */
+        .body-container {
+            flex: 1; /* Take up space */
+            background-color: #ffffff; /* White background */
+            border-radius: 8px;
+            position: relative; /* Crucial for positioning SVG AND drop zone area */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            min-width: 150px; /* Minimum width */
+            overflow: hidden; /* Hide overflow */
+        }
+
+        /* SVG Body Outline Styling */
+        .body-outline-svg {
+            width: 90%; /* Control overall size */
+            height: 90%;
+            max-width: 250px; /* Max width for the outline */
+            max-height: 400px; /* Max height */
+            position: relative; /* Keep relative for potential internal SVG elements if needed */
+            display: block; /* Ensure it behaves like a block element */
+            margin: auto; /* Center within container */
+            z-index: 1; /* Ensure SVG is behind drop zones */
+        }
+
+        .body-outline-svg path {
+             fill: #e6f0fa; /* Very light blue fill */
+             stroke: #b0c4de; /* Light steel blue border */
+             stroke-width: 5; /* Adjust stroke width as needed */
+        }
+
+        /* Container for Drop Zones */
+        #drop-zone-area {
+            position: absolute;
+            width: 90%;
+            height: 90%;
+            max-width: 250px;
+            max-height: 400px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2; /* Ensure drop zones container is above SVG */
+             /* border: 1px solid red; */ /* Uncomment for debugging layout */
+        }
+
+
+        /* Organ Source Area (Right) */
+        .organ-list {
+            flex: 1; /* Take up space */
+            background-color: #ffffff; /* White background */
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto; /* Allow scrolling if many organs */
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px; /* Minimum width */
+        }
+
+        /* Draggable Organ Styling */
+        .organ {
+            padding: 5px;
+            background-color: #fffacd;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: grab;
+            text-align: center;
+            font-size: 12px;
+            user-select: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 60px;
+        }
+
+        .organ svg {
+            width: 80%;
+            height: 40px;
+            margin-bottom: 3px;
+        }
+
+        .organ:active {
+            cursor: grabbing;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: scale(1.05);
+            z-index: 10; /* Ensure dragged organ is above drop zones */
+        }
+
+        .organ.dragging {
+            opacity: 0.5;
+        }
+
+        /* Drop Zone Styling */
+        .drop-zone {
+            /* Position relative to the #drop-zone-area container */
+            position: absolute;
+            border: 2px dashed #cccccc;
+            background-color: rgba(0, 255, 0, 0.05);
+            border-radius: 5px;
+            transition: background-color 0.2s ease, border-style 0.2s ease;
+            min-width: 20px;
+            min-height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* Percentages are now relative to #drop-zone-area */
+            transform: translate(-50%, -50%);
+            /* Default z-index for zones */
+            z-index: 1;
+        }
+
+        .drop-zone.over {
+            background-color: rgba(0, 255, 0, 0.3);
+            border-style: solid;
+        }
+
+        .drop-zone.dropped {
+            border: 2px solid #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+
+        .drop-zone.incorrect {
+            border: 2px solid #f44336;
+            background-color: rgba(244, 67, 54, 0.2);
+        }
+
+
+        /* Specific Drop Zone Positions (Relative to #drop-zone-area) */
+        [data-zone="Skull"], [data-zone="Brain"] { top: 12%; left: 50%; width: 20%; height: 15%; }
+        [data-zone="Rib cage"] { top: 30%; left: 50%; width: 35%; height: 20%; }
+        [data-zone="Spine"], [data-zone="Spinal Cord"] { top: 40%; left: 50%; width: 8%; height: 35%; }
+        [data-zone="Femur"] { top: 75%; left: 38%; width: 15%; height: 25%; }
+        [data-zone="Humerus"] { top: 35%; left: 28%; width: 12%; height: 20%; }
+        [data-zone="Heart"] { top: 35%; left: 50%; width: 15%; height: 10%; z-index: 3; }
+        [data-zone="Lungs"] { top: 31%; left: 50%; width: 34%; height: 20%; z-index: 2; }
+        [data-zone="Stomach"] { top: 45%; left: 53%; width: 20%; height: 10%; }
+        [data-zone="Liver"] { top: 43%; left: 60%; width: 18%; height: 9%; }
+        [data-zone="Small Intestine"] { top: 55%; left: 50%; width: 22%; height: 15%; z-index: 3; }
+        [data-zone="Large Intestine"] { top: 55%; left: 50%; width: 30%; height: 18%; border: 2px dashed #aaa; z-index: 2; }
+        [data-zone="Esophagus"] { top: 22%; left: 50%; width: 8%; height: 15%; }
+        [data-zone="Nerves"] { top: 70%; left: 50%; width: 30%; height: 20%; }
+        [data-zone="Arteries"] { top: 45%; left: 65%; width: 20%; height: 20%; }
+        [data-zone="Veins"] { top: 45%; left: 35%; width: 20%; height: 20%; }
+
+
+        /* Feedback Message Area */
+        .feedback {
+            text-align: center;
+            margin-top: 5px; /* Adjusted margin */
+            padding: 5px;
+            font-weight: bold;
+            min-height: 25px;
+            border-radius: 5px;
+            visibility: hidden;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .feedback.success { background-color: #d4edda; color: #155724; visibility: visible; }
+        .feedback.error { background-color: #f8d7da; color: #721c24; visibility: visible; }
+
+        /* Placed Organ Styling */
+        .placed {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            font-size: 9px; cursor: default; background-color: transparent; border: none;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; overflow: hidden;
+        }
+        .placed svg { width: 90%; height: 90%; max-height: 40px; margin-bottom: 0; }
+        .placed .organ-label { font-size: 8px; line-height: 1; margin-top: -2px; }
+
+        /* Footer/Credit Styling */
+        .footer {
+            padding: 5px;
+            text-align: center;
+            font-size: 10px;
+            color: #555;
+            flex-shrink: 0; /* Prevent footer from shrinking */
+            border-top: 1px solid #d1e0ec; /* Separator line */
+            margin-top: auto; /* Push to bottom */
+        }
+        .footer a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+
+        /* Responsive Adjustments */
+        @media (max-width: 600px) {
+            body { padding: 5px; }
+            .controls { justify-content: center; }
+            .controls button { padding: 10px 5px; font-size: 12px; }
+            .system-title { font-size: 1em; margin-bottom: 5px; width: 100%; order: -1; }
+            .timer { margin-top: 5px; text-align: center; width: 100%; }
+            .game-area { flex-direction: column; height: auto; flex-grow: 1; /* Allow game area to take up space */ gap: 5px; }
+            .body-container { min-height: 180px; flex: 1 1 50%; /* Allow shrinking/growing */ }
+            .body-outline-svg { max-width: 150px; }
+            #drop-zone-area { max-width: 150px; /* Match SVG max-width */ }
+            .organ-list { flex: 1 1 45%; /* Allow shrinking/growing */ }
+            .organ { font-size: 10px; padding: 3px; min-height: 50px; }
+            .organ svg { height: 30px; }
+            .placed .organ-label { font-size: 7px; }
+            .footer { font-size: 9px; }
+        }
+         @media (max-height: 500px) { /* Adjust for very short screens */
+             .game-area { flex-grow: 1; }
+             .body-container { min-height: 150px; }
+             .organ-list { min-height: 150px; }
+         }
+
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+    <div class="controls">
+        <button id="start-btn">Start New System</button>
+        <div class="system-title" id="system-title">Press Start</div>
+        <div class="timer" id="timer">Time: 0s</div>
+        <button id="reset-btn">Reset Current</button>
+    </div>
+
+    <div class="game-area">
+        <div class="body-container">
+            <svg id="body-outline-svg" class="body-outline-svg" viewBox="0 0 200 400" preserveAspectRatio="xMidYMid meet">
+                <path d="M100 10 C 115 10 125 20 125 35 C 125 45 120 55 110 60 L 130 65 C 145 70 155 90 155 110 L 150 180 C 150 200 140 220 125 230 L 120 300 C 120 340 110 380 100 390 C 90 380 80 340 80 300 L 75 230 C 60 220 50 200 50 180 L 45 110 C 45 90 55 70 70 65 L 90 60 C 80 55 75 45 75 35 C 75 20 85 10 100 10 Z" />
+            </svg>
+            <div id="drop-zone-area">
+                </div>
+        </div>
+        <div class="organ-list" id="organ-list">
+            <p>Select 'Start New System' to begin.</p>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="footer">
+        Credit: weelookang@gmail.com using Gemini Pro.
+        For more resources go to <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/biology" target="_blank" rel="noopener noreferrer">iwant2study.org Biology</a>
+    </div>
+
+
+    <script>
+        // --- SVG Definitions ---
+        const organSVGs = { // Truncated for brevity - Assume they are the same as before
+            "Skull": `<svg viewBox="0 0 100 100"><title>Skull</title><rect x="25" y="10" width="50" height="60" rx="15" fill="#FFF" stroke="#555" stroke-width="2"/><rect x="35" y="70" width="30" height="20" rx="5" fill="#FFF" stroke="#555" stroke-width="2"/></svg>`,
+            "Rib cage": `<svg viewBox="0 0 100 100"><title>Rib cage</title><path d="M30 20 Q50 15 70 20 L75 80 Q50 90 25 80 Z" fill="none" stroke="#FFF" stroke-width="3"/><path d="M35 25 C40 60 60 60 65 25" fill="none" stroke="#FFF" stroke-width="2"/><path d="M32 35 C40 70 60 70 68 35" fill="none" stroke="#FFF" stroke-width="2"/><path d="M30 45 C40 80 60 80 70 45" fill="none" stroke="#FFF" stroke-width="2"/><path d="M30 55 C40 90 60 90 70 55" fill="none" stroke="#FFF" stroke-width="2"/><path d="M30 65 C40 95 60 95 70 65" fill="none" stroke="#FFF" stroke-width="2"/></svg>`,
+            "Spine": `<svg viewBox="0 0 100 100"><title>Spine</title><rect x="45" y="10" width="10" height="80" rx="3" fill="#FFF" stroke="#555" stroke-width="1"/><line x1="50" y1="15" x2="50" y2="85" stroke="#AAA" stroke-width="3" stroke-dasharray="5 3"/></svg>`,
+            "Femur": `<svg viewBox="0 0 100 100"><title>Femur</title><ellipse cx="50" cy="15" rx="15" ry="10" fill="#FFF" stroke="#555" stroke-width="2"/><rect x="42" y="20" width="16" height="60" fill="#FFF" stroke="#555" stroke-width="2"/><ellipse cx="50" cy="85" rx="18" ry="12" fill="#FFF" stroke="#555" stroke-width="2"/></svg>`,
+            "Humerus": `<svg viewBox="0 0 100 100"><title>Humerus</title><ellipse cx="50" cy="15" rx="15" ry="10" fill="#FFF" stroke="#555" stroke-width="2"/><rect x="44" y="20" width="12" height="55" fill="#FFF" stroke="#555" stroke-width="2"/><ellipse cx="50" cy="80" rx="16" ry="10" fill="#FFF" stroke="#555" stroke-width="2"/></svg>`,
+            "Heart": `<svg viewBox="0 0 100 100"><title>Heart</title><path d="M50 30 C 20 10, 20 55, 50 85 C 80 55, 80 10, 50 30 Z" fill="#FF4444" stroke="#B22222" stroke-width="2"/></svg>`,
+            "Lungs": `<svg viewBox="0 0 100 100"><title>Lungs</title><path d="M40 20 C 10 20, 10 80, 40 80 Q 45 50 50 20" fill="#FFB6C1" stroke="#CD5C5C" stroke-width="2"/><path d="M60 20 C 90 20, 90 80, 60 80 Q 55 50 50 20" fill="#FFB6C1" stroke="#CD5C5C" stroke-width="2"/></svg>`,
+            "Arteries": `<svg viewBox="0 0 100 100"><title>Arteries</title><path d="M50 10 V 90 M 50 50 H 90 M 50 50 L 20 20 M 50 50 L 20 80" fill="none" stroke="#FF0000" stroke-width="5" stroke-linecap="round"/></svg>`,
+            "Veins": `<svg viewBox="0 0 100 100"><title>Veins</title><path d="M50 10 V 90 M 50 50 H 10 M 50 50 L 80 20 M 50 50 L 80 80" fill="none" stroke="#0000FF" stroke-width="5" stroke-linecap="round"/></svg>`,
+            "Brain": `<svg viewBox="0 0 100 100"><title>Brain</title><path d="M50 10 C 20 10, 10 40, 25 60 C 15 80, 30 95, 50 90 C 70 95, 85 80, 75 60 C 90 40, 80 10, 50 10 Z" fill="#FFC0CB" stroke="#8B4513" stroke-width="2"/><path d="M50 10 Q 60 40 50 90 M 50 10 Q 40 40 50 90 M 30 60 Q 50 50 70 60" fill="none" stroke="#8B4513" stroke-width="1"/></svg>`,
+            "Spinal Cord": `<svg viewBox="0 0 100 100"><title>Spinal Cord</title><rect x="47" y="5" width="6" height="90" rx="3" fill="#D3D3D3" stroke="#696969" stroke-width="1"/></svg>`,
+            "Nerves": `<svg viewBox="0 0 100 100"><title>Nerves</title><path d="M50 10 V 90 M 50 30 L 20 50 M 50 30 L 80 50 M 50 60 L 20 80 M 50 60 L 80 80" fill="none" stroke="#FFFF00" stroke-width="3" stroke-linecap="round"/></svg>`,
+            "Esophagus": `<svg viewBox="0 0 100 100"><title>Esophagus</title><rect x="45" y="5" width="10" height="90" rx="3" fill="#FFDAB9" stroke="#A0522D" stroke-width="1.5"/></svg>`,
+            "Stomach": `<svg viewBox="0 0 100 100"><title>Stomach</title><path d="M30 30 C 10 40, 20 80, 50 80 C 80 80, 90 50, 70 30 Q 50 20 30 30 Z" fill="#FFA07A" stroke="#8B4513" stroke-width="2"/></svg>`,
+            "Liver": `<svg viewBox="0 0 100 100"><title>Liver</title><path d="M20 30 Q 50 10 80 30 C 90 60, 60 80, 40 75 C 20 70, 10 40, 20 30 Z" fill="#A0522D" stroke="#5F3A1F" stroke-width="2"/></svg>`,
+            "Small Intestine": `<svg viewBox="0 0 100 100"><title>Small Intestine</title><path d="M30 40 C 70 40 70 60 30 60 C 70 60 70 80 30 80" fill="none" stroke="#FFDEAD" stroke-width="8" stroke-linecap="round"/><path d="M30 40 C 70 40 70 60 30 60 C 70 60 70 80 30 80" fill="none" stroke="#D2B48C" stroke-width="1" stroke-linecap="round"/></svg>`,
+            "Large Intestine": `<svg viewBox="0 0 100 100"><title>Large Intestine</title><path d="M20 25 H 80 V 75 H 20 Z M 20 50 H 80" fill="none" stroke="#F4A460" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/><path d="M20 25 H 80 V 75 H 20 Z M 20 50 H 80" fill="none" stroke="#8B4513" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/></svg>`,
+        };
+
+        // --- Game Data ---
+        const bodySystems = { // Same as before...
+            "Skeletal System": { organs: [ { name: "Skull", svg: organSVGs["Skull"] }, { name: "Rib cage", svg: organSVGs["Rib cage"] }, { name: "Spine", svg: organSVGs["Spine"] }, { name: "Femur", svg: organSVGs["Femur"] }, { name: "Humerus", svg: organSVGs["Humerus"] } ], zones: ["Skull", "Rib cage", "Spine", "Femur", "Humerus"] },
+            "Circulatory / Respiratory System": { organs: [ { name: "Heart", svg: organSVGs["Heart"] }, { name: "Lungs", svg: organSVGs["Lungs"] }, { name: "Arteries", svg: organSVGs["Arteries"] }, { name: "Veins", svg: organSVGs["Veins"] } ], zones: ["Heart", "Lungs", "Arteries", "Veins"] },
+            "Nervous System": { organs: [ { name: "Brain", svg: organSVGs["Brain"] }, { name: "Spinal Cord", svg: organSVGs["Spinal Cord"] }, { name: "Nerves", svg: organSVGs["Nerves"] } ], zones: ["Brain", "Spinal Cord", "Nerves"] },
+            "Digestive System": { organs: [ { name: "Esophagus", svg: organSVGs["Esophagus"] }, { name: "Stomach", svg: organSVGs["Stomach"] }, { name: "Liver", svg: organSVGs["Liver"] }, { name: "Small Intestine", svg: organSVGs["Small Intestine"] }, { name: "Large Intestine", svg: organSVGs["Large Intestine"] } ], zones: ["Esophagus", "Stomach", "Liver", "Small Intestine", "Large Intestine"] }
+        };
+
+        // --- DOM Elements ---
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const systemTitleEl = document.getElementById('system-title');
+        const timerEl = document.getElementById('timer');
+        const dropZoneAreaEl = document.getElementById('drop-zone-area');
+        const organListEl = document.getElementById('organ-list');
+        const feedbackEl = document.getElementById('feedback');
+
+        // --- Game State ---
+        let currentSystemIndex = -1;
+        let currentSystemName = "";
+        let currentDropZones = {};
+        let placedOrgans = {};
+        let correctlyPlacedCount = 0;
+        let totalOrgansInSystem = 0;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let draggedOrgan = null;
+
+        // --- Timer Functions ---
+        function startTimer() { stopTimer(); secondsElapsed = 0; timerEl.textContent = `Time: ${secondsElapsed}s`; timerInterval = setInterval(() => { secondsElapsed++; timerEl.textContent = `Time: ${secondsElapsed}s`; }, 1000); }
+        function stopTimer() { clearInterval(timerInterval); timerInterval = null; }
+        function resetTimer() { stopTimer(); secondsElapsed = 0; timerEl.textContent = `Time: ${secondsElapsed}s`; }
+
+        // --- Feedback Functions ---
+        function showFeedback(message, type = 'success') { feedbackEl.textContent = message; feedbackEl.className = `feedback ${type}`; setTimeout(() => { feedbackEl.className = 'feedback'; feedbackEl.textContent = ''; }, 3000); }
+
+        // --- Drag and Drop Event Handlers ---
+        function handleDragStart(event) { const organElement = event.target.closest('.organ'); if (organElement) { draggedOrgan = { element: organElement, name: organElement.dataset.organ, svg: organElement.querySelector('svg').outerHTML }; event.dataTransfer.setData('text/plain', draggedOrgan.name); event.dataTransfer.effectAllowed = 'move'; setTimeout(() => organElement.classList.add('dragging'), 0); } else { event.preventDefault(); } }
+        function handleDragEnd(event) { if (draggedOrgan && draggedOrgan.element) { draggedOrgan.element.classList.remove('dragging'); } draggedOrgan = null; Object.values(currentDropZones).forEach(zone => zone.classList.remove('over')); }
+        function handleDragOver(event) { event.preventDefault(); const targetZoneElement = event.target.closest('.drop-zone'); if (targetZoneElement) { Object.values(currentDropZones).forEach(zone => { if(zone !== targetZoneElement) zone.classList.remove('over'); }); targetZoneElement.classList.add('over'); event.dataTransfer.dropEffect = 'move'; } else { Object.values(currentDropZones).forEach(zone => zone.classList.remove('over')); } }
+        function handleDragLeave(event) { const targetZoneElement = event.target.closest('.drop-zone'); if (targetZoneElement && !targetZoneElement.contains(event.relatedTarget)) { targetZoneElement.classList.remove('over'); } }
+        function handleDrop(event) {
+            event.preventDefault();
+            const targetZoneElement = event.target.closest('.drop-zone');
+            if (targetZoneElement && draggedOrgan) {
+                targetZoneElement.classList.remove('over');
+                const zoneName = targetZoneElement.dataset.zone;
+                const organName = draggedOrgan.name;
+                const systemData = bodySystems[currentSystemName];
+                const organIndex = systemData.organs.findIndex(o => o.name === organName);
+                const correctZoneForOrgan = systemData.zones[organIndex];
+
+                if (zoneName === correctZoneForOrgan && !targetZoneElement.querySelector('.placed')) {
+                    targetZoneElement.innerHTML = '';
+                    const placedElement = document.createElement('div');
+                    placedElement.classList.add('placed');
+                    placedElement.innerHTML = `${draggedOrgan.svg}<span class="organ-label">${organName}</span>`;
+                    targetZoneElement.appendChild(placedElement);
+                    placedOrgans[zoneName] = organName;
+                    correctlyPlacedCount++;
+                    draggedOrgan.element.remove();
+                    draggedOrgan = null;
+                    targetZoneElement.classList.add('dropped');
+                    if (correctlyPlacedCount === totalOrgansInSystem) { stopTimer(); showFeedback(`Congratulations! You completed the ${currentSystemName} in ${secondsElapsed} seconds!`, 'success'); } else { showFeedback(`${organName} placed correctly!`, 'success'); }
+                } else if (targetZoneElement.querySelector('.placed')) { showFeedback(`This spot is already taken!`, 'error'); } else { showFeedback(`${organName} doesn't go here! Try again.`, 'error'); targetZoneElement.classList.add('incorrect'); setTimeout(() => targetZoneElement.classList.remove('incorrect'), 500); }
+            }
+            if (draggedOrgan && draggedOrgan.element) { draggedOrgan.element.classList.remove('dragging'); }
+            draggedOrgan = null;
+        }
+
+        // --- Game Setup Functions ---
+        function clearBoard() {
+            organListEl.innerHTML = '<p>Select \'Start New System\' to begin.</p>';
+            dropZoneAreaEl.innerHTML = '';
+            feedbackEl.className = 'feedback';
+            feedbackEl.textContent = '';
+            currentDropZones = {};
+            placedOrgans = {};
+            correctlyPlacedCount = 0;
+            totalOrgansInSystem = 0;
+        }
+
+        function setupSystem(systemName) {
+            clearBoard();
+            currentSystemName = systemName;
+            const systemData = bodySystems[systemName];
+            systemTitleEl.textContent = systemName;
+            totalOrgansInSystem = systemData.organs.length;
+            organListEl.innerHTML = '';
+
+            // Create Draggable Organs
+            systemData.organs.forEach((organData, index) => {
+                const organEl = document.createElement('div');
+                organEl.classList.add('organ');
+                organEl.draggable = true;
+                organEl.dataset.organ = organData.name;
+                organEl.id = `organ-${index}`;
+                organEl.innerHTML = `${organData.svg}<span class="organ-label">${organData.name}</span>`;
+                organEl.addEventListener('dragstart', handleDragStart);
+                organEl.addEventListener('dragend', handleDragEnd);
+                organListEl.appendChild(organEl);
+            });
+
+            // Create Drop Zones
+            const requiredZones = [...new Set(systemData.zones)];
+            requiredZones.forEach(zoneName => {
+                 if (!currentDropZones[zoneName]) {
+                    const zoneEl = document.createElement('div');
+                    zoneEl.classList.add('drop-zone');
+                    zoneEl.dataset.zone = zoneName;
+                    zoneEl.addEventListener('dragover', handleDragOver);
+                    zoneEl.addEventListener('dragleave', handleDragLeave);
+                    zoneEl.addEventListener('drop', handleDrop);
+                    dropZoneAreaEl.appendChild(zoneEl);
+                    currentDropZones[zoneName] = zoneEl;
+                 }
+            });
+
+            resetTimer();
+            startTimer();
+        }
+
+        function loadNextSystem() { const systemNames = Object.keys(bodySystems); currentSystemIndex = (currentSystemIndex + 1) % systemNames.length; setupSystem(systemNames[currentSystemIndex]); }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', loadNextSystem);
+        resetBtn.addEventListener('click', () => { if (currentSystemName) { setupSystem(currentSystemName); } else { showFeedback("Start a system first!", "error"); } });
+
+    </script>
+
+</body>
+</html>

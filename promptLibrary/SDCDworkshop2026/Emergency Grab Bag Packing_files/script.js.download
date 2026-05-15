@@ -1,0 +1,546 @@
+// ============================================
+// EMERGENCY GRAB BAG INTERACTIVE
+// Educational tool for teaching emergency preparedness
+// ============================================
+
+// Check if running standalone or in iframe
+if (window.self === window.top) {
+    document.body.classList.add('standalone');
+}
+
+// ============================================
+// DATA STRUCTURE
+// Define all items with their properties
+// ============================================
+
+const items = [
+    // Essential items (correct choices)
+    { id: 1, name: 'Torchlight', icon: '🔦', essential: true, reason: 'Provides light during power outages' },
+    { id: 2, name: 'Instant Noodles', icon: '🍜', essential: true, reason: 'Non-perishable food for sustenance' },
+    { id: 3, name: 'Face Mask', icon: '😷', essential: true, reason: 'Protection from dust and airborne particles' },
+    { id: 4, name: 'FM Radio', icon: '📻', essential: true, reason: 'Receives emergency broadcasts and updates' },
+    { id: 5, name: 'Medication', icon: '💊', essential: true, reason: 'Essential for health and medical needs' },
+    { id: 6, name: 'Water Bottle', icon: '💧', essential: true, reason: 'Hydration is critical for survival' },
+    { id: 7, name: 'First Aid Kit', icon: '🩹', essential: true, reason: 'Treats minor injuries and wounds' },
+    { id: 8, name: 'Whistle', icon: '📣', essential: true, reason: 'Signals for help in emergencies' },
+    
+    // Non-essential items (incorrect choices)
+    { id: 9, name: 'Teddy Bear', icon: '🧸', essential: false, reason: 'Not essential for survival' },
+    { id: 10, name: 'Lipstick', icon: '💄', essential: false, reason: 'Not necessary during evacuation' },
+    { id: 11, name: 'Gaming Console', icon: '🎮', essential: false, reason: 'Entertainment is not a priority' },
+    { id: 12, name: 'High Heels', icon: '👠', essential: false, reason: 'Impractical for evacuation movement' }
+];
+
+// ============================================
+// UTILITY FUNCTION
+// Fisher-Yates shuffle algorithm to randomize array
+// MODIFICATION: Added shuffle function to randomize items
+// ============================================
+
+function shuffleArray(array) {
+    const shuffled = [...array]; // Create a copy to avoid mutating original
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// ============================================
+// STATE MANAGEMENT
+// Track the current state of the activity
+// MODIFICATION: Added randomizedItems to store shuffled items
+// ============================================
+
+let state = {
+    packedItems: [],
+    draggedItem: null,
+    soundEnabled: true,
+    submitted: false,
+    randomizedItems: [] // Store randomized order of items
+};
+
+// ============================================
+// AUDIO SYSTEM
+// Generate sounds using Web Audio API
+// ============================================
+
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Play success sound for correct choices
+function playSuccessSound() {
+    if (!state.soundEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+}
+
+// Play error sound for incorrect choices
+function playErrorSound() {
+    if (!state.soundEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(150, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+}
+
+// Play background ambient music
+function playBackgroundMusic() {
+    if (!state.soundEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+    
+    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 2);
+}
+
+// ============================================
+// INITIALIZATION
+// Set up the interface and event listeners
+// MODIFICATION: Randomize items on initialization
+// ============================================
+
+function init() {
+    // Randomize items on initialization
+    state.randomizedItems = shuffleArray(items);
+    renderItems();
+    setupEventListeners();
+    playBackgroundMusic();
+    updateProgress();
+}
+
+// Render all items in the items container
+// MODIFICATION: Use randomizedItems instead of original items array
+function renderItems() {
+    const container = document.getElementById('items-container');
+    container.innerHTML = '';
+    
+    // Render items in randomized order
+    state.randomizedItems.forEach(item => {
+        const itemElement = createItemElement(item);
+        container.appendChild(itemElement);
+    });
+}
+
+// Create a draggable item element
+function createItemElement(item) {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.draggable = true;
+    div.dataset.id = item.id;
+    
+    div.innerHTML = `
+        <div class="item-icon">${item.icon}</div>
+        <div class="item-name">${item.name}</div>
+    `;
+    
+    // Drag event listeners
+    div.addEventListener('dragstart', handleDragStart);
+    div.addEventListener('dragend', handleDragEnd);
+    
+    // Touch support for mobile devices
+    div.addEventListener('touchstart', handleTouchStart, { passive: false });
+    div.addEventListener('touchmove', handleTouchMove, { passive: false });
+    div.addEventListener('touchend', handleTouchEnd);
+    
+    return div;
+}
+
+// ============================================
+// DRAG AND DROP HANDLERS
+// Handle mouse-based drag and drop
+// ============================================
+
+function handleDragStart(e) {
+    const itemId = parseInt(e.target.closest('.item').dataset.id);
+    state.draggedItem = items.find(item => item.id === itemId);
+    e.target.closest('.item').classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    e.target.closest('.item').classList.remove('dragging');
+    state.draggedItem = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    if (e.target.id === 'drop-zone') {
+        document.getElementById('drop-zone').classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    
+    if (state.draggedItem && !state.submitted) {
+        addItemToBag(state.draggedItem);
+    }
+}
+
+// ============================================
+// TOUCH HANDLERS
+// Handle touch-based drag and drop for mobile
+// ============================================
+
+let touchItem = null;
+let touchClone = null;
+
+function handleTouchStart(e) {
+    if (state.submitted) return;
+    
+    e.preventDefault();
+    const itemElement = e.target.closest('.item');
+    const itemId = parseInt(itemElement.dataset.id);
+    touchItem = items.find(item => item.id === itemId);
+    
+    // Create a clone for visual feedback
+    touchClone = itemElement.cloneNode(true);
+    touchClone.style.position = 'fixed';
+    touchClone.style.zIndex = '1000';
+    touchClone.style.opacity = '0.8';
+    touchClone.style.pointerEvents = 'none';
+    document.body.appendChild(touchClone);
+    
+    updateTouchClonePosition(e.touches[0]);
+}
+
+function handleTouchMove(e) {
+    if (!touchClone) return;
+    e.preventDefault();
+    updateTouchClonePosition(e.touches[0]);
+}
+
+function handleTouchEnd(e) {
+    if (!touchClone || !touchItem) return;
+    
+    const touch = e.changedTouches[0];
+    const dropZone = document.getElementById('drop-zone');
+    const rect = dropZone.getBoundingClientRect();
+    
+    // Check if touch ended within drop zone
+    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        addItemToBag(touchItem);
+    }
+    
+    // Clean up
+    document.body.removeChild(touchClone);
+    touchClone = null;
+    touchItem = null;
+}
+
+function updateTouchClonePosition(touch) {
+    if (!touchClone) return;
+    touchClone.style.left = (touch.clientX - 45) + 'px';
+    touchClone.style.top = (touch.clientY - 40) + 'px';
+}
+
+// ============================================
+// BAG MANAGEMENT
+// Add and remove items from the bag
+// MODIFICATION: Removed immediate feedback functionality
+// ============================================
+
+function addItemToBag(item) {
+    // Check if already packed
+    if (state.packedItems.find(i => i.id === item.id)) {
+        // Item already in bag - no feedback shown
+        return;
+    }
+    
+    // Check if bag is full (max 8 essential items)
+    if (state.packedItems.length >= 8) {
+        // Bag is full - no feedback shown
+        return;
+    }
+    
+    // Add item to packed items without immediate feedback
+    state.packedItems.push(item);
+    
+    // Update UI without showing feedback messages
+    renderPackedItems();
+    disablePackedItem(item.id);
+    updateProgress();
+}
+
+function removeItemFromBag(itemId) {
+    state.packedItems = state.packedItems.filter(item => item.id !== itemId);
+    renderPackedItems();
+    enablePackedItem(itemId);
+    updateProgress();
+    // Removed feedback message
+}
+
+function renderPackedItems() {
+    const container = document.getElementById('packed-items');
+    container.innerHTML = '';
+    
+    state.packedItems.forEach(item => {
+        const packedElement = document.createElement('div');
+        packedElement.className = 'packed-item';
+        packedElement.innerHTML = `
+            <button class="remove-btn" onclick="removeItemFromBag(${item.id})">×</button>
+            <div class="packed-item-icon">${item.icon}</div>
+            <div>${item.name}</div>
+        `;
+        container.appendChild(packedElement);
+    });
+    
+    // Update drop hint visibility
+    const dropHint = document.getElementById('drop-hint');
+    const bagIcon = document.getElementById('bag-icon');
+    if (state.packedItems.length > 0) {
+        dropHint.style.display = 'none';
+        bagIcon.style.display = 'none';
+    } else {
+        dropHint.style.display = 'block';
+        bagIcon.style.display = 'block';
+    }
+}
+
+// Disable item in the items container when packed
+function disablePackedItem(itemId) {
+    const itemElement = document.querySelector(`.item[data-id="${itemId}"]`);
+    if (itemElement) {
+        itemElement.classList.add('disabled');
+        itemElement.draggable = false;
+    }
+}
+
+// Enable item in the items container when removed
+function enablePackedItem(itemId) {
+    const itemElement = document.querySelector(`.item[data-id="${itemId}"]`);
+    if (itemElement) {
+        itemElement.classList.remove('disabled');
+        itemElement.draggable = true;
+    }
+}
+
+// ============================================
+// FEEDBACK SYSTEM - REMOVED
+// Immediate feedback functionality has been removed per user request
+// ============================================
+
+// ============================================
+// PROGRESS TRACKING
+// Update progress indicator
+// ============================================
+
+function updateProgress() {
+    const essentialCount = state.packedItems.filter(item => item.essential).length;
+    const totalEssential = 8;
+    
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    
+    const percentage = (essentialCount / totalEssential) * 100;
+    progressFill.style.width = percentage + '%';
+    progressText.textContent = `Essential Items: ${essentialCount}/${totalEssential}`;
+}
+
+// ============================================
+// SUBMISSION AND RESULTS
+// Check answers and show results
+// ============================================
+
+function submitAnswers() {
+    state.submitted = true;
+    
+    const essentialItems = items.filter(item => item.essential);
+    const packedEssential = state.packedItems.filter(item => item.essential);
+    const packedNonEssential = state.packedItems.filter(item => !item.essential);
+    const missedEssential = essentialItems.filter(item => 
+        !state.packedItems.find(packed => packed.id === item.id)
+    );
+    
+    // Calculate score
+    const score = packedEssential.length;
+    const maxScore = essentialItems.length;
+    const percentage = Math.round((score / maxScore) * 100);
+    
+    // Build results content
+    let resultsHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h3 style="color: #2c3e50;">Your Score: ${score}/${maxScore} (${percentage}%)</h3>
+        </div>
+    `;
+    
+    if (packedEssential.length > 0) {
+        resultsHTML += '<h4 style="color: #27ae60;">✓ Correct Choices:</h4>';
+        packedEssential.forEach(item => {
+            resultsHTML += `
+                <div class="result-item correct">
+                    <span>${item.icon}</span>
+                    <span><strong>${item.name}:</strong> ${item.reason}</span>
+                </div>
+            `;
+        });
+    }
+    
+    if (packedNonEssential.length > 0) {
+        resultsHTML += '<h4 style="color: #e74c3c; margin-top: 15px;">✗ Incorrect Choices:</h4>';
+        packedNonEssential.forEach(item => {
+            resultsHTML += `
+                <div class="result-item incorrect">
+                    <span>${item.icon}</span>
+                    <span><strong>${item.name}:</strong> ${item.reason}</span>
+                </div>
+            `;
+        });
+    }
+    
+    if (missedEssential.length > 0) {
+        resultsHTML += '<h4 style="color: #f39c12; margin-top: 15px;">⚠ Missed Essential Items:</h4>';
+        missedEssential.forEach(item => {
+            resultsHTML += `
+                <div class="result-item missed">
+                    <span>${item.icon}</span>
+                    <span><strong>${item.name}:</strong> ${item.reason}</span>
+                </div>
+            `;
+        });
+    }
+    
+    // Show results modal
+    document.getElementById('results-content').innerHTML = resultsHTML;
+    document.getElementById('results-modal').classList.remove('hidden');
+    
+    // Visual feedback on items
+    state.packedItems.forEach(item => {
+        const itemElement = document.querySelector(`.item[data-id="${item.id}"]`);
+        if (itemElement) {
+            itemElement.classList.add(item.essential ? 'correct' : 'incorrect');
+        }
+    });
+    
+    // Play final sound
+    if (percentage >= 75) {
+        playSuccessSound();
+    } else {
+        playErrorSound();
+    }
+}
+
+// ============================================
+// RESET FUNCTIONALITY
+// Reset the activity to initial state
+// MODIFICATION: Re-randomize items on reset
+// ============================================
+
+function resetActivity() {
+    state.packedItems = [];
+    state.submitted = false;
+    
+    // Re-randomize items on reset for a fresh experience
+    state.randomizedItems = shuffleArray(items);
+    
+    // Clear all visual states
+    document.querySelectorAll('.item').forEach(item => {
+        item.classList.remove('disabled', 'correct', 'incorrect');
+        item.draggable = true;
+    });
+    
+    // Re-render items in new random order
+    renderItems();
+    renderPackedItems();
+    updateProgress();
+    // Removed feedback message on reset
+}
+
+// ============================================
+// EVENT LISTENERS SETUP
+// Attach all event listeners
+// ============================================
+
+function setupEventListeners() {
+    // Info icon tooltip
+    const infoIcon = document.getElementById('info-icon');
+    const tooltip = document.getElementById('tooltip');
+    
+    infoIcon.addEventListener('mouseenter', () => {
+        tooltip.classList.remove('hidden');
+    });
+    
+    infoIcon.addEventListener('mouseleave', () => {
+        tooltip.classList.add('hidden');
+    });
+    
+    infoIcon.addEventListener('click', () => {
+        tooltip.classList.toggle('hidden');
+    });
+    
+    // Drop zone events
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', handleDragOver);
+    dropZone.addEventListener('dragenter', handleDragEnter);
+    dropZone.addEventListener('dragleave', handleDragLeave);
+    dropZone.addEventListener('drop', handleDrop);
+    
+    // Control buttons
+    document.getElementById('reset-btn').addEventListener('click', resetActivity);
+    document.getElementById('submit-btn').addEventListener('click', submitAnswers);
+    document.getElementById('close-modal-btn').addEventListener('click', () => {
+        document.getElementById('results-modal').classList.add('hidden');
+    });
+    
+    // Close tooltip when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!infoIcon.contains(e.target) && !tooltip.contains(e.target)) {
+            tooltip.classList.add('hidden');
+        }
+    });
+}
+
+// Make removeItemFromBag globally accessible for inline onclick
+window.removeItemFromBag = removeItemFromBag;
+
+// ============================================
+// START APPLICATION
+// Initialize when DOM is ready
+// ============================================
+
+document.addEventListener('DOMContentLoaded', init);

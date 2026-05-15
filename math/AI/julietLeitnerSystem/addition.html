@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Addition — Leitner Maths</title>
+<link rel="stylesheet" href="styles.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S9EWRY1CPJ');</script>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <a href="index.html" class="back-btn" aria-label="Back to home">🏠</a>
+    <div style="flex:1">
+      <h1>➕ Addition</h1>
+      <div style="font-size:.8rem;color:var(--muted)">Milestone 1 · Factual Fluency</div>
+    </div>
+    <div class="pack-chips" id="packChips"></div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-wrap">
+    <div class="progress-labels">
+      <span id="progLabel">Card 0 of 0</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Flash Card -->
+  <div class="card-scene" id="cardScene" role="button" aria-label="Flash card — tap to reveal answer" tabindex="0">
+    <div class="card-container" id="cardContainer">
+      <div class="card-face card-front">
+        <div class="card-milestone" id="cardMilestone">Milestone 1</div>
+        <div class="card-pack-badge" id="cardPackBadge">Pack A</div>
+        <div class="card-question" id="cardQuestion">Loading…</div>
+        <div class="card-tap-hint">Tap card to reveal answer</div>
+      </div>
+      <div class="card-face card-back">
+        <div style="font-size:.85rem;opacity:.8;margin-bottom:6px">Answer</div>
+        <div class="card-answer" id="cardAnswer">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hint Panel -->
+  <div class="hint-panel" id="hintPanel" style="display:none"></div>
+
+  <!-- Misconception Tip -->
+  <div class="misconception-tip" id="miscTip" style="display:none"></div>
+
+  <!-- Response Buttons (hidden until card is flipped) -->
+  <div class="response-buttons" id="responseButtons" style="display:none">
+    <button class="btn btn-know"     id="btnKnow">    ✅ I know it!</button>
+    <button class="btn btn-learning" id="btnLearning"> ❌ Still learning</button>
+  </div>
+
+  <!-- Empty state -->
+  <div id="emptyState" style="display:none;text-align:center;padding:32px 16px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);max-width:520px;margin:0 auto 16px;">
+    <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+    <h2 style="margin-bottom:8px;">No cards due today!</h2>
+    <p style="color:var(--muted);margin-bottom:18px;">Pack A is always active. Pack B on Tue &amp; Thu. Pack C on Friday.</p>
+    <a href="index.html" class="btn btn-primary">Back to Home</a>
+  </div>
+
+  <!-- Session Complete -->
+  <div class="session-complete" id="sessionComplete" style="display:none">
+    <div style="font-size:3rem;margin-bottom:12px">🌟</div>
+    <h2>Session Complete!</h2>
+    <p id="sessionSummary">Well done!</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px">
+      <button class="btn btn-outline" id="btnRestart">↻ Restart</button>
+      <a href="index.html" class="btn btn-primary">🏠 Home</a>
+    </div>
+  </div>
+
+  <!-- Pack Visualiser -->
+  <div class="pack-visualiser" id="packVis"></div>
+
+  <!-- Analytics Panel -->
+  <div class="analytics-panel no-print">
+    <div class="analytics-header" id="analyticsHeader" role="button" aria-expanded="false" tabindex="0">
+      <h3>📊 Analytics &amp; Action Log</h3>
+      <span class="analytics-toggle-icon" id="analyticsIcon">▼</span>
+    </div>
+    <div class="analytics-body" id="analyticsBody">
+      <div class="analytics-tabs">
+        <button class="analytics-tab active" id="tabActions" data-tab="actions">⚡ Actions</button>
+        <button class="analytics-tab"        id="tabQuiz"    data-tab="quiz">🧪 Quiz Results</button>
+      </div>
+      <div id="panelActions" class="log-container">
+        <div style="color:var(--muted);font-size:.8rem;padding:8px 0">Actions will appear here as you practise.</div>
+      </div>
+      <div id="panelQuiz" style="display:none;overflow-x:auto">
+        <table class="quiz-table" id="quizTable">
+          <thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct</th><th>Result</th><th>Pack</th></tr></thead>
+          <tbody id="quizBody"></tbody>
+        </table>
+        <div style="color:var(--muted);font-size:.8rem;padding:10px 12px" id="quizEmpty">Quiz results will appear here.</div>
+      </div>
+      <div class="analytics-controls">
+        <button class="btn btn-sm btn-danger" id="btnClearLog">🗑️ Clear Log</button>
+        <span class="analytics-device" id="deviceLabel"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using Claude Sonnet 4.6 &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a>
+  </div>
+</div>
+
+<script src="leitner-engine.js"></script>
+<script>
+(function () {
+  const TOPIC = 'addition';
+  const engine = LeitnerEngine.init();
+
+  // ── State ──────────────────────────────────────────────────
+  let sessionCards = [], idx = 0, flipped = false, attemptNum = 0, correct = 0, quizCount = 0;
+
+  // ── DOM refs ───────────────────────────────────────────────
+  const cardScene      = document.getElementById('cardScene');
+  const cardContainer  = document.getElementById('cardContainer');
+  const cardQuestion   = document.getElementById('cardQuestion');
+  const cardAnswer     = document.getElementById('cardAnswer');
+  const cardPackBadge  = document.getElementById('cardPackBadge');
+  const hintPanel      = document.getElementById('hintPanel');
+  const miscTip        = document.getElementById('miscTip');
+  const responseButtons= document.getElementById('responseButtons');
+  const emptyState     = document.getElementById('emptyState');
+  const sessionComplete= document.getElementById('sessionComplete');
+  const progressFill   = document.getElementById('progressFill');
+  const packVis        = document.getElementById('packVis');
+  const analyticsBody  = document.getElementById('analyticsBody');
+  const analyticsIcon  = document.getElementById('analyticsIcon');
+  const panelActions   = document.getElementById('panelActions');
+  const panelQuiz      = document.getElementById('panelQuiz');
+  const quizBody       = document.getElementById('quizBody');
+  const quizEmpty      = document.getElementById('quizEmpty');
+
+  // ── Init ───────────────────────────────────────────────────
+  function init() {
+    document.getElementById('deviceLabel').textContent = '🖥 Input: ' + engine.inputType;
+    updatePackChips();
+    updatePackVis();
+
+    sessionCards = engine.getCardsForTopic(TOPIC);
+    // Shuffle
+    for (let i = sessionCards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [sessionCards[i], sessionCards[j]] = [sessionCards[j], sessionCards[i]];
+    }
+
+    if (sessionCards.length === 0) {
+      emptyState.style.display = 'block';
+      cardScene.style.display  = 'none';
+      engine.logAction('ℹ️ No cards due for addition today');
+      return;
+    }
+    showCard();
+  }
+
+  function updatePackChips() {
+    const packs = engine.getTodayPacks();
+    const el = document.getElementById('packChips');
+    el.innerHTML = '';
+    packs.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'pack-chip ' + p;
+      chip.textContent = 'Pack ' + p;
+      el.appendChild(chip);
+    });
+  }
+
+  function updatePackVis() {
+    const counts = engine.getPackCounts(TOPIC);
+    packVis.innerHTML = '';
+    ['A','B','C'].forEach(p => {
+      const box = document.createElement('div');
+      box.className = 'pack-box ' + p;
+      box.innerHTML = `<div class="pack-label">Pack ${p}</div>
+        <div class="pack-count">${counts[p]}</div>
+        <div class="pack-schedule">${LeitnerEngine.PACK_SCHEDULE[p]}</div>`;
+      packVis.appendChild(box);
+    });
+  }
+
+  // ── Card display ───────────────────────────────────────────
+  function showCard() {
+    if (idx >= sessionCards.length) { showComplete(); return; }
+    const card = sessionCards[idx];
+    flipped = false; attemptNum = 0;
+
+    cardContainer.classList.remove('flipped');
+    cardQuestion.textContent = card.question;
+    cardAnswer.textContent   = card.answer;
+    cardPackBadge.textContent = 'Pack ' + card.pack;
+    responseButtons.style.display = 'none';
+    cardScene.style.display = 'block';
+    sessionComplete.style.display = 'none';
+
+    // Hint
+    const hint = engine.getHintHTML(card);
+    hintPanel.innerHTML  = hint || '';
+    hintPanel.style.display = hint ? 'block' : 'none';
+
+    // Misconception tip
+    const tip = engine.getMisconceptionTip(card);
+    if (tip) {
+      miscTip.textContent  = tip;
+      miscTip.style.display = 'flex';
+    } else {
+      miscTip.style.display = 'none';
+    }
+
+    updateProgress();
+    engine.logAction('🃏 Card shown: ' + card.question, { pack: card.pack, hintLevel: card.hintLevel });
+  }
+
+  function updateProgress() {
+    const pct = sessionCards.length ? Math.round((idx / sessionCards.length) * 100) : 0;
+    progressFill.style.width = pct + '%';
+    document.getElementById('progLabel').textContent = 'Card ' + idx + ' of ' + sessionCards.length;
+    document.getElementById('progPct').textContent   = pct + '%';
+  }
+
+  function flipCard() {
+    if (flipped) return;
+    flipped = true;
+    cardContainer.classList.add('flipped');
+    responseButtons.style.display = 'flex';
+    engine.logAction('👁 Answer revealed: ' + sessionCards[idx].question);
+  }
+
+  // ── Response handlers ──────────────────────────────────────
+  function handleKnow() {
+    if (!flipped) return;
+    const card = sessionCards[idx];
+    attemptNum++;
+    correct++;
+    engine.evaluateCard(card.id, true, card.answer);
+    engine.logQuizResult(card.id, card.question, card.answer, true, attemptNum);
+    addQuizRow(card.question, card.answer, card.answer, true, card.pack);
+    cardScene.classList.add('correct-pulse');
+    setTimeout(() => { cardScene.classList.remove('correct-pulse'); idx++; updatePackVis(); showCard(); }, 600);
+    engine.logAction('✅ "I know it" — ' + card.question);
+  }
+
+  function handleLearning() {
+    if (!flipped) return;
+    const card = sessionCards[idx];
+    attemptNum++;
+    engine.evaluateCard(card.id, false, '');
+    engine.logQuizResult(card.id, card.question, '?', false, attemptNum);
+    addQuizRow(card.question, '?', card.answer, false, card.pack);
+    // Move to end of deck for retry
+    sessionCards.push(sessionCards[idx]);
+    cardScene.classList.add('shake');
+    setTimeout(() => { cardScene.classList.remove('shake'); idx++; updatePackVis(); showCard(); }, 450);
+    engine.logAction('❌ "Still learning" — ' + card.question);
+  }
+
+  function showComplete() {
+    cardScene.style.display     = 'none';
+    responseButtons.style.display = 'none';
+    hintPanel.style.display     = 'none';
+    miscTip.style.display       = 'none';
+    sessionComplete.style.display = 'block';
+    document.getElementById('sessionSummary').textContent =
+      'You reviewed ' + sessionCards.length + ' cards. ' + correct + ' marked as known. Keep it up, ' + engine.student.name + '!';
+    updatePackVis();
+    engine.logAction('🏁 Session complete — ' + correct + '/' + sessionCards.length + ' known');
+  }
+
+  // ── Touch/click on card ────────────────────────────────────
+  engine.addTouchButton(cardScene, flipCard);
+  cardScene.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') flipCard(); });
+
+  // ── Response buttons ───────────────────────────────────────
+  engine.addTouchButton(document.getElementById('btnKnow'),     handleKnow);
+  engine.addTouchButton(document.getElementById('btnLearning'), handleLearning);
+  engine.addTouchButton(document.getElementById('btnRestart'),  () => { idx = 0; correct = 0; init(); });
+
+  // ── Analytics panel toggle ─────────────────────────────────
+  const analyticsHeader = document.getElementById('analyticsHeader');
+  engine.addTouchButton(analyticsHeader, () => {
+    const open = analyticsBody.classList.toggle('open');
+    analyticsIcon.classList.toggle('open', open);
+    analyticsHeader.setAttribute('aria-expanded', open);
+  });
+  analyticsHeader.addEventListener('keydown', e => { if (e.key === 'Enter') analyticsHeader.click(); });
+
+  // ── Tab switching ──────────────────────────────────────────
+  document.querySelectorAll('.analytics-tab').forEach(tab => {
+    engine.addTouchButton(tab, () => {
+      document.querySelectorAll('.analytics-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const which = tab.dataset.tab;
+      panelActions.style.display = which === 'actions' ? 'block' : 'none';
+      panelQuiz.style.display    = which === 'quiz'    ? 'block' : 'none';
+    });
+  });
+
+  // ── Clear log ──────────────────────────────────────────────
+  engine.addTouchButton(document.getElementById('btnClearLog'), () => {
+    engine.clearLog();
+    panelActions.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:8px 0">Log cleared.</div>';
+    quizBody.innerHTML = '';
+    quizEmpty.style.display = 'block';
+    quizCount = 0;
+  });
+
+  // ── Live log updates ───────────────────────────────────────
+  document.addEventListener('leitner:log', e => {
+    const d = e.detail;
+    // Remove placeholder
+    const ph = panelActions.querySelector('div');
+    if (ph && ph.textContent.includes('appear here')) ph.remove();
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `<span class="log-time">${d.time}</span><span>${d.description}</span>`;
+    panelActions.prepend(row);
+    if (panelActions.children.length > 80) panelActions.lastChild.remove();
+  });
+
+  document.addEventListener('leitner:quiz', e => {
+    const d = e.detail;
+    quizEmpty.style.display = 'none';
+    quizCount++;
+    const tr = document.createElement('tr');
+    tr.className = d.correct ? 'qcorrect' : 'qwrong';
+    tr.innerHTML = `<td>${quizCount}</td><td>${d.question}</td><td>${d.studentAnswer}</td>
+      <td>${d.correctAnswer}</td>
+      <td>${d.correct ? '✅' : '❌'}</td>
+      <td>${d.data && d.data.pack ? d.data.pack : ''}</td>`;
+    quizBody.prepend(tr);
+  });
+
+  function addQuizRow(question, studentAnswer, correctAnswer, isCorrect, pack) {
+    quizEmpty.style.display = 'none';
+    quizCount++;
+    const tr = document.createElement('tr');
+    tr.className = isCorrect ? 'qcorrect' : 'qwrong';
+    tr.innerHTML = `<td>${quizCount}</td><td>${question}</td><td>${studentAnswer}</td>
+      <td>${correctAnswer}</td><td>${isCorrect ? '✅' : '❌'}</td><td>${pack}</td>`;
+    quizBody.prepend(tr);
+    if (quizBody.children.length > 80) quizBody.lastChild.remove();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

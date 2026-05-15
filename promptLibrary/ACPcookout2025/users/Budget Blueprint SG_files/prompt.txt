@@ -1,0 +1,161 @@
+By Tai Xiang
+Learning Objectives: 
+ 
+In this lesson, students will gain an awareness of the global realities that Singapore faces, and examine their thoughts and feelings towards the issues.
+Students will gain an understanding of the various budget measures and consider how some of these measures are meaningful and/or important to the people in Singapore.
+Students will gain an appreciation of the government's role in building our shared future and, as such, reflect on their role in making Singapore a better place, now and in the future. 
+Interactive Prompt: 
+ 
+Role: Act as an expert game developer. Your task is to re-create a 15-minute, single-player, educational interactive game called "Budget Blueprint SG." The game is a simplified "worker placement" simulation designed to teach students about the Singapore National Budget.
+
+Core Objective: The player, acting as the Singapore Cabinet, must make strategic decisions over 4 rounds ("Fiscal Years") to maximize the "National Well-being Point" (NWP) score.
+
+ 
+1. Core Game Loop & Mechanics
+
+The game proceeds in 4 distinct rounds. Each round consists of three phases:
+
+Global Event Phase: A random "Global Reality" event is revealed, which applies a modifier (positive or negative) for the entire round.
+Action Phase: The player "places" their 3 "Ministry Teams" (workers) onto 3 different "National Sectors" (locations) to gain resources ("Funds" and "Manpower"). This phase continues until all 3 workers are placed.
+Funding Phase: The player can, at any time, spend their gathered resources to complete "National Priorities" (quests) to earn NWPs.
+End Phase: The player clicks "End Fiscal Year" to end the round. All workers return, and a new round begins.
+ 
+2. Core Game State Variables
+
+You must track the following variables in a central game state:
+
+round: (Number) Current round, from 1 to 4.
+funds: (Number) Main currency. Starts at 10.
+manpower: (Number) Secondary resource. Starts at 0.
+nwp: (Number) The player's score. Starts at 0.
+workersAvailable: (Number) How many workers the player has left to place this round. Starts at 3 each round.
+sectorsFilled: (Array of Strings) A list of sectorIds that have been used this round (e.g., ['moh', 'mti']).
+activePriorities: (Array of Objects) The 3 currently available "quest" cards.
+globalEvent: (Object) The active event card for the current round.
+ 
+
+3. Data Structures (Game Database)
+
+These must be implemented exactly as specified:
+
+A. National Sectors (Worker Locations)
+
+'moh': { name: 'Ministry of Health (MOH)', reward: { funds: 3 } }
+'mindef': { name: 'Ministry of Defence (MINDEF)', reward: { manpower: 1 } }
+'mti': { name: 'Ministry of Trade & Industry (MTI)', reward: { funds: 5 } }
+'msf': { name: 'Ministry of Social & Family Dev (MSF)', reward: { funds: 2 } }
+'mse': { name: 'Ministry of Sustainability (MSE)', reward: { funds: 2 } }
+'moe': { name: 'Ministry of Education (MOE)', reward: { manpower: 1 } }
+B. Global Reality Cards (Event Deck)
+
+(Must be shuffled and drawn 1 per round)
+
+g1: { title: 'Global Pandemic!', text: 'Healthcare policies cost 2 extra Funds this year.', effect: { type: 'costIncrease', category: 'Health', amount: 2 } }
+g2: { title: 'Regional Tensions!', text: 'Defence priorities are critical. Funding Defence gains +3 NWP.', effect: { type: 'bonusNWP', category: 'Defence', amount: 3 } }
+g3: { title: 'Tech Breakthrough!', text: 'Bonus revenue! Gain 4 extra Funds immediately.', effect: { type: 'bonusResource', resource: 'funds', amount: 4 } }
+g4: { title: 'Supply Chain Disruption', text: 'All priorities cost 1 extra Fund this year.', effect: { type: 'costIncrease', category: 'All', amount: 1 } }
+g5: { title: 'Economic Slowdown', text: 'MTI (Trade & Industry) only generates 3 Funds instead of 5 this year.', effect: { type: 'nerfSector', sectorId: 'mti', newReward: { funds: 3 } } }
+g6: { title: 'Aging Population', text: 'Social priorities are in high demand. Funding Social gains +3 NWP.', effect: { type: 'bonusNWP', category: 'Social', amount: 3 } }
+ 
+
+C. National Priority Cards (Quest Deck)
+
+(Must be shuffled. 3 are active at all times. Draw a new one when one is completed)
+
+p1: { title: 'Build New Polyclinic', cost: { funds: 6 }, reward: { nwp: 10 }, category: 'Health', helps: 'Seniors, Families' }
+p2: { title: 'Digital Skills Package', cost: { funds: 4, manpower: 1 }, reward: { nwp: 8 }, category: 'Economy', helps: 'Workers, Students' }
+p3: { title: 'Support for Low-Income', cost: { funds: 5 }, reward: { nwp: 7 }, category: 'Social', helps: 'Vulnerable groups' }
+p4: { title: 'Bolster Cyber Defence', cost: { funds: 4, manpower: 1 }, reward: { nwp: 8 }, category: 'Defence', helps: 'National Security' }
+p5: { title: 'Invest in Green Energy', cost: { funds: 7 }, reward: { nwp: 9 }, category: 'Sustainability', helps: 'Future Generations' }
+p6: { title: 'Upgrade School Facilities', cost: { funds: 3, manpower: 1 }, reward: { nwp: 6 }, category: 'Education', helps: 'Students' }
+p7: { title: 'Enhance Elder-care Services', cost: { funds: 4 }, reward: { nwp: 6 }, category: 'Health', helps: 'Seniors' }
+p8: { title: 'Boost Local Startups', cost: { funds: 6, manpower: 1 }, reward: { nwp: 10 }, category: 'Economy', helps: 'Entrepreneurs' }
+p9: { title: 'New Public Housing', cost: { funds: 8 }, reward: { nwp: 11 }, category: 'Social', helps: 'Young Families' }
+p10: { title: 'Acquire New Naval Vessels', cost: { funds: 7, manpower: 2 }, reward: { nwp: 15 }, category: 'Defence', helps: 'National Security' }
+p11: { title: 'Develop Food Resilience Tech', cost: { funds: 5 }, reward: { nwp: 7 }, category: 'Sustainability', helps: 'Food Security' }
+p12: { title: 'Expand University Grants', cost: { funds: 4 }, reward: { nwp: 5 }, category: 'Education', helps: 'Students' }
+ 
+4. UI & Interaction Requirements
+
+Create a clean, modern UI with the following components:
+
+Resource Dashboard (Always Visible):
+Display for Fiscal Year (e.g., "1 / 4").
+Display for Funds (e.g., "$10M").
+Display for Manpower (e.g., "0").
+Display for National Well-being (e.g., "0").
+ 
+
+National Sectors (6 Clickable Areas):
+Must be 6 distinct, clickable UI elements (e.g., cards or buttons).
+Each must display its name and reward.
+Stateful: Must clearly show a "Used" or "Filled" state when clicked, making it non-interactive for the rest of the round.
+ 
+
+Worker Pool (Always Visible):
+Visually represent the 3 "Ministry Teams" (e.g., as 3 icons).
+As workers are placed, these icons should visually change to an "Used" state.
+ 
+
+Priority Deck (3 Visible "Cards"):
+Display the 3 activePriorities as cards.
+Each card must show: title, category, helps, cost (Funds/Manpower), and reward (NWP).
+Each card must have a "Fund" button.
+Stateful: The "Fund" button must be disabled if the player does not have enough funds or manpower (after accounting for event modifiers) and enabled when they do.
+ 
+
+End Turn Button:
+A button labeled "End Fiscal Year."
+Stateful: This button must be disabled while workersAvailable > 0 and enabled only when workersAvailable === 0.
+ 
+
+Modal Popups:
+Global Event Modal: Must appear at the start of every round, display the title and text of the drawn event card, and have a close button.
+Game Over Modal: Must appear at the end of Round 4, display the final nwp score, and a "Restart" or "Review" button.
+ 
+
+5. Core Game Logic (Function Definitions)
+
+Implement the following logic:
+
+initGame():
+Reset gameState to starting values.
+Create shuffled copies of the globalRealityDeck and priorityDeck.
+Draw 3 priorities into gameState.activePriorities.
+Call startRound().
+startRound():
+Check if gameState.round > 4. If so, call endGame().
+Reset gameState.workersAvailable = 3 and gameState.sectorsFilled = [].
+Draw one globalEvent card.
+Handle immediate event effects (e.g., bonusResource).
+Display the "Global Event Modal."
+Call updateUI() to refresh the screen.
+onSectorClick(sectorId):
+Check: if (gameState.workersAvailable > 0 && !gameState.sectorsFilled.includes(sectorId)).
+If valid:
+gameState.workersAvailable--.
+gameState.sectorsFilled.push(sectorId).
+Calculate the reward. Check if the globalEvent has a nerfSector effect for this sectorId. Otherwise, use the default allSectors[sectorId].reward.
+Add the calculated funds or manpower to the gameState.
+Call updateUI().
+onFundPriorityClick(priorityId):
+Find the priority object from gameState.activePriorities.
+Calculate its final cost, accounting for globalEvent effects (e.g., costIncrease).
+Check if gameState.funds and gameState.manpower are >= the final cost.
+If affordable:
+Deduct resources from gameState.
+Calculate its final reward, accounting for globalEvent effects (e.g., bonusNWP).
+Add the final reward to gameState.nwp.
+Remove this priority from gameState.activePriorities.
+Draw a new card from the shuffled priority deck and add it to gameState.activePriorities.
+Call updateUI().
+onEndTurnClick():
+Check: if (gameState.workersAvailable === 0).
+If valid:
+gameState.round++.
+Call startRound().
+endGame():
+Display the "Game Over Modal" with the final gameState.nwp score and a context-aware message (e.g., "An excellent result!").
+updateUI() (Master Function):
+This function must be called after any change to the gameState.
+It must refresh all visual components: resource displays, worker icons, sector "filled" states, priority card "Fund" button disabled states, and the "End Turn" button disabled state.

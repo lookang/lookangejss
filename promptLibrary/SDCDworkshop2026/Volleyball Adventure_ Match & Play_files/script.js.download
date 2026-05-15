@@ -1,0 +1,618 @@
+/*
+   JavaScript for Volleyball Adventure Interactive
+   Implements drag-and-drop matching, adventure narrative, scoring, and audio
+   Designed following cognitive load theory and multimedia learning principles
+*/
+
+// ============================================================================
+// GAME STATE AND DATA
+// ============================================================================
+
+let gameState = {
+    points: 0,
+    matchesCompleted: 0,
+    totalMatches: 6,
+    currentStage: 0,
+    musicEnabled: true,
+    sfxEnabled: true,
+    matchedRoles: new Set()
+};
+
+// Adventure storyline with choices
+const storyStages = [
+    {
+        text: "🏐 Welcome, Coach! Your volleyball team needs your help to prepare for the championship. First, let's learn about player positions!",
+        choices: [
+            { text: "Let's start!", nextStage: 1, points: 0 }
+        ]
+    },
+    {
+        text: "⭐ Great! Match each player role to their correct position on the court. Think about what each player does during a game.",
+        choices: []
+    },
+    {
+        text: "🎯 Excellent work! You've mastered the basic positions. Now, can you identify the defensive specialists?",
+        choices: [
+            { text: "Focus on defense", nextStage: 3, points: 10 },
+            { text: "Review all positions", nextStage: 2, points: 5 }
+        ]
+    },
+    {
+        text: "🏆 Amazing! You're ready for the championship! Your team wins because you positioned everyone perfectly!",
+        choices: [
+            { text: "Celebrate! 🎉", nextStage: 4, points: 20 }
+        ]
+    },
+    {
+        text: "🌟 Congratulations, Coach! You've completed the volleyball adventure and earned your coaching badge!",
+        choices: []
+    }
+];
+
+// Player roles with descriptions
+const playerRoles = [
+    {
+        id: "setter",
+        name: "Setter",
+        description: "Sets up the ball for attackers. Usually plays in the front center position.",
+        hint: "This player touches the ball second in most rallies and helps teammates spike."
+    },
+    {
+        id: "spiker",
+        name: "Spiker",
+        description: "Attacks the ball with powerful hits. Plays in the front row.",
+        hint: "This player jumps high to hit the ball down into the opponent's court."
+    },
+    {
+        id: "libero",
+        name: "Libero",
+        description: "Defensive specialist who wears a different colored jersey. Stays in the back row.",
+        hint: "This player specializes in receiving serves and digging attacks. Cannot spike or block."
+    },
+    {
+        id: "blocker",
+        name: "Blocker",
+        description: "Jumps at the net to block opponent's attacks. Front row player.",
+        hint: "This player tries to stop the opponent's spike by jumping with arms up at the net."
+    },
+    {
+        id: "server",
+        name: "Server",
+        description: "Starts each rally by serving the ball. Rotates through all positions.",
+        hint: "This player hits the ball from behind the back line to start the rally."
+    },
+    {
+        id: "receiver",
+        name: "Receiver",
+        description: "Receives the opponent's serve. Usually a back row player.",
+        hint: "This player passes the serve to the setter to start the team's attack."
+    }
+];
+
+// ============================================================================
+// AUDIO SYSTEM (Web Audio API for offline functionality)
+// ============================================================================
+
+let audioContext;
+let backgroundMusicGain;
+let sfxGain;
+
+// Initialize audio context
+function initAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create gain nodes for volume control
+        backgroundMusicGain = audioContext.createGain();
+        backgroundMusicGain.connect(audioContext.destination);
+        backgroundMusicGain.gain.value = 0.3;
+        
+        sfxGain = audioContext.createGain();
+        sfxGain.connect(audioContext.destination);
+        sfxGain.gain.value = 0.5;
+        
+        // Start background music
+        playBackgroundMusic();
+    } catch (e) {
+        console.log("Audio not supported");
+    }
+}
+
+// Generate background music using oscillators
+function playBackgroundMusic() {
+    if (!audioContext || !gameState.musicEnabled) return;
+    
+    const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00]; // C major scale
+    let noteIndex = 0;
+    
+    function playNote() {
+        if (!gameState.musicEnabled) return;
+        
+        const oscillator = audioContext.createOscillator();
+        const noteGain = audioContext.createGain();
+        
+        oscillator.connect(noteGain);
+        noteGain.connect(backgroundMusicGain);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = notes[noteIndex % notes.length];
+        
+        noteGain.gain.setValueAtTime(0, audioContext.currentTime);
+        noteGain.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.1);
+        noteGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+        
+        noteIndex++;
+        setTimeout(playNote, 600);
+    }
+    
+    playNote();
+}
+
+// Play sound effect for interactions
+function playSoundEffect(type) {
+    if (!audioContext || !gameState.sfxEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(sfxGain);
+    
+    switch(type) {
+        case 'correct':
+            oscillator.frequency.value = 523.25; // C5
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            break;
+        case 'incorrect':
+            oscillator.frequency.value = 200;
+            oscillator.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            oscillator.stop(audioContext.currentTime + 0.2);
+            break;
+        case 'click':
+            oscillator.frequency.value = 800;
+            oscillator.type = 'square';
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            oscillator.stop(audioContext.currentTime + 0.1);
+            break;
+        case 'celebration':
+            // Play ascending notes
+            [523.25, 659.25, 783.99].forEach((freq, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(sfxGain);
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.3, audioContext.currentTime + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+                osc.start(audioContext.currentTime + i * 0.15);
+                osc.stop(audioContext.currentTime + i * 0.15 + 0.3);
+            });
+            break;
+    }
+    
+    oscillator.start(audioContext.currentTime);
+}
+
+// ============================================================================
+// DRAG AND DROP FUNCTIONALITY
+// ============================================================================
+
+let draggedElement = null;
+let touchStartX = 0;
+let touchStartY = 0;
+
+// Initialize draggable role cards
+function createRoleCards() {
+    const container = document.getElementById('draggable-roles');
+    container.innerHTML = '';
+    
+    playerRoles.forEach(role => {
+        if (!gameState.matchedRoles.has(role.id)) {
+            const card = document.createElement('div');
+            card.className = 'role-card';
+            card.draggable = true;
+            card.dataset.roleId = role.id;
+            card.textContent = role.name;
+            card.title = role.description;
+            
+            // Mouse drag events
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            
+            // Touch events for mobile
+            card.addEventListener('touchstart', handleTouchStart, { passive: false });
+            card.addEventListener('touchmove', handleTouchMove, { passive: false });
+            card.addEventListener('touchend', handleTouchEnd);
+            
+            container.appendChild(card);
+        }
+    });
+}
+
+// Handle drag start
+function handleDragStart(e) {
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
+    playSoundEffect('click');
+}
+
+// Handle drag end
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    draggedElement = null;
+}
+
+// Handle touch start
+function handleTouchStart(e) {
+    e.preventDefault();
+    draggedElement = e.target;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    e.target.classList.add('dragging');
+    playSoundEffect('click');
+}
+
+// Handle touch move
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!draggedElement) return;
+    
+    const touch = e.touches[0];
+    const clone = draggedElement.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = touch.clientX - 30 + 'px';
+    clone.style.top = touch.clientY - 20 + 'px';
+    clone.style.pointerEvents = 'none';
+    clone.style.zIndex = '1000';
+    clone.id = 'touch-clone';
+    
+    const existingClone = document.getElementById('touch-clone');
+    if (existingClone) existingClone.remove();
+    document.body.appendChild(clone);
+}
+
+// Handle touch end
+function handleTouchEnd(e) {
+    e.preventDefault();
+    if (!draggedElement) return;
+    
+    const clone = document.getElementById('touch-clone');
+    if (clone) clone.remove();
+    
+    const touch = e.changedTouches[0];
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (dropTarget && dropTarget.classList.contains('drop-zone')) {
+        checkMatch(draggedElement.dataset.roleId, dropTarget.dataset.role, dropTarget);
+    }
+    
+    draggedElement.classList.remove('dragging');
+    draggedElement = null;
+}
+
+// Initialize drop zones
+function initDropZones() {
+    const dropZones = document.querySelectorAll('.drop-zone');
+    
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('dragleave', handleDragLeave);
+        zone.addEventListener('drop', handleDrop);
+    });
+}
+
+// Handle drag over
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!e.target.classList.contains('filled')) {
+        e.target.classList.add('drag-over');
+    }
+}
+
+// Handle drag leave
+function handleDragLeave(e) {
+    e.target.classList.remove('drag-over');
+}
+
+// Handle drop
+function handleDrop(e) {
+    e.preventDefault();
+    e.target.classList.remove('drag-over');
+    
+    if (draggedElement && !e.target.classList.contains('filled')) {
+        const roleId = draggedElement.dataset.roleId;
+        const targetRole = e.target.dataset.role;
+        checkMatch(roleId, targetRole, e.target);
+    }
+}
+
+// ============================================================================
+// GAME LOGIC
+// ============================================================================
+
+// Check if role matches the drop zone
+function checkMatch(roleId, targetRole, dropZone) {
+    const role = playerRoles.find(r => r.id === roleId);
+    
+    if (roleId === targetRole) {
+        // Correct match!
+        playSoundEffect('correct');
+        gameState.matchesCompleted++;
+        gameState.points += 15;
+        gameState.matchedRoles.add(roleId);
+        
+        // Place role card in drop zone
+        const card = document.createElement('div');
+        card.className = 'role-card matched';
+        card.textContent = role.name;
+        dropZone.appendChild(card);
+        dropZone.classList.add('filled');
+        dropZone.classList.add('pulse');
+        
+        setTimeout(() => dropZone.classList.remove('pulse'), 500);
+        
+        showFeedback(`✅ Perfect! ${role.name} is correctly positioned! +15 points`, 'success');
+        updateScore();
+        createRoleCards(); // Refresh cards
+        
+        // Check if all matches completed
+        if (gameState.matchesCompleted === gameState.totalMatches) {
+            setTimeout(() => completeStage(), 1000);
+        }
+    } else {
+        // Incorrect match
+        playSoundEffect('incorrect');
+        gameState.points = Math.max(0, gameState.points - 5);
+        dropZone.classList.add('shake');
+        setTimeout(() => dropZone.classList.remove('shake'), 300);
+        
+        showFeedback(`❌ Not quite! ${role.name} doesn't go there. Try again! -5 points`, 'error');
+        updateScore();
+    }
+}
+
+// Update score display
+function updateScore() {
+    document.getElementById('points').textContent = gameState.points;
+    document.getElementById('matches').textContent = 
+        `${gameState.matchesCompleted}/${gameState.totalMatches}`;
+}
+
+// Show feedback message
+function showFeedback(message, type) {
+    const feedbackArea = document.getElementById('feedback-area');
+    const feedbackDiv = document.createElement('div');
+    feedbackDiv.textContent = message;
+    feedbackDiv.style.marginBottom = '8px';
+    feedbackDiv.style.padding = '6px';
+    feedbackDiv.style.borderRadius = '4px';
+    feedbackDiv.style.fontWeight = '600';
+    
+    if (type === 'success') {
+        feedbackDiv.style.background = '#d4edda';
+        feedbackDiv.style.color = '#155724';
+    } else if (type === 'error') {
+        feedbackDiv.style.background = '#f8d7da';
+        feedbackDiv.style.color = '#721c24';
+    } else {
+        feedbackDiv.style.background = '#d1ecf1';
+        feedbackDiv.style.color = '#0c5460';
+    }
+    
+    feedbackArea.insertBefore(feedbackDiv, feedbackArea.firstChild);
+    
+    // Keep only last 3 feedback messages
+    while (feedbackArea.children.length > 3) {
+        feedbackArea.removeChild(feedbackArea.lastChild);
+    }
+}
+
+// Complete current stage and advance story
+function completeStage() {
+    playSoundEffect('celebration');
+    
+    const stage = storyStages[gameState.currentStage];
+    
+    if (gameState.currentStage < storyStages.length - 1) {
+        showCelebration(
+            "Stage Complete! 🎉",
+            `You've mastered this challenge! You earned ${gameState.points} points total!`
+        );
+    } else {
+        showCelebration(
+            "Adventure Complete! 🏆",
+            `Congratulations, Coach! Final Score: ${gameState.points} points! You're ready to lead your team to victory!`
+        );
+    }
+}
+
+// Show celebration overlay
+function showCelebration(title, message) {
+    const overlay = document.getElementById('celebration-overlay');
+    document.getElementById('celebration-title').textContent = title;
+    document.getElementById('celebration-message').textContent = message;
+    overlay.classList.remove('hidden');
+}
+
+// Continue to next stage
+function continueAdventure() {
+    playSoundEffect('click');
+    document.getElementById('celebration-overlay').classList.add('hidden');
+    
+    if (gameState.currentStage < storyStages.length - 1) {
+        gameState.currentStage++;
+        updateStory();
+        
+        // Reset matches for new stage if needed
+        if (gameState.matchesCompleted === gameState.totalMatches) {
+            // Keep points but allow re-matching for practice
+            showFeedback("🎯 Great job! You can continue practicing or reset to start a new adventure.", 'info');
+        }
+    }
+}
+
+// Update story display
+function updateStory() {
+    const stage = storyStages[gameState.currentStage];
+    document.getElementById('story-text').textContent = stage.text;
+    
+    const choicesContainer = document.getElementById('choices-container');
+    choicesContainer.innerHTML = '';
+    
+    stage.choices.forEach(choice => {
+        const button = document.createElement('button');
+        button.className = 'choice-btn';
+        button.textContent = choice.text;
+        button.addEventListener('click', () => {
+            playSoundEffect('click');
+            gameState.points += choice.points;
+            gameState.currentStage = choice.nextStage;
+            updateScore();
+            updateStory();
+            showFeedback(`You chose: ${choice.text}. +${choice.points} points!`, 'info');
+        });
+        choicesContainer.appendChild(button);
+    });
+}
+
+// Show hint
+function showHint() {
+    playSoundEffect('click');
+    
+    // Find first unmatched role
+    const unmatchedRole = playerRoles.find(role => !gameState.matchedRoles.has(role.id));
+    
+    if (unmatchedRole) {
+        showFeedback(`💡 Hint: ${unmatchedRole.hint}`, 'info');
+        gameState.points = Math.max(0, gameState.points - 3);
+        updateScore();
+    } else {
+        showFeedback(`🌟 You've matched all roles! Great work!`, 'info');
+    }
+}
+
+// Reset game
+function resetGame() {
+    playSoundEffect('click');
+    
+    if (confirm('Are you sure you want to reset your adventure? All progress will be lost.')) {
+        gameState = {
+            points: 0,
+            matchesCompleted: 0,
+            totalMatches: 6,
+            currentStage: 0,
+            musicEnabled: gameState.musicEnabled,
+            sfxEnabled: gameState.sfxEnabled,
+            matchedRoles: new Set()
+        };
+        
+        // Clear drop zones
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.innerHTML = '';
+            zone.classList.remove('filled');
+        });
+        
+        // Reset UI
+        updateScore();
+        updateStory();
+        createRoleCards();
+        document.getElementById('feedback-area').innerHTML = '';
+        showFeedback('🔄 Adventure reset! Start matching roles to begin your journey!', 'info');
+    }
+}
+
+// ============================================================================
+// AUDIO CONTROLS
+// ============================================================================
+
+function toggleMusic() {
+    gameState.musicEnabled = !gameState.musicEnabled;
+    const btn = document.getElementById('music-toggle');
+    
+    if (gameState.musicEnabled) {
+        btn.classList.remove('muted');
+        btn.textContent = '🎵';
+        if (backgroundMusicGain) {
+            backgroundMusicGain.gain.value = 0.3;
+        }
+        playBackgroundMusic();
+    } else {
+        btn.classList.add('muted');
+        btn.textContent = '🔇';
+        if (backgroundMusicGain) {
+            backgroundMusicGain.gain.value = 0;
+        }
+    }
+    playSoundEffect('click');
+}
+
+function toggleSFX() {
+    gameState.sfxEnabled = !gameState.sfxEnabled;
+    const btn = document.getElementById('sfx-toggle');
+    
+    if (gameState.sfxEnabled) {
+        btn.classList.remove('muted');
+        btn.textContent = '🔊';
+    } else {
+        btn.classList.add('muted');
+        btn.textContent = '🔇';
+    }
+    playSoundEffect('click');
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize audio
+    initAudio();
+    
+    // Initialize game elements
+    createRoleCards();
+    initDropZones();
+    updateStory();
+    updateScore();
+    
+    // Event listeners
+    document.getElementById('reset-btn').addEventListener('click', resetGame);
+    document.getElementById('hint-btn').addEventListener('click', showHint);
+    document.getElementById('continue-btn').addEventListener('click', continueAdventure);
+    document.getElementById('music-toggle').addEventListener('click', toggleMusic);
+    document.getElementById('sfx-toggle').addEventListener('click', toggleSFX);
+    
+    // Initial feedback
+    showFeedback('🏐 Welcome to Volleyball Adventure! Drag player roles to their correct positions on the court.', 'info');
+    
+    // Resume audio context on user interaction (browser requirement)
+    document.addEventListener('click', () => {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+    }, { once: true });
+});
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+// Prevent default drag behavior on document
+document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener('drop', (e) => {
+    e.preventDefault();
+});

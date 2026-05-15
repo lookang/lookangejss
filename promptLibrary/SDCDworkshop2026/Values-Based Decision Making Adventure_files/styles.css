@@ -1,0 +1,421 @@
+/* Global styles and reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    user-select: none;
+}
+
+/* Main container - adapts to iframe or standalone */
+#mainContainer {
+    width: 100%;
+    height: 450px; /* Default iframe height */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    overflow: hidden;
+}
+
+/* Standalone mode - uses 90vh */
+body.standalone #mainContainer {
+    height: 90vh;
+}
+
+/* Tooltip - appears on hover without taking space */
+.tooltip {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 1000;
+    max-width: 250px;
+    text-align: center;
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+/* Story panel - main narrative area */
+.story-panel {
+    background: white;
+    padding: 12px 15px;
+    border-radius: 12px;
+    margin: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 80px;
+    position: relative;
+}
+
+.story-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+}
+
+.character-image {
+    font-size: 40px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* Timer container with visual countdown */
+.timer-container {
+    position: relative;
+    height: 28px;
+    margin: 0 8px 8px 8px;
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timer-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.3s linear, background 0.3s;
+    width: 100%;
+}
+
+.timer-bar.warning {
+    background: linear-gradient(90deg, #FF9800, #FFC107);
+}
+
+.timer-bar.danger {
+    background: linear-gradient(90deg, #F44336, #FF5722);
+    animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.timer-text {
+    position: relative;
+    text-align: center;
+    line-height: 28px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #333;
+    z-index: 1;
+}
+
+/* Values panel - displays core values as draggable cards */
+.values-panel {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 8px 8px 8px;
+    flex-wrap: wrap;
+}
+
+.value-card {
+    background: white;
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: grab;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 110px;
+    justify-content: center;
+}
+
+.value-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.value-card:active {
+    cursor: grabbing;
+}
+
+.value-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.value-card.used {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.value-icon {
+    font-size: 24px;
+}
+
+.value-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Decision area - where choices are presented */
+.decision-area {
+    display: flex;
+    gap: 8px;
+    padding: 0 8px 8px 8px;
+    flex: 1;
+    min-height: 0;
+}
+
+.choice-zone {
+    flex: 1;
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.choice-label {
+    font-weight: bold;
+    font-size: 14px;
+    color: #667eea;
+    text-align: center;
+}
+
+.choice-description {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.3;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Drop zone - target area for dragging values */
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    background: #f9f9f9;
+}
+
+.drop-zone.drag-over {
+    border-color: #667eea;
+    background: #e8eaf6;
+    transform: scale(1.02);
+    box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+}
+
+.drop-zone.filled {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+}
+
+.drop-hint {
+    color: #999;
+    font-size: 11px;
+    text-align: center;
+}
+
+.dropped-value {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+}
+
+.dropped-value .value-icon {
+    font-size: 24px;
+}
+
+/* Feedback panel - shows results after decision */
+.feedback-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    max-width: 90%;
+    width: 400px;
+    text-align: center;
+    animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+.feedback-panel.hidden {
+    display: none;
+}
+
+.feedback-icon {
+    font-size: 60px;
+    margin-bottom: 12px;
+}
+
+.feedback-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    margin-bottom: 16px;
+}
+
+.continue-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.continue-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.continue-btn:active {
+    transform: translateY(0);
+}
+
+/* Progress bar */
+.progress-bar {
+    position: relative;
+    height: 24px;
+    background: white;
+    margin: 0 8px 8px 8px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
+.progress-text {
+    position: relative;
+    text-align: center;
+    line-height: 24px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    z-index: 1;
+}
+
+/* Sound toggle button */
+.sound-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s;
+    z-index: 50;
+}
+
+.sound-toggle:hover {
+    transform: scale(1.1);
+}
+
+.sound-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 600px) {
+    .story-text {
+        font-size: 12px;
+    }
+    
+    .value-card {
+        min-width: 90px;
+        padding: 6px 10px;
+    }
+    
+    .value-icon {
+        font-size: 20px;
+    }
+    
+    .value-name {
+        font-size: 11px;
+    }
+    
+    .choice-description {
+        font-size: 11px;
+    }
+}
+
+/* Accessibility - focus states */
+button:focus,
+.value-card:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Loading animation */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.story-panel,
+.values-panel,
+.decision-area {
+    animation: fadeIn 0.5s ease-in;
+}

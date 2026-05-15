@@ -1,0 +1,3428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOCX → QTI about 75% Converter — human in the loop</title>
+  <!-- Google Fonts: Noto Sans SC (Chinese) + Noto Sans Tamil for multilingual rendering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Sans+Tamil:wght@400;700&display=swap" rel="stylesheet">
+  <!-- JSZip: reads .docx (which is a ZIP) and writes the output ZIP — no server needed -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto,
+                   "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "SimHei",
+                   "Noto Sans Tamil", "Latha", "Tamil Sangam MN",
+                   Arial, sans-serif;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      width: 100%;
+      max-width: 100%;
+      background: white;
+      padding: 30px 48px;
+      border-radius: 0;
+      box-shadow: none;
+      box-sizing: border-box;
+    }
+    h1  { text-align: center; margin-bottom: 5px; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 25px; }
+
+    /* ── Drop zones ─────────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed #3b82f6;
+      border-radius: 12px;
+      padding: 45px;
+      text-align: center;
+      color: #3b82f6;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .drop-zone.dragover  { background: #eef2ff; }
+    .drop-zone.has-file  { border-style: solid; color: #111; }
+    .filename { margin-top: 10px; font-size: 15px; color: #111; }
+
+    /* ── Optional MS zone ───────────────────────────────────────────── */
+    .ms-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 18px 45px;
+      text-align: center;
+      color: #9ca3af;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.2s;
+      margin-top: 14px;
+    }
+    .ms-zone:hover     { border-color: #6b7280; color: #374151; }
+    .ms-zone.dragover  { background: #f3f4f6; border-color: #6b7280; }
+    .ms-zone.has-file  { border-style: solid; color: #111; border-color: #22c55e; }
+
+    .ms-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #dcfce7;
+      color: #16a34a;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* ── Button ─────────────────────────────────────────────────────── */
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      font-size: 17px;
+      cursor: pointer;
+    }
+    button:hover    { background: #1e4ed8; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* Force-MCQ label */
+    #forceMcqLabel {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 12px; font-size: 14px; color: #374151;
+      cursor: pointer; user-select: none;
+    }
+    #forceMcqLabel input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+
+    /* ── Blog post ───────────────────────────────────────────────────── */
+    .blog-post {
+      margin-top: 48px; padding-top: 36px;
+      border-top: 2px solid #e5e7eb;
+    }
+    .blog-post h2 {
+      font-size: 22px; margin: 0 0 4px;
+      color: #111827; line-height: 1.3;
+    }
+    .blog-meta {
+      font-size: 13px; color: #9ca3af; margin: 0 0 22px;
+    }
+    .blog-meta span { margin-right: 14px; }
+    .blog-post h3 {
+      font-size: 16px; color: #1e40af;
+      margin: 26px 0 8px;
+    }
+    .blog-post p {
+      font-size: 15px; color: #374151;
+      line-height: 1.75; margin: 0 0 14px;
+    }
+    .blog-post ul {
+      margin: 0 0 14px; padding-left: 22px;
+    }
+    .blog-post li {
+      font-size: 15px; color: #374151;
+      line-height: 1.75; margin-bottom: 6px;
+    }
+    .etm-pill {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 20px;
+      background: #dbeafe; color: #1e40af;
+      margin-left: 6px; vertical-align: middle;
+      letter-spacing: .3px;
+    }
+    .blog-callout {
+      background: #f0f9ff; border-left: 4px solid #38bdf8;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px; margin: 18px 0;
+      font-size: 15px; color: #0c4a6e; line-height: 1.7;
+    }
+
+    /* ── FAQ section ─────────────────────────────────────────────────── */
+    .faq-section {
+      margin-top: 48px; padding-top: 36px;
+      border-top: 2px solid #e5e7eb;
+    }
+    .faq-section h2 {
+      font-size: 22px; margin: 0 0 6px;
+      color: #111827;
+    }
+    .faq-section .faq-subtitle {
+      font-size: 14px; color: #6b7280; margin: 0 0 22px;
+    }
+    .faq-item {
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: box-shadow .15s;
+    }
+    .faq-item:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+    .faq-item summary {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 18px;
+      font-size: 15px; font-weight: 600; color: #1e3a8a;
+      cursor: pointer; list-style: none;
+      background: #f8faff;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::before {
+      content: '＋'; font-size: 18px; font-weight: 400;
+      color: #3b82f6; flex-shrink: 0; transition: transform .2s;
+    }
+    .faq-item[open] summary::before { content: '－'; }
+    .faq-item[open] summary { background: #eff6ff; }
+    .faq-body {
+      padding: 16px 20px 18px 48px;
+      font-size: 14.5px; color: #374151; line-height: 1.75;
+    }
+    .faq-body p { margin: 0 0 12px; }
+    .faq-body p:last-child { margin: 0; }
+    .faq-body ul { margin: 6px 0 12px; padding-left: 20px; }
+    .faq-body li { margin-bottom: 6px; }
+    .faq-tag {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 20px; vertical-align: middle;
+      margin-left: 4px; letter-spacing: .2px;
+    }
+    .faq-tag.platform { background: #fef9c3; color: #854d0e; }
+    .faq-tag.workaround { background: #dcfce7; color: #15803d; }
+
+    /* ── Quick-load dev bar ──────────────────────────────────────────── */
+    #quickLoad {
+      margin-top: 18px; padding: 12px 14px;
+      background: #f8faff; border: 1.5px dashed #93c5fd;
+      border-radius: 10px; font-size: 13px;
+    }
+    #quickLoad summary {
+      cursor: pointer; color: #2563eb; font-weight: 600;
+      list-style: none; display: flex; align-items: center; gap: 6px;
+    }
+    #quickLoad summary::-webkit-details-marker { display: none; }
+    #quickLoad summary::before { content: '▶'; font-size: 10px; transition: .2s; }
+    #quickLoad[open] summary::before { content: '▼'; }
+    .ql-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 7px; margin-top: 10px;
+    }
+    .ql-btn {
+      all: unset; box-sizing: border-box;
+      padding: 7px 10px; border-radius: 7px;
+      background: #fff; border: 1.5px solid #bfdbfe;
+      font-size: 12px; color: #1e40af; cursor: pointer;
+      text-align: left; line-height: 1.4;
+      transition: background .15s, border-color .15s;
+    }
+    .ql-btn:hover { background: #eff6ff; border-color: #3b82f6; }
+    .ql-btn strong { display: block; font-size: 13px; margin-bottom: 1px; }
+    .ql-btn.ql-active { background: #dbeafe; border-color: #2563eb; }
+    .ql-status { margin-top: 8px; font-size: 12px; color: #6b7280; min-height: 16px; }
+
+    #spinner { display: none; text-align: center; margin-top: 15px; }
+    #message  { margin-top: 20px; text-align: center; }
+    .error   { color: #dc2626; }
+
+    /* ── Instructions ───────────────────────────────────────────────── */
+    .instructions { margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 30px; }
+    .sample-container { margin-top: 15px; text-align: center; }
+    .sample-container img {
+      width: 100%; max-height: 500px; object-fit: contain;
+      border: 1px solid #ddd; border-radius: 6px; cursor: zoom-in;
+    }
+
+    /* ── Zoom modal ─────────────────────────────────────────────────── */
+    .modal {
+      display: none; position: fixed; z-index: 1000;
+      left: 0; top: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center; align-items: center;
+    }
+    .modal img { max-width: 90%; max-height: 90%; }
+
+    /* ── Review & Edit editor ────────────────────────────────────────── */
+    #editorSection {
+      display: none;
+      margin-top: 34px;
+      padding-top: 28px;
+      border-top: 2px solid #e5e7eb;
+    }
+    .editor-header-row {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
+      margin-bottom: 4px;
+    }
+    .editor-header-row h2 { margin: 0 0 4px; font-size: 22px; }
+    .editor-subtitle { margin: 0; color: #6b7280; font-size: 14px; }
+    #editorQCount {
+      align-self: center; white-space: nowrap;
+      font-size: 13px; color: #9ca3af;
+      background: #f3f4f6; padding: 3px 10px; border-radius: 20px;
+    }
+
+    /* Question cards */
+    #questionCards { margin-top: 20px; }
+    .q-card {
+      border: 1.5px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 20px 22px 16px;
+      margin-bottom: 14px;
+      background: #fff;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .q-card:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,.12), 0 2px 8px rgba(0,0,0,.06);
+    }
+    /* Amber border when MCQ card has no correct answer selected */
+    .q-card.no-answer {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245,158,11,.12), 0 1px 5px rgba(0,0,0,.05);
+    }
+    .q-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .q-num-badge {
+      background: #1e40af; color: #fff;
+      font-weight: 700; font-size: 12px;
+      padding: 3px 9px; border-radius: 6px;
+      letter-spacing: .4px;
+    }
+    .q-type-badge {
+      font-size: 11px; font-weight: 700; padding: 2px 7px;
+      border-radius: 4px; text-transform: uppercase; letter-spacing: .4px;
+      cursor: pointer; user-select: none;
+    }
+    .q-type-badge:hover { opacity: .75; }
+    .q-type-badge.mcq   { background: #dbeafe; color: #1e40af; }
+    .q-type-badge.essay { background: #f3e8ff; color: #7c3aed; }
+
+    /* Option image thumbnails inside option rows */
+    .opt-img {
+      max-height: 100px; max-width: 220px;
+      border-radius: 6px; border: 1px solid #e5e7eb;
+      background: #f9fafb; display: block; margin: 0;
+    }
+
+    /* Stem segments */
+    .q-stem { margin-bottom: 12px; }
+    .stem-text {
+      min-height: 30px; padding: 7px 10px;
+      border: 1.5px solid transparent; border-radius: 7px;
+      line-height: 1.65; color: #1f2937; font-size: 15px;
+      font-family: inherit; outline: none;
+      transition: border-color .15s, background .15s;
+      word-break: break-word;
+    }
+    .stem-text:empty::before { content: attr(data-ph); color: #d1d5db; }
+    .stem-text:hover  { border-color: #d1d5db; background: #fafafa; }
+    .stem-text:focus  { border-color: #3b82f6; background: #f0f7ff; }
+    .stem-img {
+      display: block; max-width: 100%; max-height: 300px;
+      margin: 8px auto; border-radius: 8px;
+      border: 1px solid #e5e7eb; background: #f9fafb;
+    }
+    .stem-table {
+      border-collapse: collapse; margin: 8px 0;
+      font-size: 14px; max-width: 100%;
+    }
+    .stem-table td { border: 1px solid #d1d5db; padding: 5px 10px; line-height: 1.4; }
+
+    /* MCQ options */
+    .q-opts-label {
+      font-size: 11px; font-weight: 700; color: #9ca3af;
+      text-transform: uppercase; letter-spacing: .6px;
+      margin: 0 0 8px 2px;
+    }
+    .q-options { margin-top: 4px; }
+    .option-row {
+      display: flex; align-items: center;
+      gap: 9px; margin-bottom: 7px;
+    }
+    .opt-letter {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #f3f4f6; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 13px;
+      color: #374151; flex-shrink: 0;
+      transition: background .2s, color .2s;
+    }
+    .opt-letter.is-correct { background: #16a34a; color: #fff; }
+    .opt-input {
+      flex: 1; padding: 7px 11px;
+      border: 1.5px solid #e5e7eb; border-radius: 7px;
+      font-size: 14px; font-family: inherit; color: #1f2937;
+      transition: border-color .15s;
+      /* contentEditable div needs these to match <input> appearance */
+      min-height: 34px; line-height: 1.5;
+      background: #fff; box-sizing: border-box; cursor: text;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .opt-input:focus { outline: none; border-color: #3b82f6; }
+
+    /* Correct answer row */
+    .q-answer-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 12px; padding-top: 11px;
+      border-top: 1px dashed #e5e7eb;
+      font-size: 13px; color: #6b7280;
+    }
+    .answer-select {
+      padding: 5px 10px; border: 1.5px solid #e5e7eb;
+      border-radius: 7px; font-size: 14px; cursor: pointer;
+      background: #fff; transition: border-color .15s;
+    }
+    .answer-select:focus { outline: none; border-color: #3b82f6; }
+
+    /* Essay suggested-answer area */
+    .q-essay-answer-label {
+      font-size: 11px; font-weight: 700; color: #9ca3af;
+      text-transform: uppercase; letter-spacing: .6px;
+      margin: 14px 0 6px 2px;
+      padding-top: 11px;
+      border-top: 1px dashed #e5e7eb;
+    }
+    .essay-answer-input {
+      width: 100%; box-sizing: border-box;
+      padding: 9px 12px;
+      border: 1.5px solid #e5e7eb; border-radius: 7px;
+      font-size: 13px; font-family: inherit; color: #1f2937;
+      line-height: 1.6; resize: vertical; min-height: 90px;
+      background: #fff; transition: border-color .15s;
+    }
+    .essay-answer-input:focus { outline: none; border-color: #3b82f6; }
+    .essay-answer-input::placeholder { color: #9ca3af; }
+
+    /* Sticky export bar */
+    .editor-action-bar {
+      position: sticky; bottom: 0; z-index: 10;
+      background: #fff;
+      border-top: 2px solid #e5e7eb;
+      padding: 14px 0 0; margin-top: 20px;
+      display: flex; gap: 10px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.07);
+    }
+    .btn-export {
+      flex: 1; background: #16a34a; margin-top: 0;
+      font-size: 16px; font-weight: 600; letter-spacing: .3px;
+    }
+    .btn-export:hover { background: #15803d !important; }
+    .btn-reset {
+      flex: 0 0 auto; width: auto;
+      background: #6b7280; margin-top: 0;
+      font-size: 14px; padding: 12px 18px;
+    }
+    .btn-reset:hover { background: #4b5563 !important; }
+    .btn-export:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>DOCX → QTI about 75% Converter
+    <a href="https://www.youtube.com/watch?v=0KFOVRdJfX0" target="_blank" rel="noopener"
+       title="Watch tutorial on YouTube"
+       style="display:inline-flex;align-items:center;gap:6px;margin-left:12px;
+              vertical-align:middle;text-decoration:none;
+              background:#ff0000;color:#fff;
+              font-size:13px;font-weight:600;letter-spacing:.3px;
+              padding:5px 11px 5px 8px;border-radius:6px;
+              box-shadow:0 1px 4px rgba(0,0,0,.25);
+              transition:background .15s,transform .1s;"
+       onmouseover="this.style.background='#cc0000';this.style.transform='translateY(-1px)'"
+       onmouseout="this.style.background='#ff0000';this.style.transform='translateY(0)'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      </svg>
+      How to use
+    </a>
+  </h1>
+  <div class="subtitle">Upload a formatted Word document and get a ready‑to‑import QTI 2.1 package — supports English, Chinese &amp; Tamil fonts<br>
+    <small style="color:#888">Runs entirely in your browser — no server, no uploads. The remaining 25% needs human-in-the-loop review.</small>
+  </div>
+
+  <!-- Question paper (required) -->
+  <div id="dropZone" class="drop-zone">
+    Drag &amp; drop your question paper (.docx) here<br>or click to select
+    <div id="fileName" class="filename"></div>
+  </div>
+  <input type="file" id="fileInput" accept=".docx" hidden>
+
+  <!-- Mark scheme (optional) -->
+  <div id="msDropZone" class="ms-zone">
+    ➕ Add mark scheme (.docx) — optional
+    <span class="ms-badge">injects correct answers</span>
+    <div id="msFileName" class="filename"></div>
+  </div>
+  <input type="file" id="msFileInput" accept=".docx" hidden>
+
+  <!-- Quick-load test files (dev convenience) -->
+  <details id="quickLoad">
+    <summary>🧪 Quick Load — test files</summary>
+    <div class="ql-grid">
+      <button class="ql-btn" data-qp="files/doc/2022 JC2 H1 Physics Prelim P1.docx"
+                              data-ms="files/doc/2022 JC2 H1 Physics Prelim P1 MS.docx"
+                              data-mcq="1">
+        <strong>H1 P1</strong>2022 JC2 · 30 MCQ
+      </button>
+      <button class="ql-btn" data-qp="files/doc/2022 JC2 H1 Physics Prelim P2.docx"
+                              data-ms="files/doc/2022 JC2 H1 Physics Prelim P2 MS.docx">
+        <strong>H1 P2</strong>2022 JC2 · Structured
+      </button>
+      <button class="ql-btn" data-qp="files/doc/2022 JC2 H2 Physics Prelim P1.docx"
+                              data-ms="files/doc/2022 JC2 H2 Physics Prelim P1 MS (for sharing with other colleges).docx"
+                              data-mcq="1">
+        <strong>H2 P1</strong>2022 JC2 · 30 MCQ
+      </button>
+      <button class="ql-btn" data-qp="files/doc/2022 JC2 H2 Physics Prelim P2 .docx"
+                              data-ms="files/doc/2022 JC2 H2 Physics Prelim P2 MS (for sharing with other colleges).docx">
+        <strong>H2 P2</strong>2022 JC2 · Structured
+      </button>
+      <button class="ql-btn" data-qp="files/doc/2022 JC2 H2 Physics Prelim P3.docx"
+                              data-ms="files/doc/2022 JC2 H2 Physics Prelim P3 MS (for sharing with other colleges).docx">
+        <strong>H2 P3</strong>2022 JC2 · Structured
+      </button>
+      <button class="ql-btn" data-qp="files/doc/questions_tested_lawrence.docx">
+        <strong>Lawrence sample</strong>Inline-numbered MCQ · 2 Qs
+      </button>
+      <button class="ql-btn" data-qp="files/doc/questions2_tested_by_harley.docx">
+        <strong>Harley sample</strong>Auto-list MCQ (numPr) · 2 Qs
+      </button>
+    </div>
+    <div class="ql-status" id="qlStatus"></div>
+  </details>
+
+  <!-- Force-MCQ / Force-Essay toggles -->
+  <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;">
+    <label id="forceMcqLabel">
+      <input type="checkbox" id="forceMcqCheck">
+      All MCQ (Paper 1 / multiple-choice only)
+      <span class="ms-badge" style="background:#fef3c7;color:#92400e">forces MCQ</span>
+    </label>
+    <label id="forceEssayLabel" style="display:flex;align-items:center;gap:8px;font-size:14px;color:#374151;cursor:pointer;user-select:none;">
+      <input type="checkbox" id="forceEssayCheck" style="width:16px;height:16px;cursor:pointer;">
+      All Essay / Structured (Paper 2/3/4)
+      <span class="ms-badge" style="background:#dbeafe;color:#1e40af">forces Essay</span>
+    </label>
+  </div>
+
+  <button id="convertBtn" disabled>Convert Document</button>
+  <div id="spinner">⏳ Converting… please wait</div>
+  <div id="message"></div>
+
+  <!-- ── Review & Edit editor (shown after conversion) ───────────────── -->
+  <div id="editorSection">
+    <div class="editor-header-row">
+      <div>
+        <h2>✏️ Review &amp; Edit</h2>
+        <p class="editor-subtitle">Click any stem or option to edit · Images stay unchanged · Export when ready</p>
+      </div>
+      <span id="editorQCount"></span>
+    </div>
+    <div id="questionCards"></div>
+    <div class="editor-action-bar">
+      <label id="setAllALabel" title="Set every MCQ question with no answer selected to A" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:8px;cursor:pointer;font-size:13.5px;color:#0369a1;user-select:none;">
+        <input type="checkbox" id="setAllAChk" style="width:15px;height:15px;cursor:pointer;accent-color:#0ea5e9;">
+        Set unanswered MCQ → A
+      </label>
+      <button class="btn-export" id="exportBtn">📦 Export QTI ZIP</button>
+      <button class="btn-reset"  id="resetBtn">↩ New File</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h2>How to use this converter</h2>
+
+    <h3 style="margin:18px 0 6px;font-size:16px;color:#1e40af;">Step 1 — Upload</h3>
+    <ul>
+      <li>Drag your question paper <b>.docx</b> into the top zone (or click to browse).</li>
+      <li>Optionally add the matching <b>mark scheme .docx</b> — correct answers are injected automatically.</li>
+      <li>For <b>Paper 1 (all MCQ)</b> papers, tick <em>All questions are MCQ</em> before converting.</li>
+      <li>Click <b>Convert Document</b>.</li>
+    </ul>
+    <p style="margin:8px 0 0;padding:8px 12px;background:#fef9c3;border-left:4px solid #ca8a04;border-radius:4px;font-size:13.5px;color:#713f12;">
+      <b>Tip:</b> If your document mixes questions <em>and</em> answers in the same file, the QTI zip may fail to import into SLS or produce unexpected items.
+      For best results, upload the <b>question paper only</b> and supply a <b>separate mark scheme .docx</b> as the second file.
+    </p>
+
+    <h3 style="margin:18px 0 6px;font-size:16px;color:#1e40af;">Step 2 — Review &amp; Edit <span style="font-weight:400;font-size:13px;color:#6b7280">(optional for Essay papers)</span></h3>
+    <ul>
+      <li>Every detected question appears as a card showing its stem, options, and correct answer.</li>
+      <li><b>Click the MCQ / Essay badge</b> on any card to toggle the question type if it was mis-detected.</li>
+      <li><b>Click any stem text</b> to edit it directly — changes are live.</li>
+      <li><b>Edit option text</b> in the A / B / C / D fields as needed.</li>
+      <li>For <b>MCQ</b>: use the <b>correct-answer dropdown</b> to set the right option — the letter turns green. Export is blocked until all MCQ answers are set.</li>
+      <li>For <b>Essay / Structured</b> papers: correct answers are <em>optional</em> — you can export immediately without filling them in.</li>
+      <li>Images are displayed as-is and cannot be edited here; fix them in Word before converting.</li>
+    </ul>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin-top:10px;font-size:13px;color:#166534;line-height:1.6;">
+      <strong>💡 Free AI workflow — auto-inject model answers using Claude Code:</strong><br>
+      No API key or per-call cost needed. <a href="https://claude.ai/download" target="_blank" rel="noopener" style="color:#15803d;font-weight:600;">Claude Code</a> is Anthropic's AI coding
+      assistant that runs locally on your machine and is included with a Claude subscription.<br><br>
+      <strong>Workflow:</strong>
+      <ol style="margin:6px 0 6px 18px;padding:0;">
+        <li>Export your QTI ZIP from Step 3 and save it in the same folder as this converter.</li>
+        <li>Open that folder in Claude Code (<a href="https://claude.ai/download" target="_blank" rel="noopener" style="color:#15803d;">download here</a>).</li>
+        <li>Type a prompt such as:<br>
+          <code style="display:block;background:#dcfce7;border-radius:4px;padding:6px 10px;margin:4px 0;font-size:12px;color:#14532d;">
+            "Read the QTI ZIP in this folder, generate a concise model answer for each essay question stem,
+            and save an updated ZIP with the answers injected into the &lt;correctResponse&gt; fields."
+          </code>
+        </li>
+        <li>Claude Code reads the ZIP, writes the model answers, and saves the updated ZIP — ready to import into SLS.</li>
+      </ol>
+      This works entirely within your subscription — no extra billing, no API key setup.<br><br>
+      <strong>Other AI coding tools that work the same way:</strong>
+      <ul style="margin:4px 0 0 18px;padding:0;">
+        <li><a href="https://code.visualstudio.com/" target="_blank" rel="noopener" style="color:#15803d;font-weight:600;">VS Code</a> + <a href="https://github.com/features/copilot" target="_blank" rel="noopener" style="color:#15803d;">GitHub Copilot</a> (Microsoft) — open the folder in VS Code, use Copilot Chat with the same prompt above.</li>
+        <li><a href="https://antigravity.google/" target="_blank" rel="noopener" style="color:#15803d;font-weight:600;">Antigravity</a> (Google) — Google's AI coding assistant; run it in this folder with the same prompt.</li>
+        <li><a href="https://trae.ai/" target="_blank" rel="noopener" style="color:#15803d;font-weight:600;">Trae</a> (ByteDance) — AI-native IDE; open this folder and use its chat panel.</li>
+        <li><a href="https://www.cursor.com/" target="_blank" rel="noopener" style="color:#15803d;font-weight:600;">Cursor</a> — AI-first code editor; open the folder and use Composer or Chat.</li>
+        <li><a href="https://windsurf.com/" target="_blank" rel="noopener" style="color:#15803d;font-weight:600;">Windsurf</a> (Codeium) — agentic AI IDE with similar folder-level workflows.</li>
+      </ul>
+      Any of these tools can open this project folder, read the exported QTI ZIP, and inject model answers — the same prompt works across all of them.
+    </div>
+
+    <h3 style="margin:18px 0 6px;font-size:16px;color:#1e40af;">Step 3 — Export</h3>
+    <ul>
+      <li>When satisfied, click <b>📦 Export QTI ZIP</b> at the bottom of the page.</li>
+      <li>The downloaded ZIP reflects all edits made in Step 2 — no re-upload needed.</li>
+      <li>Import the ZIP directly into <b>Singapore Student Learning Space (SLS)</b> via the QTI upload flow.</li>
+      <li>Click <b>↩ New File</b> to reset and convert a different document.</li>
+    </ul>
+
+    <h2>Sample QTI Downloads</h2>
+    <p style="color:#555;font-size:14px;margin-top:0">Ready-to-import QTI packages. Upload directly to SLS.</p>
+    <p style="color:#555;font-size:13px;margin-top:4px;margin-bottom:6px"><strong>Singapore Physics prelim papers:</strong></p>
+    <ul>
+      <li><a href="samples/2022 JC2 H1 Physics Prelim P1.zip" download>2022 JC2 H1 Physics Prelim P1.zip</a></li>
+      <li><a href="samples/2022 JC2 H1 Physics Prelim P2.zip" download>2022 JC2 H1 Physics Prelim P2.zip</a></li>
+      <li><a href="samples/2022 JC2 H2 Physics Prelim P1.zip" download>2022 JC2 H2 Physics Prelim P1.zip</a></li>
+      <li><a href="samples/2022 JC2 H2 Physics Prelim P2 .zip" download>2022 JC2 H2 Physics Prelim P2.zip</a></li>
+      <li><a href="samples/2022 JC2 H2 Physics Prelim P3.zip" download>2022 JC2 H2 Physics Prelim P3.zip</a></li>
+    </ul>
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Singapore Biology prelim papers (with AI-generated model answers):</strong></p>
+    <ul>
+      <li><a href="samples/AMKSS_2025 Prelim P4 Biology Qns with Answers.zip" download>AMKSS 2025 Prelim P4 Biology Qns with Answers.zip</a> — structured/essay paper with model answers injected via Claude Code
+        <br><span style="color:#b45309;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;margin-top:3px;">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+          SLS does not yet support suggested answers for essay/structured questions via QTI import — the answers are embedded in the file but will not appear in SLS until MOE adds this feature.
+        </span>
+      </li>
+    </ul>
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Singapore Chinese (华文) MCQ worksheets — contributed by Alena:</strong></p>
+    <ul>
+      <li><a href="samples/补充作业6 2026.zip" download>补充作业6 2026.zip</a> — Chinese-language MCQ worksheet (Q1–Q15) with ⑴⑵⑶⑷-style options</li>
+    </ul>
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Singapore Chinese (华文) Primary 6 prelim paper — contributed by Francesca:</strong></p>
+    <ul>
+      <li><a href="samples/2022_P6STD_PRELIM_CHINESE_PAPER_2.zip" download>2022_P6STD_PRELIM_CHINESE_PAPER_2.zip</a> — P6 Standard Chinese Paper 2 (2022 Prelim), 40 questions
+        <br><span style="color:#b45309;font-size:11.5px;display:inline-flex;align-items:center;gap:4px;margin-top:3px;">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 000-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+          Current shortcoming: the ZIP contains 40 questions and only 31 are showing up into SLS, but this converter currently recognises only all 40 of them. A solution is on the way I hope.
+        </span>
+      </li>
+    </ul>
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Singapore Chinese Primary 6 revision worksheets &mdash; contributed by Ji Lin:</strong></p>
+    <ul>
+      <li><a href="samples/2020 P6 CL SA1 Revision 1.zip" download>2020 P6 CL SA1 Revision 1.zip</a> - Primary 6 Chinese SA1 revision sample QTI package</li>
+    </ul>
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Simple test samples (demonstrating different DOCX formats):</strong></p>
+    <ul>
+      <li><a href="samples/questions_tested_lawrence.zip" download>questions_tested_lawrence.zip</a> — inline-numbered MCQ ("1. text" / "a. option" format)</li>
+      <li><a href="samples/questions2_tested_by_harley.zip" download>questions2_tested_by_harley.zip</a> — Word auto-list MCQ (numPr / numbering.xml format)</li>
+    </ul>
+
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Singapore Primary 6 Mathematics papers &mdash; contributed by Safiah:</strong></p>
+    <ul>
+      <li><a href="samples/2024 OPS P6 FMA CT1 1A.zip" download>2024 OPS P6 FMA CT1 1A.zip</a> - Primary 6 Foundation Mathematics CT1 sample with MCQ options and answer key</li>
+    </ul>
+
+    <p style="color:#555;font-size:13px;margin-top:12px;margin-bottom:6px"><strong>Singapore Primary 4 English worksheets &amp; practice papers &mdash; contributed by Jessica:</strong>
+      <br><span style="color:#6b7280;font-size:11.5px;">Added 12 May 2026 &mdash; tracked as Jessica contribution batch 1.</span>
+    </p>
+    <ul>
+      <li><a href="files/qticonvert/jessicaTeo/S&amp;T Ex 1_because, as, since (2026).zip" download>S&amp;T Ex 1_because, as, since (2026).zip</a> - Synthesis &amp; Transformation exercise</li>
+      <li><a href="files/qticonvert/jessicaTeo/S&amp;T Ex 2_both, and (2026).zip" download>S&amp;T Ex 2_both, and (2026).zip</a> - Synthesis &amp; Transformation exercise</li>
+      <li><a href="files/qticonvert/jessicaTeo/S&amp;T Ex 3_when (2026).zip" download>S&amp;T Ex 3_when (2026).zip</a> - Synthesis &amp; Transformation exercise</li>
+      <li><a href="files/qticonvert/jessicaTeo/S&amp;T Ex 4_Active to Passive Voice (2026).zip" download>S&amp;T Ex 4_Active to Passive Voice (2026).zip</a> - Synthesis &amp; Transformation exercise</li>
+      <li><a href="files/qticonvert/jessicaTeo/Topical Practice 1 (2026).zip" download>Topical Practice 1 (2026).zip</a> - Primary 4 English topical MCQ practice</li>
+      <li><a href="files/qticonvert/jessicaTeo/Topical Practice 2 (2026).zip" download>Topical Practice 2 (2026).zip</a> - Primary 4 English topical MCQ practice</li>
+      <li><a href="files/qticonvert/jessicaTeo/Topical Practice 3 (2026).zip" download>Topical Practice 3 (2026).zip</a> - Primary 4 English grammar cloze practice</li>
+      <li><a href="files/qticonvert/jessicaTeo/P4 EL Practice Paper 3 (2020 GMSP SA2).zip" download>P4 EL Practice Paper 3 (2020 GMSP SA2).zip</a> - Primary 4 English practice paper</li>
+      <li><a href="files/qticonvert/jessicaTeo/P4 EL Practice Paper 4 (2022 GMSP SA1).zip" download>P4 EL Practice Paper 4 (2022 GMSP SA1).zip</a> - Primary 4 English practice paper</li>
+      <li><a href="files/qticonvert/jessicaTeo/P4 EL Practice Paper 7 (2024 GMSP SA2).zip" download>P4 EL Practice Paper 7 (2024 GMSP SA2).zip</a> - Primary 4 English practice paper</li>
+    </ul>
+
+    <h2>Tutorial Video</h2>
+    <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.15);margin-bottom:24px;">
+      <iframe
+        src="https://www.youtube.com/embed/0KFOVRdJfX0"
+        title="DOCX to QTI Converter — How to use"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border-radius:10px;">
+      </iframe>
+    </div>
+
+    <h2>Resources</h2>
+    <ul>
+      <li>
+        <a href="https://iwant2study.moe.edu.sg/lookangejss/QTIlowJunHua/docx_to_qti.html"
+           target="_blank" rel="noopener noreferrer">
+          This converter — iwant2study.moe.edu.sg (official MOE domain — use this on WOG devices)
+          <span style="display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#15803d;margin-left:5px;vertical-align:middle;">WOG devices</span>
+        </a>
+      </li>
+      <li>
+        <a href="https://iwant2study.org/lookangejss/QTIlowJunHua/docx_to_qti.html"
+           target="_blank" rel="noopener noreferrer">
+          This converter — iwant2study.org (older domain, same site)
+        </a>
+      </li>
+      <li>
+        <a href="https://www.learning.moe.edu.sg/teacher-user-guide/author/upload-question-and-test-interoperability-qti-files/"
+           target="_blank" rel="noopener noreferrer">
+          MOE Singapore — How to upload QTI files to Student Learning Space (SLS)
+        </a>
+      </li>
+      <li>
+        <a href="https://github.com/lookang/QTIconvertertool"
+           target="_blank" rel="noopener noreferrer">
+          GitHub — QTI Converter Tool (this project)
+        </a>
+      </li>
+      <li>
+        <a href="https://github.com/junhualow/docx-qti-converter"
+           target="_blank" rel="noopener noreferrer">
+          GitHub — Original prototype by Low Jun Hua
+        </a>
+      </li>
+      <li>
+        <a href="https://docx-qti-converter.onrender.com/"
+           target="_blank" rel="noopener noreferrer">
+          Live Demo — Flask server version (by Low Jun Hua, hosted on Render)
+        </a>
+      </li>
+      <li>
+        <a href="https://vle.learning.moe.edu.sg/search?keyword=%22SBA%22&amp;location=COMMUNITY&amp;resource=LESSON&amp;subject=&amp;level="
+           target="_blank" rel="noopener noreferrer">
+          SLS Community Gallery — browse "SBA" lesson packages shared by teachers
+        </a>
+        <span style="display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:#dbeafe;color:#1e40af;margin-left:5px;vertical-align:middle;">Teacher login required</span>
+        <br>
+        <span style="font-size:12px;color:#6b7280;line-height:1.6;">
+          Requires a teacher account to log in to SLS and browse the Community Gallery.
+          Currently returns <strong>~1,520 resources</strong> — use the Subject and Level filters
+          on the left panel to narrow down to your targeted modules.
+        </span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── Blog post ─────────────────────────────────────────────────────── -->
+  <div class="blog-post">
+    <h2>From Word Document to SLS in Minutes — Building a DOCX-to-QTI Converter for Singapore Teachers</h2>
+    <p class="blog-meta">
+      <span>📅 April 2026</span>
+      <span>✍️ Wee Loo Kang Lawrence &amp; Low Jun Hua</span>
+      <span>🏫 Singapore Physics Educators</span>
+    </p>
+
+    <h3>The Problem Every Teacher Knows</h3>
+    <p>
+      Every year, Singapore teachers invest enormous effort crafting high-quality examination papers in Microsoft Word — carefully worded MCQ stems, detailed mark schemes, physics diagrams painstakingly drawn or embedded. When it comes time to put these questions onto the national Student Learning Space (SLS) platform, teachers face a second, entirely manual job: re-typing every question, re-uploading every image, and re-entering every correct answer — one by one — into the SLS authoring interface.
+    </p>
+    <p>
+      For a 30-question Paper 1 alone, this can take two to three hours. Multiply that across a department sharing five or six papers per year, and a meaningful slice of teacher time disappears into administrative reformatting rather than pedagogy.
+    </p>
+
+    <div class="blog-callout">
+      "Technology-transformed learning, to prepare students for a technology-transformed world."
+      <br><em>— Vision, <a href="https://www.moe.gov.sg/education-in-sg/educational-technology-journey/edtech-masterplan" target="_blank" rel="noopener noreferrer">MOE EdTech Masterplan 2030</a></em>
+    </div>
+
+    <h3>The Idea: Automate the Bridge Between Word and SLS</h3>
+    <p>
+      SLS supports the international <strong>QTI 2.1</strong> (Question &amp; Test Interoperability) standard for bulk question import. A QTI package is simply a ZIP file containing structured XML — a machine-readable description of every question, its options, its correct answer, and its associated images. If we could automatically translate a Word document into a valid QTI package, teachers could go from a finished exam paper to a fully loaded SLS quiz in minutes.
+    </p>
+    <p>
+      Low Jun Hua built the first Python prototype as a Flask web app. The approach: unzip the <code>.docx</code> file (Word documents are ZIP archives internally), parse the XML, detect question numbers, classify MCQ versus structured responses, extract embedded images, and write out conformant QTI XML. The converter was then extended, hardened, and re-implemented as a <strong>fully in-browser tool</strong> — no server, no sign-in, no file upload to a third party. Everything runs locally in the teacher's own browser using JavaScript and the JSZip library.
+    </p>
+
+    <h3>What the Converter Does</h3>
+    <ul>
+      <li><strong>Parses the Word XML</strong> to detect question numbers, stems, MCQ options (A/B/C/D), images (DrawingML and legacy VML), and tables.</li>
+      <li><strong>Reads the mark scheme</strong> automatically — upload the matching MS <code>.docx</code> and correct answers are injected into every QTI item's <code>correctResponse</code> field.</li>
+      <li><strong>Handles tricky layouts</strong> — nested tables, transposed option grids (A/B/C/D as column headers), image-only options, and physics diagrams embedded as option choices inside <code>&lt;simpleChoice&gt;</code> elements.</li>
+      <li><strong>Sorts questions correctly</strong> — SLS uses file position as the question number, so the converter deduplicates and sorts Q001→Q030 before writing <code>assessment_test.xml</code>.</li>
+      <li><strong>Provides a Review &amp; Edit step</strong> — after parsing, every question appears as an editable card in the browser. Teachers can toggle MCQ/Essay, fix stem text, change the correct answer, and review images before exporting.</li>
+      <li><strong>Exports a ready-to-import ZIP</strong> that can be uploaded directly to SLS without any further editing.</li>
+    </ul>
+
+    <h3>Alignment to the <a href="https://www.moe.gov.sg/education-in-sg/educational-technology-journey/edtech-masterplan" target="_blank" rel="noopener noreferrer">MOE EdTech Masterplan 2030</a></h3>
+    <p>
+      The <strong>EdTech Masterplan 2030</strong> sets out a vision of <em>"Technology-transformed learning, to prepare students for a technology-transformed world."</em> It organises its outcomes around four pillars — <strong>Students</strong>, <strong>Teachers</strong>, <strong>Schools</strong>, and <strong>System</strong> — and calls for teachers to become <em>"technologically-adept, collaborative learning designers"</em> who are pedagogically proficient, data-literate, and continuously experimenting with technology. Its first strategic thrust is to <em>"empower students' learning through greater customisation and personalisation with EdTech."</em> This converter directly supports those goals:
+    </p>
+    <ul>
+      <li>
+        <strong>Teachers pillar — reducing administrative burden</strong> <span class="etm-pill">EdTech 2030</span> —
+        The masterplan calls for teachers to spend their energy on learning design, not clerical work. Converting a 30-question paper manually into SLS can take two to three hours; this tool does it in under a minute, freeing teachers to focus on pedagogy and feedback.
+      </li>
+      <li>
+        <strong>Students pillar — greater personalisation through formative assessment</strong> <span class="etm-pill">EdTech 2030</span> —
+        With prelim papers instantly available on SLS, teachers can assign them as digital formative tasks, gather real-time class-level data, and personalise follow-up — directly enabling the masterplan's thrust on customisation and personalisation.
+      </li>
+      <li>
+        <strong>System pillar — networked EdTech ecosystem and content sharing</strong> <span class="etm-pill">EdTech 2030</span> —
+        Years of carefully crafted exam papers — with diagrams, worked answers, and mark schemes — can be shared across departments and schools as SLS question sets, building the networked content ecosystem the masterplan envisions.
+      </li>
+      <li>
+        <strong>Teachers pillar — data-literate, experimentative professionals</strong> <span class="etm-pill">EdTech 2030</span> —
+        Teachers who migrate their paper questions into QTI gain direct experience with digital assessment metadata (<code>correctResponse</code>, item identifiers, scoring), building the data literacy the masterplan identifies as essential for the modern teacher.
+      </li>
+      <li>
+        <strong>Schools pillar — accessible on WOG devices</strong> <span class="etm-pill">EdTech 2030</span> —
+        The tool is hosted on the official <code>moe.edu.sg</code> domain, making it accessible from Whole-of-Government (WOG) school devices without installation or special permissions — supporting the masterplan's goal of digitally-equipped learning environments.
+      </li>
+    </ul>
+
+    <h3>Lessons Learned Building It</h3>
+    <p>
+      Word documents are far messier than they appear. The same visual layout — a question number followed by four labelled options — can be represented in dozens of different XML structures depending on the Word version, the template used, and the author's habits. Some papers put every question in a table; others mix paragraphs and tables; some use A. B. C. D. as paragraph text, others embed them in nested table cells, others use a transposed grid where A/B/C/D are column headers and the options are images in the rows below.
+    </p>
+    <p>
+      The most important engineering decision was to <strong>never throw away ambiguous content</strong>. Instead of silently dropping unknown structures, the converter surfaces them in the Review &amp; Edit panel so the teacher can make the final call. A question that cannot be auto-classified as MCQ shows up as Essay — one click on the badge toggles it to MCQ and reveals the option fields.
+    </p>
+    <p>
+      Running entirely in the browser was a deliberate choice for privacy and accessibility. Teachers' exam papers — often confidential before sitting — never leave their device. There is no account, no quota, no subscription. The tool works offline once the page is loaded.
+    </p>
+
+    <h3>What's Next</h3>
+    <p>
+      The current tool handles Physics prelim papers well. Future directions include better support for mathematical notation (MathML inside QTI), multi-part structured questions with sub-question scoring, and a question-bank view that lets teachers search and reuse individual items across papers. Contributions and feedback from the Singapore teacher community are very welcome via the <a href="https://github.com/lookang/QTIconvertertool" target="_blank" rel="noopener noreferrer">GitHub repository</a>.
+    </p>
+
+    <p style="font-size:13px;color:#9ca3af;margin-top:28px;padding-top:16px;border-top:1px solid #f3f4f6;">
+      This tool is free and open-source. It was built by Singapore physics educators, for Singapore educators. If it saves your department even one afternoon a year, it has done its job.
+    </p>
+  </div>
+
+</div>
+
+<!-- Zoom modal -->
+<div id="imageModal" class="modal">
+  <img id="modalImg">
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// UI wiring
+// ─────────────────────────────────────────────────────────────────────────────
+const dropZone    = document.getElementById('dropZone');
+const fileInput   = document.getElementById('fileInput');
+const fileNameEl  = document.getElementById('fileName');
+const msDropZone  = document.getElementById('msDropZone');
+const msFileInput = document.getElementById('msFileInput');
+const msFileNameEl = document.getElementById('msFileName');
+const convertBtn  = document.getElementById('convertBtn');
+const spinner     = document.getElementById('spinner');
+const messageEl   = document.getElementById('message');
+
+// ── Prevent browser from navigating/downloading when file is dropped outside a zone ──
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop',     e => e.preventDefault());
+
+// ── Question paper zone ───────────────────────────────────────────────────
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+
+let selectedFile = null;
+function setFile(f) {
+  if (!f || !f.name.toLowerCase().endsWith('.docx')) {
+    showMsg('error', 'Only .docx files are accepted.');
+    return;
+  }
+  selectedFile = f;
+  fileNameEl.textContent = 'Selected: ' + f.name;
+  dropZone.classList.add('has-file');
+  convertBtn.disabled = false;
+  messageEl.innerHTML = '';
+}
+
+// ── Mark scheme zone ──────────────────────────────────────────────────────
+msDropZone.addEventListener('click', () => msFileInput.click());
+msDropZone.addEventListener('dragover',  e => { e.preventDefault(); msDropZone.classList.add('dragover'); });
+msDropZone.addEventListener('dragleave', ()  => msDropZone.classList.remove('dragover'));
+msDropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  msDropZone.classList.remove('dragover');
+  setMsFile(e.dataTransfer.files[0]);
+});
+msFileInput.addEventListener('change', () => setMsFile(msFileInput.files[0]));
+
+let selectedMsFile = null;
+function setMsFile(f) {
+  if (!f) return;
+  if (!f.name.toLowerCase().endsWith('.docx')) {
+    showMsg('error', 'Mark scheme must be a .docx file.');
+    return;
+  }
+  selectedMsFile = f;
+  msFileNameEl.textContent = 'Selected: ' + f.name;
+  msDropZone.classList.add('has-file');
+}
+
+// ── Quick-load buttons ────────────────────────────────────────────────────
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+async function fetchDocx(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`Cannot fetch "${path}" (${res.status})`);
+  const blob = await res.blob();
+  return new File([blob], path.split('/').pop(), { type: DOCX_MIME });
+}
+
+document.querySelectorAll('.ql-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const qlStatus = document.getElementById('qlStatus');
+    const qpPath   = btn.dataset.qp;
+    const msPath   = btn.dataset.ms;
+    const isMcq    = btn.dataset.mcq === '1';
+
+    // Mark active
+    document.querySelectorAll('.ql-btn').forEach(b => b.classList.remove('ql-active'));
+    btn.classList.add('ql-active');
+    qlStatus.textContent = '⏳ Fetching files…';
+
+    try {
+      const qpFile = await fetchDocx(qpPath);
+      setFile(qpFile);
+
+      if (msPath) {
+        const msFile = await fetchDocx(msPath);
+        setMsFile(msFile);
+      }
+
+      // Auto-tick Force MCQ for P1 papers; auto-tick Force Essay for P2/P3/P4 papers
+      document.getElementById('forceMcqCheck').checked  = isMcq;
+      document.getElementById('forceEssayCheck').checked = !isMcq;
+
+      qlStatus.textContent = `✅ Loaded: ${qpFile.name}${msPath ? ' + MS' : ''}`;
+    } catch (e) {
+      qlStatus.textContent = `✗ ${e.message} — run via HTTP server (python3 -m http.server 8080)`;
+      btn.classList.remove('ql-active');
+    }
+  });
+});
+
+// ── Force-MCQ / Force-Essay mutual exclusion ─────────────────────────────
+document.getElementById('forceMcqCheck').addEventListener('change', function() {
+  if (this.checked) document.getElementById('forceEssayCheck').checked = false;
+});
+document.getElementById('forceEssayCheck').addEventListener('change', function() {
+  if (this.checked) document.getElementById('forceMcqCheck').checked = false;
+});
+
+// ── Convert button ────────────────────────────────────────────────────────
+convertBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  convertBtn.disabled = true;
+  spinner.style.display = 'block';
+  messageEl.innerHTML = '';
+  try {
+    // Parse mark scheme first (if provided)
+    let msAnswers = {};
+    if (selectedMsFile) {
+      try { msAnswers = await parseMarkScheme(selectedMsFile); }
+      catch (e) { console.warn('MS parse failed:', e); }
+    }
+
+    const baseName   = selectedFile.name.replace(/\.docx$/i, '');
+    const forceMcq   = document.getElementById('forceMcqCheck').checked;
+    const forceEssay = document.getElementById('forceEssayCheck').checked;
+    const { allQuestions, resolvedImages } = await parseDocxToQuestions(selectedFile, msAnswers);
+
+    // Force-MCQ: convert every Essay question to MCQ with empty options
+    if (forceMcq) {
+      for (const entry of allQuestions) {
+        if (!entry.isMcq) {
+          entry.isMcq = true;
+          if (!entry.q.options || !entry.q.options.length) {
+            entry.q.options      = ['', '', '', ''];
+            entry.q.optionImages = [null, null, null, null];
+          }
+        }
+      }
+    }
+
+    // Force-Essay: convert every MCQ question to Essay (strip options)
+    if (forceEssay) {
+      for (const entry of allQuestions) {
+        entry.isMcq = false;
+      }
+    }
+
+    renderEditor(allQuestions, resolvedImages, baseName);
+    const mcqCount   = allQuestions.filter(e => e.isMcq).length;
+    const essayCount = allQuestions.length - mcqCount;
+    const typeNote   = forceMcq   ? ' (all forced MCQ)'
+                     : forceEssay ? ' (all forced Essay)'
+                     : ` — ${mcqCount} MCQ, ${essayCount} Essay`;
+    showMsg('', `✅ Parsed ${allQuestions.length} questions${typeNote} — review &amp; edit below, then export`);
+  } catch (err) {
+    showMsg('error', '✗ ' + err.message);
+  } finally {
+    spinner.style.display = 'none';
+    convertBtn.disabled = false;
+  }
+});
+
+function showMsg(type, text) {
+  messageEl.innerHTML = type === 'error'
+    ? `<div class="error">${text}</div>`
+    : `<div>${text}</div>`;
+}
+function triggerDownload(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Zoom modal
+const modal     = document.getElementById('imageModal');
+const modalImg  = document.getElementById('modalImg');
+const sampleImg = document.getElementById('sampleImage');
+if (sampleImg) sampleImg.onclick = () => { modal.style.display = 'flex'; modalImg.src = sampleImg.src; };
+modal.onclick = () => { modal.style.display = 'none'; };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Namespaces
+// ─────────────────────────────────────────────────────────────────────────────
+const W   = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const A   = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const VML = 'urn:schemas-microsoft-com:vml';  // legacy VML image format
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Low-level helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function escXml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// Escape & only — let our own <strong>/<em>/<sup>/<sub> pass through
+function safeHtml(s) {
+  return s.replace(/&(?![a-zA-Z#]\w{0,6};)/g, '&amp;');
+}
+function stripTags(s) { return s.replace(/<[^>]+>/g,''); }
+function mergeAdjacentTags(text) {
+  // Merge adjacent identical inline tags: <sup>a</sup><sup>b</sup> → <sup>ab</sup>
+  for (const tag of ['sup','sub','strong','em']) {
+    text = text.replace(new RegExp(`</${tag}><${tag}>`, 'g'), '');
+  }
+  return text;
+}
+function halfIfDoubled(s) {
+  // Recursively halve a string that is an exact repeat of itself.
+  // Fixes Word XML diagram labels duplicated in cells: 'cablecable'→'cable',
+  // ×4 repetition: 'tension in cabletension in cabletension in cabletension in cable'
+  // → ×2 → ×1 via recursion.
+  const n = s.length;
+  if (n >= 10 && n % 2 === 0) {
+    const mid = n >> 1;
+    if (s.slice(0, mid) === s.slice(mid)) return halfIfDoubled(s.slice(0, mid));
+  }
+  return s;
+}
+// Return direct element children of el with given namespace URI + localName
+function directKids(el, ns, name) {
+  return Array.from(el.childNodes).filter(
+    n => n.nodeType === 1 && n.namespaceURI === ns && n.localName === name
+  );
+}
+function randomId(n=3) {
+  const c='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return Array.from({length:n},()=>c[Math.random()*c.length|0]).join('');
+}
+function pad3(n) { return String(parseInt(n)).padStart(3,'0'); }
+
+function getWVal(el) {
+  return el.getAttributeNS(W,  'val')
+      || el.getAttribute('w:val')
+      || el.getAttribute('val')
+      || '';
+}
+function getREmbed(el) {
+  return el.getAttributeNS(REL,'embed')
+      || el.getAttribute('r:embed')
+      || '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extract all tables from a parsed DOCX XML document
+// Returns Array of rows-of-cells:  [ [ [cell,cell,...], [cell,...] ], ... ]
+// ─────────────────────────────────────────────────────────────────────────────
+function extractTables(xmlDoc) {
+  const tables = [];
+  for (const tbl of xmlDoc.getElementsByTagNameNS(W,'tbl')) {
+    const rows = [];
+    for (const tr of tbl.getElementsByTagNameNS(W,'tr')) {
+      const cells = [];
+      for (const tc of tr.getElementsByTagNameNS(W,'tc')) {
+        cells.push(
+          Array.from(tc.getElementsByTagNameNS(W,'t'))
+               .map(t => t.textContent).join('').trim()
+        );
+      }
+      rows.push(cells);
+    }
+    tables.push(rows);
+  }
+  return tables;
+}
+
+function normalizeMcqAnswerValue(raw) {
+  let compact = stripTags(String(raw || ''))
+    .replace(/\u3000/g, '')
+    .replace(/\s+/g, '')
+    .toUpperCase();
+  if (!compact) return null;
+
+  if (/^[ABCD]$/.test(compact)) return compact.toLowerCase();
+
+  const circledMap = {
+    '①': '1', '②': '2', '③': '3', '④': '4',
+    '⑴': '1', '⑵': '2', '⑶': '3', '⑷': '4'
+  };
+  compact = circledMap[compact] || compact;
+
+  if (/^[（(]/.test(compact)) compact = compact.slice(1);
+  if (/[）).．]$/.test(compact)) compact = compact.slice(0, -1);
+
+  if (/^[1-4]$/.test(compact)) {
+    return String.fromCharCode(96 + parseInt(compact, 10));
+  }
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK-SCHEME PARSER
+// Returns { qnum_str: answer_str }
+//   MCQ  : { '1': 'b', '2': 'c', … }   (lowercase = simpleChoice identifier)
+//   Essay: { '1': '1a: text\n1bi: text\n…', … }
+// ─────────────────────────────────────────────────────────────────────────────
+async function parseMarkScheme(msFile) {
+  const buf    = await msFile.arrayBuffer();
+  const zip    = await JSZip.loadAsync(buf);
+  const parser = new DOMParser();
+
+  const docStr = await zip.file('word/document.xml').async('string');
+  const xmlDoc = parser.parseFromString(docStr, 'application/xml');
+
+  const answers = {};
+
+  // 1. Scan for answers in tables (MCQ grids & structured)
+  const tables = extractTables(xmlDoc);
+  for (const table of tables) {
+    for (let r = 0; r < table.length; r++) {
+      for (let c = 0; c < table[r].length; c++) {
+        const cell = (table[r][c] || '').trim();
+        // Match Q-number (e.g. "1", "01", "Q1", "Q01")
+        const mQ = cell.match(/^[Qq]?0*(\d+)$/);
+        if (mQ) {
+          const qnStr = mQ[1];
+          let foundAns = false;
+
+          // Check right cell (column-style)
+          if (c + 1 < table[r].length) {
+            const right = (table[r][c+1] || '').trim();
+            const rightMcq = normalizeMcqAnswerValue(right);
+            if (rightMcq) { answers[qnStr] = rightMcq; foundAns = true; }
+            else if (right.length > 0) {
+              // Could be structured answer test (e.g. "Q34" -> "This is the answer")
+              if (answers[qnStr] && answers[qnStr].length > 1) answers[qnStr] += '\n' + right;
+              else answers[qnStr] = right;
+              foundAns = true;
+            }
+          }
+
+          // Check bottom cell (row-style) 
+          // Only check bottom if we didn't find a clean right answer, or if we want to catch alternating rows
+          if (!foundAns && r + 1 < table.length) {
+            const bottom = (table[r+1][c] || '').trim();
+            const bottomMcq = normalizeMcqAnswerValue(bottom);
+            if (bottomMcq) { answers[qnStr] = bottomMcq; foundAns = true; }
+          }
+        } else {
+          // Check for structured like "Q34: answer" inside a single cell
+          const structMatch = cell.match(/^[Q]?0*(\d+)[.:：]\s*(.*)/i);
+          if (structMatch) {
+            const qnStr = structMatch[1];
+            const text = structMatch[2].trim();
+            if (text) answers[qnStr] = text;
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Scan for answers in paragraphs (Essay style)
+  let currentQnum = null;
+  const paras = Array.from(xmlDoc.getElementsByTagNameNS(W, 'p'));
+  for (const p of paras) {
+    const pt = Array.from(p.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('').trim();
+    if (!pt) continue;
+
+    // Matches Q34. Q34: Q34  or  34. 34: (Requires punctuation if no Q is present)
+    let qnum = null;
+    let ansText = "";
+    const m1 = pt.match(/^[Qq]0*(\d+)[.:：\s]*(.*)/);
+    const m2 = pt.match(/^0*(\d+)[.:：]+\s*(.*)/);
+    if (m1) { qnum = m1[1]; ansText = m1[2].trim(); }
+    else if (m2) { qnum = m2[1]; ansText = m2[2].trim(); }
+
+    if (qnum) {
+      let isMcq = false;
+      const normalizedAns = normalizeMcqAnswerValue(ansText);
+      if (normalizedAns) { ansText = normalizedAns; isMcq = true; }
+      
+      // Protect existing single-letter MCQ answers from being overwritten by false paragraph hits
+      if (answers[qnum] && /^[a-d]$/.test(answers[qnum])) {
+         if (isMcq) answers[qnum] = ansText;
+         currentQnum = null;
+         continue;
+      }
+      
+      if (answers[qnum] && answers[qnum].length > 1 && !isMcq && answers[qnum] !== ansText) {
+        if (!answers[qnum].includes(ansText)) answers[qnum] += '\n' + pt;
+      } else {
+        answers[qnum] = ansText || pt;
+      }
+      currentQnum = isMcq ? null : qnum;
+    } else {
+      if (currentQnum && answers[currentQnum]) {
+        answers[currentQnum] += '\n' + pt;
+      }
+    }
+  }
+
+  return answers;
+}
+
+async function parseMarkSchemeEnhanced(msFile) {
+  const buf = await msFile.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+  const parser = new DOMParser();
+
+  const docStr = await zip.file('word/document.xml').async('string');
+  const xmlDoc = parser.parseFromString(docStr, 'application/xml');
+
+  const answers = {};
+  const appendStructuredAnswer = (qnum, label, text) => {
+    if (!text) return;
+    const entry = `${label}: ${text}`;
+    if (answers[qnum] && !/^[a-d]$/.test(answers[qnum])) {
+      if (!answers[qnum].includes(entry)) answers[qnum] += '\n' + entry;
+    } else {
+      answers[qnum] = entry;
+    }
+  };
+
+  const tables = extractTables(xmlDoc);
+  if (tables.length) {
+    const first = tables[0];
+    const firstCell = first[0] && first[0][0] ? first[0][0].trim() : '';
+    const maxCols = first.reduce((max, row) => Math.max(max, row.length), 0);
+
+    if (first.length >= 6 && maxCols >= 10 && /^[Qq]?0*\d+$/.test(firstCell)) {
+      for (let r = 0; r + 1 < first.length; r += 2) {
+        const qRow = first[r] || [];
+        const aRow = first[r + 1] || [];
+        for (let c = 0; c < Math.min(qRow.length, aRow.length); c++) {
+          const qMatch = (qRow[c] || '').trim().match(/^[Qq]?0*(\d+)$/);
+          const ans = normalizeMcqAnswerValue(aRow[c]);
+          const qnNum = qMatch ? parseInt(qMatch[1], 10) : 0;
+          if (qMatch && ans && qnNum > 0) answers[String(qnNum)] = ans;
+        }
+      }
+      return answers;
+    }
+  }
+
+  for (const table of tables) {
+    for (const row of table) {
+      const cells = row.map(cell => String(cell || '').trim());
+      if (!cells.some(Boolean)) continue;
+
+      let pairedAnswers = 0;
+      for (let c = 0; c + 1 < cells.length; c += 2) {
+        const qMatch = cells[c].match(/^[Qq]?0*(\d+)$/);
+        const ans = normalizeMcqAnswerValue(cells[c + 1]);
+        const qnNum = qMatch ? parseInt(qMatch[1], 10) : 0;
+        if (qMatch && ans && qnNum > 0) {
+          answers[String(qnNum)] = ans;
+          pairedAnswers += 1;
+        }
+      }
+      if (pairedAnswers) continue;
+
+      if (cells.length >= 2) {
+        const label = cells[0];
+        const text = cells[1];
+        const structuredMatch = label.match(/^[Qq]?0*(\d+)(.*)$/);
+        if (structuredMatch && text) {
+          const qnNum = parseInt(structuredMatch[1], 10);
+          if (!(qnNum > 0)) continue;
+          const qnStr = String(qnNum);
+          const suffix = (structuredMatch[2] || '').trim();
+          const inlineMcq = normalizeMcqAnswerValue(text);
+          if (inlineMcq && !suffix) {
+            answers[qnStr] = inlineMcq;
+            continue;
+          }
+          appendStructuredAnswer(qnStr, label, text);
+          continue;
+        }
+      }
+
+      for (let c = 0; c < cells.length; c++) {
+        const cell = cells[c];
+        const qMatch = cell.match(/^[Qq]?0*(\d+)$/);
+        if (qMatch) {
+          const qnNum = parseInt(qMatch[1], 10);
+          if (!(qnNum > 0)) continue;
+          const qnStr = String(qnNum);
+          const right = c + 1 < cells.length ? cells[c + 1] : '';
+          const rightMcq = normalizeMcqAnswerValue(right);
+          if (rightMcq) {
+            answers[qnStr] = rightMcq;
+            continue;
+          }
+          if (right.length > 0 && !/^answer$/i.test(right)) {
+            answers[qnStr] = right;
+            continue;
+          }
+        } else {
+          const structMatch = cell.match(/^[Qq]?0*(\d+)[.:ï¼š]\s*(.*)/i);
+          if (structMatch) {
+            const qnStr = structMatch[1];
+            const text = structMatch[2].trim();
+            if (text) answers[qnStr] = text;
+          }
+        }
+      }
+    }
+  }
+
+  let currentQnum = null;
+  const paras = Array.from(xmlDoc.getElementsByTagNameNS(W, 'p'));
+  for (const p of paras) {
+    const pt = Array.from(p.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('').trim();
+    if (!pt) continue;
+
+    let qnum = null;
+    let ansText = "";
+    const m1 = pt.match(/^[Qq]0*(\d+)[.:ï¼š\s]*(.*)/);
+    const m2 = pt.match(/^0*(\d+)[.:ï¼š]+\s*(.*)/);
+    if (m1) { qnum = m1[1]; ansText = m1[2].trim(); }
+    else if (m2) { qnum = m2[1]; ansText = m2[2].trim(); }
+    if (qnum && parseInt(qnum, 10) === 0) qnum = null;
+
+    if (qnum) {
+      let isMcq = false;
+      const normalizedAns = normalizeMcqAnswerValue(ansText);
+      if (normalizedAns) { ansText = normalizedAns; isMcq = true; }
+
+      if (answers[qnum] && /^[a-d]$/.test(answers[qnum])) {
+        if (isMcq) answers[qnum] = ansText;
+        currentQnum = null;
+        continue;
+      }
+
+      if (answers[qnum] && answers[qnum].length > 1 && !isMcq && answers[qnum] !== ansText) {
+        if (!answers[qnum].includes(ansText)) answers[qnum] += '\n' + pt;
+      } else {
+        answers[qnum] = ansText || pt;
+      }
+      currentQnum = isMcq ? null : qnum;
+    } else if (currentQnum && answers[currentQnum]) {
+      answers[currentQnum] += '\n' + pt;
+    }
+  }
+
+  return answers;
+}
+parseMarkScheme = parseMarkSchemeEnhanced;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Iterate body children → yield {type, value}
+// type = 'text' | 'image' | 'table'
+// ─────────────────────────────────────────────────────────────────────────────
+function* iterBlockItems(body) {
+  for (const child of body.childNodes) {
+    if (child.nodeType !== 1) continue;
+    const tag = child.localName;
+
+    // ── Paragraph ──────────────────────────────────────────────────────
+    if (tag === 'p') {
+      // Extract DOCX automatic-list numbering info (numId + indent level).
+      // Some docs generate "1." / "a." labels via <w:numPr> rather than
+      // embedding the number as plain text inside <w:t>.
+      let numPr = null;
+      const pPrEl = child.getElementsByTagNameNS(W,'pPr')[0];
+      if (pPrEl) {
+        const numPrEl = pPrEl.getElementsByTagNameNS(W,'numPr')[0];
+        if (numPrEl) {
+          const numIdEl = numPrEl.getElementsByTagNameNS(W,'numId')[0];
+          const ilvlEl  = numPrEl.getElementsByTagNameNS(W,'ilvl')[0];
+          const numId   = numIdEl ? getWVal(numIdEl) : null;
+          // numId="0" means "no list" in Word — treat as non-list
+          if (numId && numId !== '0') {
+            numPr = { numId, ilvl: ilvlEl ? getWVal(ilvlEl) : '0' };
+          }
+        }
+      }
+
+      const parts = [];
+
+      // Skip runs that are inside <w:drawing> or <w:pict> (canvas/shape label text,
+      // not part of the readable paragraph flow).
+      const drawingRunSet = new Set();
+      for (const el of child.getElementsByTagNameNS(W,'drawing')) {
+        for (const r of el.getElementsByTagNameNS(W,'r')) drawingRunSet.add(r);
+      }
+      for (const el of child.getElementsByTagNameNS(W,'pict')) {
+        for (const r of el.getElementsByTagNameNS(W,'r')) drawingRunSet.add(r);
+      }
+
+      // Dictionary to map legacy Singapore HYPY font ASCII keys to Unicode Pinyin
+      const hypyMap = {
+        'C': 'ǎ', 'H': 'ǐ', 'K': 'ē', 'N': 'è', 'P': 'ē', 'Q': 'ó', 'S': 'è',
+        'A': 'ā', 'B': 'á', 'D': 'à', 'E': 'ō', 'F': 'ó', 'G': 'ǒ',
+        'I': 'ī', 'J': 'í', 'L': 'ì', 'M': 'ū', 'O': 'ǔ', 'R': 'ú', 'T': 'ù',
+        'U': 'ǖ', 'V': 'ǘ', 'W': 'ǚ', 'X': 'ǜ', 'Y': 'ě', 'Z': 'ě'
+      };
+      function translateHypy(text) {
+        return text.split('').map(c => hypyMap[c] || c).join('');
+      }
+
+      for (const run of child.getElementsByTagNameNS(W,'r')) {
+        if (drawingRunSet.has(run)) continue;  // skip diagram/shape label text
+        // Skip deleted-text runs
+        if (run.getElementsByTagNameNS(W,'del').length) continue;
+
+        // OLE MathType/object runs often have no text payload.
+        // Emit a LaTeX placeholder so SLS can still render math text context.
+        if (run.getElementsByTagNameNS(W,'object').length) {
+          parts.push('$$\\\\text{[equation]}$$');
+          continue;
+        }
+
+        let text = Array.from(run.getElementsByTagNameNS(W,'t'))
+                        .map(t => t.textContent).join('');
+        if (!text) continue;
+
+        const rPr = run.getElementsByTagNameNS(W,'rPr')[0];
+        if (rPr) {
+          // Detect legacy HYPY font and translate its proprietary mapping to Unicode
+          const rFonts = rPr.getElementsByTagNameNS(W,'rFonts')[0];
+          if (rFonts) {
+            const fontName = rFonts.getAttributeNS(W, 'ascii') || rFonts.getAttribute('w:ascii');
+            if (fontName && fontName.toLowerCase() === 'hypy') {
+              text = translateHypy(text);
+            }
+          }
+
+          const vAlign = rPr.getElementsByTagNameNS(W,'vertAlign')[0];
+          if (vAlign) {
+            const v = getWVal(vAlign);
+            if (v === 'superscript') text = `<sup>${text}</sup>`;
+            if (v === 'subscript')   text = `<sub>${text}</sub>`;
+          }
+          const bEl = rPr.getElementsByTagNameNS(W,'b')[0];
+          const iEl = rPr.getElementsByTagNameNS(W,'i')[0];
+          if (bEl && getWVal(bEl) !== '0' && getWVal(bEl) !== 'false') text = `<strong>${text}</strong>`;
+          if (iEl && getWVal(iEl) !== '0' && getWVal(iEl) !== 'false') text = `<em>${text}</em>`;
+        }
+        parts.push(text);
+      }
+
+      const paraText = mergeAdjacentTags(parts.join('').trim());
+      // Yield if there is text content, or if this paragraph carries list-
+      // numbering metadata (so the parser can detect question/option role
+      // even when the label is generated by Word, not stored in <w:t>).
+      if (paraText || numPr) yield { type: 'text', value: paraText || '', numPr };
+
+      // Images embedded in this paragraph — DrawingML (modern) + VML (legacy)
+      for (const blip of child.getElementsByTagNameNS(A,'blip')) {
+        const rId = getREmbed(blip);
+        if (rId) yield { type: 'image', value: rId };
+      }
+      for (const imgdata of child.getElementsByTagNameNS(VML,'imagedata')) {
+        const rId = imgdata.getAttributeNS(REL,'id') || imgdata.getAttribute('r:id') || '';
+        if (rId) yield { type: 'image', value: rId };
+      }
+    }
+
+    // ── Table ───────────────────────────────────────────────────────────
+    else if (tag === 'tbl') {
+      const rows = [];
+      const rowImages  = [];   // rowImages[i]    = all rIds in row i
+      const cellImages = [];   // cellImages[i][j] = rIds in cell (i,j)
+      const cellParas  = [];   // cellParas[i][j]  = individual paragraph texts (un-joined)
+      const seenRids = new Set();
+
+      // Walk ALL <w:tr> descendants (includes nested table rows so that
+      // "which row?" questions have their A/B/C/D option rows processed).
+      for (const tr of child.getElementsByTagNameNS(W,'tr')) {
+        const cells = [];
+        const thisRowImgs = [];
+        const thisRowCellImgs = [];   // per-cell images for this row
+        const thisRowCellParas = [];  // per-cell paragraph arrays (un-joined)
+
+        // Use DIRECT <w:tc> children of this row only.
+        // getElementsByTagNameNS would also return cells from any nested tables
+        // inside a cell, inflating rows[0] with nested-table content.
+        for (const tc of directKids(tr, W, 'tc')) {
+
+          // Extract text from DIRECT <w:p> children of the cell only
+          // (does not descend into nested <w:tbl> elements).
+          // Paragraphs are joined with a space so multi-line option cells like
+          // ['A', 'option text'] produce 'A option text' for OPT_CELL_RE.
+          const paraTexts = [];
+          const seenParas = new Set();   // cross-paragraph dedup (Word merged-cell artefact)
+          for (const para of directKids(tc, W, 'p')) {
+            const runParts = [];
+            // Skip runs inside <w:drawing>/<w:pict> (canvas/shape labels, not flow text)
+            const cellDrawingRunSet = new Set();
+            for (const el of para.getElementsByTagNameNS(W,'drawing')) {
+              for (const r of el.getElementsByTagNameNS(W,'r')) cellDrawingRunSet.add(r);
+            }
+            for (const el of para.getElementsByTagNameNS(W,'pict')) {
+              for (const r of el.getElementsByTagNameNS(W,'r')) cellDrawingRunSet.add(r);
+            }
+            for (const run of para.getElementsByTagNameNS(W,'r')) {
+              if (cellDrawingRunSet.has(run)) continue;  // skip diagram/shape label text
+              if (run.getElementsByTagNameNS(W,'del').length) continue;
+              if (run.getElementsByTagNameNS(W,'object').length) {
+                runParts.push('$$\\\\text{[equation]}$$');
+                continue;
+              }
+              let text = Array.from(run.getElementsByTagNameNS(W,'t'))
+                              .map(t => t.textContent).join('');
+              if (!text) continue;
+              const rPr = run.getElementsByTagNameNS(W,'rPr')[0];
+              if (rPr) {
+                // Detect legacy HYPY font and translate its proprietary mapping to Unicode
+                const rFonts = rPr.getElementsByTagNameNS(W,'rFonts')[0];
+                if (rFonts) {
+                  const fontName = rFonts.getAttributeNS(W, 'ascii') || rFonts.getAttribute('w:ascii');
+                  if (fontName && fontName.toLowerCase() === 'hypy') {
+                    text = translateHypy(text);
+                  }
+                }
+
+                const vAlign = rPr.getElementsByTagNameNS(W,'vertAlign')[0];
+                if (vAlign) {
+                  const v = getWVal(vAlign);
+                  if (v === 'superscript') text = `<sup>${text}</sup>`;
+                  if (v === 'subscript')   text = `<sub>${text}</sub>`;
+                }
+                const bEl = rPr.getElementsByTagNameNS(W,'b')[0];
+                const iEl = rPr.getElementsByTagNameNS(W,'i')[0];
+                if (bEl && getWVal(bEl) !== '0' && getWVal(bEl) !== 'false') text = `<strong>${text}</strong>`;
+                if (iEl && getWVal(iEl) !== '0' && getWVal(iEl) !== 'false') text = `<em>${text}</em>`;
+              }
+              runParts.push(text);
+            }
+            let paraText = mergeAdjacentTags(runParts.join('').trim());
+            // Detect doubling via HTML-stripped plain text so '<strong>XX</strong>'
+            // (from merged adjacent tags) is still caught.
+            const plainText = paraText.replace(/<[^>]+>/g, '');
+            const dedupedText = halfIfDoubled(plainText);
+            if (dedupedText !== plainText) paraText = dedupedText;  // use plain deduped
+            paraText = paraText.trim();
+            // Cross-paragraph dedup: skip repeated paragraphs (Word merged-cell artefact)
+            if (paraText && !seenParas.has(paraText)) {
+              seenParas.add(paraText);
+              paraTexts.push(paraText);
+            }
+          }
+          cells.push(paraTexts.join(' '));
+          thisRowCellParas.push([...paraTexts]);   // keep individual paragraphs for embedded-option detection
+
+          // Collect images from this cell — DrawingML + VML — per-cell and per-row
+          const thisCellImgs = [];
+          for (const blip of tc.getElementsByTagNameNS(A,'blip')) {
+            const rId = getREmbed(blip);
+            if (rId && !seenRids.has(rId)) { seenRids.add(rId); thisCellImgs.push(rId); thisRowImgs.push(rId); }
+          }
+          for (const imgdata of tc.getElementsByTagNameNS(VML,'imagedata')) {
+            const rId = imgdata.getAttributeNS(REL,'id') || imgdata.getAttribute('r:id') || '';
+            if (rId && !seenRids.has(rId)) { seenRids.add(rId); thisCellImgs.push(rId); thisRowImgs.push(rId); }
+          }
+          thisRowCellImgs.push(thisCellImgs);
+        }
+        rows.push(cells);
+        rowImages.push(thisRowImgs);
+        cellImages.push(thisRowCellImgs);
+        cellParas.push(thisRowCellParas);
+      }
+      yield { type: 'table', value: rows, rowImages, cellImages, cellParas };
+      // Yield images from non-option rows as stem images after the table.
+      // Option rows (first cell = single letter A-D) keep their images at option level.
+      for (let ri = 0; ri < rows.length; ri++) {
+        const fp = (rows[ri][0] || '').replace(/<[^>]+>/g, '').trim();
+        if (!/^[A-D]$/i.test(fp)) {
+          for (const rId of rowImages[ri]) yield { type: 'image', value: rId };
+        }
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tokens → HTML (for QTI item stem)
+// ─────────────────────────────────────────────────────────────────────────────
+function tokensToHtml(tokens) {
+  return tokens.map(({ type, value }) => {
+    if (type === 'text') {
+      return `<div>${safeHtml(value)}</div>\n`;
+    }
+    if (type === 'image') {
+      return `\n<div><img alt="diagram" src="../assets/${value}"/></div>\n`;
+    }
+    if (type === 'table') {
+      let t = "<table border='1'>\n";
+      for (const row of value) {
+        t += '<tr>' + row.map(c => `<td>${safeHtml(c)}</td>`).join('') + '</tr>\n';
+      }
+      return t + '</table>\n';
+    }
+    return '';
+  }).join('');
+}
+
+function answerToString(tokens) {
+  if (!tokens || !tokens.length) return 'None';
+  return tokens.map(({ type, value }) =>
+    type === 'text'  ? value :
+    type === 'image' ? `[image:${value}]` :
+    type === 'table' ? '[table]' : ''
+  ).join(' ').trim() || 'None';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QTI 2.1 item builders
+// ─────────────────────────────────────────────────────────────────────────────
+const QTI_NS  = 'http://www.imsglobal.org/xsd/imsqti_v2p1';
+const QTI_XSD = 'http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1.xsd';
+const LETTERS = ['a','b','c','d','e','f'];
+
+function pickMcqTitleText(tokens) {
+  const candidates = (tokens || [])
+    .filter(t => t.type === 'text')
+    .map(t => stripTags(t.value || '').trim())
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (candidate.includes('______') || candidate.includes('＿＿＿') || candidate.includes('(      )') || candidate.includes('(       )')) {
+      return candidate.slice(0, 70);
+    }
+  }
+  for (const candidate of candidates) {
+    if (candidate.includes('?') || candidate.includes('？')) {
+      return candidate.slice(0, 70);
+    }
+  }
+  return (candidates[candidates.length - 1] || '').slice(0, 70);
+}
+
+function mcqItemXml(q, answerText) {
+  const id  = `Q${pad3(q.qnum)}_${randomId()}`;
+  const ttl = escXml(pickMcqTitleText(q.tokens));
+  // Only emit <correctResponse> when answerText is a valid simpleChoice identifier
+  // (a–f).  An empty string or "None" is not a valid QTI identifier and causes
+  // SLS to reject the entire ZIP with "Processing unsuccessful".
+  const validAns = LETTERS.includes((answerText || '').toLowerCase())
+    ? (answerText).toLowerCase() : null;
+  const correctEl = validAns
+    ? `  <correctResponse><value>${validAns}</value></correctResponse>\n`
+    : '';
+  let xml = `<assessmentItem xmlns="${QTI_NS}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  adaptive="false" identifier="${id}" timeDependent="false"
+  title="Q${pad3(q.qnum)} ${ttl}"
+  xsi:schemaLocation="${QTI_XSD}">
+<responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
+${correctEl}</responseDeclaration>
+<outcomeDeclaration baseType="float" cardinality="single" identifier="SCORE"/>
+<itemBody>
+  <choiceInteraction responseIdentifier="RESPONSE" shuffle="true" maxChoices="1">
+    <prompt><div>\n${tokensToHtml(q.tokens)}</div></prompt>\n`;
+  q.options.slice(0,6).forEach((opt,i) => {
+    const optImgFn = q.optionImages && q.optionImages[i];
+    const imgTag   = optImgFn ? `<img alt="option ${LETTERS[i].toUpperCase()}" src="../assets/${optImgFn}"/>` : '';
+    xml += `    <simpleChoice identifier="${LETTERS[i]}">${imgTag}${safeHtml(opt)}</simpleChoice>\n`;
+  });
+  xml += `  </choiceInteraction>
+</itemBody>
+<responseProcessing template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"/>
+</assessmentItem>`;
+  return { id, xml };
+}
+
+function essayItemXml(q, answerText) {
+  const id = `Q${pad3(q.qnum)}_${randomId()}`;
+  // Only emit answer elements when there is a real answer (not the placeholder "None").
+  const hasAnswer = answerText && answerText.trim() && answerText !== 'None';
+
+  // <correctResponse> inside <responseDeclaration> — stores the answer in the QTI data model.
+  const correctEl = hasAnswer
+    ? `\n  <correctResponse><value>${escXml(answerText)}</value></correctResponse>`
+    : '';
+
+  // FEEDBACK outcome — baseType MUST be "identifier" per QTI 2.1 spec (§6.4).
+  // No defaultValue needed: responseProcessing sets it unconditionally below.
+  const feedbackOutcomeEl = hasAnswer
+    ? `\n<outcomeDeclaration identifier="FEEDBACK" cardinality="single" baseType="identifier"/>`
+    : '';
+
+  // <rubricBlock view="scorer"> — QTI standard marking-guide panel shown to scorers.
+  const rubricEl = hasAnswer
+    ? `\n  <rubricBlock view="scorer"><p>${escXml(answerText)}</p></rubricBlock>`
+    : '';
+
+  // <modalFeedback showHide="show"> — shown after response processing fires.
+  // Per spec §9: "shown directly following response processing."
+  const modalEl = hasAnswer
+    ? `\n<modalFeedback outcomeIdentifier="FEEDBACK" showHide="show" identifier="modelAnswer" title="Suggested Answer">
+  <p>${escXml(answerText)}</p>
+</modalFeedback>`
+    : '';
+
+  // <responseProcessing> — unconditionally sets FEEDBACK = "modelAnswer" so
+  // the modalFeedback triggers for every submission. Without this, modalFeedback
+  // never fires because FEEDBACK stays NULL and showHide="show" requires a match.
+  const rpEl = hasAnswer
+    ? `\n<responseProcessing>
+  <setOutcomeValue identifier="FEEDBACK">
+    <baseValue baseType="identifier">modelAnswer</baseValue>
+  </setOutcomeValue>
+</responseProcessing>`
+    : '';
+
+  const xml = `<assessmentItem xmlns="${QTI_NS}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  adaptive="false" identifier="${id}" timeDependent="false" title="Q${pad3(q.qnum)}"
+  xsi:schemaLocation="${QTI_XSD}">
+<responseDeclaration identifier="RESPONSE" cardinality="single" baseType="string">${correctEl}
+</responseDeclaration>
+<outcomeDeclaration baseType="float" cardinality="single" identifier="SCORE"/>${feedbackOutcomeEl}
+<itemBody>${rubricEl}
+  <extendedTextInteraction responseIdentifier="RESPONSE" expectedLength="400">
+    <prompt>\n${tokensToHtml(q.tokens)}</prompt>
+  </extendedTextInteraction>
+</itemBody>${modalEl}${rpEl}
+</assessmentItem>`;
+  return { id, xml };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main converter — split into two phases:
+//   parseDocxToQuestions → {allQuestions, resolvedImages}
+//   buildQtiZipBlob      → Blob (the ZIP file)
+// ─────────────────────────────────────────────────────────────────────────────
+async function parseDocxToQuestions(file, msAnswers) {
+  msAnswers = msAnswers || {};
+
+  const buf     = await file.arrayBuffer();
+  const docxZip = await JSZip.loadAsync(buf);
+  const parser  = new DOMParser();
+
+  // ── Parse document.xml ──────────────────────────────────────────────
+  const docStr = await docxZip.file('word/document.xml').async('string');
+  const xmlDoc = parser.parseFromString(docStr, 'application/xml');
+  const body   = xmlDoc.getElementsByTagNameNS(W,'body')[0];
+  if (!body) throw new Error('Cannot find document body — is this a valid .docx file?');
+
+  // ── Preprocess Hanyu Pinyin (<w:ruby> phonetic guides) ──────────────
+  const rubies = Array.from(xmlDoc.getElementsByTagNameNS(W, 'ruby'));
+  for (const ruby of rubies) {
+    const rt = ruby.getElementsByTagNameNS(W, 'rt')[0];
+    const base = ruby.getElementsByTagNameNS(W, 'rubyBase')[0];
+    const rtText = rt ? Array.from(rt.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('') : '';
+    const baseText = base ? Array.from(base.getElementsByTagNameNS(W, 't')).map(t => t.textContent).join('') : '';
+    
+    const escapeHTML = str => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rtSafe = escapeHTML(rtText);
+    const baseSafe = escapeHTML(baseText);
+    
+    // Create a fake <w:r> containing the generated HTML inside <w:t>
+    const fakeR = xmlDoc.createElementNS(W, 'w:r');
+    const fakeT = xmlDoc.createElementNS(W, 'w:t');
+    fakeT.textContent = `<ruby>${baseSafe}<rp>(</rp><rt>${rtSafe}</rt><rp>)</rp></ruby>`;
+    fakeR.appendChild(fakeT);
+    
+    if (ruby.parentNode) {
+      ruby.parentNode.replaceChild(fakeR, ruby);
+    }
+  }
+
+  // ── Parse relationships (to resolve image rIds) ──────────────────────
+  const imageRelTarget = {};   // rId → 'media/imageN.ext'
+  const relsFile = docxZip.file('word/_rels/document.xml.rels');
+  if (relsFile) {
+    const relsStr = await relsFile.async('string');
+    const relsDoc = parser.parseFromString(relsStr, 'application/xml');
+    for (const r of relsDoc.getElementsByTagName('Relationship')) {
+      if ((r.getAttribute('Type')||'').includes('image'))
+        imageRelTarget[r.getAttribute('Id')] = r.getAttribute('Target');
+    }
+  }
+
+  // ── Parse numbering.xml → numFormatMap ────────────────────────────────
+  // Some documents use DOCX automatic list numbering (<w:numPr>) so that
+  // question numbers ("1.", "2.") and option letters ("a.", "b.") are
+  // rendered by Word at display time and are NOT present in <w:t> text.
+  // We resolve numId → numFmt ('decimal', 'lowerLetter', 'upperLetter', …)
+  // per indent-level so the parser can identify question stems vs options.
+  const numFormatMap = new Map();   // numId_string → Map(ilvl_string → fmtString)
+  const numXmlFile = docxZip.file('word/numbering.xml');
+  if (numXmlFile) {
+    const numXmlStr = await numXmlFile.async('string');
+    const numXml    = parser.parseFromString(numXmlStr, 'application/xml');
+    // Step 1: Build abstractNumId → per-level format map
+    const abstractNums = new Map();
+    for (const an of numXml.getElementsByTagNameNS(W,'abstractNum')) {
+      const anId   = an.getAttributeNS(W,'abstractNumId');
+      const levels = new Map();
+      for (const lvl of an.getElementsByTagNameNS(W,'lvl')) {
+        const ilvl  = lvl.getAttributeNS(W,'ilvl');
+        const fmtEl = lvl.getElementsByTagNameNS(W,'numFmt')[0];
+        levels.set(ilvl, fmtEl ? getWVal(fmtEl) : 'decimal');
+      }
+      abstractNums.set(anId, levels);
+    }
+    // Step 2: Map concrete numId → abstractNum levels
+    for (const num of numXml.getElementsByTagNameNS(W,'num')) {
+      const numId  = num.getAttributeNS(W,'numId');
+      const anIdEl = num.getElementsByTagNameNS(W,'abstractNumId')[0];
+      if (anIdEl) {
+        const anId = getWVal(anIdEl);
+        numFormatMap.set(numId, abstractNums.get(anId) || new Map());
+      }
+    }
+  }
+
+  // ── Lazy image extractor ─────────────────────────────────────────────
+  let imgCounter = 0;
+  const resolvedImages = {};   // rId → {filename, data: Uint8Array}
+
+  async function resolveImage(rId) {
+    if (resolvedImages[rId]) return resolvedImages[rId].filename;
+    const target = imageRelTarget[rId];
+    if (!target) return null;
+    const entry = docxZip.file('word/' + target);
+    if (!entry) return null;
+    const ext      = (target.split('.').pop() || 'jpg').toLowerCase();
+    const filename = `img_${imgCounter++}.${ext}`;
+    const data     = await entry.async('uint8array');
+    resolvedImages[rId] = { filename, data };
+    return filename;
+  }
+
+  // ── Regex patterns ──────────────────────────────────────────────────
+  // Matches question-start lines in multiple common formats:
+  //   "1 text"   "1. text"   "1) text"   "(1) text"
+  //   "Q1 text"  "q1 text"   "（1） text"  etc.
+  // Requires at least one whitespace after the delimiter to avoid matching
+  // decimal numbers like "1.2" or sub-question labels like "1(a)".
+  const Q_RE        = /^(?:[Qq](\d+)(?:[\.\)\s:]*\s+)?|\((\d+)\)|（(\d+)）|(\d+)(?:[.)]\s+|\s+))([\s\S]+)/;
+  // e.g. "2(a)Write ..." or "2 (a) Write ..."
+  const Q_SUBSTART_RE = /^(\d+)\s*\(([a-zA-Z])\)\s*([\s\S]*)$/;
+  // Options: A./A) uppercase letters
+  // OR ⑴⑵⑶⑷ circled bracket numbers (U+2474 - U+247B)
+  // OR ①②③④ circled solid numbers (U+2460 - U+2467)
+  // OR （1）（2） full-width Chinese brackets
+  // OR 1) / 1. / 1． numeric option labels
+  const OPT_RE      = /^(?:[A-H][\.\)]\s*|[\u2474-\u247B]\s*|[\u2460-\u2467]\s*|[（(]\s*[1-8]\s*[）)]\s*|[1-8][\.\)．]\s*)(.*)/;
+  const OPTIONS_HEADER_RE = /^(?:options|choices)(?:\s*[:：])?$/i;
+  const STANDALONE_OPTION_LABEL_RE = /^(?:[A-D]|[（(]\s*[1-8]\s*[）)]|[1-8][\.\)．]|[\u2474-\u247B]|[\u2460-\u2467])$/i;
+  const NUMBERED_SPLIT_OPTION_LABEL_RE = /^(?:[（(]\s*[1-8]\s*[）)]|[1-8][\.\)．]|[\u2474-\u247B]|[\u2460-\u2467])$/i;
+  const INLINE_CLOZE_RE = /[Qq](\d{1,3})\s*[＿_\s]*[（(]([^）)]*)[）)]/u;
+  const BRACKETED_SLASH_CLOZE_RE = /[（(]\s*(\d{1,3})\s*[）)]\s*[\[［]\s*([^\]］]+?)\s*[\]］]/gu;
+  const SECTION_HEADING_RE = /[一二三四五六七八九十]+、/u;
+  // Allow up to 5 uppercase-letter prefix (Word cross-ref codes like "XX23")
+  const QNUM_ONLY   = /^[A-Z]{0,5}(\d{1,3})(?:[.]|[．])?$/i;   // table first-cell
+  const OPT_CELL_RE = /^([A-D])\s+(.*)/i;  // 'A   text' in a table options row
+  const ANSWER_BLANK_RE = /^[\(\（][\s_＿]*[\)\）]$/;
+  const ANS_RE      = /^ANSWERS\s*$/i;
+  const MAX_QNUM    = 200;   // ignore numbers > this (e.g. the year "2022")
+
+  // ── Essay-document question-label detector ────────────────────────────
+  // Matches bold section headings that begin a NEW question in notes/worksheet
+  // documents that have no standard "1." / "Q1" numbering.
+  const ESSAY_Q_LABEL_RE = /^(planning\s+question|practice\s+question|additional\s+question|self[\s-]directed\s+learning)\b/i;
+
+  // ── Answer-section delimiter detector ────────────────────────────────
+  // When a bold-heading paragraph matches this, everything that follows
+  // (until the next question label) is routed to curQ.suggestedAnswerText
+  // instead of the question prompt tokens.
+  const ANSWER_SPLIT_RE = /^(suggested\s+answers?|suggested\s+diagram|marking\s+scheme|marking\s+points?|possible\s+answers?(\s*\(\d+\))?|model\s+answers?)\b/i;
+
+  // Parse question number from table first-cell (normalises 'XX23' → '23')
+  // Also strips HTML tags e.g. '<strong>1</strong>' → '1'
+  function parseQnum(cell) {
+    const clean = (cell || '').replace(/<[^>]+>/g, '').replace(/\s+/g, '').trim();
+    const m = QNUM_ONLY.exec(clean);
+    if (m && parseInt(m[1]) <= MAX_QNUM) return m[1];
+    return null;
+  }
+
+  function isAnswerBlank(text) {
+    const compact = (text || '').replace(/<[^>]+>/g, '').replace(/\u3000/g, ' ').trim();
+    return !!compact && ANSWER_BLANK_RE.test(compact);
+  }
+
+  function stripTrailingAnswerBlank(text) {
+    return String(text || '')
+      .replace(/[\s\xa0]*[\(（][\s_＿]*[\)）]\s*$/u, '')
+      .trim();
+  }
+
+  function isLikelyAutoNumberedOptionText(text) {
+    const t = stripTrailingAnswerBlank(stripTags(String(text || '')))
+      .replace(/\u3000/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!t) return false;
+    if (/[?？]|\[\s*\d+\s*m\s*\]/i.test(t)) return false;
+    if (/^(what|why|which|how|where|when|who|list|write|tick|give|state|explain)\b/i.test(t)) return false;
+    return t.length <= 90;
+  }
+
+  function findQnumInRow(row) {
+    for (let i = 0; i < row.length; i++) {
+      const plain = cellPlainText(row[i]);
+      if (!plain) continue;
+      const qnum = parseQnum(plain);
+      if (qnum !== null) {
+        const hasStemAfter = row.slice(i + 1).some(cell => {
+          const t = cellPlainText(cell);
+          return t && !isAnswerBlank(t) && !STANDALONE_OPTION_LABEL_RE.test(t);
+        });
+        if (i === 0 || hasStemAfter) return { qnum, idx: i };
+      }
+      if (STANDALONE_OPTION_LABEL_RE.test(plain)) return { qnum: null, idx: -1 };
+      return { qnum: null, idx: -1 };
+    }
+    return { qnum: null, idx: -1 };
+  }
+
+  function extractUnlabeledOption(row) {
+    if (!row || ((row[0] || '').replace(/<[^>]+>/g, '').trim())) return null;
+    const uniqueTail = [];
+    const seen = new Set();
+    for (const cell of row.slice(1)) {
+      const trimmed = (cell || '').trim();
+      const plain   = trimmed.replace(/<[^>]+>/g, '').trim();
+      if (!plain || seen.has(plain)) continue;
+      seen.add(plain);
+      uniqueTail.push(trimmed);
+    }
+    if (uniqueTail.length !== 1) return null;
+    const candidate = uniqueTail[0];
+    if (isAnswerBlank(candidate) || parseQnum(candidate) !== null) return null;
+    return candidate;
+  }
+
+  function escapeRegExp(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function extractInlineOptionsForQuestion(tokens, qnum) {
+    const text = (tokens || [])
+      .filter(t => t.type === 'text')
+      .map(t => stripTags(t.value || ''))
+      .join(' ');
+    const re = new RegExp(`[Qq]${escapeRegExp(qnum)}[＿_\\s]*[（(]([^）)]*)[）)]`, 'u');
+    const m = text.match(re);
+    if (!m) return [];
+    const parsed = parseInlineClozeOptions((m[1] || '').trim());
+    return (parsed.length >= 2 && parsed.length <= 8) ? parsed : [];
+  }
+
+  function stripInlineOptionsFromTokens(tokens, qnum) {
+    const re = new RegExp(`([Qq]${escapeRegExp(qnum)}[＿_\\s]*)[（(][^）)]*[）)]`, 'gu');
+    return (tokens || []).map(token => {
+      if (token.type !== 'text') return token;
+      const cleaned = (token.value || '').replace(re, '$1').replace(/\s{2,}/g, ' ').trim();
+      return cleaned ? { ...token, value: cleaned } : null;
+    }).filter(Boolean);
+  }
+
+  // Deduplicate merged Word table cells
+  function dedupCells(cells) {
+    const seen = new Set(), parts = [];
+    for (const c of cells) {
+      const t = c.trim();
+      if (t && !seen.has(t)) { seen.add(t); parts.push(t); }
+    }
+    return parts.join(' ');
+  }
+
+  // Extract MCQ option texts from a row like ['', 'A  text', 'B  text', ...]
+  // Also handles bold option letters e.g. ['', '<strong>A</strong>  text', ...]
+function extractOptsFromRow(row) {
+  const opts = [];
+  for (const cell of row.slice(1)) {
+      const t = cell.trim();
+      if (!t) continue;
+      // Strip HTML to check for option-letter prefix
+      const tPlain = t.replace(/<[^>]+>/g, '');
+      const m = OPT_CELL_RE.exec(tPlain);
+      if (m) {
+        // Remove leading option letter (possibly HTML-wrapped) from original cell
+        let optRaw = t.replace(/^(?:<[^>]+>)*[A-D](?:<\/[^>]+>)*\s*/i, '');
+        // Strip dangling closing tags at start (e.g. '</strong>' when letter
+        // shares an opening tag with the content: '<strong>A </strong>text')
+        optRaw = optRaw.replace(/^(\s*<\/[^>]+>)+/, '').trim();
+        opts.push(optRaw || m[2].trim());
+      }
+    }
+  return opts;
+}
+
+function extractSplitNumberedOptionRow(row) {
+  if (!row || cellPlainText(row[0])) return null;
+  let labelIdx = -1;
+  for (let i = 1; i < row.length; i++) {
+    const plain = cellPlainText(row[i]);
+    if (!plain) continue;
+    if (!NUMBERED_SPLIT_OPTION_LABEL_RE.test(plain)) return null;
+    labelIdx = i;
+    break;
+  }
+  if (labelIdx === -1) return null;
+  return {
+    labelIdx,
+    text: stripTrailingAnswerBlank(dedupCells(row.slice(labelIdx + 1).filter(cell => !isAnswerBlank(cellPlainText(cell)))))
+  };
+}
+
+function cellPlainText(cell) {
+  return String(cell || '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\xa0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function looksLikeOptionHeaderRow(row) {
+  if (!row || row.length < 3) return false;
+  if (cellPlainText(row[0])) return false;
+  const tail = row.slice(1).map(cellPlainText).filter(Boolean);
+  if (tail.length < 2) return false;
+  if (NUMBERED_SPLIT_OPTION_LABEL_RE.test(tail[0])) return false;
+  if (tail.some(t => OPT_CELL_RE.test(t))) return false;
+  if (tail.every(t => /^[A-D]$/i.test(t))) return false;
+  if (tail.some(t => isAnswerBlank(t) || parseQnum(t) !== null)) return false;
+  return true;
+}
+
+function formatOptionRowText(row, headerRow = null) {
+  const values = row.slice(1).map(cell => String(cell || '').trim());
+  const plainValues = values.map(cellPlainText);
+  if (!plainValues.some(Boolean)) return '';
+  if (headerRow && headerRow.length === row.length) {
+    const headers = headerRow.slice(1).map(cellPlainText);
+    if (headers.some(Boolean)) {
+      const parts = [];
+      for (let i = 0; i < values.length; i++) {
+        if (!plainValues[i]) continue;
+        parts.push(headers[i] ? `${headers[i]}: ${plainValues[i]}` : plainValues[i]);
+      }
+      if (parts.length) return parts.join(' ; ');
+    }
+  }
+  return dedupCells(row.slice(1));
+}
+
+function extractInlineLetteredOptionsFromHtml(htmlText) {
+  const raw = String(htmlText || '');
+  if (!raw) return null;
+
+  let plain = '';
+  const map = [];
+  let inTag = false;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inTag) {
+      if (ch === '>') inTag = false;
+      continue;
+    }
+    if (ch === '<') {
+      inTag = true;
+      continue;
+    }
+    plain += ch;
+    map.push(i);
+  }
+
+  const normalized = plain.replace(/\xa0/g, ' ');
+  const qIdx = Math.max(normalized.lastIndexOf('?'), normalized.lastIndexOf('？'));
+  if (qIdx < 0) return null;
+
+  const searchStart = qIdx + 1;
+  const tail = normalized.slice(searchStart);
+  const markerRe = /(^|[?!.;:)\]\s])([A-D])(?=\s*[A-Z0-9(<])/g;
+  const expected = ['A', 'B', 'C', 'D'];
+  const markers = [];
+  let m;
+
+  while ((m = markerRe.exec(tail)) !== null) {
+    const letter = m[2];
+    const idx = searchStart + m.index + m[1].length;
+    if (letter === 'A' && markers.length && expected[markers.length] !== 'A') {
+      markers.length = 0;
+    }
+    if (letter !== expected[markers.length]) continue;
+    markers.push({ letter, index: idx });
+    if (markers.length === 4) break;
+  }
+
+  if (markers.length !== 4) return null;
+
+  const options = [];
+  for (let i = 0; i < markers.length; i++) {
+    const start = markers[i].index + 1;
+    const end = i + 1 < markers.length ? markers[i + 1].index : normalized.length;
+    const opt = normalized.slice(start, end)
+      .replace(/^[\s:;,.()\]]+/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!opt) return null;
+    options.push(opt);
+  }
+
+  const stemEndHtml = map[markers[0].index] ?? raw.length;
+  const stemHtml = raw.slice(0, stemEndHtml).trim();
+  if (!stemHtml) return null;
+
+  return { stemHtml, options };
+}
+
+// Check if individual paragraphs of a question cell contain embedded A/B/C/D options
+// as separate paragraphs (common in H1/H2 papers where options follow the stem in
+  // the same table cell, each starting with the option letter).
+  // Returns [optA, optB, optC, optD] or null.
+  function extractEmbeddedOpts(paras) {
+    // Need at least 5 paragraphs: ≥1 stem + 4 options
+    if (!paras || paras.length < 5) return null;
+    // Collect non-empty paragraphs
+    const nonEmpty = paras.filter(p => stripTags(p).replace(/\xa0/g,' ').trim());
+    if (nonEmpty.length < 4) return null;
+    const last4 = nonEmpty.slice(-4);
+    const letters = ['a','b','c','d'];
+    const opts = last4.map((p, i) => {
+      const plain = stripTags(p).replace(/\xa0/g,' ').replace(/\s+/g,' ').trim();
+      if (!plain) return null;
+      const m = plain.match(/^(?:([A-D])(?:[\.\)]|\s+)|[（(]\s*([1-4])\s*[）)])\s*(.*)$/i);
+      if (!m) return null;
+      const letter = m[1] ? m[1].toLowerCase() : null;
+      const number = m[2] || null;
+      if (letter && letter !== letters[i]) return null;
+      if (number && number !== String(i + 1)) return null;
+      const rest = m[3].trim();
+      return rest || null;
+    });
+    if (opts.every(opt => opt !== null)) return opts;
+    return null;
+  }
+
+  // Parse inline cloze options like "1 肯定 2 挑选 3 安排 4选择".
+  function parseInlineClozeOptions(innerTxt) {
+    const text = String(innerTxt || '').replace(/\u3000/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) return [];
+
+    const markers = [...text.matchAll(/[1-8](?=\s*[\u4e00-\u9fffA-Za-z])/gu)];
+    if (!markers.length) return [];
+
+    const opts = [];
+    for (let i = 0; i < markers.length; i++) {
+      const start = markers[i].index + markers[i][0].length;
+      const end = (i + 1 < markers.length) ? markers[i + 1].index : text.length;
+      const chunk = text.slice(start, end)
+        .replace(/^[\s.．、)）]+/, '')
+        .replace(/[\s.．、(（)）]+$/u, '')
+        .trim();
+      if (chunk) opts.push(chunk);
+    }
+    return opts;
+  }
+
+  function parseSlashOptions(innerTxt) {
+    return String(innerTxt || '')
+      .split(/[\/／]/)
+      .map(part => part.replace(/\u3000/g, ' ').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+  }
+
+  function extractBracketedSlashClozes(text) {
+    const source = String(text || '');
+    const clozes = [];
+    BRACKETED_SLASH_CLOZE_RE.lastIndex = 0;
+    for (const m of source.matchAll(BRACKETED_SLASH_CLOZE_RE)) {
+      const qnum = m[1];
+      const opts = parseSlashOptions(m[2]);
+      if (parseInt(qnum, 10) <= MAX_QNUM && opts.length >= 2 && opts.length <= LETTERS.length) {
+        clozes.push({ qnum, opts });
+      }
+    }
+    BRACKETED_SLASH_CLOZE_RE.lastIndex = 0;
+    return clozes;
+  }
+
+  function blankBracketedSlashClozes(text) {
+    BRACKETED_SLASH_CLOZE_RE.lastIndex = 0;
+    const blanked = String(text || '').replace(BRACKETED_SLASH_CLOZE_RE, (_, qnum) => `(${qnum}) ______`);
+    BRACKETED_SLASH_CLOZE_RE.lastIndex = 0;
+    return blanked;
+  }
+
+  function trimAfterSectionHeading(text) {
+    if (!text) return '';
+    const m = text.match(SECTION_HEADING_RE);
+    if (m && m.index > 0) return text.slice(0, m.index).trim();
+    return text.trim();
+  }
+
+  function normalizeComparableText(text) {
+    return stripTags(String(text || ''))
+      .replace(/\u3000/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function hasEquivalentTokenText(tokens, text) {
+    const want = normalizeComparableText(text);
+    if (!want) return false;
+    return (tokens || []).some(token =>
+      token && token.type === 'text' &&
+      normalizeComparableText(token.value || '') === want
+    );
+  }
+
+  function pushUniqueTextToken(tokens, text, ...otherTokenLists) {
+    const value = String(text || '').trim();
+    if (!normalizeComparableText(value)) return false;
+    if (hasEquivalentTokenText(tokens, value)) return false;
+    for (const list of otherTokenLists) {
+      if (hasEquivalentTokenText(list, value)) return false;
+    }
+    tokens.push({ type:'text', value });
+    return true;
+  }
+
+  function stripInlineOptionsFromText(text, qnums) {
+    let cleaned = String(text || '');
+    for (const qn of qnums) {
+      const re = new RegExp(`([Qq]${escapeRegExp(String(qn))}[＿_\\s]*)[（(][^）)]*[）)]`, 'gu');
+      cleaned = cleaned.replace(re, '$1');
+    }
+    return cleaned.replace(/\s{2,}/g, ' ').trim();
+  }
+
+  // For consecutive inline cloze MCQs (e.g. Q16-Q20 in one passage),
+  // rebuild each question stem as the full shared passage.
+  function normalizeInlineClozeGroups(mcqList) {
+    const byNum = new Map();
+    for (const q of mcqList) {
+      if (!q || !q.options || !q.options.length) continue;
+      const stemText = trimAfterSectionHeading(
+        (q.tokens || [])
+          .filter(t => t.type === 'text')
+          .map(t => t.value || '')
+          .join(' ')
+      ).replace(/\s+/g, ' ').trim();
+      if (!stemText) continue;
+      if (!new RegExp(`[Qq]${escapeRegExp(String(q.qnum))}[?_\s]*`, 'u').test(stemText)) continue;
+      byNum.set(parseInt(q.qnum, 10), q);
+    }
+    if (byNum.size === 0) return;
+
+    const nums = [...byNum.keys()].sort((a, b) => a - b);
+    const groups = [];
+    let group = [nums[0]];
+    for (const n of nums.slice(1)) {
+      if (n === group[group.length - 1] + 1) group.push(n);
+      else { groups.push(group); group = [n]; }
+    }
+    groups.push(group);
+
+    for (const g of groups) {
+      if (g.length < 2) continue;
+      const stems = [];
+      for (const n of g) {
+        const q = byNum.get(n);
+        const txt = trimAfterSectionHeading(
+          (q.tokens || [])
+            .filter(t => t.type === 'text')
+            .map(t => t.value || '')
+            .join(' ')
+        ).replace(/\s+/g, ' ').trim();
+        if (txt && !stems.includes(txt)) stems.push(txt);
+      }
+      if (!stems.length) continue;
+
+      const sharedPassage = stripInlineOptionsFromText(
+        stems.slice().sort((a, b) => b.length - a.length)[0],
+        g
+      );
+      if (!sharedPassage) continue;
+
+      for (const n of g) {
+        const q = byNum.get(n);
+        q.tokens = [{ type: 'text', value: sharedPassage }];
+      }
+    }
+  }
+
+  // ── Detect transposed options: A B C D appear as column headers ─────
+  // e.g. Row: ['', 'A', 'B', 'C', 'D'] or Row: ['A', 'B', 'C', 'D', ...]
+  // Returns { headerRowIdx, optStartCol } or null.
+  function findTransposedOptions(rows) {
+    for (let ri = 0; ri < Math.min(rows.length, 4); ri++) {
+      const cols = rows[ri].map(c => c.replace(/<[^>]+>/g,'').trim().toUpperCase());
+      for (let ci = 0; ci <= cols.length - 4; ci++) {
+        if (cols[ci]==='A' && cols[ci+1]==='B' && cols[ci+2]==='C' && cols[ci+3]==='D') {
+          return { headerRowIdx: ri, optStartCol: ci };
+        }
+      }
+    }
+    return null;
+  }
+
+  // Extract column-wise option images from rows after the header row.
+  // Returns [fnA, fnB, fnC, fnD] (filenames, null if no image found).
+  async function extractTransposedOptImages(rows, ci_base, headerRowIdx, tblCellImages) {
+    const optImgs = [null, null, null, null];
+    for (let ri = headerRowIdx + 1; ri < rows.length; ri++) {
+      const rowCells = tblCellImages ? (tblCellImages[ri] || []) : [];
+      for (let oi = 0; oi < 4; oi++) {
+        if (optImgs[oi]) continue;          // already found one for this column
+        const cellRids = rowCells[ci_base + oi] || [];
+        if (cellRids.length) {
+          optImgs[oi] = await resolveImage(cellRids[0]);
+        }
+      }
+    }
+    return optImgs;
+  }
+
+  // ── State ───────────────────────────────────────────────────────────
+  const mcq        = [];
+  const structured = [];
+  let curQ = null, curOpts = [], curOptImages = [];
+  const inlineAnswers = {};
+  let inAnswers = false, curAQ = null, curATokens = [];
+  // Counter for DOCX automatic-numbered lists (keyed by "numId:ilvl")
+  const numCounter = new Map();
+  // Auto-incrementing counter for label-based questions (Planning Question, etc.)
+  let autoQCounter = 1;
+  // True when subsequent content belongs to the suggested answer, not the prompt
+  let inSuggestedAnswer = false;
+  // True when curQ was started by a plain-text detector (Q_RE / Q-prefix / essay label).
+  // False when started by Path B numPr decimal.
+  // Used so that decimal-numPr items after a text-detected question are treated as
+  // MCQ options rather than new question starts (handles Chinese Q1/Q2 worksheets).
+  let curQFromText = false;
+  let allowImplicitTableOptions = false;
+  let pendingLeadTokens = [];
+  let curQAutoListKey = null;
+
+  function currentHasInlineOptions() {
+    return !!(curQ && extractInlineOptionsForQuestion(curQ.tokens, curQ.qnum).length);
+  }
+
+  function startQuestion(qnum, seedTokens = [], { fromText = false, allowImplicit = false, autoListKey = null } = {}) {
+    const initialTokens = [];
+    [...pendingLeadTokens, ...seedTokens].forEach(token => {
+      if (!token) return;
+      if (token.type === 'text') pushUniqueTextToken(initialTokens, token.value);
+      else initialTokens.push(token);
+    });
+    curQ = { qnum, tokens: initialTokens };
+    curOpts = [];
+    curOptImages = [];
+    allowImplicitTableOptions = allowImplicit;
+    pendingLeadTokens = [];
+    inSuggestedAnswer = false;
+    curQFromText = fromText;
+    curQAutoListKey = autoListKey;
+  }
+
+  function flushQuestion() {
+    if (!curQ) return;
+    let finalTokens = curQ.tokens;
+    let finalOpts = [...curOpts];
+    let finalOptImages = [...curOptImages];
+    if (!finalOpts.length) {
+      const inlineOpts = extractInlineOptionsForQuestion(curQ.tokens, curQ.qnum);
+      if (inlineOpts.length) {
+        finalTokens = stripInlineOptionsFromTokens(curQ.tokens, curQ.qnum);
+        finalOpts = inlineOpts;
+        finalOptImages = inlineOpts.map(() => null);
+      }
+    }
+    if (curQ.suggestedAnswerText)
+      curQ.suggestedAnswerText = curQ.suggestedAnswerText.trim();
+    finalOpts.length ? mcq.push({...curQ, tokens: finalTokens, options: finalOpts, optionImages: finalOptImages})
+                     : structured.push({...curQ});
+    curQ = null; curOpts = []; curOptImages = [];
+    inSuggestedAnswer = false;
+    curQFromText = false;
+    allowImplicitTableOptions = false;
+    curQAutoListKey = null;
+  }
+
+  // ── Resolve answer: MS file takes priority over inline ANSWERS section ──
+  function resolveAnswer(qnum) {
+    if (msAnswers[qnum] !== undefined) return msAnswers[qnum];
+    if (inlineAnswers[qnum])           return answerToString(inlineAnswers[qnum]);
+    return 'None';
+  }
+
+  // ── Walk document ───────────────────────────────────────────────────
+  for (const item of iterBlockItems(body)) {
+
+    // --- Answer section ---
+    if (inAnswers) {
+      if (item.type === 'image') {
+        if (curAQ !== null) {
+          const fn = await resolveImage(item.value);
+          if (fn) curATokens.push({ type:'image', value:fn });
+        }
+        continue;
+      }
+      if (item.type === 'table') {
+        if (curAQ !== null) curATokens.push({ type:'table', value:item.value });
+        continue;
+      }
+      const plain = stripTags(item.value).replace(/\xa0/g,' ').trim();
+      const aMatch = plain.match(/^(\d+)/);
+      if (aMatch) {
+        if (curAQ !== null) inlineAnswers[curAQ] = curATokens;
+        curAQ = aMatch[1];
+        const cleaned = plain.replace(/^\d+\s*/, '').trim();
+        curATokens = cleaned ? [{ type:'text', value:cleaned }] : [];
+      } else if (curAQ !== null) {
+        curATokens.push({ type:'text', value:plain });
+      }
+      continue;
+    }
+
+    // --- Images attach to current question (skipped if in answer mode — text only) ---
+    if (item.type === 'image') {
+      if (curQ) {
+        const fn = await resolveImage(item.value);
+        if (fn) {
+          if (inSuggestedAnswer) {
+            // Append a placeholder so the teacher knows a diagram exists
+            curQ.suggestedAnswerText = (curQ.suggestedAnswerText || '') + '[diagram]\n';
+          } else {
+            curQ.tokens.push({ type:'image', value:fn });
+          }
+        }
+      }
+      continue;
+    }
+
+    // --- Tables in answer mode: skip (marking schemes are text-only in the textarea) ---
+    if (item.type === 'table' && inSuggestedAnswer) {
+      // Flatten table rows into plain text lines for the suggested answer
+      if (curQ) {
+        for (const row of (item.value || [])) {
+          const line = row.map(c => stripTags(c).replace(/\xa0/g,' ').trim()).filter(Boolean).join(' | ');
+          if (line) curQ.suggestedAnswerText = (curQ.suggestedAnswerText || '') + line + '\n';
+        }
+      }
+      continue;
+    }
+
+    // --- Table handling ---
+    if (item.type === 'table') {
+      const rows      = item.value;
+      if (!rows || !rows.length) continue;
+      const firstRowQ = findQnumInRow(rows[0] || []);
+      const detectedQnum = firstRowQ.idx === 0 ? firstRowQ.qnum : null;
+      const tableHasEmbeddedQnum = rows.some(row => findQnumInRow(row).qnum !== null);
+
+      if (detectedQnum !== null) {
+        // ── Question-start table ──
+        flushQuestion();
+        startQuestion(detectedQnum, [], {
+          allowImplicit: rows[0].slice(1).some(isAnswerBlank)
+        });
+
+        // Check for embedded A/B/C/D options inside the question cell (single-row tables
+        // where each option is a separate paragraph starting with A/B/C/D).
+        // Must be done BEFORE joining cell paragraphs, using the raw cellParas data.
+        const qCellParas = item.cellParas && item.cellParas[0]
+          ? (item.cellParas[0][rows[0].length - 1] || item.cellParas[0][1] || [])
+          : [];
+        const embeddedOpts = rows.length === 1 ? extractEmbeddedOpts(qCellParas) : null;
+        if (embeddedOpts) {
+          // Build stem text from the paragraphs BEFORE the options
+          const nonEmpty = qCellParas.filter(p => stripTags(p).replace(/\xa0/g,' ').trim());
+          const stemParas = nonEmpty.slice(0, nonEmpty.length - 4);
+          const stemText  = stemParas.join(' ').trim();
+          if (stemText) curQ.tokens.push({ type:'text', value: stemText });
+          curOpts = embeddedOpts;
+          curOptImages = embeddedOpts.map(() => null);
+        } else {
+          const qText = dedupCells(rows[0].slice(1));
+          const inlineLettered = rows.length === 1 ? extractInlineLetteredOptionsFromHtml(qText) : null;
+          if (inlineLettered) {
+            if (inlineLettered.stemHtml) curQ.tokens.push({ type:'text', value: inlineLettered.stemHtml });
+            curOpts = inlineLettered.options;
+            curOptImages = inlineLettered.options.map(() => null);
+          } else if (qText) {
+            curQ.tokens.push({ type:'text', value: qText });
+          }
+        }
+
+        // Check for transposed A/B/C/D column-header format within this table
+        const transpHdrQ = findTransposedOptions(rows.slice(1));
+        if (transpHdrQ !== null) {
+          const { headerRowIdx: hri, optStartCol } = transpHdrQ;
+          const absHri = hri + 1; // offset because we sliced from row 1
+          // Rows between question row and header → stem text
+          for (let ri = 1; ri < absHri; ri++) {
+            const t = dedupCells(rows[ri]);
+            if (t) curQ.tokens.push({ type:'text', value: t });
+          }
+          curOpts = ['', '', '', ''];
+          curOptImages = await extractTransposedOptImages(rows, optStartCol, absHri, item.cellImages);
+        } else {
+
+        // Use indexed loop so we can look up rowImages[ri] for option images
+        let sharedTableTokens = [];
+        let reusableTableTokens = [];
+        let optionHeaderRow = null;
+        for (let ri = 1; ri < rows.length; ri++) {
+          const row     = rows[ri];
+          const r0      = (row[0] || '').trim();
+          const r0plain = r0.replace(/<[^>]+>/g, '').trim(); // strip HTML for detection
+          const { qnum: subQnum, idx: subQIdx } = findQnumInRow(row);
+
+          if (looksLikeOptionHeaderRow(row)) {
+            optionHeaderRow = row;
+
+          } else if (/^[A-D]$/i.test(r0plain)) {
+            const optText = formatOptionRowText(row, optionHeaderRow);
+            curOpts.push(optText || '');
+            const optRids = item.rowImages ? (item.rowImages[ri] || []) : [];
+            const optFn   = optRids.length ? await resolveImage(optRids[0]) : null;
+            curOptImages.push(optFn);
+
+          } else if (subQnum !== null) {
+            // ── New question embedded inside this table (e.g. Q25 inside Q24's table) ──
+            flushQuestion();
+            const leadText = dedupCells(row.slice(0, subQIdx));
+            const leadTokens = leadText ? [{ type:'text', value: leadText }] : [];
+            const qText2 = dedupCells(row.slice(subQIdx + 1));
+            const qTextIsBlank = !qText2 || isAnswerBlank(qText2);
+            const seedTokens = leadTokens.length ? leadTokens
+              : (sharedTableTokens.length ? sharedTableTokens
+              : (qTextIsBlank ? reusableTableTokens : []));
+            if (leadTokens.length) reusableTableTokens = leadTokens.map(t => ({ ...t }));
+            else if (sharedTableTokens.length) reusableTableTokens = sharedTableTokens.map(t => ({ ...t }));
+            startQuestion(subQnum, seedTokens, {
+              allowImplicit: row.slice(subQIdx + 1).some(isAnswerBlank)
+            });
+            sharedTableTokens = [];
+            optionHeaderRow = null;
+            if (qText2 && !isAnswerBlank(qText2)) {
+              pushUniqueTextToken(curQ.tokens, qText2, reusableTableTokens);
+            }
+
+          } else if (!r0) {
+            const opts = extractOptsFromRow(row);
+            if (opts.length >= 2) {
+              optionHeaderRow = null;
+              curOpts.push(...opts);
+              // No per-option images for this format (letter embedded in cell text)
+              for (let k = 0; k < opts.length; k++) curOptImages.push(null);
+            } else {
+              const splitOpt = extractSplitNumberedOptionRow(row);
+              if (splitOpt) {
+                optionHeaderRow = null;
+                const optRids = item.rowImages ? (item.rowImages[ri] || []) : [];
+                const optFn = optRids.length ? await resolveImage(optRids[0]) : null;
+                if (splitOpt.text || optFn) {
+                  curOpts.push(splitOpt.text || '');
+                  curOptImages.push(optFn);
+                  continue;
+                }
+              }
+              const implicitOpt = allowImplicitTableOptions ? extractUnlabeledOption(row) : null;
+              if (implicitOpt && curOpts.length < LETTERS.length) {
+                curOpts.push(implicitOpt);
+                curOptImages.push(null);
+                continue;
+              }
+              // Check for image-only options where each cell is just 'A','B','C','D'
+              // (e.g. Q5-style: ['','A','B','C','D'] with raster images per cell)
+              const optSlice   = row.slice(1).filter(c => c.replace(/<[^>]+>/g,'').trim());
+              const allLetters = optSlice.length >= 2 &&
+                optSlice.every(c => /^[A-D]$/i.test(c.replace(/<[^>]+>/g,'').trim()));
+              if (allLetters) {
+                // Each non-empty cell is an image-only option; look up image per cell column
+                for (let ci = 0; ci < row.length - 1; ci++) {
+                  const c = row[ci + 1];
+                  if (!c.replace(/<[^>]+>/g,'').trim()) continue;
+                  curOpts.push('');
+                  const cellRids = item.cellImages && item.cellImages[ri]
+                    ? (item.cellImages[ri][ci + 1] || []) : [];
+                  const optFn = cellRids.length ? await resolveImage(cellRids[0]) : null;
+                  curOptImages.push(optFn);
+                }
+              } else {
+                const extra = dedupCells(row);
+                if (extra) {
+                  if (curOpts.length || currentHasInlineOptions()) {
+                    pushUniqueTextToken(sharedTableTokens, extra, curQ ? curQ.tokens : [], reusableTableTokens, pendingLeadTokens);
+                  } else if (curQ) {
+                    pushUniqueTextToken(curQ.tokens, extra, sharedTableTokens, reusableTableTokens, pendingLeadTokens);
+                  }
+                }
+              }
+            }
+          } else {
+            const extra = dedupCells(row);
+            if (extra) {
+              if (curOpts.length || currentHasInlineOptions()) {
+                pushUniqueTextToken(sharedTableTokens, extra, curQ ? curQ.tokens : [], reusableTableTokens, pendingLeadTokens);
+              } else if (curQ) {
+                pushUniqueTextToken(curQ.tokens, extra, sharedTableTokens, reusableTableTokens, pendingLeadTokens);
+              }
+            }
+          }
+        }
+        for (const token of sharedTableTokens) {
+          pushUniqueTextToken(pendingLeadTokens, token.value);
+        }
+        }
+      } else if (curQ || tableHasEmbeddedQnum) {
+        // ── Continuation table — detect A/B/C/D option rows OR transposed format ──
+        const transpHdr = !tableHasEmbeddedQnum ? findTransposedOptions(rows) : null;
+        if (transpHdr !== null && curQ && !curOpts.length) {
+          // Transposed format: A B C D appear as column headers.
+          // Collect images column-wise; row labels before header go to stem text.
+          const { headerRowIdx, optStartCol } = transpHdr;
+          for (let ri = 0; ri < headerRowIdx; ri++) {
+            const t = dedupCells(rows[ri]);
+            if (t) curQ.tokens.push({ type:'text', value: t });
+          }
+          curOpts = ['', '', '', ''];
+          curOptImages = await extractTransposedOptImages(rows, optStartCol, headerRowIdx, item.cellImages);
+        } else {
+          let sharedTableTokens = [];
+          let reusableTableTokens = [];
+          let optionHeaderRow = null;
+          for (let ri = 0; ri < rows.length; ri++) {
+            const row     = rows[ri];
+            const r0plain = (row[0] || '').replace(/<[^>]+>/g, '').trim();
+            const { qnum: rowQnum, idx: rowQIdx } = findQnumInRow(row);
+
+            if (looksLikeOptionHeaderRow(row)) {
+              optionHeaderRow = row;
+            } else if (curQ && /^[A-D]$/i.test(r0plain)) {
+              const optText = formatOptionRowText(row, optionHeaderRow);
+              curOpts.push(optText || '');
+              const optRids = item.rowImages ? (item.rowImages[ri] || []) : [];
+              const optFn   = optRids.length ? await resolveImage(optRids[0]) : null;
+              curOptImages.push(optFn);
+            } else if (rowQnum !== null) {
+              flushQuestion();
+              const leadText = dedupCells(row.slice(0, rowQIdx));
+              const leadTokens = leadText ? [{ type:'text', value: leadText }] : [];
+              const qText = dedupCells(row.slice(rowQIdx + 1));
+              const qTextIsBlank = !qText || isAnswerBlank(qText);
+              const seedTokens = leadTokens.length ? leadTokens
+                : (sharedTableTokens.length ? sharedTableTokens
+                : (qTextIsBlank ? reusableTableTokens : []));
+              if (leadTokens.length) reusableTableTokens = leadTokens.map(t => ({ ...t }));
+              else if (sharedTableTokens.length) reusableTableTokens = sharedTableTokens.map(t => ({ ...t }));
+              startQuestion(rowQnum, seedTokens, {
+                allowImplicit: row.slice(rowQIdx + 1).some(isAnswerBlank)
+              });
+              sharedTableTokens = [];
+              optionHeaderRow = null;
+              if (qText && !isAnswerBlank(qText)) {
+                pushUniqueTextToken(curQ.tokens, qText, reusableTableTokens);
+              }
+            } else if (curQ && !r0plain) {
+              const opts = extractOptsFromRow(row);
+              if (opts.length >= 2) {
+                optionHeaderRow = null;
+                curOpts.push(...opts);
+                for (let k = 0; k < opts.length; k++) curOptImages.push(null);
+              } else {
+                const splitOpt = extractSplitNumberedOptionRow(row);
+                if (splitOpt) {
+                  optionHeaderRow = null;
+                  const optRids = item.rowImages ? (item.rowImages[ri] || []) : [];
+                  const optFn = optRids.length ? await resolveImage(optRids[0]) : null;
+                  if (splitOpt.text || optFn) {
+                    curOpts.push(splitOpt.text || '');
+                    curOptImages.push(optFn);
+                    continue;
+                  }
+                }
+                const implicitOpt = allowImplicitTableOptions ? extractUnlabeledOption(row) : null;
+                if (implicitOpt && curOpts.length < LETTERS.length) {
+                  curOpts.push(implicitOpt);
+                  curOptImages.push(null);
+                  continue;
+                }
+                // Image-only option cells (single letters A/B/C/D with images)
+                const optSlice   = row.slice(1).filter(c => c.replace(/<[^>]+>/g,'').trim());
+                const allLetters = optSlice.length >= 2 &&
+                  optSlice.every(c => /^[A-D]$/i.test(c.replace(/<[^>]+>/g,'').trim()));
+                if (allLetters) {
+                  for (let ci = 0; ci < row.length - 1; ci++) {
+                    const c = row[ci + 1];
+                    if (!c.replace(/<[^>]+>/g,'').trim()) continue;
+                    curOpts.push('');
+                    const cellRids = item.cellImages && item.cellImages[ri]
+                      ? (item.cellImages[ri][ci + 1] || []) : [];
+                    const optFn = cellRids.length ? await resolveImage(cellRids[0]) : null;
+                    curOptImages.push(optFn);
+                  }
+                } else {
+                  const t = dedupCells(row);
+                  if (t) {
+                    if (!curQ || curOpts.length || currentHasInlineOptions()) {
+                      pushUniqueTextToken(sharedTableTokens, t, curQ ? curQ.tokens : [], reusableTableTokens, pendingLeadTokens);
+                    } else {
+                      pushUniqueTextToken(curQ.tokens, t, sharedTableTokens, reusableTableTokens, pendingLeadTokens);
+                    }
+                  }
+                }
+              }
+            } else {
+              const t = dedupCells(row);
+              if (t) {
+                if (!curQ || curOpts.length || currentHasInlineOptions()) {
+                  pushUniqueTextToken(sharedTableTokens, t, curQ ? curQ.tokens : [], reusableTableTokens, pendingLeadTokens);
+                } else {
+                  pushUniqueTextToken(curQ.tokens, t, sharedTableTokens, reusableTableTokens, pendingLeadTokens);
+                }
+              }
+            }
+          }
+          for (const token of sharedTableTokens) {
+          pushUniqueTextToken(pendingLeadTokens, token.value);
+        }
+        }
+      }
+      continue;
+    }
+
+    // --- Plain text ---
+    const raw   = item.value;
+    const plain = stripTags(raw).replace(/\xa0/g,' ').replace(/\t/g,' ')
+                                .replace(/\s+/g,' ').trim();
+
+    if (ANS_RE.test(plain)) { inAnswers = true; continue; }
+    if (!plain && !item.numPr) continue;   // skip truly empty paragraphs
+
+    // ── Essay-label question detection (e.g. "Planning Question (Example 1)") ──
+    // Only triggers when no numeric Q_RE match exists, so it never conflicts
+    // with standard numbered exam papers.
+    if (plain && ESSAY_Q_LABEL_RE.test(plain)) {
+      flushQuestion();                  // saves previous Q + resets inSuggestedAnswer
+      startQuestion(String(autoQCounter++), [], { fromText: true });
+      curQ.suggestedAnswerText = '';
+      // The label text (e.g. "Planning Question (Example 1)") becomes the first token
+      curQ.tokens.push({ type: 'text', value: raw });
+      continue;
+    }
+
+    // ── Path A: plain-text question number in the text itself ────────────
+    // MUST come before inSuggestedAnswer routing: a new numbered question always
+    // terminates the previous answer section (flushQuestion resets the flag).
+    if (plain) {
+      if (curQ) {
+        const earlyOptMatch = plain.match(OPT_RE);
+        if (earlyOptMatch) {
+          curOpts.push(earlyOptMatch[1] ?? '');
+          curOptImages.push(null);
+          continue;
+        }
+      }
+
+      const slashClozes = extractBracketedSlashClozes(plain);
+      if (slashClozes.length) {
+        flushQuestion();
+        const stemBase = blankBracketedSlashClozes(plain);
+        for (const cloze of slashClozes) {
+          startQuestion(cloze.qnum, [], { fromText: true });
+          curQ.tokens.push({
+            type: 'text',
+            value: `Select the best answer for blank (${cloze.qnum}). ${stemBase}`
+          });
+          curOpts = cloze.opts;
+          curOptImages = cloze.opts.map(() => null);
+          flushQuestion();
+        }
+        continue;
+      }
+
+      // Question-start variant like "2(a)Write ...". We treat this as a new
+      // top-level question (qnum=2) and keep "(a) ..." in the stem text.
+      const qSubMatch = plain.match(Q_SUBSTART_RE);
+      if (qSubMatch && parseInt(qSubMatch[1]) <= MAX_QNUM) {
+        const qnum = qSubMatch[1];
+        const qbody = `(${qSubMatch[2]}) ${qSubMatch[3] || ''}`.trim();
+        flushQuestion();           // resets inSuggestedAnswer
+        startQuestion(qnum, [], { fromText: true });
+        curQ.tokens.push({ type:'text', value: qbody || raw });
+        continue;
+      }
+
+      const qMatch = plain.match(Q_RE);
+      if (qMatch) {
+        // Group layout: Q-prefix "Q1 text" → groups [1]=num
+        //               paren-style "(1) text" → groups [2]=num
+        //               full-width paren "（1） text" → groups [3]=num
+        //               regular "1. text" → groups [4]=num
+        const qnum = qMatch[1] || qMatch[2] || qMatch[3] || qMatch[4];
+        const qtext = qMatch[5];
+        if (parseInt(qnum) <= MAX_QNUM) {
+          flushQuestion();           // resets inSuggestedAnswer
+          startQuestion(qnum, [], { fromText: true });
+          // Strip the leading "Q1." / "Q1)" / "(1)" / "（1）」 / "1." from raw HTML, keep rest
+          const bodyText = raw.replace(/^(?:<[^>]*>)*(?:[Qq]\d+(?:[\.\)\s:]*\s+)?|\(\d+\)|（\d+）|\d+[.)])(?:<\/[^>]*>)*\s*/,'').trim()
+                        || raw.replace(/^(?:<[^>]*>)*[Qq]?\d+(?:<\/[^>]*>)*\s+/,'').trim()
+                        || qtext;
+          curQ.tokens.push({ type:'text', value: bodyText });
+          continue;
+        }
+      }
+
+      // Inline Q-prefix for fill-in-the-blank style questions (e.g. Q16(...) or conversational Q26？)
+      // Make sure it's not matching instruction ranges like "Q1-Q2"
+      const rangeMatch = plain.match(/[Qq]\d+\s*[-－到至\u2013\u2014]\s*[Qq]\d+/);
+      const inlineQMatch = plain.match(/(?:^|[^A-Za-z0-9])[Qq](\d{1,3})(?:[^A-Za-z0-9]|$)/);
+      
+      if (inlineQMatch && !rangeMatch && parseInt(inlineQMatch[1]) <= MAX_QNUM) {
+          flushQuestion();
+          startQuestion(inlineQMatch[1], [], { fromText: true });
+          // Keep whole paragraph context for the inline question
+          curQ.tokens.push({ type: 'text', value: raw });
+
+          // Try to extract inline options: e.g. Q16（1 肯定 2 挑选 3 安排 4选择）
+          // Handles both "1 word" (space) and "1word" (no space) formats.
+          const clozeMatch = plain.match(/[Qq]\d{1,3}\s*[＿_\s]*[（(]([^）)]+)[）)]/u);
+          if (clozeMatch) {
+              const innerTxt = clozeMatch[1].trim();
+              const optionParts = parseInlineClozeOptions(innerTxt);
+              if (optionParts.length >= 2 && optionParts.length <= 8) {
+                  for (const o of optionParts) {
+                     curOpts.push(o);
+                     curOptImages.push(null);
+                  }
+                  // Replace the option list in the stem with a clean blank so students
+                  // see the sentence context rather than the raw options list.
+                  // e.g. "Q16（1 肯定 2 挑选 3 安排 4选择）" → "______"
+                  const stemRaw = raw.replace(/[Qq]\d{1,3}\s*[＿_\s]*[（(][^）)]*[）)]/u, '______');
+                  curQ.tokens[curQ.tokens.length - 1] = { type: 'text', value: stemRaw };
+              }
+          }
+          continue;
+      }
+    }
+
+    // ── Answer-section delimiter (e.g. "Suggested Answer", "Marking Scheme") ──
+    // Everything after this heading goes into curQ.suggestedAnswerText.
+    if (plain && ANSWER_SPLIT_RE.test(plain) && curQ && !inSuggestedAnswer) {
+      inSuggestedAnswer = true;
+      // Don't add the heading itself to either the prompt or the answer
+      continue;
+    }
+
+    // Skip plain "Options"/"Choices" headers and standalone A/B/C/D labels
+    // that appear after the detected options list in some Chinese paper layouts.
+    if (plain && curQ) {
+      if (OPTIONS_HEADER_RE.test(plain)) continue;
+      if (curOpts.length > 0 && STANDALONE_OPTION_LABEL_RE.test(plain)) continue;
+    }
+
+    // ── Route content to suggestedAnswerText when in answer mode ────────
+    if (inSuggestedAnswer && curQ) {
+      if (plain) curQ.suggestedAnswerText = (curQ.suggestedAnswerText || '') + plain + '\n';
+      continue;
+    }
+
+    // ── OPT_RE — only fires when NOT in answer mode ──────────────────────
+    if (plain) {
+      const optMatch = plain.match(OPT_RE);
+      if (optMatch && curQ) {
+        curOpts.push(optMatch[1] ?? '');
+        curOptImages.push(null);   // no image for paragraph-based options
+        continue;
+      }
+    }
+
+    // ── Path B: DOCX automatic list numbering — label not in <w:t> text ─
+    // When Word generates "1." / "a." from <w:numPr>, the <w:t> holds only
+    // the bare content.  We look up the list format from numbering.xml:
+    //   decimal / decimalZero → question stem  (auto-number it)
+    //   lowerLetter / upperLetter / lowerRoman → MCQ option
+    if (item.numPr) {
+      const { numId, ilvl } = item.numPr;
+      const lvlMap = numFormatMap.get(numId);
+      const fmt    = (lvlMap && lvlMap.get(ilvl)) || '';
+      const cKey   = `${numId}:${ilvl}`;
+
+      if (/^decimal/i.test(fmt) && plain) {
+        const isDifferentAutoOptionList = curQAutoListKey && cKey !== curQAutoListKey && isLikelyAutoNumberedOptionText(plain);
+        if (curQ && (curQFromText || isDifferentAutoOptionList)) {
+          // Question stem was already active. If this decimal item belongs to
+          // a different Word auto-number list, it is usually an option list
+          // displayed as (1), (2), (3), (4), not the next question.
+          curOpts.push(stripTrailingAnswerBlank(plain));
+          curOptImages.push(null);
+        } else {
+          // Auto-numbered question stem (standard exam auto-list style)
+          numCounter.set(cKey, (numCounter.get(cKey) || 0) + 1);
+          const autoQnum = String(numCounter.get(cKey));
+          flushQuestion();
+          startQuestion(autoQnum, [], { autoListKey: cKey });
+          curQ.tokens.push({ type: 'text', value: raw });
+        }
+        continue;
+      }
+
+      if (/letter|roman/i.test(fmt) && curQ) {
+        // Auto-lettered MCQ option
+        curOpts.push(plain);
+        curOptImages.push(null);
+        continue;
+      }
+    }
+
+    if (plain && curQ && (curOpts.length || currentHasInlineOptions())) {
+      pendingLeadTokens.push({ type:'text', value: raw });
+      continue;
+    }
+
+    if (plain && curQ) curQ.tokens.push({ type:'text', value: raw });
+  }
+
+  // Flush last answer + question
+  if (curAQ !== null) inlineAnswers[curAQ] = curATokens;
+  flushQuestion();
+  normalizeInlineClozeGroups(mcq);
+
+  const totalQ = mcq.length + structured.length;
+  if (totalQ === 0)
+    throw new Error(
+      'No questions found. Questions must either:\n' +
+      '• Start with a number: "1 What is…", "1. What is…", "1) What is…", "(1) What is…"\n' +
+      '• OR start with a bold label: "Planning Question", "Practice Question", "Additional question"'
+    );
+
+  // ── Merge, deduplicate, sort — MCQ wins over structured for same qnum ──
+  const qByNum = new Map();
+  for (const q of mcq)        qByNum.set(q.qnum, { isMcq: true,  q });
+  for (const q of structured) if (!qByNum.has(q.qnum)) qByNum.set(q.qnum, { isMcq: false, q });
+
+  const allQuestions = [...qByNum.values()]
+    .sort((a, b) => parseInt(a.q.qnum) - parseInt(b.q.qnum))
+    .map(({ isMcq, q }) => {
+      const resolvedAnswer = q.suggestedAnswerText || resolveAnswer(q.qnum);
+      return {
+        isMcq,
+        q,
+        // suggestedAnswerText (auto-extracted from doc) takes priority over MS file / inline answers
+        answer: isMcq ? (normalizeMcqAnswerValue(resolvedAnswer) || resolvedAnswer) : resolvedAnswer
+      };
+    });
+
+  // Safety pass: if an item was parsed as Essay but contains inline cloze
+  // syntax (e.g. "Q16（1 ... 2 ... 3 ... 4 ...）"), auto-promote it to MCQ
+  // so the editor shows Options A/B/C/D and a correct-answer selector.
+  for (const entry of allQuestions) {
+    if (entry.isMcq) continue;
+    const stemPlain = (entry.q.tokens || [])
+      .filter(t => t.type === 'text')
+      .map(t => stripTags(t.value || ''))
+      .join(' ');
+    const m = stemPlain.match(INLINE_CLOZE_RE);
+    if (!m) continue;
+
+    const parsedOpts = parseInlineClozeOptions((m[2] || '').trim());
+    const optCount = Math.max(2, Math.min(parsedOpts.length || 4, LETTERS.length));
+    entry.isMcq = true;
+    entry.q.options = parsedOpts.length ? parsedOpts : Array(optCount).fill('');
+    entry.q.optionImages = entry.q.options.map(() => null);
+
+    const ans = String(entry.answer || '').trim();
+    const letterMatch = ans.match(/^([A-Da-d])$/);
+    const numMatch = ans.match(/^([1-4])$/);
+    if (letterMatch) entry.answer = letterMatch[1].toLowerCase();
+    else if (numMatch) entry.answer = LETTERS[parseInt(numMatch[1], 10) - 1];
+  }
+
+  return { allQuestions, resolvedImages };
+}
+
+// ── Phase 2: build the QTI ZIP from (possibly edited) question data ──────────
+async function buildQtiZipBlob(allQuestions, resolvedImages) {
+  const outZip    = new JSZip();
+  const itemsDir  = outZip.folder('items');
+  const assetsDir = outZip.folder('assets');
+
+  for (const { filename, data } of Object.values(resolvedImages))
+    assetsDir.file(filename, data);
+
+  const itemRefs   = [];
+  const itemImages = {};
+
+  for (const { isMcq, q, answer } of allQuestions) {
+    const { id, xml } = isMcq ? mcqItemXml(q, answer) : essayItemXml(q, answer);
+    itemsDir.file(`${id}.xml`, xml);
+    itemRefs.push(id);
+    const stemImgs = q.tokens.filter(t => t.type === 'image').map(t => t.value);
+    const optImgs  = (q.optionImages || []).filter(Boolean);
+    itemImages[id] = [...new Set([...stemImgs, ...optImgs])];
+  }
+
+  let testXml = `<assessmentTest xmlns="${QTI_NS}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  identifier="TEST1" title="Converted Test"
+  xsi:schemaLocation="${QTI_XSD}">
+<testPart identifier="part1" navigationMode="linear" submissionMode="individual">
+<assessmentSection identifier="section1" title="Converted Test" visible="true">
+`;
+  for (const id of itemRefs)
+    testXml += `<assessmentItemRef href="items/${id}.xml" identifier="${id}"/>\n`;
+  testXml += `</assessmentSection>\n</testPart>\n</assessmentTest>`;
+  outZip.file('assessment_test.xml', testXml);
+
+  let manifest = `<manifest xmlns="http://www.imsglobal.org/xsd/imscp_v1p1"
+  xmlns:imsmd="http://www.imsglobal.org/xsd/imsmd_v1p2"
+  xmlns:imsqti="http://www.imsglobal.org/xsd/imsqti_metadata_v2p1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  identifier="MANIFEST1"
+  xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p1.xsd">
+<metadata><schema>QTIv2.1 Package</schema><schemaversion>1.0.0</schemaversion></metadata>
+<organizations/>
+<resources>
+<resource identifier="RES_TEST" type="imsqti_test_xmlv2p1" href="assessment_test.xml">
+  <metadata/><file href="assessment_test.xml"/>
+</resource>
+`;
+  for (const id of itemRefs) {
+    manifest += `<resource identifier="RES_${id}" type="imsqti_item_xmlv2p1" href="items/${id}.xml">
+  <metadata/><file href="items/${id}.xml"/>\n`;
+    for (const img of (itemImages[id] || []))
+      manifest += `  <file href="assets/${img}"/>\n`;
+    manifest += `</resource>\n`;
+  }
+  manifest += `</resources>\n</manifest>`;
+  outZip.file('imsmanifest.xml', manifest);
+
+  return outZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Review & Edit editor
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Global editor state ─────────────────────────────────────────────────────────
+let editorState = null;   // { allQuestions, resolvedImages, imageUrls, baseName }
+
+// Render the full editor after a successful parse ─────────────────────────────
+function renderEditor(allQuestions, resolvedImages, baseName) {
+  // Create in-memory blob URLs so we can display images without a server
+  const imageUrls = {};
+  for (const { filename, data } of Object.values(resolvedImages)) {
+    const mime = filename.endsWith('.png') ? 'image/png'
+               : filename.endsWith('.gif') ? 'image/gif'
+               : 'image/jpeg';
+    imageUrls[filename] = URL.createObjectURL(new Blob([data], { type: mime }));
+  }
+
+  editorState = { allQuestions, resolvedImages, imageUrls, baseName };
+
+  // Populate cards
+  const container = document.getElementById('questionCards');
+  container.innerHTML = '';
+  allQuestions.forEach((entry, idx) => container.appendChild(buildCard(entry, imageUrls, idx)));
+
+  // Update count badge
+  document.getElementById('editorQCount').textContent =
+    `${allQuestions.length} question${allQuestions.length !== 1 ? 's' : ''}`;
+
+  // Show section and smoothly scroll to it
+  const sec = document.getElementById('editorSection');
+  sec.style.display = 'block';
+  setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+}
+
+// Build one question card ──────────────────────────────────────────────────────
+function buildCard(entry, imageUrls, idx) {
+  const { isMcq, q, answer } = entry;
+
+  const card = document.createElement('div');
+  card.className = 'q-card';
+  card.dataset.idx = idx;
+
+  // ── Header ──────────────────────────────────────────────────────────
+  const hdr = document.createElement('div');
+  hdr.className = 'q-card-header';
+  hdr.innerHTML = `
+    <span class="q-num-badge">Q${q.qnum}</span>
+    <span class="q-type-badge ${isMcq ? 'mcq' : 'essay'}" title="Click to toggle MCQ / Essay">${isMcq ? 'MCQ' : 'Essay'}</span>`;
+  card.appendChild(hdr);
+
+  // Type-toggle: clicking the badge swaps MCQ ↔ Essay and rebuilds the card
+  hdr.querySelector('.q-type-badge').addEventListener('click', () => {
+    const e = editorState.allQuestions[idx];
+    e.isMcq = !e.isMcq;
+    if (e.isMcq && (!e.q.options || !e.q.options.length)) {
+      e.q.options      = ['', '', '', ''];
+      e.q.optionImages = [null, null, null, null];
+    }
+    card.replaceWith(buildCard(e, editorState.imageUrls, idx));
+  });
+
+  // ── Stem ────────────────────────────────────────────────────────────
+  const stemWrap = document.createElement('div');
+  stemWrap.className = 'q-stem';
+
+  q.tokens.forEach((token, ti) => {
+    if (token.type === 'text') {
+      const d = document.createElement('div');
+      d.className = 'stem-text';
+      d.contentEditable = 'true';
+      d.setAttribute('data-ph', 'Question stem…');
+      d.setAttribute('data-token-idx', ti);
+      // Set as HTML so formatting tags (strong/sup/sub) render correctly
+      d.innerHTML = safeHtml(token.value);
+      stemWrap.appendChild(d);
+
+    } else if (token.type === 'image') {
+      const img = document.createElement('img');
+      img.className = 'stem-img';
+      img.alt = 'diagram';
+      img.setAttribute('data-token-idx', ti);
+      img.src = imageUrls[token.value] || '';
+      stemWrap.appendChild(img);
+
+    } else if (token.type === 'table') {
+      const tbl = document.createElement('table');
+      tbl.className = 'stem-table';
+      tbl.setAttribute('data-token-idx', ti);
+      for (const row of token.value) {
+        const tr = document.createElement('tr');
+        for (const cell of row) {
+          const td = document.createElement('td');
+          td.innerHTML = safeHtml(cell);
+          tr.appendChild(td);
+        }
+        tbl.appendChild(tr);
+      }
+      stemWrap.appendChild(tbl);
+    }
+  });
+  card.appendChild(stemWrap);
+
+  // ── Options (MCQ only) ───────────────────────────────────────────────
+  if (isMcq && q.options && q.options.length) {
+    const optsLabel = document.createElement('div');
+    optsLabel.className = 'q-opts-label';
+    optsLabel.textContent = 'Options';
+    card.appendChild(optsLabel);
+
+    const optsWrap = document.createElement('div');
+    optsWrap.className = 'q-options';
+
+    q.options.slice(0, LETTERS.length).forEach((opt, oi) => {
+      const row = document.createElement('div');
+      row.className = 'option-row';
+      row.style.alignItems = 'flex-start';
+
+      const lbl = document.createElement('span');
+      lbl.className = 'opt-letter';
+      lbl.textContent = LETTERS[oi].toUpperCase();
+      lbl.setAttribute('data-opt-idx', oi);
+      lbl.style.marginTop = '6px';
+      row.appendChild(lbl);
+
+      // Option may have an image (diagram), text, or both
+      const optImgFn = q.optionImages && q.optionImages[oi];
+      const wrap = document.createElement('div');
+      wrap.style.flex = '1';
+
+      if (optImgFn && imageUrls[optImgFn]) {
+        const img = document.createElement('img');
+        img.className = 'opt-img';
+        img.src = imageUrls[optImgFn];
+        img.alt = `Option ${LETTERS[oi].toUpperCase()}`;
+        wrap.appendChild(img);
+      }
+
+      // Use a contentEditable div so <sup>/<sub>/<strong>/<em> formatting
+      // in option text is preserved through the editor round-trip.
+      const inp = document.createElement('div');
+      inp.contentEditable = 'true';
+      inp.className = 'opt-input';
+      inp.innerHTML = opt;          // render HTML formatting, not plain text
+      inp.setAttribute('data-opt-idx', oi);
+      inp.style.marginTop = optImgFn ? '4px' : '0';
+      wrap.appendChild(inp);
+
+      row.appendChild(wrap);
+      optsWrap.appendChild(row);
+    });
+    card.appendChild(optsWrap);
+
+    // ── Correct answer selector ────────────────────────────────────────
+    const ansRow = document.createElement('div');
+    ansRow.className = 'q-answer-row';
+    ansRow.innerHTML = `<span>✓ Correct answer:</span>`;
+
+    const sel = document.createElement('select');
+    sel.className = 'answer-select';
+    sel.innerHTML = `<option value="">— none —</option>` +
+      LETTERS.slice(0, q.options.length).map((l, i) =>
+        `<option value="${l}" ${answer === l ? 'selected' : ''}>${l.toUpperCase()}</option>`
+      ).join('');
+
+    // Highlight correct-option letter badge immediately and on change.
+    // Also toggle amber border on the card when no answer is selected.
+    const syncLabels = () => {
+      optsWrap.querySelectorAll('.opt-letter').forEach(lbl => {
+        lbl.classList.toggle('is-correct', lbl.textContent.toLowerCase() === sel.value);
+      });
+      card.classList.toggle('no-answer', !sel.value);
+    };
+    sel.addEventListener('change', syncLabels);
+    syncLabels();
+
+    ansRow.appendChild(sel);
+    card.appendChild(ansRow);
+
+  } else {
+    // ── Essay suggested answer field ─────────────────────────────────────
+    const ansLabel = document.createElement('div');
+    ansLabel.className = 'q-essay-answer-label';
+    ansLabel.textContent = '✏ Suggested answer (optional — injected into QTI export):';
+    card.appendChild(ansLabel);
+
+    const ansTA = document.createElement('textarea');
+    ansTA.className = 'essay-answer-input';
+    ansTA.placeholder = 'Type or paste the model answer here…';
+    ansTA.value = (answer && answer !== 'None') ? answer : '';
+    card.appendChild(ansTA);
+  }
+
+  return card;
+}
+
+// Read back edited state from DOM into a new allQuestions array ───────────────
+function readEditorState() {
+  const cards = document.querySelectorAll('#questionCards .q-card');
+  return editorState.allQuestions.map((entry, idx) => {
+    const card = cards[idx];
+    if (!card) return entry;
+
+    const { isMcq, q } = entry;
+
+    // Re-build tokens: update text tokens from contenteditable divs; keep others
+    const newTokens = q.tokens.map((token, ti) => {
+      if (token.type !== 'text') return token;
+      const el = card.querySelector(`.stem-text[data-token-idx="${ti}"]`);
+      return el ? { type: 'text', value: el.innerHTML } : token;
+    });
+
+    const newQ = { ...q, tokens: newTokens };
+
+    // MCQ: read option inputs + answer select
+    // Essay: read suggested answer textarea
+    let newAnswer = entry.answer;
+    if (isMcq) {
+      newQ.options = q.options.map((opt, oi) => {
+        const el = card.querySelector(`.opt-input[data-opt-idx="${oi}"]`);
+        // contentEditable div → read innerHTML to preserve <sup>/<sub> formatting
+        return el ? el.innerHTML : opt;
+      });
+      const sel = card.querySelector('.answer-select');
+      if (sel) newAnswer = sel.value;
+    } else {
+      const ta = card.querySelector('.essay-answer-input');
+      if (ta) newAnswer = ta.value.trim();
+    }
+
+    return { isMcq, q: newQ, answer: newAnswer };
+  });
+}
+
+// "Set unanswered MCQ → A" checkbox ──────────────────────────────────────────
+document.getElementById('setAllAChk').addEventListener('change', function () {
+  if (!this.checked) return;
+  // Find every MCQ answer-select that has no answer chosen (value === '')
+  const selects = document.querySelectorAll('#questionCards .answer-select');
+  let count = 0;
+  selects.forEach(sel => {
+    if (sel.value === '') {
+      sel.value = 'a';
+      sel.dispatchEvent(new Event('change'));   // trigger highlight update
+      count++;
+    }
+  });
+  // Uncheck immediately so it acts as a one-shot action button
+  this.checked = false;
+  if (count === 0) alert('All MCQ questions already have an answer selected.');
+});
+
+// Export button ───────────────────────────────────────────────────────────────
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  if (!editorState) return;
+  const btn = document.getElementById('exportBtn');
+
+  // ── Guard: every MCQ question must have a correct answer selected ──────
+  const edited = readEditorState();
+  const missing = edited.filter(e => e.isMcq && !e.answer);
+  if (missing.length) {
+    const qNums = missing.map(e => `Q${e.q.qnum}`).join(', ');
+    showMsg('error',
+      `⚠ Please select the correct answer for ${missing.length === 1 ? 'question' : 'questions'}: `
+      + `<strong>${qNums}</strong> before exporting. `
+      + `(Look for the <span style="color:#d97706">amber-bordered</span> cards above.)`);
+    // Scroll to the first card that has no answer
+    const firstCard = document.querySelector('#questionCards .q-card.no-answer');
+    if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;   // do NOT proceed with export
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Building ZIP…';
+  try {
+    const blob = await buildQtiZipBlob(edited, editorState.resolvedImages);
+    triggerDownload(blob, editorState.baseName + '.zip');
+    btn.textContent = '✅ Downloaded!';
+    setTimeout(() => { btn.textContent = '📦 Export QTI ZIP'; btn.disabled = false; }, 2500);
+  } catch (e) {
+    btn.textContent = '📦 Export QTI ZIP';
+    btn.disabled = false;
+    showMsg('error', '✗ Export failed: ' + e.message);
+  }
+});
+
+// Reset button — hide editor and let user upload a new file ──────────────────
+document.getElementById('resetBtn').addEventListener('click', () => {
+  // Revoke blob URLs to free memory
+  if (editorState) {
+    for (const url of Object.values(editorState.imageUrls)) URL.revokeObjectURL(url);
+    editorState = null;
+  }
+  document.getElementById('editorSection').style.display = 'none';
+  document.getElementById('questionCards').innerHTML = '';
+  document.getElementById('message').innerHTML = '';
+  // Reset upload zones
+  selectedFile = null; selectedMsFile = null;
+  fileNameEl.textContent = ''; msFileNameEl.textContent = '';
+  dropZone.classList.remove('has-file');
+  msDropZone.classList.remove('has-file');
+  convertBtn.disabled = true;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+</script>
+<div class="container">
+  <div class="faq-section">
+    <h2>❓ Frequently Asked Questions</h2>
+    <p class="faq-subtitle">Common questions from teachers using this converter with SLS.</p>
+
+    <details class="faq-item">
+      <summary>Why do multipart questions get split into separate questions after import?</summary>
+      <div class="faq-body">
+        <p>
+          This is a fundamental limitation of the QTI 2.1 standard, not specific to this converter.
+          <strong>QTI does not have a native multipart question format.</strong>
+          Every item in a QTI package must be a self-contained, standalone question.
+        </p>
+        <p>
+          As a result, each part of a multipart question is exported as its own separate QTI item.
+          To keep things coherent, the shared stimulus (the common passage or scenario) and the
+          part label (e.g. "Part (a)") are repeated in each item's prompt — the same approach
+          used by other QTI converters such as GetMarked.
+        </p>
+        <p><strong>What this means in SLS:</strong></p>
+        <ul>
+          <li>Each sub-part will appear as an independent question in the SLS quiz.</li>
+          <li>The stimulus text is duplicated across parts — some manual cleanup in SLS may be needed.</li>
+          <li>Grouping or nesting sub-questions under a parent question must be done manually in SLS after import.</li>
+        </ul>
+        <p>
+          <span class="faq-tag platform">QTI 2.1 constraint</span>
+          <span class="faq-tag workaround">Workaround: reorganise in SLS after import</span>
+        </p>
+      </div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Why doesn't SLS show the model answers after importing the QTI file?</summary>
+      <div class="faq-body">
+        <p>
+          For <strong>MCQ questions</strong>, correct answers are included in the QTI package
+          as <code>&lt;correctResponse&gt;</code> elements and are successfully ingested by SLS
+          during import — no additional setup is needed for MCQ.
+        </p>
+        <p>
+          For <strong>essay / structured questions</strong>, SLS currently does not ingest
+          answer data from QTI files during import, even when that data is present in the package.
+          This is a <strong>platform-side limitation of SLS</strong>, not a problem with the converter.
+          The same behaviour has been confirmed by other QTI converters (including GetMarked).
+        </p>
+        <p><strong>What this means in practice:</strong></p>
+        <ul>
+          <li>MCQ correct answers → imported automatically ✔</li>
+          <li>Essay / structured suggested answers → must be added manually in SLS after import ✘</li>
+        </ul>
+        <p>
+          The converter embeds suggested answer text in the QTI XML for completeness, but SLS
+          will not display it until MOE adds support for ingesting essay answer data from QTI.
+        </p>
+        <p>
+          <span class="faq-tag platform">SLS platform limitation</span>
+          <span class="faq-tag workaround">Workaround: add answers manually in SLS</span>
+        </p>
+      </div>
+    </details>
+
+  </div>
+</div>
+
+<footer style="text-align:center; padding: 16px 0 10px; color: #999; font-size: 0.78rem; font-family: sans-serif;">
+  Last updated: Tuesday, 12 May 2026, 9:08 PM
+</footer>
+</body>
+</html>

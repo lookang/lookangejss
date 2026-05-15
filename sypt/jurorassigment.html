@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Singapore Young Physicists' Tournament (SYPT) Juror Assignment Web App</title>
+
+    <!-- Include Papa Parse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- Include FileSaver.js for file downloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <!-- Google Analytics -->
+    <script
+    async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <!-- End Google Analytics -->
+
+    <style>
+        /* Basic styling */
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        input[type="file"] { margin-bottom: 10px; }
+        button { margin-top: 10px; margin-right: 10px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        table, th, td { border: 1px solid #ccc; }
+        th, td { padding: 8px; text-align: left; }
+        .output-section { margin-top: 40px; }
+        .uploaded-data { margin-top: 20px; }
+        .footer {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #555;
+        }
+        .footer a {
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Singapore Young Physicists' Tournament (SYPT) Juror Assignment Web App</h1>
+
+    <form id="upload-form">
+        <label>Upload Assignment Matrix CSV:</label><br>
+        <input type="file" id="assignment-matrix" accept=".csv">
+        <button type="button" onclick="loadSampleAssignmentMatrix()">Load Sample Assignment Matrix CSV</button><br>
+        <div id="assignment-matrix-preview" class="uploaded-data"></div>
+        <br>
+        <label>Upload Jurors CSV:</label><br>
+        <input type="file" id="jurors-csv" accept=".csv">
+        <button type="button" onclick="loadSampleJurorsCSV()">Load Sample Jurors CSV</button><br>
+        <div id="jurors-csv-preview" class="uploaded-data"></div>
+        <br>
+        <button type="button" onclick="processFiles()">Process Files</button>
+    </form>
+
+    <div class="output-section" id="output-section" style="display:none;">
+        <h2>Output Files</h2>
+        <button onclick="downloadFile('Juror schedule.csv')">Download Juror schedule.csv</button>
+        <button onclick="downloadFile('juror_assignment_list_table.csv')">Download juror_assignment_list_table.csv</button>
+        <button onclick="downloadFile('juror_assignment_list.csv')">Download juror_assignment_list.csv</button>
+
+        <h3>Juror schedule.csv</h3>
+        <div id="juror-schedule-output"></div>
+
+        <h3>juror_assignment_list_table.csv</h3>
+        <div id="juror-assignment-table-output"></div>
+
+        <h3>juror_assignment_list.csv</h3>
+        <div id="juror-assignment-list-output"></div>
+    </div>
+
+    <script>
+    let assignmentMatrixDataGlobal = null;
+    let jurorsDataGlobal = null;
+    let room_list = []; // To be dynamically populated
+    let PF_list = []; // List of PFs
+    let schoolNameKey = null; // Key for the school name column
+
+    // Store raw data for display
+    let assignmentMatrixRawData = null;
+    let jurorsRawData = null;
+
+    // Sample data for Assignment Matrix CSV
+    const sampleAssignmentMatrixCSV = `SchName,PF1,PF2,PF3,PF4
+NUSH1,AP,BP,CP,DP
+RVHS1,BO,CX,DO,EP
+RGS1,CP,DO,AO,EO
+NUSH2,DP,EX,BX,AO
+RI1,EP,AO,CO,BO
+NJC1,FP,BQ,DO,CO
+HCI1,AP,CO,DO,AO
+HCI2,CO,DQ,EP,BP
+NJC2,DO,EO,BP,CQ
+TJC1,BP,AO,CO,EO
+`;
+
+    // Sample data for Jurors CSV with anonymized names
+    const sampleJurorsCSV = `Name;Affiliation
+Juror A;Head
+Juror B;Exp
+Juror C;Exp
+Juror D;Exp
+Juror E;NUSHS
+Juror F;Head
+Juror G;Exp
+Juror H;Exp
+Juror I;Exp
+Juror J;RGS
+Juror K;Head
+Juror L;Exp
+Juror M;Exp
+Juror N;NUSHS
+Juror O;Exp
+Juror P;Head
+Juror Q;Exp
+Juror R;Exp
+Juror S;RVHS
+Juror T;Exp
+Juror U;Head
+Juror V;Exp
+Juror W;Exp
+Juror X;Exp
+Juror Y;RVHS
+Juror Z;Head
+Juror AA;Exp
+Juror AB;New
+Juror AC;HCI
+Juror AD;RGS
+Juror AE;Head
+Juror AF;HCI
+Juror AG;RI
+Juror AH;RVHS
+Juror AI;HCI
+Juror AJ;Head
+Juror AK;NUSHS
+Juror AL;Head
+Juror AM;HCI
+Juror AN;RVHS
+Juror AO;Head
+`;
+
+    // Event listener for assignment matrix file upload
+    document.getElementById('assignment-matrix').addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                const text = await file.text();
+                processAssignmentMatrixCSV(text);
+            } catch (error) {
+                console.error(error);
+                alert('An error occurred while reading the Assignment Matrix file.');
+            }
+        }
+    });
+
+    // Event listener for jurors CSV file upload
+    document.getElementById('jurors-csv').addEventListener('change', async function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            try {
+                const text = await file.text();
+                processJurorsCSV(text);
+            } catch (error) {
+                console.error(error);
+                alert('An error occurred while reading the Jurors CSV file.');
+            }
+        }
+    });
+
+    function loadSampleAssignmentMatrix() {
+        processAssignmentMatrixCSV(sampleAssignmentMatrixCSV);
+    }
+
+    function loadSampleJurorsCSV() {
+        processJurorsCSV(sampleJurorsCSV);
+    }
+
+    function processAssignmentMatrixCSV(text) {
+        let parseResult = Papa.parse(text, { header: true });
+        let rawData = parseResult.data;
+        let headers = parseResult.meta.fields;
+
+        // Determine the key for the school name column
+        if (headers[0] === '' || headers[0] === null || headers[0] === undefined) {
+            // If the first header is empty, set it to 'SchName'
+            headers[0] = 'SchName';
+            schoolNameKey = 'SchName';
+            // Update the data keys
+            rawData = rawData.map(row => {
+                row['SchName'] = row[''] || '';
+                delete row[''];
+                return row;
+            });
+            assignmentMatrixRawData = { data: rawData, headers: headers };
+        } else if (headers.includes('SchName')) {
+            schoolNameKey = 'SchName';
+            assignmentMatrixRawData = { data: rawData, headers: headers };
+        } else {
+            schoolNameKey = headers[0]; // Assume the first column is the school name
+            assignmentMatrixRawData = { data: rawData, headers: headers };
+        }
+
+        // Extract PFs (excluding the school name column)
+        PF_list = headers.filter(h => h !== schoolNameKey && h !== '');
+
+        let data = JSON.parse(JSON.stringify(rawData)); // Deep copy to avoid mutation
+        data = cleanAssignmentMatrixData(data, PF_list);
+        assignmentMatrixDataGlobal = data;
+
+        // Display the uploaded data using raw data and headers
+        document.getElementById('assignment-matrix-preview').innerHTML = '<h3>Assignment Matrix Data:</h3>' + dataToHtmlTable(assignmentMatrixRawData.data, assignmentMatrixRawData.headers);
+    }
+
+    function processJurorsCSV(text) {
+        let parseResult = Papa.parse(text, { header: true, delimiter: ';' });
+        let rawData = parseResult.data;
+        let headers = parseResult.meta.fields;
+
+        jurorsRawData = { data: rawData, headers: headers }; // Store raw data and headers for display
+        let data = JSON.parse(JSON.stringify(rawData)); // Deep copy to avoid mutation
+        data = cleanJurorsData(data);
+        jurorsDataGlobal = data;
+
+        // Display the uploaded data using raw data and headers
+        document.getElementById('jurors-csv-preview').innerHTML = '<h3>Jurors Data:</h3>' + dataToHtmlTable(jurorsRawData.data, jurorsRawData.headers);
+    }
+
+    function cleanAssignmentMatrixData(data, PF_list) {
+        // Parse the two-letter codes and extract room letters and roles
+        let roomsSet = new Set();
+        let cleanedData = [];
+        data.forEach((row, rowIndex) => {
+            let newRow = {};
+            // Check if the school name exists and is not empty
+            if (row.hasOwnProperty(schoolNameKey) && row[schoolNameKey] && row[schoolNameKey].trim() !== '') {
+                // lookang commented out to aviod renaming
+                var newName = 'RI';
+                newRow['SchName'] = row[schoolNameKey].replace('RI', newName ).trim();
+            } else {
+                console.warn(`Row ${rowIndex + 1}: Missing or empty school name. Skipping this row.`);
+                return; // Skip this row
+            }
+
+            // Process each PF
+            PF_list.forEach(PF => {
+                let cellValue = row[PF] ? row[PF].trim().toUpperCase() : '';
+                if (cellValue.length === 2) {
+                    let roomLetter = cellValue[0];
+                    let role = cellValue[1];
+                    newRow[PF] = { room: roomLetter, role: role };
+                    roomsSet.add(roomLetter);
+                } else {
+                    newRow[PF] = null;
+                }
+            });
+            cleanedData.push(newRow);
+        });
+
+        // Dynamically detect room list
+        room_list = Array.from(roomsSet);
+        console.log('Detected rooms:', room_list);
+
+        return cleanedData;
+    }
+
+    function cleanJurorsData(data) {
+        // Ensure names are unique and data is properly formatted
+        // Remove duplicates and unnecessary entries
+        const uniqueNames = new Set();
+        const cleanedData = [];
+        let index_no = 0;
+        data.forEach(row => {
+            if (row['Name'] && !uniqueNames.has(row['Name'])) {
+                uniqueNames.add(row['Name']);
+                // Replace 'RI' with 'Raffles' in Affiliation
+                var newName = 'RI'
+                if (row['Affiliation'] === 'RI') {
+                    row['Affiliation'] = newName ;
+                }
+                row['Index_no'] = index_no;
+                index_no++;
+                cleanedData.push(row);
+            }
+        });
+        return cleanedData;
+    }
+
+    async function processFiles() {
+        // Check if both files have been uploaded and data is available
+        if (!assignmentMatrixDataGlobal || !jurorsDataGlobal) {
+            alert('Please upload both CSV files.');
+            return;
+        }
+
+        try {
+            // Process data and generate outputs
+            const outputs = await processData(assignmentMatrixDataGlobal, jurorsDataGlobal);
+
+            // Display outputs on the webpage
+            displayOutputs(outputs);
+
+            // Show the output section
+            document.getElementById('output-section').style.display = 'block';
+
+        } catch (error) {
+            console.error(error);
+            alert('An error occurred while processing the files.');
+        }
+    }
+
+    async function processData(assignmentMatrixData, jurorsData) {
+        let solved = false;
+        const MAX_ATTEMPT = 300;
+        let attempt = 0;
+
+        let jurorAssignments = {};
+        let jurorDataOriginal = JSON.parse(JSON.stringify(jurorsData));
+
+        // Create a mapping of juror names to their affiliations (including tags)
+        let jurorNameAffiliationMap = {};
+        jurorsData.forEach(juror => {
+            let affiliationTag = '';
+            if (juror['Affiliation'] === 'Head') {
+                affiliationTag = '(Head)';
+            } else if (juror['Affiliation'] === 'Exp') {
+                affiliationTag = '(Exp)';
+            } else {
+                affiliationTag = `(${juror['Affiliation']})`;
+            }
+            jurorNameAffiliationMap[juror['Name']] = `${juror['Name']} ${affiliationTag}`;
+        });
+
+        while (!solved && attempt < MAX_ATTEMPT) {
+            attempt++;
+            try {
+                // Initialize juror assignments
+                jurorAssignments = {};
+                PF_list.forEach(PF => {
+                    jurorAssignments[PF] = {};
+                    room_list.forEach(room => {
+                        jurorAssignments[PF][room] = { 'H': null, '1': null, '2': null, '3': null, '4': null };
+                    });
+                });
+
+                // Assign head jurors
+                for (let PF of PF_list) {
+                    for (let room of room_list) {
+                        // Get participants in this room and PF
+                        let participants = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => row['SchName']);
+
+                        if (participants.length === 0) continue; // Skip if no participants in this room for this PF
+
+                        // Find available head jurors
+                        let headJurors = jurorsData.filter(juror => juror['Affiliation'] === 'Head' && !isJurorAssignedAtSameTime(juror['Name'], PF, jurorAssignments));
+
+                        if (headJurors.length === 0) throw new Error(`No head jurors available for PF${PF} Room ${room}`);
+
+                        // Assign a head juror randomly
+                        let selectedJuror = headJurors[Math.floor(Math.random() * headJurors.length)];
+                        jurorAssignments[PF][room]['H'] = selectedJuror['Name'];
+                    }
+                }
+
+                // Assign other jurors
+                for (let PF of PF_list) {
+                    for (let room of room_list) {
+                        // Get participants in this room and PF
+                        let participants = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => row['SchName']);
+
+                        if (participants.length === 0) continue; // Skip if no participants in this room for this PF
+
+                        for (let jurorNum of ['1', '2', '3', '4']) {
+                            // Find available jurors
+                            let availableJurors = jurorsData.filter(juror => {
+                                return !Object.values(jurorAssignments[PF][room]).includes(juror['Name']) && // Not already assigned to this room
+                                       !participants.includes(juror['Affiliation']) && // Not affiliated with participants
+                                       !isJurorAssignedAtSameTime(juror['Name'], PF, jurorAssignments); // Not assigned elsewhere at the same PF
+                            });
+
+                            if (availableJurors.length === 0) throw new Error(`No jurors available for PF${PF} Room ${room}, Juror ${jurorNum}`);
+
+                            // Assign a juror randomly
+                            let selectedJuror = availableJurors[Math.floor(Math.random() * availableJurors.length)];
+                            jurorAssignments[PF][room][jurorNum] = selectedJuror['Name'];
+                        }
+                    }
+                }
+
+                // If we reach here, assignments are successful
+                solved = true;
+            } catch (error) {
+                console.warn(`Attempt ${attempt}: ${error.message}`);
+                // Retry
+            }
+        }
+
+        if (!solved) throw new Error('Unable to assign jurors within the maximum number of attempts.');
+
+        // Prepare outputs
+        // Juror schedule
+        let serialNumber = 1;
+        let jurorSchedule = jurorDataOriginal.map(juror => {
+            let schedule = { ...juror };
+            schedule['Serial_Number'] = serialNumber++;
+            schedule['Count'] = 0;
+            PF_list.forEach(PF => {
+                let assignedRoom = null;
+                for (let room of room_list) {
+                    for (let role in jurorAssignments[PF][room]) {
+                        if (jurorAssignments[PF][room][role] === juror['Name']) {
+                            assignedRoom = room;
+                            schedule[PF] = room;
+                            schedule['Count'] += 1;
+                            break;
+                        }
+                    }
+                    if (assignedRoom) break;
+                }
+                if (!assignedRoom) schedule[PF] = '-';
+            });
+            // Collect teams assigned to
+            let teamsAssigned = [];
+            PF_list.forEach(PF => {
+                room_list.forEach(room => {
+                    if (Object.values(jurorAssignments[PF][room]).includes(juror['Name'])) {
+                        let participants = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => row['SchName']);
+                        teamsAssigned = teamsAssigned.concat(participants);
+                    }
+                });
+            });
+            schedule['0'] = [...new Set(teamsAssigned)].join(', '); // Remove duplicates
+            return schedule;
+        });
+
+        // Rearrange columns to match the desired output, including 'Serial_Number'
+        jurorSchedule = jurorSchedule.map(juror => {
+            return {
+                'Serial_Number': juror['Serial_Number'],
+                'Name': juror['Name'],
+                'Affiliation': juror['Affiliation'],
+                'Index_no': juror['Index_no'],
+                'Count': juror['Count'],
+                ...PF_list.reduce((acc, PF) => ({ ...acc, [PF]: juror[PF] }), {}),
+                '0': juror['0']
+            };
+        });
+
+        // Ensure the headers are in the correct order
+        const jurorScheduleHeaders = ['Serial_Number', 'Name', 'Affiliation', 'Index_no', 'Count', ...PF_list, '0'];
+
+        // Juror assignment list table
+        let jurorAssignmentListTable = [];
+        let serialNum = 0;
+        PF_list.forEach(PF => {
+            room_list.forEach(room => {
+                let participantsData = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => ({ team: row['SchName'], role: row[PF].role }));
+                let jurors = jurorAssignments[PF][room];
+
+                if (participantsData.length === 0) return; // Skip if no participants
+
+                serialNum++;
+
+                // Sort participantsData so that the team with role 'P' comes first
+                participantsData.sort((a, b) => {
+                    if (a.role === 'P' && b.role === 'O') return -1;
+                    if (a.role === 'O' && b.role === 'P') return 1;
+                    return 0;
+                });
+
+                // Get the jurors assigned to this fight with affiliations
+                let headJuror = jurorNameAffiliationMap[jurors['H']] || jurors['H'];
+                let juror1 = jurorNameAffiliationMap[jurors['1']] || jurors['1'];
+                let juror2 = jurorNameAffiliationMap[jurors['2']] || jurors['2'];
+                let juror3 = jurorNameAffiliationMap[jurors['3']] || jurors['3'];
+                let juror4 = jurorNameAffiliationMap[jurors['4']] || jurors['4'];
+
+                // Get the list of all jurors
+                let allJurorNames = jurorsData.map(j => j['Name']);
+
+                // Get the jurors assigned to this fight
+                let assignedJurorsInFight = Object.values(jurorAssignments[PF][room]);
+
+                // Reserves are all jurors not assigned to this fight
+                let reserves = allJurorNames.filter(name => !assignedJurorsInFight.includes(name)).map(name => jurorNameAffiliationMap[name]);
+
+                jurorAssignmentListTable.push({
+                    'SerialNumber': serialNum,
+                    'Fight': `PF${PF} room ${room}`,
+                    'Team1': participantsData[0] ? participantsData[0].team : '',
+                    'Team2': participantsData[1] ? participantsData[1].team : '',
+                    'Head Juror': headJuror,
+                    'Juror 1': juror1,
+                    'Juror 2': juror2,
+                    'Juror 3': juror3,
+                    'Juror 4': juror4,
+                    'Reserves': reserves.join(', ')
+                });
+            });
+        });
+
+        const jurorAssignmentListTableHeaders = ['SerialNumber', 'Fight', 'Team1', 'Team2', 'Head Juror', 'Juror 1', 'Juror 2', 'Juror 3', 'Juror 4', 'Reserves'];
+
+        // Juror assignment list
+        let jurorAssignmentList = [];
+
+        PF_list.forEach(PF => {
+            room_list.forEach(room => {
+                let participantsData = assignmentMatrixData.filter(row => row[PF] && row[PF].room === room).map(row => ({ team: row['SchName'], role: row[PF].role }));
+                let jurors = jurorAssignments[PF][room];
+
+                if (participantsData.length === 0) return; // Skip if no participants
+
+                // Get the jurors assigned to this fight with affiliations
+                let headJuror = jurorNameAffiliationMap[jurors['H']] || jurors['H'];
+                let juror1 = jurorNameAffiliationMap[jurors['1']] || jurors['1'];
+                let juror2 = jurorNameAffiliationMap[jurors['2']] || jurors['2'];
+                let juror3 = jurorNameAffiliationMap[jurors['3']] || jurors['3'];
+                let juror4 = jurorNameAffiliationMap[jurors['4']] || jurors['4'];
+
+                // Build the juror list (starting with empty cells as per your example)
+                let jurorList = ['', '', '', headJuror, juror1, juror2, juror3, juror4];
+
+                // Add to jurorAssignmentList
+                jurorAssignmentList.push({ '0': `PF${PF} room ${room}` });
+                jurorAssignmentList.push({ '0': `Participants: ${participantsData.map(p => p.team).join(', ')}` });
+                jurorAssignmentList.push({ '0': jurorList.join(',') });
+                jurorAssignmentList.push({}); // Empty row
+            });
+        });
+
+        return {
+            jurorSchedule,
+            jurorScheduleHeaders,
+            jurorAssignmentList,
+            jurorAssignmentListTable,
+            jurorAssignmentListTableHeaders
+        };
+    }
+
+    function isJurorAssignedAtSameTime(jurorName, PF, jurorAssignments) {
+        for (let room in jurorAssignments[PF]) {
+            for (let role in jurorAssignments[PF][room]) {
+                if (jurorAssignments[PF][room][role] === jurorName) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function displayOutputs(outputs) {
+        // Convert data to HTML tables
+        const jurorScheduleHtml = dataToHtmlTable(outputs.jurorSchedule, outputs.jurorScheduleHeaders);
+        const jurorAssignmentTableHtml = dataToHtmlTable(outputs.jurorAssignmentListTable, outputs.jurorAssignmentListTableHeaders);
+        const jurorAssignmentListHtml = dataToHtmlTable(outputs.jurorAssignmentList, ['0']);
+
+        // Display the tables
+        document.getElementById('juror-schedule-output').innerHTML = jurorScheduleHtml;
+        document.getElementById('juror-assignment-table-output').innerHTML = jurorAssignmentTableHtml;
+        document.getElementById('juror-assignment-list-output').innerHTML = jurorAssignmentListHtml;
+
+        // Save the outputs for download
+        window.outputFiles = {
+            'Juror schedule.csv': { data: outputs.jurorSchedule, headers: outputs.jurorScheduleHeaders },
+            'juror_assignment_list_table.csv': { data: outputs.jurorAssignmentListTable, headers: outputs.jurorAssignmentListTableHeaders },
+            'juror_assignment_list.csv': outputs.jurorAssignmentList
+        };
+    }
+
+    function dataToHtmlTable(data, headers = null) {
+        if (!data || data.length === 0) return '<p>No data available.</p>';
+
+        const table = document.createElement('table');
+        const thead = table.createTHead();
+        const tbody = table.createTBody();
+        headers = headers || Object.keys(data[0]);
+
+        // Create table header
+        const headerRow = thead.insertRow();
+        headers.forEach(headerText => {
+            const th = document.createElement('th');
+            th.innerText = headerText;
+            headerRow.appendChild(th);
+        });
+
+        // Create table body
+        data.forEach(rowData => {
+            const row = tbody.insertRow();
+            headers.forEach(headerText => {
+                const cell = row.insertCell();
+                let cellValue = rowData[headerText];
+                if (cellValue && typeof cellValue === 'object') {
+                    // If cell value is an object, display it appropriately
+                    cell.innerText = JSON.stringify(cellValue);
+                } else {
+                    cell.innerText = cellValue || '';
+                }
+            });
+        });
+
+        return table.outerHTML;
+    }
+
+    function downloadFile(filename) {
+        const output = window.outputFiles[filename];
+        if (!output) {
+            alert('No data available for ' + filename);
+            return;
+        }
+
+        let csvData;
+        if (filename === 'Juror schedule.csv' || filename === 'juror_assignment_list_table.csv') {
+            csvData = Papa.unparse(output.data, { columns: output.headers });
+        } else if (filename === 'juror_assignment_list.csv') {
+            // For jurorAssignmentList, we need to handle it differently
+            csvData = output.map(row => row['0'] || '').join('\n');
+        } else {
+            csvData = Papa.unparse(output);
+        }
+
+        // Create a Blob and trigger download
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        saveAs(blob, filename);
+    }
+    </script>
+
+    <div class="footer">
+        This web app is created by <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> based on original Python code by nic_wong.
+        You can view the original Python source code on <a href="https://github.com/lookang/SYPTPython" target="_blank">GitHub</a>.
+    </div>
+
+</body>
+</html>

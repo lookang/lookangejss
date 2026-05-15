@@ -1,0 +1,444 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    overflow-x: auto;
+    /* Responsive height - 450px for iframe, 90vh for full screen */
+    height: 450px;
+    min-height: 450px;
+}
+
+@media (min-height: 500px) {
+    body {
+        height: 90vh;
+        min-height: 90vh;
+    }
+}
+
+/* Main container */
+.container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 15px;
+}
+
+/* Timeline wrapper with zoom controls */
+.timeline-wrapper {
+    position: relative;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    overflow: hidden;
+}
+
+.zoom-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+}
+
+.zoom-btn {
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: #4CAF50;
+    color: white;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-btn:hover {
+    background: #45a049;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+/* Timeline container */
+.timeline-container {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0;
+    transition: transform 0.3s ease;
+    transform-origin: center;
+}
+
+.timeline-line {
+    position: absolute;
+    top: 50%;
+    left: 5%;
+    right: 5%;
+    height: 4px;
+    background: linear-gradient(90deg, #FF6B6B, #4ECDC4, #45B7D1, #96CEB4, #FFEAA7, #DDA0DD, #98D8C8, #F7DC6F);
+    border-radius: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Date markers (drop zones) */
+.date-marker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.date-marker:hover {
+    transform: translateY(-5px);
+}
+
+.marker-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    border: 3px solid white;
+}
+
+.marker-label {
+    margin-top: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.2;
+}
+
+/* Drop zone highlighting */
+.date-marker.drag-over {
+    transform: translateY(-8px) scale(1.1);
+}
+
+.date-marker.drag-over .marker-circle {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* Events container */
+.events-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+/* Event cards */
+.event-card {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    padding: 12px;
+    cursor: grab;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    color: white;
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.event-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.event-card:active,
+.event-card.dragging {
+    cursor: grabbing;
+    transform: rotate(5deg) scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+}
+
+.event-content {
+    width: 100%;
+}
+
+.event-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #fff;
+}
+
+.event-description {
+    font-size: 12px;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Placed event cards on timeline */
+.event-card.placed {
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    min-height: 60px;
+    z-index: 10;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+}
+
+.event-card.placed:hover {
+    transform: translateX(-50%) translateY(-5px);
+}
+
+/* Controls container */
+.controls-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.check-button {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    min-height: 45px;
+}
+
+.check-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.check-button:active {
+    transform: translateY(0);
+}
+
+/* Feedback styles */
+.feedback {
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    text-align: center;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    max-width: 300px;
+}
+
+.feedback.success {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.feedback.partial {
+    background: linear-gradient(135deg, #FF9800, #F57C00);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+}
+
+.feedback.error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+}
+
+/* Event popup */
+.event-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.popup-content {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    max-width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.popup-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.3s ease;
+}
+
+.popup-close:hover {
+    color: #333;
+}
+
+#popup-title {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+#popup-description {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+#popup-analysis {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    font-style: italic;
+    color: #555;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 8px;
+        gap: 10px;
+    }
+    
+    .timeline-wrapper {
+        padding: 15px;
+    }
+    
+    .marker-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+    
+    .marker-label {
+        font-size: 10px;
+        max-width: 60px;
+    }
+    
+    .events-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .event-card {
+        min-height: 60px;
+        padding: 10px;
+    }
+    
+    .event-title {
+        font-size: 13px;
+    }
+    
+    .event-description {
+        font-size: 11px;
+    }
+    
+    .event-card.placed {
+        width: 150px;
+        min-height: 50px;
+    }
+    
+    .check-button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    .popup-content {
+        padding: 20px;
+        margin: 10px;
+    }
+}
+
+/* Touch device optimizations */
+@media (pointer: coarse) {
+    .event-card {
+        min-height: 80px;
+        padding: 15px;
+    }
+    
+    .marker-circle {
+        width: 55px;
+        height: 55px;
+    }
+    
+    .zoom-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+    
+    .check-button {
+        min-height: 50px;
+        padding: 15px 35px;
+    }
+}
+
+/* Zoom states */
+.timeline-container.zoomed-in {
+    transform: scale(1.3);
+}
+
+.timeline-container.zoomed-out {
+    transform: scale(0.8);
+}

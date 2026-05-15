@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wRite Formula: Race against time to form chemical compounds (IUPAC Nomenclature) in this new and exciting educational game!</title>
+    <script src="vendor/tailwindcss.js"></script>
+    <!-- Link to local Google Fonts CSS -->
+    <link href="vendor/google-fonts.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column; /* Arrange children vertically */
+            align-items: center; /* Center children horizontally */
+            justify-content: center; /* Center vertically if content is short */
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .game-font {
+             /* font-family: 'Press Start 2P', cursive; */ /* Replaced by game-container font */
+             text-shadow: 2px 2px 0px rgba(0,0,0,0.1);
+        }
+        /* Custom superscript/subscript styling using classes */
+        .superscript, .subscript {
+            display: inline-block; /* Or inline, adjust as needed */
+            /* font-family: 'Inter', sans-serif; */ /* Replaced by game-container font */
+            font-size: 0.6em;
+            line-height: 0;
+            position: relative;
+            vertical-align: baseline;
+            text-shadow: none;
+        }
+        .superscript { top: -0.6em; }
+        .subscript { bottom: -0.4em; }
+
+        .formula-text .subscript {
+             bottom: -0.4em; /* Ensure formula subscripts are also styled */
+        }
+
+        /* Ion Button Styles */
+        .ion-button {
+            /* font-family: 'Press Start 2P', cursive; */ /* Replaced by game-container font */
+            border: 3px solid rgba(0,0,0,0.2); border-radius: 0.75rem; padding: 0.5rem;
+            min-height: 60px; display: flex; align-items: center; justify-content: center; /* Revert to flex */
+            font-size: 1.1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease-in-out; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .ion-button.cation { background-color: #60a5fa; color: white; }
+        .ion-button.anion { background-color: #f87171; color: white; }
+        .ion-button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 12px rgba(0,0,0,0.15); }
+        .ion-button:active:not(:disabled) { transform: translateY(0px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .ion-button.selected { transform: scale(1.05); border-color: #fbbf24; box-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
+        .ion-button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+        .ion-button.correct-flash { animation: flash-correct 0.8s ease; }
+        .ion-button.incorrect-flash { animation: flash-incorrect 0.8s ease; }
+        @keyframes flash-correct {
+            0%, 100% { border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+            50% { border-color: transparent; box-shadow: none; }
+        }
+        @keyframes flash-incorrect {
+             0%, 100% { border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+             50% { border-color: transparent; box-shadow: none; }
+        }
+
+        /* Naming MCQ Button Styles */
+        .name-option-button {
+            border: 2px solid #cbd5e1; background-color: #f8fafc; color: #334155;
+            border-radius: 0.5rem; padding: 0.75rem 1rem; font-weight: 500;
+            cursor: pointer; transition: all 0.15s ease-in-out; text-align: center;
+        }
+        .name-option-button:hover:not(:disabled) { border-color: #94a3b8; background-color: #f1f5f9; }
+        .name-option-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .name-option-button.correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important; font-weight: 600; }
+        .name-option-button.incorrect { background-color: #fee2e2 !important; border-color: #f87171 !important; color: #b91c1c !important; font-weight: 600; }
+
+        /* Timer Bar */
+        #timer-bar-container { width: 100%; height: 1.5rem; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; border: 2px solid rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        #timer-bar { height: 100%; background-color: #22c55e; border-radius: 9999px; transition: width 0.1s linear; background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent); background-size: 1rem 1rem; }
+
+        /* Feedback Area */
+        #feedback { min-height: 3rem; }
+        .feedback-correct { color: #16a34a; font-weight: 700; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); }
+        .feedback-incorrect { color: #dc2626; font-weight: 700; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); }
+
+        /* General Container Styling */
+        .game-container {
+            font-family: 'Nunito', sans-serif; /* Apply Nunito to the whole container */
+            background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(5px); border-radius: 1rem; padding: 1rem; /* Reduced padding */ box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); width: 100%; max-width: 600px; border: 1px solid rgba(255,255,255,0.3); margin-bottom: auto; /* Push footer down */
+        }
+        .hidden { display: none !important; }
+
+    </style>
+    <!-- Google Analytics -->
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <!-- End Google Analytics -->
+</head>
+<body>
+
+    <div class="game-container text-center">
+        <h1 class="game-font text-lg sm:text-xl font-bold text-indigo-700 mb-3">wRite Formula</h1>
+
+        <div class="flex justify-between items-center mb-3 text-indigo-800">
+            <div class="text-left"><span class="game-font text-sm block">SCORE</span><span id="score" class="game-font text-lg">0</span></div>
+            <div class="text-right"><span class="game-font text-sm block">STREAK</span><span id="streak" class="game-font text-lg">0</span> 🔥</div>
+        </div>
+
+        <div id="timer-bar-container" class="mb-4"><div id="timer-bar" style="width: 100%;"></div></div>
+
+        <div id="selected-ions-display" class="mb-3 p-2 bg-indigo-100 rounded-lg text-indigo-800 font-semibold text-base min-h-[2.5rem] flex items-center justify-center">Select one cation (+) and one anion (-)</div>
+
+        <div id="ion-grid" class="grid grid-cols-4 gap-2 mb-4"></div>
+
+        <div id="naming-mcq-container" class="hidden mt-3 mb-4">
+            <p class="mb-2 font-semibold text-indigo-700">What is the name of the compound formed?</p>
+            <div id="name-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                </div>
+        </div>
+
+        <div id="feedback" class="mt-3 text-lg font-bold flex items-center justify-center min-h-[2.5rem]"></div>
+
+        <button id="next-button" class="mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden game-font text-xs">Next Round</button>
+        <button id="end-game-button" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 hidden game-font text-xs">End Game & Summary</button>
+        <button id="start-button" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 game-font text-xs">Start Game</button>
+
+        <div id="game-summary-container" class="hidden mt-6 p-4 bg-white rounded-lg shadow-inner text-left">
+            <!-- Summary content will be added here by JS -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Data: Ions ---
+            const ions = [
+                 // Cations (+ve) - Using spans with classes
+                { symbol: 'Na<span class="superscript">+</span>', charge: 1, type: 'cation', name: 'Sodium', isPolyatomic: false }, { symbol: 'K<span class="superscript">+</span>', charge: 1, type: 'cation', name: 'Potassium', isPolyatomic: false }, { symbol: 'Li<span class="superscript">+</span>', charge: 1, type: 'cation', name: 'Lithium', isPolyatomic: false }, { symbol: 'Ca<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Calcium', isPolyatomic: false }, { symbol: 'Mg<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Magnesium', isPolyatomic: false }, { symbol: 'Ba<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Barium', isPolyatomic: false }, { symbol: 'Al<span class="superscript">3+</span>', charge: 3, type: 'cation', name: 'Aluminum', isPolyatomic: false }, { symbol: 'Fe<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Iron(II)', isPolyatomic: false }, { symbol: 'Fe<span class="superscript">3+</span>', charge: 3, type: 'cation', name: 'Iron(III)', isPolyatomic: false }, { symbol: 'Cu<span class="superscript">+</span>', charge: 1, type: 'cation', name: 'Copper(I)', isPolyatomic: false }, { symbol: 'Cu<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Copper(II)', isPolyatomic: false }, { symbol: 'Zn<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Zinc', isPolyatomic: false }, { symbol: 'Pb<span class="superscript">2+</span>', charge: 2, type: 'cation', name: 'Lead(II)', isPolyatomic: false }, { symbol: 'NH<span class="subscript">4</span><span class="superscript">+</span>', charge: 1, type: 'cation', name: 'Ammonium', isPolyatomic: true },
+                // Anions (-ve) - Using spans with classes
+                { symbol: 'Cl<span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Chloride', isPolyatomic: false }, { symbol: 'F<span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Fluoride', isPolyatomic: false }, { symbol: 'Br<span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Bromide', isPolyatomic: false }, { symbol: 'I<span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Iodide', isPolyatomic: false }, { symbol: 'O<span class="superscript">2-</span>', charge: -2, type: 'anion', name: 'Oxide', isPolyatomic: false }, { symbol: 'S<span class="superscript">2-</span>', charge: -2, type: 'anion', name: 'Sulfide', isPolyatomic: false }, { symbol: 'N<span class="superscript">3-</span>', charge: -3, type: 'anion', name: 'Nitride', isPolyatomic: false }, { symbol: 'OH<span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Hydroxide', isPolyatomic: true }, { symbol: 'NO<span class="subscript">3</span><span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Nitrate', isPolyatomic: true }, { symbol: 'CO<span class="subscript">3</span><span class="superscript">2-</span>', charge: -2, type: 'anion', name: 'Carbonate', isPolyatomic: true }, { symbol: 'SO<span class="subscript">4</span><span class="superscript">2-</span>', charge: -2, type: 'anion', name: 'Sulfate', isPolyatomic: true }, { symbol: 'PO<span class="subscript">4</span><span class="superscript">3-</span>', charge: -3, type: 'anion', name: 'Phosphate', isPolyatomic: true }, { symbol: 'CN<span class="superscript">-</span>', charge: -1, type: 'anion', name: 'Cyanide', isPolyatomic: true },
+            ];
+
+            // --- DOM Elements ---
+            const scoreDisplay = document.getElementById('score');
+            const streakDisplay = document.getElementById('streak');
+            const timerBar = document.getElementById('timer-bar');
+            const selectedIonsDisplay = document.getElementById('selected-ions-display');
+            const ionGrid = document.getElementById('ion-grid');
+            const feedbackDiv = document.getElementById('feedback');
+            const nextButton = document.getElementById('next-button');
+            const startButton = document.getElementById('start-button');
+            const endGameButton = document.getElementById('end-game-button'); // Added
+            const namingContainer = document.getElementById('naming-mcq-container');
+            const nameOptionsGrid = document.getElementById('name-options-grid');
+            const gameSummaryContainer = document.getElementById('game-summary-container'); // Added
+
+            // --- Game State ---
+            let score = 0;
+            let streak = 0;
+            let selectedCationElement = null;
+            let selectedAnionElement = null;
+            let currentCorrectName = '';
+            let timerInterval = null;
+            let timeLeft = 0;
+            const ROUND_TIME = 20;
+            const GRID_SIZE = 12;
+            let gameLog = []; // Added for summary
+            let roundCounter = 0; // Added for summary question numbering
+
+            // --- Functions ---
+
+            function startGame() {
+                score = 0;
+                streak = 0;
+                gameLog = []; // Reset log
+                roundCounter = 0; // Reset round counter
+                updateScoreboard();
+                startButton.classList.add('hidden');
+                endGameButton.classList.remove('hidden'); // Show end game button
+                gameSummaryContainer.classList.add('hidden'); // Hide summary
+                gameSummaryContainer.innerHTML = ''; // Clear old summary
+                feedbackDiv.textContent = ''; // Clear feedback
+                setupNewRound(); // Start the first round
+            }
+
+            function setupNewRound() {
+                selectedCationElement = null;
+                selectedAnionElement = null;
+                currentCorrectName = '';
+                namingContainer.classList.add('hidden');
+                nameOptionsGrid.innerHTML = '';
+                nextButton.classList.add('hidden');
+                feedbackDiv.textContent = '';
+                feedbackDiv.className = ''; // Clear feedback styling
+                updateSelectedDisplay(); // Reset display text
+                populateGrid(); // Create the new grid
+                enableGrid(); // Make sure buttons are clickable
+                // Make sure main game elements are visible if restarting after summary
+                timerBar.parentElement.classList.remove('hidden');
+                selectedIonsDisplay.classList.remove('hidden');
+                ionGrid.classList.remove('hidden');
+                feedbackDiv.classList.remove('hidden');
+
+                timeLeft = ROUND_TIME;
+                updateTimerDisplay();
+                startTimer();
+            }
+
+            function populateGrid() {
+                ionGrid.innerHTML = ''; // Clear previous grid
+                const availableIons = shuffleArray([...ions]).slice(0, GRID_SIZE);
+
+                availableIons.forEach(ion => {
+                    const button = document.createElement('button');
+                    // Create an inner span for the symbol
+                    const symbolSpan = document.createElement('span');
+                    symbolSpan.innerHTML = ion.symbol; // Apply HTML to the inner span
+                    button.appendChild(symbolSpan); // Add span to button
+
+                     // Restore game-font, remove ion-text class
+                     button.className = `ion-button ${ion.type} game-font`;
+                    button.dataset.symbol = ion.symbol;
+                    button.dataset.charge = ion.charge;
+                    button.dataset.type = ion.type;
+                    button.dataset.name = ion.name;
+                    button.dataset.isPolyatomic = ion.isPolyatomic;
+                    button.type = 'button';
+                    button.addEventListener('click', () => handleIonClick(ion, button));
+                    ionGrid.appendChild(button);
+                });
+            }
+
+            function handleIonClick(ionData, buttonElement) {
+                // Play click sound
+                document.getElementById('click-sound')?.play();
+
+                // Clear previous flashes
+                document.querySelectorAll('.ion-button.correct-flash, .ion-button.incorrect-flash').forEach(btn => {
+                    btn.classList.remove('correct-flash', 'incorrect-flash');
+                });
+
+                if (ionData.type === 'cation') {
+                    if (selectedCationElement) {
+                        selectedCationElement.classList.remove('selected');
+                    }
+                    selectedCationElement = buttonElement;
+                    buttonElement.classList.add('selected');
+                } else if (ionData.type === 'anion') {
+                    if (selectedAnionElement) {
+                        selectedAnionElement.classList.remove('selected');
+                    }
+                    selectedAnionElement = buttonElement;
+                    buttonElement.classList.add('selected');
+                }
+
+                updateSelectedDisplay();
+
+                if (selectedCationElement && selectedAnionElement) {
+                    disableGrid(); // Disable grid immediately after both are selected
+                    checkCombination();
+                }
+            }
+            function updateSelectedDisplay() {
+                let text = 'Select one cation (+) and one anion (-)';
+                if (selectedCationElement && selectedAnionElement) {
+                    // Use the dataset.symbol which contains the HTML for proper rendering
+                      // Remove ion-text class from spans
+                      text = `Selected: <span>${selectedCationElement.dataset.symbol}</span> & <span>${selectedAnionElement.dataset.symbol}</span>`;
+                } else if (selectedCationElement) {
+                    // Remove ion-text class from span
+                    text = `Selected Cation: <span>${selectedCationElement.dataset.symbol}</span>. Need Anion (-).`;
+                } else if (selectedAnionElement) {
+                    // Remove ion-text class from span
+                    text = `Selected Anion: <span>${selectedAnionElement.dataset.symbol}</span>. Need Cation (+).`;
+                }
+                selectedIonsDisplay.innerHTML = text; // Use innerHTML here
+            }
+
+            function checkCombination() {
+                const cationData = {
+                    symbol: selectedCationElement.dataset.symbol,
+                    charge: parseInt(selectedCationElement.dataset.charge),
+                    name: selectedCationElement.dataset.name,
+                    isPolyatomic: selectedCationElement.dataset.isPolyatomic === 'true'
+                };
+                const anionData = {
+                    symbol: selectedAnionElement.dataset.symbol,
+                    charge: parseInt(selectedAnionElement.dataset.charge),
+                    name: selectedAnionElement.dataset.name,
+                    isPolyatomic: selectedAnionElement.dataset.isPolyatomic === 'true'
+                };
+
+                const cationCharge = Math.abs(cationData.charge);
+                const anionCharge = Math.abs(anionData.charge);
+                const commonMultiple = Math.abs(cationCharge * anionCharge) / findGCD(cationCharge, anionCharge);
+                const cationCount = commonMultiple / cationCharge;
+                const anionCount = commonMultiple / anionCharge;
+
+                const { formula, name } = getCompoundDetails(cationData, anionData, cationCount, anionCount);
+                currentCorrectName = name;
+
+                // Flash selected ions green
+                selectedCationElement.classList.add('correct-flash');
+                selectedAnionElement.classList.add('correct-flash');
+
+                // Generate distractors and show naming question
+                const distractors = generateNameDistractors(name, cationData, anionData);
+                showNamingQuestion(name, distractors);
+            }
+            function getCompoundDetails(cation, anion, cationCount, anionCount) {
+                // Format formula string with proper subscripts using spans and classes
+                let formula = '';
+                // Extract base symbol by removing the span tags we added
+                const cationSymbol = cation.symbol.replace(/<span class=".*?">.*?<\/span>/g, '');
+                const anionSymbol = anion.symbol.replace(/<span class=".*?">.*?<\/span>/g, '');
+
+                // Cation part
+                formula += cation.isPolyatomic && cationCount > 1 ? `(${cationSymbol})` : cationSymbol;
+                if (cationCount > 1) formula += `<span class="subscript">${cationCount}</span>`;
+
+                // Anion part
+                formula += anion.isPolyatomic && anionCount > 1 ? `(${anionSymbol})` : anionSymbol;
+                if (anionCount > 1) formula += `<span class="subscript">${anionCount}</span>`;
+
+                // Format name
+                let name = '';
+                // Handle simple metal cations (Group 1, 2, Al, Zn)
+                const simpleCations = ['Sodium', 'Potassium', 'Lithium', 'Calcium', 'Magnesium', 'Barium', 'Aluminum', 'Zinc', 'Ammonium'];
+                if (simpleCations.includes(cation.name) || cation.name === 'Ammonium') {
+                    name = cation.name + ' ';
+                } else {
+                    // Handle transition metals (needs Roman numerals)
+                    name = cation.name + ' ';
+                }
+
+                // Handle anion name
+                if (!anion.isPolyatomic) {
+                    // Simple anions already have the correct -ide ending in the data
+                    name += anion.name;
+                } else {
+                    // Polyatomic anions keep their name
+                    name += anion.name;
+                }
+
+                return { formula: `<span class="formula-text">${formula}</span>`, name };
+            }
+
+            function generateNameDistractors(correctName, correctCation, correctAnion) {
+                const distractors = new Set();
+                const allIonNames = ions.map(ion => ion.name);
+
+                // 1. Swap cation/anion order (if different)
+                if (correctCation.name !== correctAnion.name) {
+                    let swappedName = '';
+                     if (!correctAnion.isPolyatomic) {
+                        swappedName = correctAnion.name.replace(/ide$/, '').replace(/ine$/, 'ide').replace(/gen$/, 'ide').replace(/rus$/, 'ide').replace(/fur$/, 'ide') + ' ' + correctCation.name;
+                    } else {
+                        swappedName = correctAnion.name + ' ' + correctCation.name;
+                    }
+                    if (swappedName !== correctName) distractors.add(swappedName);
+                }
+
+                // 2. Use wrong Roman numeral for cation (if applicable)
+                if (correctCation.name.includes('(')) {
+                    const baseCationName = correctCation.name.substring(0, correctCation.name.indexOf('('));
+                    const otherCation = ions.find(ion => ion.name.startsWith(baseCationName) && ion.name !== correctCation.name && ion.type === 'cation');
+                    if (otherCation) {
+                        let wrongNumeralName = otherCation.name + ' ';
+                        if (!correctAnion.isPolyatomic) wrongNumeralName += correctAnion.name.replace(/ide$/, '').replace(/ine$/, 'ide').replace(/gen$/, 'ide').replace(/rus$/, 'ide').replace(/fur$/, 'ide');
+                        else wrongNumeralName += correctAnion.name;
+                        if (wrongNumeralName !== correctName) distractors.add(wrongNumeralName);
+                    }
+                }
+
+                // 3. Use wrong ending for simple anion
+                if (!correctAnion.isPolyatomic && correctAnion.name !== 'Oxide' && correctAnion.name !== 'Sulfide') { // Avoid common correct endings
+                     let wrongEndingName = correctCation.name + ' ' + correctAnion.name.replace(/ide$/, 'ate'); // e.g., Chlorate instead of Chloride
+                     if (wrongEndingName !== correctName && !allIonNames.includes(correctAnion.name.replace(/ide$/, 'ate'))) distractors.add(wrongEndingName);
+                     wrongEndingName = correctCation.name + ' ' + correctAnion.name.replace(/ide$/, 'ite'); // e.g., Chlorite instead of Chloride
+                     if (wrongEndingName !== correctName && !allIonNames.includes(correctAnion.name.replace(/ide$/, 'ite'))) distractors.add(wrongEndingName);
+                }
+
+                // 4. Combine with random other ions (ensure charge balance isn't accidentally correct)
+                while (distractors.size < 3) {
+                    const randomCation = ions.filter(ion => ion.type === 'cation')[Math.floor(Math.random() * ions.filter(ion => ion.type === 'cation').length)];
+                    const randomAnion = ions.filter(ion => ion.type === 'anion')[Math.floor(Math.random() * ions.filter(ion => ion.type === 'anion').length)];
+                    // Simple combination for distractor generation
+                    let randomName = randomCation.name + ' ';
+                     if (!randomAnion.isPolyatomic) randomName += randomAnion.name.replace(/ide$/, '').replace(/ine$/, 'ide').replace(/gen$/, 'ide').replace(/rus$/, 'ide').replace(/fur$/, 'ide');
+                     else randomName += randomAnion.name;
+
+                    if (randomName !== correctName && !distractors.has(randomName)) {
+                         // Basic check to avoid obviously correct charge balances if possible
+                         if (Math.abs(randomCation.charge) !== Math.abs(randomAnion.charge) || findGCD(Math.abs(randomCation.charge), Math.abs(randomAnion.charge)) === 1) {
+                            distractors.add(randomName);
+                         }
+                    }
+                    if (distractors.size >= 3) break; // Prevent infinite loop in rare cases
+                }
+
+                return Array.from(distractors).slice(0, 3); // Return exactly 3 distractors
+            }
+
+            function showNamingQuestion(correctName, distractors) {
+                namingContainer.classList.remove('hidden');
+                nameOptionsGrid.innerHTML = ''; // Clear previous options
+
+                const options = shuffleArray([correctName, ...distractors]);
+
+                options.forEach(name => {
+                    const button = document.createElement('button');
+                    button.innerHTML = name; // Use innerHTML in case names have formatting (though unlikely here)
+                    button.className = 'name-option-button';
+                    button.type = 'button';
+                    button.addEventListener('click', () => handleNameSelection(name, button, correctName));
+                    nameOptionsGrid.appendChild(button);
+                });
+            }
+
+            function handleNameSelection(selectedName, buttonElement, correctName) {
+                stopTimer();
+                disableGrid(); // Ensure grid stays disabled
+                document.querySelectorAll('#name-options-grid button').forEach(btn => btn.disabled = true);
+
+                let isCorrect = false; // Track correctness for log
+
+                if (selectedName === correctName) {
+                    score += 10 + streak * 2; // Bonus for streak
+                    streak++;
+                    isCorrect = true;
+                    feedbackDiv.textContent = 'Correct Name!';
+                    feedbackDiv.className = 'feedback-correct';
+                    buttonElement.classList.add('correct');
+                    document.getElementById('correct-sound')?.play(); // Play correct sound
+                } else {
+                    streak = 0;
+                    isCorrect = false;
+                    feedbackDiv.innerHTML = `Incorrect. The correct name is: <br><strong>${correctName}</strong>`;
+                    feedbackDiv.className = 'feedback-incorrect';
+                    buttonElement.classList.add('incorrect');
+                    document.getElementById('incorrect-sound')?.play(); // Play incorrect sound
+                    // Highlight the correct answer
+                    document.querySelectorAll('#name-options-grid button').forEach(btn => {
+                        if (btn.innerHTML === correctName) {
+                            btn.classList.add('correct');
+                        }
+                    });
+                }
+
+                // Log the round
+                logRound(selectedCationElement.dataset.symbol, selectedAnionElement.dataset.symbol, selectedName, correctName, isCorrect);
+
+                updateScoreboard();
+                nextButton.classList.remove('hidden');
+            }
+
+            function logRound(cationSymbol, anionSymbol, selectedName, correctName, isCorrect) {
+                roundCounter++;
+                gameLog.push({
+                    round: roundCounter,
+                    cation: cationSymbol,
+                    anion: anionSymbol,
+                    selected: selectedName,
+                    correct: correctName,
+                    isCorrect: isCorrect
+                });
+            }
+
+            function disableGrid() {
+                document.querySelectorAll('#ion-grid button').forEach(button => {
+                    button.disabled = true;
+                    // Optionally remove hover/active effects visually
+                    button.classList.remove('hover:not(:disabled)', 'active:not(:disabled)');
+                });
+            }
+
+            function enableGrid() {
+                document.querySelectorAll('#ion-grid button').forEach(button => {
+                    button.disabled = false;
+                    // Optionally restore hover/active effects if they were added via JS,
+                    // but Tailwind handles this with :disabled pseudo-class, so likely not needed.
+                });
+            }
+
+            function startTimer() {
+                clearInterval(timerInterval); // Clear any existing timer
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    if (timeLeft <= 0) {
+                        timesUp();
+                    }
+                }, 1000);
+            }
+
+            function stopTimer() {
+                clearInterval(timerInterval);
+            }
+
+            function updateTimerDisplay() {
+                const percentage = (timeLeft / ROUND_TIME) * 100;
+                timerBar.style.width = `${percentage}%`;
+                // Change color based on time remaining
+                if (percentage < 25) {
+                    timerBar.style.backgroundColor = '#ef4444'; // Red
+                } else if (percentage < 50) {
+                    timerBar.style.backgroundColor = '#f97316'; // Orange
+                } else {
+                    timerBar.style.backgroundColor = '#22c55e'; // Green
+                }
+            }
+            function timesUp() {
+                stopTimer();
+                disableGrid();
+                document.querySelectorAll('#name-options-grid button').forEach(btn => btn.disabled = true); // Disable naming options too
+                feedbackDiv.textContent = 'Time\'s Up!';
+                feedbackDiv.className = 'feedback-incorrect'; // Use incorrect styling for time out
+                streak = 0; // Reset streak on time out
+                updateScoreboard();
+                nextButton.classList.remove('hidden');
+                 // If a naming question was active, show the correct answer and log
+                 if (currentCorrectName && selectedCationElement && selectedAnionElement) {
+                    feedbackDiv.innerHTML = `Time's Up! The correct name was: <br><strong>${currentCorrectName}</strong>`;
+                    document.querySelectorAll('#name-options-grid button').forEach(btn => {
+                        if (btn.innerHTML === currentCorrectName) {
+                            btn.classList.add('correct'); // Highlight correct answer even on time out
+                        }
+                    });
+                    // Log the round as incorrect due to time out
+                    logRound(selectedCationElement.dataset.symbol, selectedAnionElement.dataset.symbol, "Time's Up!", currentCorrectName, false);
+                 } else {
+                     // If time ran out before ions were fully selected or naming started, maybe log differently or not at all?
+                     // For now, we only log if the naming question was presented.
+                 }
+            }
+
+            function updateScoreboard() {
+                scoreDisplay.textContent = score;
+                streakDisplay.textContent = streak;
+            }
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+                }
+                return array;
+            }
+
+            function findGCD(a, b) {
+                 a = Math.abs(a);
+                 b = Math.abs(b);
+                 while(b) {
+                   let t = b;
+                   b = a % b;
+                   a = t;
+                 }
+                 return a;
+            }
+
+            // --- Event Listeners ---
+            if (startButton) {
+                 startButton.addEventListener('click', () => {
+                    // console.log("Start Button Clicked!"); // DEBUG
+                    startGame();
+                 });
+            } else {
+                // console.error("Start button not found!"); // DEBUG
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener('click', setupNewRound);
+            } else {
+                 // console.error("Next button not found!"); // DEBUG
+            }
+
+            function endGame() {
+                stopTimer();
+                disableGrid();
+                document.querySelectorAll('#name-options-grid button').forEach(btn => btn.disabled = true);
+
+                // Hide game elements
+                timerBar.parentElement.classList.add('hidden');
+                selectedIonsDisplay.classList.add('hidden');
+                ionGrid.classList.add('hidden');
+                namingContainer.classList.add('hidden');
+                feedbackDiv.classList.add('hidden');
+                nextButton.classList.add('hidden');
+                endGameButton.classList.add('hidden');
+
+                // Generate and display summary
+                generateSummary();
+                gameSummaryContainer.classList.remove('hidden');
+
+                // Show start button to play again
+                startButton.classList.remove('hidden');
+            }
+
+            function generateSummary() {
+                gameSummaryContainer.innerHTML = ''; // Clear previous summary
+                const title = document.createElement('h2');
+                title.className = 'text-xl font-bold mb-3 text-center text-indigo-700';
+                title.textContent = 'Game Summary';
+                gameSummaryContainer.appendChild(title);
+
+                if (gameLog.length === 0) {
+                    const p = document.createElement('p');
+                    p.textContent = 'No rounds were completed.';
+                    gameSummaryContainer.appendChild(p);
+                    return;
+                }
+
+                const list = document.createElement('ul');
+                list.className = 'space-y-2 text-sm';
+
+                gameLog.forEach(log => {
+                    const item = document.createElement('li');
+                    item.className = 'p-2 border rounded ' + (log.isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50');
+                    item.innerHTML = `
+                        <strong>Q${log.round}:</strong> Ions: <span>${log.cation}</span> & <span>${log.anion}</span><br>
+                        Selected Name: ${log.selected} ${log.isCorrect ? '✅' : `❌ (Correct: ${log.correct})`}
+                    `;
+                    list.appendChild(item);
+                });
+
+                gameSummaryContainer.appendChild(list);
+            }
+
+
+            // --- Event Listeners ---
+            if (startButton) {
+                 startButton.addEventListener('click', () => {
+                    // console.log("Start Button Clicked!"); // DEBUG
+                    startGame();
+                 });
+            } else {
+                // console.error("Start button not found!"); // DEBUG
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener('click', setupNewRound);
+            } else {
+                 // console.error("Next button not found!"); // DEBUG
+            }
+
+            if (endGameButton) { // Added listener for end game button
+                endGameButton.addEventListener('click', endGame);
+            } else {
+                 // console.error("End game button not found!"); // DEBUG
+            }
+
+
+        }); // End DOMContentLoaded
+    </script>
+
+    <!-- Audio Elements -->
+    <audio id="click-sound" src="sounds/click.wav" preload="auto"></audio>
+    <audio id="correct-sound" src="sounds/correct.wav" preload="auto"></audio>
+    <audio id="incorrect-sound" src="sounds/incorrect.wav" preload="auto"></audio>
+
+    <!-- Credit and Link -->
+    <p class="w-full text-xs text-center text-indigo-200 mt-4"> <!-- Added w-full -->
+        Made using Cline Extension on Trae using Google Gemini 2.5 Pro |
+        <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/chemistry" target="_blank" rel="noopener noreferrer" class="underline hover:text-indigo-100">More Chemistry Resources</a>
+    </p>
+
+</body>
+</html>

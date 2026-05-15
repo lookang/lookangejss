@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis of Moments of Forces - Combined</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .mode-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .mode-selector label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .radio-group {
+            display: inline-flex;
+            gap: 20px;
+            margin-left: 15px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-option span {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .left-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .panel-header h2 {
+            font-size: 1.3em;
+            color: #333;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+            transition: transform 0.3s;
+        }
+
+        .toggle-btn:hover {
+            color: #333;
+        }
+
+        .toggle-btn.minimized {
+            transform: rotate(180deg);
+        }
+
+        .panel-content {
+            transition: all 0.3s ease;
+        }
+
+        .panel-content.hidden {
+            display: none;
+        }
+
+        .settings-header {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .add-force-btn, .reset-btn {
+            padding: 10px 20px;
+            border: 2px solid #ff9800;
+            background: white;
+            color: #ff9800;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .add-force-btn:hover {
+            background: #ff9800;
+            color: white;
+        }
+
+        .reset-btn {
+            border-color: #f44336;
+            color: #f44336;
+            margin-left: auto;
+        }
+
+        .reset-btn:hover {
+            background: #f44336;
+            color: white;
+        }
+
+        .force-item {
+            border: 2px solid;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .force-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .force-label {
+            font-weight: bold;
+            font-size: 1.1em;
+            min-width: 35px;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            font-size: 1.3em;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .delete-btn:hover {
+            color: #f44336;
+        }
+
+        .force-input-group {
+            margin-bottom: 10px;
+        }
+
+        .force-input-group label {
+            display: block;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .force-input-group input[type="text"],
+        .force-input-group input[type="number"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .direction-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .direction-btn {
+            flex: 1;
+            padding: 6px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+
+        .direction-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        #diagramCanvas {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: move;
+            background: #fafafa;
+        }
+
+        .calculation-row {
+            margin-bottom: 15px;
+        }
+
+        .calculation-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .calculation-formula {
+            font-family: 'Courier New', monospace;
+            font-size: 1.05em;
+            line-height: 1.8;
+        }
+
+        .result-comparison {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .result-text {
+            color: #f44336;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        #resultCanvas {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .comparison-symbol {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ff9800;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .panel {
+                padding: 15px;
+            }
+
+            .force-item {
+                padding: 10px;
+            }
+
+            .radio-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Analysis of Moments of Forces</h1>
+        <p class="subtitle">Provide details of the forces and find out how they help understand the motion of the lever.<br>
+        <strong>Note:</strong> The position of the pivot can be changed. Units for perpendicular distances and moments are arbitrary.</p>
+
+        <div class="mode-selector">
+            <label>Lever Orientation:</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="leverMode" value="horizontal" checked onchange="switchMode('horizontal')">
+                    <span>⬌ Horizontal Lever</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="leverMode" value="vertical" onchange="switchMode('vertical')">
+                    <span>⬍ Vertical Lever</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="left-panels">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>DIAGRAM</h2>
+                        <button class="toggle-btn" onclick="togglePanel('diagram')">−</button>
+                    </div>
+                    <div class="panel-content" id="diagram-content">
+                        <canvas id="diagramCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>CALCULATIONS</h2>
+                        <button class="toggle-btn" onclick="togglePanel('calculations')">−</button>
+                    </div>
+                    <div class="panel-content" id="calculations-content">
+                        <div id="calculationsDisplay"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>RESULT</h2>
+                        <button class="toggle-btn" onclick="togglePanel('result')">−</button>
+                    </div>
+                    <div class="panel-content" id="result-content">
+                        <div id="resultDisplay"></div>
+                        <canvas id="resultCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Settings</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="settings-header">
+                        <button class="add-force-btn" onclick="addForce()">Add force</button>
+                        <button class="reset-btn" onclick="resetAll()">Reset ALL</button>
+                    </div>
+                    <div id="forcesContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const COLORS = ['#2196F3', '#9C27B0', '#4CAF50', '#FF9800', '#E91E63', '#00BCD4', '#FF5722', '#795548'];
+        let mode = 'horizontal';
+        let forces = [];
+        let pivotPosition = 0.5;
+        let isDraggingPivot = false;
+
+        const diagramCanvas = document.getElementById('diagramCanvas');
+        const diagramCtx = diagramCanvas.getContext('2d');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const resultCtx = resultCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            diagramCanvas.width = diagramCanvas.offsetWidth;
+            diagramCanvas.height = diagramCanvas.offsetHeight;
+            resultCanvas.width = resultCanvas.offsetWidth;
+            resultCanvas.height = resultCanvas.offsetHeight;
+            drawDiagram();
+            drawResult();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function switchMode(newMode) {
+            if (mode === newMode) return;
+            mode = newMode;
+            forces = [];
+            pivotPosition = 0.5;
+            renderForces();
+            updateCalculations();
+        }
+
+        function addForce() {
+            if (forces.length >= 8) {
+                alert('Maximum 8 forces allowed');
+                return;
+            }
+
+            const force = {
+                id: Date.now(),
+                name: '',
+                magnitude: 0,
+                direction: mode === 'horizontal' ? 'up' : 'left',
+                position: mode === 'horizontal' ? 'right' : 'below',
+                distance: 0,
+                color: COLORS[forces.length % COLORS.length],
+                visible: true
+            };
+
+            forces.push(force);
+            renderForces();
+            updateCalculations();
+        }
+
+        function deleteForce(id) {
+            forces = forces.filter(f => f.id !== id);
+            forces.forEach((f, i) => {
+                f.color = COLORS[i % COLORS.length];
+            });
+            renderForces();
+            updateCalculations();
+        }
+
+        function toggleForceVisibility(id) {
+            const force = forces.find(f => f.id === id);
+            if (force) {
+                force.visible = !force.visible;
+                renderForces();
+                drawDiagram();
+            }
+        }
+
+        function updateForce(id, field, value) {
+            const force = forces.find(f => f.id === id);
+            if (force) {
+                force[field] = value;
+                updateCalculations();
+            }
+        }
+
+        function renderForces() {
+            const container = document.getElementById('forcesContainer');
+            container.innerHTML = '';
+
+            forces.forEach((force, index) => {
+                const forceDiv = document.createElement('div');
+                forceDiv.className = 'force-item';
+                forceDiv.style.borderColor = force.color;
+
+                let directionButtons, positionButtons, positionLabel;
+                
+                if (mode === 'horizontal') {
+                    directionButtons = `
+                        <button class="direction-btn ${force.direction === 'up' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'direction', 'up'); renderForces()">↑</button>
+                        <button class="direction-btn ${force.direction === 'down' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'direction', 'down'); renderForces()">↓</button>
+                    `;
+                    positionButtons = `
+                        <button class="direction-btn ${force.position === 'left' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'position', 'left'); renderForces(); drawDiagram();">left</button>
+                        <button class="direction-btn ${force.position === 'right' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'position', 'right'); renderForces(); drawDiagram();">right</button>
+                    `;
+                    positionLabel = 'position';
+                } else {
+                    directionButtons = `
+                        <button class="direction-btn ${force.direction === 'left' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'direction', 'left'); renderForces()">←</button>
+                        <button class="direction-btn ${force.direction === 'right' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'direction', 'right'); renderForces()">→</button>
+                    `;
+                    positionButtons = `
+                        <button class="direction-btn ${force.position === 'above' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'position', 'above'); renderForces(); drawDiagram();">above</button>
+                        <button class="direction-btn ${force.position === 'below' ? 'active' : ''}"
+                            onclick="updateForce(${force.id}, 'position', 'below'); renderForces(); drawDiagram();">below</button>
+                    `;
+                    positionLabel = 'position';
+                }
+
+                forceDiv.innerHTML = `
+                    <div class="force-header">
+                        <span class="force-label" style="color: ${force.color}">F${index + 1}</span>
+                        <input type="text" placeholder="e.g. by box" value="${force.name}" 
+                            style="flex: 1; margin: 0 10px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em;"
+                            onchange="updateForce(${force.id}, 'name', this.value)">
+                        <button onclick="toggleForceVisibility(${force.id})" style="background: none; border: none; font-size: 1.2em; cursor: pointer; margin-right: 5px;">${force.visible ? '👁️' : '👻'}</button>
+                        <button class="delete-btn" onclick="deleteForce(${force.id})">🗑️</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div class="force-input-group" style="margin-bottom: 0;">
+                            <label style="color: ${force.color}; font-size: 0.85em;">magnitude</label>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <input type="number" value="${force.magnitude}" min="0" step="0.1" 
+                                    style="flex: 1; padding: 6px;"
+                                    onchange="updateForce(${force.id}, 'magnitude', parseFloat(this.value) || 0)">
+                                <span style="color: ${force.color}; font-size: 0.9em;">N</span>
+                            </div>
+                        </div>
+                        <div class="force-input-group" style="margin-bottom: 0;">
+                            <label style="color: ${force.color}; font-size: 0.85em;">direction</label>
+                            <div class="direction-buttons">
+                                ${directionButtons}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="force-input-group" style="margin-bottom: 0;">
+                            <label style="color: ${force.color}; font-size: 0.85em;">d<sub>${index + 1}</sub></label>
+                            <input type="number" value="${force.distance}" min="0" step="0.1"
+                                style="padding: 6px;"
+                                onchange="updateForce(${force.id}, 'distance', parseFloat(this.value) || 0)">
+                        </div>
+                        <div class="force-input-group" style="margin-bottom: 0;">
+                            <label style="color: ${force.color}; font-size: 0.85em;">${positionLabel}</label>
+                            <div class="direction-buttons">
+                                ${positionButtons}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(forceDiv);
+            });
+
+            drawDiagram();
+        }
+
+        function drawDiagram() {
+            if (mode === 'horizontal') {
+                drawHorizontalDiagram();
+            } else {
+                drawVerticalDiagram();
+            }
+        }
+
+        function drawHorizontalDiagram() {
+            const canvas = diagramCanvas;
+            const ctx = diagramCtx;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const leverY = canvas.height * 0.35;
+            const leverHeight = 20;
+            const leverMargin = 60;
+            const leverWidth = canvas.width - 2 * leverMargin;
+
+            ctx.fillStyle = '#FFA726';
+            ctx.fillRect(leverMargin, leverY - leverHeight / 2, leverWidth, leverHeight);
+
+            const pivotX = leverMargin + leverWidth * pivotPosition;
+            const pivotY = leverY;
+            
+            ctx.fillStyle = '#f44336';
+            ctx.beginPath();
+            ctx.arc(pivotX, pivotY, 10, 0, 2 * Math.PI);
+            ctx.fill();
+
+            let maxLeftDistance = 0;
+            let maxRightDistance = 0;
+            forces.forEach(force => {
+                if (force.distance > 0 && force.visible) {
+                    if (force.position === 'left') {
+                        maxLeftDistance = Math.max(maxLeftDistance, force.distance);
+                    } else {
+                        maxRightDistance = Math.max(maxRightDistance, force.distance);
+                    }
+                }
+            });
+
+            const leftSpace = pivotX - leverMargin - 15;
+            const rightSpace = leverMargin + leverWidth - pivotX - 15;
+            const leftScale = maxLeftDistance > 0 ? leftSpace / maxLeftDistance : 30;
+            const rightScale = maxRightDistance > 0 ? rightSpace / maxRightDistance : 30;
+            const distanceScale = Math.min(leftScale, rightScale, 30);
+
+            forces.forEach((force, index) => {
+                if (force.magnitude === 0 || !force.visible) return;
+
+                const isLeft = force.position === 'left';
+                const forceX = isLeft ? 
+                    pivotX - (force.distance * distanceScale) : 
+                    pivotX + (force.distance * distanceScale);
+
+                const distanceLineOffset = 30 + (index * 35);
+
+                if (force.distance > 0) {
+                    ctx.strokeStyle = force.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(pivotX, leverY + leverHeight / 2 + distanceLineOffset);
+                    ctx.lineTo(forceX, leverY + leverHeight / 2 + distanceLineOffset);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.fillStyle = force.color;
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    const midX = (pivotX + forceX) / 2;
+                    ctx.fillText(`d${index + 1} = ${force.distance}`, midX, leverY + leverHeight / 2 + distanceLineOffset + 20);
+                }
+
+                const arrowLength = Math.min(60, Math.max(30, force.magnitude * 2));
+                const arrowY = force.direction === 'up' ? 
+                    leverY - leverHeight / 2 - arrowLength :
+                    leverY + leverHeight / 2 + arrowLength;
+
+                drawArrow(ctx, forceX, leverY + (force.direction === 'up' ? -leverHeight / 2 : leverHeight / 2), 
+                         forceX, arrowY, force.color);
+
+                ctx.fillStyle = force.color;
+                ctx.textAlign = 'center';
+                const labelY = force.direction === 'up' ? arrowY - 15 : arrowY + 25;
+                
+                if (force.name) {
+                    ctx.font = '11px Arial';
+                    ctx.fillText(force.name, forceX, labelY - (force.direction === 'up' ? 30 : -30));
+                }
+                
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(`F${index + 1} = ${force.magnitude} N`, forceX, labelY);
+            });
+        }
+
+        function drawVerticalDiagram() {
+            const canvas = diagramCanvas;
+            const ctx = diagramCtx;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const leverX = canvas.width / 2;
+            const leverWidth = 20;
+            const leverMargin = 60;
+            const leverHeight = canvas.height - 2 * leverMargin;
+
+            ctx.fillStyle = '#FFA726';
+            ctx.fillRect(leverX - leverWidth / 2, leverMargin, leverWidth, leverHeight);
+
+            const pivotY = leverMargin + leverHeight * pivotPosition;
+            const pivotX = leverX;
+            
+            ctx.fillStyle = '#f44336';
+            ctx.beginPath();
+            ctx.arc(pivotX, pivotY, 10, 0, 2 * Math.PI);
+            ctx.fill();
+
+            let maxAboveDistance = 0;
+            let maxBelowDistance = 0;
+            forces.forEach(force => {
+                if (force.distance > 0 && force.visible) {
+                    if (force.position === 'above') {
+                        maxAboveDistance = Math.max(maxAboveDistance, force.distance);
+                    } else {
+                        maxBelowDistance = Math.max(maxBelowDistance, force.distance);
+                    }
+                }
+            });
+
+            const aboveSpace = pivotY - leverMargin - 15;
+            const belowSpace = leverMargin + leverHeight - pivotY - 15;
+            const aboveScale = maxAboveDistance > 0 ? aboveSpace / maxAboveDistance : 30;
+            const belowScale = maxBelowDistance > 0 ? belowSpace / maxBelowDistance : 30;
+            const distanceScale = Math.min(aboveScale, belowScale, 30);
+
+            forces.forEach((force, index) => {
+                if (force.magnitude === 0 || !force.visible) return;
+
+                const isAbove = force.position === 'above';
+                const forceY = isAbove ? 
+                    pivotY - (force.distance * distanceScale) : 
+                    pivotY + (force.distance * distanceScale);
+
+                const distanceLineOffset = 30 + (index * 35);
+
+                if (force.distance > 0) {
+                    ctx.strokeStyle = force.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    
+                    if (force.direction === 'left') {
+                        ctx.moveTo(leverX - leverWidth / 2 - distanceLineOffset, pivotY);
+                        ctx.lineTo(leverX - leverWidth / 2 - distanceLineOffset, forceY);
+                    } else {
+                        ctx.moveTo(leverX + leverWidth / 2 + distanceLineOffset, pivotY);
+                        ctx.lineTo(leverX + leverWidth / 2 + distanceLineOffset, forceY);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    ctx.fillStyle = force.color;
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.save();
+                    
+                    if (force.direction === 'left') {
+                        ctx.translate(leverX - leverWidth / 2 - distanceLineOffset - 10, (pivotY + forceY) / 2);
+                    } else {
+                        ctx.translate(leverX + leverWidth / 2 + distanceLineOffset + 10, (pivotY + forceY) / 2);
+                    }
+                    ctx.rotate(-Math.PI / 2);
+                    ctx.fillText(`d${index + 1} = ${force.distance}`, 0, 0);
+                    ctx.restore();
+                }
+
+                const arrowLength = Math.min(60, Math.max(30, force.magnitude * 2));
+                const arrowStartX = leverX + (force.direction === 'left' ? -leverWidth / 2 : leverWidth / 2);
+                const arrowEndX = force.direction === 'left' ? 
+                    arrowStartX - arrowLength : 
+                    arrowStartX + arrowLength;
+
+                drawArrow(ctx, arrowStartX, forceY, arrowEndX, forceY, force.color);
+
+                ctx.fillStyle = force.color;
+                ctx.textAlign = 'center';
+                const labelX = force.direction === 'left' ? arrowEndX - 15 : arrowEndX + 15;
+                
+                if (force.name) {
+                    ctx.font = '11px Arial';
+                    const nameX = force.direction === 'left' ? 
+                        leverX + leverWidth / 2 + 30 : 
+                        leverX - leverWidth / 2 - 30;
+                    ctx.fillText(force.name, nameX, forceY);
+                }
+                
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(`F${index + 1} = ${force.magnitude} N`, labelX, forceY);
+            });
+        }
+
+        function drawResult() {
+            if (mode === 'horizontal') {
+                drawHorizontalResult();
+            } else {
+                drawVerticalResult();
+            }
+        }
+
+        function drawHorizontalResult() {
+            const canvas = resultCanvas;
+            const ctx = resultCtx;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const { antiClockwise, clockwise } = calculateMoments();
+            const netMoment = antiClockwise - clockwise;
+            
+            const resultLeverMargin = 80;
+            const resultLeverWidth = canvas.width - 2 * resultLeverMargin;
+            const centerY = canvas.height / 2;
+            const leverHeight = 15;
+            const pivotX = resultLeverMargin + resultLeverWidth * pivotPosition;
+
+            let angle = 0;
+            if (Math.abs(netMoment) > 0.1) {
+                angle = -Math.sign(netMoment) * Math.min(Math.abs(netMoment) / 100, 0.4);
+            }
+
+            ctx.fillStyle = 'rgba(255, 167, 38, 0.3)';
+            ctx.fillRect(resultLeverMargin, centerY - leverHeight / 2, resultLeverWidth, leverHeight);
+
+            ctx.save();
+            ctx.translate(pivotX, centerY);
+            ctx.rotate(angle);
+
+            ctx.fillStyle = '#FFA726';
+            ctx.fillRect(-resultLeverWidth * pivotPosition, -leverHeight / 2, resultLeverWidth, leverHeight);
+
+            ctx.restore();
+
+            ctx.fillStyle = '#f44336';
+            ctx.beginPath();
+            ctx.arc(pivotX, centerY, 8, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawVerticalResult() {
+            const canvas = resultCanvas;
+            const ctx = resultCtx;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const { antiClockwise, clockwise } = calculateMoments();
+            const netMoment = antiClockwise - clockwise;
+            
+            const resultLeverMargin = 80;
+            const resultLeverHeight = canvas.height - 2 * resultLeverMargin;
+            const centerX = canvas.width / 2;
+            const leverWidth = 15;
+            const pivotY = resultLeverMargin + resultLeverHeight * pivotPosition;
+
+            let angle = 0;
+            if (Math.abs(netMoment) > 0.1) {
+                angle = -Math.sign(netMoment) * Math.min(Math.abs(netMoment) / 100, 0.4);
+            }
+
+            ctx.fillStyle = 'rgba(255, 167, 38, 0.3)';
+            ctx.fillRect(centerX - leverWidth / 2, resultLeverMargin, leverWidth, resultLeverHeight);
+
+            ctx.save();
+            ctx.translate(centerX, pivotY);
+            ctx.rotate(angle);
+
+            ctx.fillStyle = '#FFA726';
+            ctx.fillRect(-leverWidth / 2, -resultLeverHeight * pivotPosition, leverWidth, resultLeverHeight);
+
+            ctx.restore();
+
+            ctx.fillStyle = '#f44336';
+            ctx.beginPath();
+            ctx.arc(centerX, pivotY, 8, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawArrow(ctx, fromX, fromY, toX, toY, color) {
+            const headLength = 10;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), 
+                      toY - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), 
+                      toY - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function calculateMoments() {
+            let antiClockwise = 0;
+            let clockwise = 0;
+            const antiClockwiseForces = [];
+            const clockwiseForces = [];
+
+            forces.forEach((force, index) => {
+                if (force.magnitude === 0 || force.distance === 0) return;
+
+                const dist = Math.abs(force.distance);
+                const moment = force.magnitude * dist;
+                let isAntiClockwise;
+                
+                if (mode === 'horizontal') {
+                    isAntiClockwise = 
+                        (force.direction === 'up' && force.position === 'right') ||
+                        (force.direction === 'down' && force.position === 'left');
+                } else {
+                    isAntiClockwise = 
+                        (force.direction === 'right' && force.position === 'below') ||
+                        (force.direction === 'left' && force.position === 'above');
+                }
+
+                if (isAntiClockwise) {
+                    antiClockwise += moment;
+                    antiClockwiseForces.push({ force, index, moment, dist });
+                } else {
+                    clockwise += moment;
+                    clockwiseForces.push({ force, index, moment, dist });
+                }
+            });
+
+            return { antiClockwise, clockwise, antiClockwiseForces, clockwiseForces };
+        }
+
+        function updateCalculations() {
+            const { antiClockwise, clockwise, antiClockwiseForces, clockwiseForces } = calculateMoments();
+
+            let html = '<div class="calculation-row">';
+            html += '<div class="calculation-title">Sum of <u>anti-clockwise</u> moments</div>';
+            html += '<div class="calculation-formula">';
+            
+            if (antiClockwiseForces.length > 0) {
+                antiClockwiseForces.forEach((item, i) => {
+                    const idx = forces.indexOf(item.force);
+                    html += `<span style="color: ${item.force.color}">F<sub>${idx + 1}</sub> × d<sub>${idx + 1}</sub></span>`;
+                    if (i < antiClockwiseForces.length - 1) html += ' + ';
+                });
+                html += '<br>= ';
+                antiClockwiseForces.forEach((item, i) => {
+                    const dist = (item && 'dist' in item) ? item.dist : Math.abs(item.force.distance);
+                    html += `<span style="color: ${item.force.color}">${item.force.magnitude} × ${dist}</span>`;
+                    if (i < antiClockwiseForces.length - 1) html += ' + ';
+                });
+                html += `<br>= <strong>${antiClockwise.toFixed(1)}</strong>`;
+            } else {
+                html += '0';
+            }
+            
+            html += '</div></div>';
+
+            html += '<div class="calculation-row">';
+            html += '<div class="calculation-title">Sum of <u>clockwise</u> moments</div>';
+            html += '<div class="calculation-formula">';
+            
+            if (clockwiseForces.length > 0) {
+                clockwiseForces.forEach((item, i) => {
+                    const idx = forces.indexOf(item.force);
+                    html += `<span style="color: ${item.force.color}">F<sub>${idx + 1}</sub> × d<sub>${idx + 1}</sub></span>`;
+                    if (i < clockwiseForces.length - 1) html += ' + ';
+                });
+                html += '<br>= ';
+                clockwiseForces.forEach((item, i) => {
+                    const dist = (item && 'dist' in item) ? item.dist : Math.abs(item.force.distance);
+                    html += `<span style="color: ${item.force.color}">${item.force.magnitude} × ${dist}</span>`;
+                    if (i < clockwiseForces.length - 1) html += ' + ';
+                });
+                html += `<br>= <strong>${clockwise.toFixed(1)}</strong>`;
+            } else {
+                html += '0';
+            }
+            
+            html += '</div></div>';
+
+            document.getElementById('calculationsDisplay').innerHTML = html;
+
+            let resultHtml = '<div class="result-comparison">';
+            resultHtml += `Sum of <u>anti-clockwise</u> moments `;
+            
+            if (Math.abs(antiClockwise - clockwise) < 0.1) {
+                resultHtml += '<span class="comparison-symbol">=</span>';
+            } else if (antiClockwise > clockwise) {
+                resultHtml += '<span class="comparison-symbol">></span>';
+            } else {
+                resultHtml += '<span class="comparison-symbol"><</span>';
+            }
+            
+            resultHtml += ` Sum of <u>clockwise</u> moments</div>`;
+
+            if (Math.abs(antiClockwise - clockwise) < 0.1) {
+                resultHtml += '<div class="result-text">Lever is in equilibrium (balanced)</div>';
+            } else if (antiClockwise > clockwise) {
+                resultHtml += '<div class="result-text">Lever rotates anti-clockwise about pivot</div>';
+            } else {
+                resultHtml += '<div class="result-text">Lever rotates clockwise about pivot</div>';
+            }
+
+            document.getElementById('resultDisplay').innerHTML = resultHtml;
+
+            drawResult();
+        }
+
+        function resetAll() {
+            forces = [];
+            pivotPosition = 0.5;
+            renderForces();
+            updateCalculations();
+        }
+
+        function togglePanel(panelName) {
+            const content = document.getElementById(panelName + '-content');
+            const button = content.previousElementSibling.querySelector('.toggle-btn');
+            
+            content.classList.toggle('hidden');
+            button.classList.toggle('minimized');
+            button.textContent = content.classList.contains('hidden') ? '+' : '−';
+        }
+
+        diagramCanvas.addEventListener('mousedown', handleMouseDown);
+        diagramCanvas.addEventListener('mousemove', handleMouseMove);
+        diagramCanvas.addEventListener('mouseup', handleMouseUp);
+        diagramCanvas.addEventListener('mouseleave', handleMouseUp);
+        diagramCanvas.addEventListener('touchstart', handleTouchStart);
+        diagramCanvas.addEventListener('touchmove', handleTouchMove);
+        diagramCanvas.addEventListener('touchend', handleMouseUp);
+
+        function handleMouseDown(e) {
+            const rect = diagramCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            if (mode === 'horizontal') {
+                const leverMargin = 60;
+                const leverWidth = diagramCanvas.width - 2 * leverMargin;
+                const pivotX = leverMargin + leverWidth * pivotPosition;
+                const leverY = diagramCanvas.height * 0.35;
+                
+                if (Math.abs(x - pivotX) < 15 && Math.abs(y - leverY) < 15) {
+                    isDraggingPivot = true;
+                }
+            } else {
+                const leverMargin = 60;
+                const leverHeight = diagramCanvas.height - 2 * leverMargin;
+                const pivotY = leverMargin + leverHeight * pivotPosition;
+                const leverX = diagramCanvas.width / 2;
+                
+                if (Math.abs(x - leverX) < 15 && Math.abs(y - pivotY) < 15) {
+                    isDraggingPivot = true;
+                }
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!isDraggingPivot) return;
+            
+            const rect = diagramCanvas.getBoundingClientRect();
+            
+            if (mode === 'horizontal') {
+                const x = e.clientX - rect.left;
+                const leverMargin = 60;
+                const leverWidth = diagramCanvas.width - 2 * leverMargin;
+                pivotPosition = Math.max(0, Math.min(1, (x - leverMargin) / leverWidth));
+            } else {
+                const y = e.clientY - rect.top;
+                const leverMargin = 60;
+                const leverHeight = diagramCanvas.height - 2 * leverMargin;
+                pivotPosition = Math.max(0, Math.min(1, (y - leverMargin) / leverHeight));
+            }
+            
+            drawDiagram();
+            drawResult();
+        }
+
+        function handleMouseUp() {
+            isDraggingPivot = false;
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            diagramCanvas.dispatchEvent(mouseEvent);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            diagramCanvas.dispatchEvent(mouseEvent);
+        }
+
+        renderForces();
+        updateCalculations();
+    </script>
+<!-- AIzipper Custom Footer Start -->
+<div class="aizipper-custom-footer">
+<p>add credit: made by jinSheng, using Claude, bug fixed by lookang using GPT5
+for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/01-foundations-of-physics/forces-moments/04-turning-effects-of-forces" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/01-foundations-of-physics/forces-moments/04-turning-effects-of-forces</a></p>
+</div>
+<!-- AIzipper Custom Footer End -->
+</body>
+</html>

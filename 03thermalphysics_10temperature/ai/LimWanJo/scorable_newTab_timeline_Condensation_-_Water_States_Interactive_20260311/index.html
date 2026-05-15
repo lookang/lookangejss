@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Condensation - Water States Interactive</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const directScore =
+        readDomNumberById('score') ??
+        readDomNumberById('points') ??
+        readDomNumberById('correctCount') ??
+        readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ??
+        readDomNumberById('correctAnswersCount');
+
+      const directMax =
+        readDomNumberById('max') ??
+        readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ??
+        readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ??
+        readDomNumberById('attempts') ??
+        readDomNumberById('totalAttempts');
+
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="correct" i]', '[class*="correct" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const scoreRegex = new RegExp('(\d+)\s*\/\s*(\d+)');
+        const m = text.match(scoreRegex);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time, .log-timestamp') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const valueEl = entry.querySelector ? entry.querySelector('.log-value, .log-state') : null;
+
+      const timeText = timeEl ? timeEl.textContent : (entry.textContent || '');
+      const actionText = actionEl ? actionEl.textContent : null;
+      const valueText = valueEl ? valueEl.textContent : null;
+
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+
+      // When no dedicated action/value spans exist, extract text from the full entry
+      const fullEntryText = (!actionEl && entry.textContent)
+        ? entry.textContent.replace(timeEl ? timeEl.textContent : '', '').trim()
+        : null;
+
+      const label = [actionText, valueText].filter(Boolean).join(' | ').trim()
+                  || fullEntryText || null;
+      return {
+        timeSec: Number.isFinite(timeSec) ? timeSec : null,
+        action: actionText ? actionText.trim() : (fullEntryText || null),
+        details: valueText ? valueText.trim() : null,
+        label: label || null
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) {
+          const keep = Array.from(seen).slice(-200);
+          seen.clear();
+          keep.forEach(k => seen.add(k));
+        }
+
+        const ts = parsed.timeSec != null
+          ? (xapiState.startTime + Math.round(parsed.timeSec * 1000))
+          : Date.now();
+
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) {
+                recordEntry(node);
+              } else {
+                node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry);
+              }
+            });
+          });
+        });
+
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('logContainer') || document.querySelector('.analytics-content #logContainer');
+        if (container) {
+          attachToContainer(container);
+          return true;
+        }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) {
+          attachToContainer(entry.parentElement);
+          return true;
+        }
+        return false;
+      }
+
+      if (tryAttach()) return;
+
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts += 1;
+        if (tryAttach() || attempts > 20) {
+          clearInterval(timer);
+        }
+      }, 500);
+    } catch (e) {}
+  }
+
+  // Keyboard tracking for text-based inputs and textareas
+  // This logs each keystroke as a lightweight "key" action so it
+  // appears in the same timeline analytics as clicks.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+
+    // Limit to typical text input fields to avoid flooding from
+    // every key on the whole page.
+    const isTextField = (
+      tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')
+    ) || tag === 'textarea';
+
+    if (!isTextField) return;
+
+    logAction('key', {
+      tag,
+      id: t.id || null,
+      name: t.name || null,
+      value: t.value != null ? String(t.value).substring(0, 120) : null,
+      text: null,
+      key: String(e.key).substring(0, 40),
+      code: String(e.code || '').substring(0, 40)
+    });
+
+    // Group keystrokes slightly to avoid sending on every single key.
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    // In quiz contexts, we avoid sending "pause" events when switching tabs,
+    // because SLS learners commonly return to the parent tab.
+    try {
+      if (document.hidden && window.__xapiDisablePauseFlush === true) return;
+    } catch (e) {}
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      addSaveBtn();
+      hookLearningAnalyticsLog();
+    });
+  } else {
+    addSaveBtn();
+    hookLearningAnalyticsLog();
+  }
+
+  // Expose rich timeline summary for cross-script payload merging
+  window._xapiGetTimelineSummary = function() {
+    const acts = xapiState.actions;
+    const m = computeMetrics(acts);
+    return {
+      interactions: acts.length,
+      elapsedSec: m.elapsedSec,
+      actionTypes: m.actionTypes,
+      uniqueTargets: m.uniqueTargets,
+      recentActions: acts.slice(-15).map(a => {
+        const sec = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+        const d = a.data || {};
+        // Use first non-empty field only to avoid duplicates when text === action
+        const lbl = (d.text || d.action || d.id || d.name || '').substring(0, 80).trim();
+        return { t: Number(sec.toFixed(1)), type: a.type, label: lbl };
+      })
+    };
+  };
+})();
+    </script>
+
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  // Unified tracking: quiz instrumentation is always present.
+  // We DO NOT force statement sending here. The vendor glue (lib/xAPI.js)
+  // will still send state reliably; statements are best-effort depending on CORS.
+
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+  const answerDedup = { lastSig: '', lastAt: 0 };
+  const metricsState = { lastKey: '', timer: null };
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function toNumber(val) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function readDomNumber(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      return toNumber(text);
+    } catch {
+      return null;
+    }
+  }
+
+  function getQuestionText() {
+    try {
+      const el = document.getElementById('question');
+      if (el && el.textContent) return el.textContent.trim().substring(0, 160);
+    } catch {}
+    return null;
+  }
+
+  function getGameState() {
+    try { return window.gameState || null; } catch { return null; }
+  }
+
+  function getMetricsFromGameState() {
+    const gs = getGameState();
+    if (!gs) return null;
+    const attempted = toNumber(gs.totalAttempts != null ? gs.totalAttempts : null);
+    const correct = toNumber(gs.correctCount != null ? gs.correctCount : null);
+    const points = toNumber(gs.score != null ? gs.score : null);
+    const max = toNumber(gs.questionsToAdvance != null ? gs.questionsToAdvance : null);
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetricsFromDom() {
+    const attempted = readDomNumber('totalAttempts');
+    const correct = readDomNumber('correctCount');
+    const points = readDomNumber('score');
+    const max = readDomNumber('totalQuestions');
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetrics() {
+    return getMetricsFromGameState() || getMetricsFromDom() || null;
+  }
+
+  function syncFromMetrics() {
+    const m = getMetrics();
+    if (!m) return;
+    if (m.attempted != null) qs.attempted = m.attempted;
+    if (m.correct != null) quizMeta.correct = m.correct;
+    if (m.max != null) quizMeta.max = m.max;
+  }
+
+  function startMetricsWatcher() {
+    if (metricsState.timer) return;
+    metricsState.timer = setInterval(() => {
+      const m = getMetrics();
+      if (!m) return;
+      const key = [m.attempted, m.correct, m.points, m.max].join('|');
+      if (key === metricsState.lastKey) return;
+      metricsState.lastKey = key;
+      syncFromMetrics();
+      scheduleFlush('auto-metrics');
+      maybeComputeAndSendScore();
+    }, 1200);
+  }
+
+  function recordAnswer(evt) {
+    try {
+      const sig = [evt.q, evt.value, evt.correct, evt.expected].join('|');
+      const now = Date.now();
+      if (sig === answerDedup.lastSig && now - answerDedup.lastAt < 800) return;
+      answerDedup.lastSig = sig;
+      answerDedup.lastAt = now;
+      pushHistory(evt);
+
+      const gs = getGameState();
+      const hasCounts = gs && (gs.totalAttempts != null || gs.correctCount != null);
+      if (!hasCounts) {
+        qs.attempted++;
+        if (evt.correct === true) quizMeta.correct++;
+      }
+    } catch (e) {}
+  }
+
+  // Build per-question breakdown for SLS and LRS analytics.
+  // Groups answer-like events by question id/text and derives:
+  // - question id/text
+  // - last user selection
+  // - inferred correct option (when available)
+  // - simple marks (1 for correct, 0 for not-certain/incorrect)
+  // This is emitted as quiz.items[] and also mirrored under
+  // hiddenMarks so vendor/xAPI.js can push it into result.extensions.
+  function buildQuizBreakdown() {
+    const byQ = new Map();
+
+    history.forEach(evt => {
+      if (!evt) return;
+      const type = (evt.type || '').toString();
+      if (!/answer/.test(type)) return; // focus on answer-like events
+
+      const keyRaw = evt.q != null ? String(evt.q) : '';
+      const key = keyRaw || (evt.name != null ? String(evt.name) : '');
+      if (!key) return;
+
+      let rec = byQ.get(key);
+      if (!rec) {
+        rec = {
+          id: key,
+          question: keyRaw || key,
+          correctOption: null,
+          lastEvent: null
+        };
+        byQ.set(key, rec);
+      }
+
+      rec.lastEvent = evt;
+      if (evt.expected != null && rec.correctOption == null) {
+        rec.correctOption = String(evt.expected).substring(0, 160);
+      }
+    });
+
+    const items = [];
+    let totalMarks = 0;
+    let maxMarks = 0;
+    let idx = 0;
+
+    byQ.forEach((rec, key) => {
+      const ev = rec.lastEvent || {};
+      const isCorrect = ev.correct === true;
+      const marks = isCorrect ? 1 : 0;
+      const max = 1;
+
+      items.push({
+        id: key || ('q' + (idx + 1)),
+        question: rec.question || null,
+        correctOption: rec.correctOption || (ev.expected != null ? String(ev.expected).substring(0, 160) : null),
+        userSelection: ev.value != null ? String(ev.value).substring(0, 160) : null,
+        marks,
+        maxMarks: max
+      });
+
+      totalMarks += marks;
+      maxMarks += max;
+      idx++;
+    });
+
+    return { items, totalMarks, maxMarks };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    syncFromMetrics();
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const m = getMetrics();
+    const breakdown = buildQuizBreakdown();
+    const hasBreakdown = breakdown && breakdown.maxMarks > 0;
+    const finalScore = hasBreakdown ? breakdown.totalMarks : raw;
+    const finalMax = hasBreakdown ? breakdown.maxMarks : max;
+
+    const payload = {
+      score: finalScore,
+      max: finalMax,
+      feedback: 'Quiz ' + reason + ': ' + raw + '/' + max + ' (correct ' + quizMeta.correct + '/' + max + ')',
+      reason,
+      quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max, points: m && m.points != null ? m.points : null },
+      history: history.slice(-80)
+    };
+
+    // Attach per-question breakdown when available so that vendor/xAPI.js
+    // can expose it via result.extensions.hiddenMarks and result.extensions.quizSummary.
+    if (hasBreakdown && breakdown.items.length) {
+      payload.quiz.items = breakdown.items;
+      payload.hiddenMarks = {
+        totalMarks: breakdown.totalMarks,
+        maxMarks: breakdown.maxMarks,
+        items: breakdown.items
+      };
+    }
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /correct/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        const breakdown = buildQuizBreakdown();
+        const hasBreakdown = breakdown && breakdown.maxMarks > 0;
+
+        const state = {
+          score: scoreRaw,
+          max: max,
+          feedback: feedback || '',
+          quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+          history: history.slice(-80)
+        };
+
+        if (hasBreakdown && breakdown.items.length) {
+          state.quiz.items = breakdown.items;
+          state.hiddenMarks = {
+            totalMarks: breakdown.totalMarks,
+            maxMarks: breakdown.maxMarks,
+            items: breakdown.items
+          };
+        }
+
+        window.storeState(state);
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    // If we know quizMeta.max, send a score on each change.
+    // Debounced by lastScoreSent.
+    syncFromMetrics();
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Score: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = qs.questions.length;
+    quizMeta.max = quizMeta.total;
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          recordAnswer({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Button-based answers (common in Claude-generated interactives)
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('button,[role="button"],.answer-btn') : null;
+      if (!btn) return;
+      const inGrid = btn.closest && btn.closest('#answerGrid');
+      const looksLikeAnswer = inGrid || btn.classList.contains('answer-btn') || btn.dataset.answer != null;
+      if (!looksLikeAnswer) return;
+
+      const valueRaw = btn.dataset.answer != null ? btn.dataset.answer : (btn.textContent || '');
+      const value = String(valueRaw).trim().substring(0, 120);
+      const gs = getGameState();
+      const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+      const correct = expected != null ? (String(value) === String(expected)) : null;
+
+      recordAnswer({
+        type: 'answer_click',
+        q: getQuestionText(),
+        value,
+        correct,
+        expected
+      });
+
+      scheduleFlush('answer_click');
+      maybeComputeAndSendScore();
+    }, true);
+
+    startMetricsWatcher();
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        recordAnswer({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  function hookCheckAnswer() {
+    try {
+      if (window.__xapiCheckAnswerHooked) return;
+      if (typeof window.checkAnswer !== 'function') return;
+      const original = window.checkAnswer;
+      window.checkAnswer = function(selectedAnswer, btn) {
+        try {
+          const gs = getGameState();
+          const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+          const value = selectedAnswer != null ? String(selectedAnswer).substring(0, 120) : null;
+          const correct = expected != null && value != null ? (String(value) === String(expected)) : null;
+          recordAnswer({
+            type: 'answer_check',
+            q: getQuestionText(),
+            value,
+            correct,
+            expected
+          });
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } catch (e) {}
+        return original.apply(this, arguments);
+      };
+      window.__xapiCheckAnswerHooked = true;
+    } catch (e) {}
+  }
+
+  function startCheckAnswerWatcher() {
+    if (window.__xapiCheckAnswerWatch) return;
+    window.__xapiCheckAnswerWatch = true;
+    const timer = setInterval(() => {
+      hookCheckAnswer();
+      if (window.__xapiCheckAnswerHooked) clearInterval(timer);
+    }, 600);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+      startCheckAnswerWatcher();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+    startCheckAnswerWatcher();
+  }
+})();
+    </script>
+  <!-- xAPI Question Achievement Tracker (Q2-Q5) -->
+  <script>
+(function() {
+  var state = {
+    Q2: { achieved: false, label: 'Purpose of tilted steel plate (MCQ)',
+          hint: 'Answer B — slides droplets into dish' },
+    Q3: { achieved: false, label: 'Rate change: explore ≥50°C then ≤15°C',
+          hint: 'Lower temp → faster condensation' },
+    Q4: { achieved: false, label: 'Slowest collection: plate ≥80°C for 30s',
+          hint: 'High temp = slow condensation rate' },
+    Q5: { achieved: false, label: 'Energy change when vapour meets plate (MCQ)',
+          hint: 'Answer B — vapour releases heat to plate' }
+  };
+  var totalScore = 0, maxScore = 4;
+  var q3VisitedHigh = false, q3VisitedLow = false;
+  var q4Timer = null, q4CountdownInterval = null;
+
+  // ── Build Q-item list ─────────────────────────────────────────────────
+  function buildItems() {
+    return Object.keys(state).map(function(qid) {
+      return {
+        id: qid, question: state[qid].label, description: state[qid].hint,
+        marks: state[qid].achieved ? 1 : 0, maxMarks: 1, achieved: state[qid].achieved
+      };
+    });
+  }
+
+  // ── Combined feedback: Q2-Q5 status + timeline click stream ──────────
+  function buildCombinedFeedback() {
+    var lines = [];
+    lines.push('Question Task Tracker');
+    lines.push(new Date().toLocaleString());
+    lines.push('Score: ' + totalScore + ' / ' + maxScore);
+    lines.push('─────────────────────');
+    Object.keys(state).forEach(function(qid) {
+      var q = state[qid];
+      lines.push(qid + ' — ' + q.label);
+      lines.push('&nbsp;&nbsp;&nbsp;' + (q.achieved ? '✅ 1/1' : '⬜ 0/1') + ' &nbsp;(' + q.hint + ')');
+    });
+    lines.push('─────────────────────');
+    lines.push('Total Score: ' + totalScore + ' / ' + maxScore);
+
+    // Pull timeline analytics + click stream from the timeline tracker
+    try {
+      var tl = (typeof window._xapiGetTimelineSummary === 'function')
+               ? window._xapiGetTimelineSummary() : null;
+      if (tl) {
+        lines.push('─────────────────────');
+        lines.push('Interaction Analytics:');
+        lines.push('Interactions: ' + tl.interactions + '  |  Elapsed: ' + tl.elapsedSec + 's');
+        lines.push('Unique Explorations: ' + tl.uniqueTargets);
+        var div = Object.keys(tl.actionTypes)
+                    .map(function(k) { return k + ': ' + tl.actionTypes[k]; }).join(', ');
+        if (div) lines.push('Diversity — ' + div);
+      }
+      lines.push('─────────────────────');
+      lines.push('Action Log (recent):');
+      if (tl && tl.recentActions && tl.recentActions.length) {
+        tl.recentActions.forEach(function(a) {
+          var icon = a.type === 'click' ? '🖱' : (a.type === 'learning-analytics' ? '📊' : '⚡');
+          lines.push('t=' + a.t + 's ' + icon + ' ' + (a.label || a.type || '').substring(0, 80));
+        });
+      } else {
+        // Fallback: read DOM temperature log
+        var domEls = document.querySelectorAll('#analytics-log .log-entry');
+        Array.from(domEls || []).slice(0, 10).reverse().forEach(function(entry) {
+          var tEl = entry.querySelector('.log-time');
+          var tTxt = tEl ? tEl.textContent.replace(/[\[\]]/g, '').trim() : '';
+          var body = entry.textContent.replace(tEl ? tEl.textContent : '', '').trim();
+          var row = [tTxt, body].filter(Boolean).join(' ');
+          if (row) lines.push(row);
+        });
+      }
+    } catch(e) {}
+
+    return lines.join('<br>');
+  }
+
+  // ── Merge Q2-Q5 data into any storeState payload ──────────────────────
+  // This is called by the storeState wrapper, so EVERY storeState call
+  // (from timeline tracker, quiz tracker, or this tracker) carries Q2-Q5
+  // data. SLS always sees the combined picture regardless of which fires last.
+  function mergeQuestData(payload) {
+    var items = buildItems();
+    var merged = {};
+    Object.keys(payload || {}).forEach(function(k) { merged[k] = payload[k]; });
+    merged.score = totalScore;
+    merged.max   = maxScore;
+    merged.hiddenMarks = { totalMarks: totalScore, maxMarks: maxScore, items: items };
+    merged.quiz  = Object.assign({}, merged.quiz || {}, {
+      correct: totalScore, total: maxScore, items: items
+    });
+    merged.feedback = buildCombinedFeedback();
+    return merged;
+  }
+
+  // ── Install storeState wrapper (once) ────────────────────────────────
+  function installWrapper() {
+    if (window.__qTrackerWrapped) return;
+    window.__qTrackerWrapped = true;
+    var _orig   = window.storeState;
+    var _inWrap = false;
+    window.storeState = function(p) {
+      if (_inWrap) { try { _orig && _orig.call(this, p); } catch(e) {} return; }
+      _inWrap = true;
+      try   { if (_orig) _orig.call(this, mergeQuestData(p)); }
+      catch (e) { try { _orig && _orig.call(this, p); } catch(e2) {} }
+      finally { _inWrap = false; }
+    };
+  }
+
+  // ── UI helpers ────────────────────────────────────────────────────────
+  function refreshUI(qid) {
+    var q = state[qid];
+    var statusEl = document.getElementById(qid.toLowerCase() + '-status');
+    var itemEl   = document.getElementById(qid.toLowerCase() + '-item');
+    if (statusEl) statusEl.textContent = q.achieved ? '✅ 1/1' : '⬜ 0/1';
+    if (itemEl) (q.achieved ? itemEl.classList.add : itemEl.classList.remove).call(itemEl.classList, 'achieved');
+    var scoreEl = document.getElementById('questions-score');
+    if (scoreEl) scoreEl.textContent = 'Score: ' + totalScore + ' / ' + maxScore;
+  }
+
+  function markAchieved(qid) {
+    if (state[qid].achieved) return;
+    state[qid].achieved = true;
+    totalScore++;
+    refreshUI(qid);
+    // storeState is wrapped — this one call carries both Q2-Q5 + timeline data
+    try { window.storeState({ reason: qid + '-achieved' }); } catch(e) {}
+  }
+
+  // ── Simulation state checks ───────────────────────────────────────────
+  function checkSliderTemp(temp) {
+    if (!state.Q3.achieved) {
+      if (temp >= 45) q3VisitedHigh = true;
+      if (temp <= 15) q3VisitedLow  = true;
+      if (q3VisitedHigh && q3VisitedLow) markAchieved('Q3');
+    }
+    if (!state.Q4.achieved) {
+      if (temp >= 80) {
+        if (!q4Timer) {
+          var remaining = 30;
+          var statusEl = document.getElementById('q4-status');
+          q4CountdownInterval = setInterval(function() {
+            remaining--;
+            if (statusEl && !state.Q4.achieved) statusEl.textContent = '⏱ ' + remaining + 's';
+            if (remaining <= 0) clearInterval(q4CountdownInterval);
+          }, 1000);
+          q4Timer = setTimeout(function() {
+            q4Timer = null;
+            clearInterval(q4CountdownInterval);
+            var cur = parseInt((document.getElementById('temp-slider') || {}).value || 0);
+            if (cur >= 80) markAchieved('Q4');
+          }, 30000);
+        }
+      } else {
+        if (q4Timer) {
+          clearTimeout(q4Timer); q4Timer = null;
+          clearInterval(q4CountdownInterval);
+          var s4 = document.getElementById('q4-status');
+          if (s4 && !state.Q4.achieved) s4.textContent = '⬜ 0/1';
+        }
+      }
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  function initTracking() {
+    installWrapper();   // ← wrap storeState first so all subsequent calls are merged
+
+    var slider = document.getElementById('temp-slider');
+    if (slider) slider.addEventListener('input', function() { checkSliderTemp(parseInt(this.value)); });
+
+    document.addEventListener('change', function(e) {
+      var t = e.target;
+      if (!t) return;
+      if (t.name === 'q2') {
+        if (!state.Q2.achieved && t.value === 'B') { markAchieved('Q2'); }
+        else if (t.value !== 'B') {
+          var s = document.getElementById('q2-status');
+          if (s && !state.Q2.achieved) s.textContent = '❌ 0/1';
+        }
+      }
+      if (t.name === 'q5') {
+        if (!state.Q5.achieved && t.value === 'B') { markAchieved('Q5'); }
+        else if (t.value !== 'B') {
+          var s = document.getElementById('q5-status');
+          if (s && !state.Q5.achieved) s.textContent = '❌ 0/1';
+        }
+      }
+    });
+
+    var tasksBtn = document.getElementById('tasks-btn');
+    if (tasksBtn) {
+      tasksBtn.addEventListener('click', function() {
+        var panel = document.getElementById('questions-panel');
+        if (panel) panel.classList.toggle('expanded');
+      });
+    }
+
+    if (window.self === window.top) {
+      var panel = document.getElementById('questions-panel');
+      if (panel) panel.classList.add('expanded');
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTracking);
+  } else {
+    initTracking();
+  }
+})();
+  </script>
+    <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <!-- Main container for the interactive -->
+    <div id="main-container">
+        <!-- SVG Canvas for the laboratory setup -->
+        <svg id="lab-canvas" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            <!-- Definitions for filters and effects -->
+            <defs>
+                <!-- Glow filter for highlights -->
+                <filter id="glow">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+                
+                <!-- Gradient for steam effect -->
+                <linearGradient id="steamGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" style="stop-color:rgba(255,255,255,0.8);stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:rgba(255,255,255,0);stop-opacity:0" />
+                </linearGradient>
+                
+                <!-- Gradient for flame -->
+                <radialGradient id="flameGradient">
+                    <stop offset="0%" style="stop-color:#4da6ff;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#ff9933;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#ff6600;stop-opacity:0.3" />
+                </radialGradient>
+            </defs>
+            
+            <!-- Laboratory bench surface -->
+            <rect x="0" y="470" width="800" height="130" fill="#9e9e9e" stroke="#757575" stroke-width="2"/>
+            <rect x="0" y="468" width="800" height="8" fill="#757575"/>
+            
+            <!-- Tripod stand legs adjusted for taller bunsen burner -->
+            <line x1="180" y1="470" x2="200" y2="320" stroke="#333" stroke-width="3"/>
+            <line x1="220" y1="470" x2="200" y2="320" stroke="#333" stroke-width="3"/>
+            <line x1="200" y1="470" x2="200" y2="320" stroke="#333" stroke-width="3"/>
+            
+            <!-- Tripod ring -->
+            <ellipse cx="200" cy="320" rx="25" ry="8" fill="none" stroke="#333" stroke-width="3"/>
+            
+            <!-- Bunsen burner made taller - base and tube extended -->
+            <rect x="175" y="450" width="50" height="20" fill="#555" stroke="#333" stroke-width="2" rx="3"/>
+            <rect x="195" y="350" width="10" height="100" fill="#666" stroke="#333" stroke-width="1"/>
+            
+            <!-- Flame positioned directly below beaker at higher position -->
+            <g id="flame">
+                <ellipse cx="200" cy="340" rx="15" ry="25" fill="url(#flameGradient)" opacity="0.9"/>
+                <ellipse cx="200" cy="345" rx="10" ry="18" fill="#4da6ff" opacity="0.7"/>
+            </g>
+            
+            <!-- Glass beaker -->
+            <g id="beaker">
+                <!-- Beaker body -->
+                <path d="M 160 320 L 160 250 L 240 250 L 240 320" fill="rgba(200,230,255,0.3)" stroke="#666" stroke-width="2"/>
+                <ellipse cx="200" cy="320" rx="40" ry="12" fill="rgba(150,200,255,0.4)" stroke="#666" stroke-width="2"/>
+                <ellipse cx="200" cy="250" rx="40" ry="12" fill="none" stroke="#666" stroke-width="2"/>
+                
+                <!-- Water inside beaker -->
+                <ellipse cx="200" cy="275" rx="38" ry="11" fill="rgba(100,180,255,0.5)"/>
+                <rect x="162" y="275" width="76" height="43" fill="rgba(100,180,255,0.5)"/>
+                
+                <!-- Bubbles container -->
+                <g id="bubbles"></g>
+            </g>
+            
+            <!-- Steam/vapor rising -->
+            <g id="steam"></g>
+            
+            <!-- Steel plate -->
+            <g id="steel-plate">
+                <path d="M 170 150 L 280 240 L 278 248 L 168 158 Z" fill="#c0c0c0" stroke="#888" stroke-width="2"/>
+                <!-- Highlight on steel plate -->
+                <path d="M 172 153 L 278 241 L 277 244 L 171 156 Z" fill="rgba(255,255,255,0.4)"/>
+                
+                <!-- Water droplets on underside -->
+                <g id="droplets-on-plate"></g>
+            </g>
+            
+            <!-- Petri dish positioned vertically below lower end of steel plate (x=278) -->
+            <g id="petri-dish">
+                <ellipse cx="278" cy="465" rx="30" ry="10" fill="rgba(200,230,255,0.3)" stroke="#666" stroke-width="2"/>
+                <ellipse cx="278" cy="463" rx="30" ry="10" fill="none" stroke="#666" stroke-width="1"/>
+                <!-- Water in dish -->
+                <ellipse cx="278" cy="465" rx="25" ry="8" fill="rgba(100,180,255,0.4)"/>
+                <!-- Ripples -->
+                <g id="ripples"></g>
+            </g>
+            
+            <!-- Temperature slider visual -->
+            <g id="temp-slider-visual">
+                <rect x="500" y="180" width="20" height="100" fill="#e0e0e0" stroke="#999" stroke-width="1" rx="10"/>
+                <rect id="temp-fill" x="500" y="230" width="20" height="50" fill="#ff6b6b" rx="10"/>
+                <circle id="temp-handle" cx="510" cy="230" r="12" fill="#fff" stroke="#666" stroke-width="2"/>
+            </g>
+            
+            <!-- Labels with leader lines -->
+            <!-- Bunsen burner label adjusted for taller burner -->
+            <line x1="200" y1="400" x2="130" y2="420" stroke="#333" stroke-width="1"/>
+            <text x="125" y="425" class="label-text" text-anchor="end">Bunsen burner</text>
+            
+            <!-- Boiling water label -->
+            <line x1="165" y1="290" x2="110" y2="290" stroke="#333" stroke-width="1"/>
+            <text x="105" y="295" class="label-text" text-anchor="end">Boiling water</text>
+            
+            <!-- Steel plate label -->
+            <line x1="225" y1="195" x2="225" y2="130" stroke="#333" stroke-width="1"/>
+            <text x="225" y="125" class="label-text" text-anchor="middle">Steel plate</text>
+            
+            <!-- Dish label adjusted for new position -->
+            <line x1="308" y1="460" x2="350" y2="440" stroke="#333" stroke-width="1"/>
+            <text x="355" y="445" class="label-text" text-anchor="start">Dish</text>
+            
+            <!-- REMOVED: All highlight zones removed -->
+            <!-- REMOVED: All placeholder boxes removed -->
+        </svg>
+        
+        <!-- REMOVED: All text boxes removed -->
+        
+        <!-- Temperature control panel -->
+        <div id="control-panel">
+            <label for="temp-slider">Steel Plate Temperature:</label>
+            <input type="range" id="temp-slider" min="0" max="100" value="20" step="1">
+            <span id="temp-value">20°C</span>
+            <button id="reset-btn">Reset</button>
+            <button id="tasks-btn">📝 Tasks</button>
+        </div>
+        
+        <!-- Analytics panel (collapsible) -->
+        <div id="analytics-panel">
+            <div id="analytics-header">
+                <span>📊 Learning Analytics</span>
+                <button id="toggle-analytics">▼</button>
+            </div>
+            <div id="analytics-content">
+                <div id="analytics-log"></div>
+                <button id="clear-log-btn">Clear Log</button>
+            </div>
+        </div>
+        
+        <!-- Question Achievement Panel (Q2-Q5) -->
+        <div id="questions-panel">
+          <div id="questions-header">
+            <h3>📝 Task Tracker — Explore the simulation to earn marks</h3>
+            <span id="questions-score">Score: 0 / 4</span>
+          </div>
+          <div id="questions-content">
+
+            <!-- Q2: Purpose of tilted plate (MCQ) -->
+            <div class="question-item" id="q2-item">
+              <span class="q-num">Q2</span>
+              <span class="q-text">What is the purpose of the tilted steel plate? <em>(Choose one)</em></span>
+              <span class="q-status" id="q2-status">⬜ 0/1</span>
+              <div class="q-options">
+                <label><input type="radio" name="q2" value="A"> A. To reflect heat away from the beaker</label>
+                <label><input type="radio" name="q2" value="B"> B. To allow condensed droplets to slide into the collection dish</label>
+                <label><input type="radio" name="q2" value="C"> C. To slow down the rate of evaporation</label>
+              </div>
+            </div>
+
+            <!-- Q3: Explore rate change (slider exploration) -->
+            <div class="question-item" id="q3-item">
+              <span class="q-num">Q3</span>
+              <span class="q-text">How does condensation rate change as plate temp decreases 50°C→10°C? <em>(Set plate ≥50°C, then move to ≤15°C)</em></span>
+              <span class="q-status" id="q3-status">⬜ 0/1</span>
+            </div>
+
+            <!-- Q4: 30s dwell at high temp — slowest collection -->
+            <div class="question-item" id="q4-item">
+              <span class="q-num">Q4</span>
+              <span class="q-text">Which condition gives slowest droplet collection? <em>(Set plate ≥80°C &amp; observe for 30s)</em></span>
+              <span class="q-status" id="q4-status">⬜ 0/1</span>
+            </div>
+
+            <!-- Q5: Energy change (MCQ) -->
+            <div class="question-item" id="q5-item">
+              <span class="q-num">Q5</span>
+              <span class="q-text">What energy change occurs when water vapour touches the cooler plate? <em>(Choose one)</em></span>
+              <span class="q-status" id="q5-status">⬜ 0/1</span>
+              <div class="q-options">
+                <label><input type="radio" name="q5" value="A"> A. Water vapour absorbs heat energy from the plate</label>
+                <label><input type="radio" name="q5" value="B"> B. Water vapour releases heat energy to the cooler plate</label>
+                <label><input type="radio" name="q5" value="C"> C. No energy change occurs during condensation</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tooltip for mouseover information -->
+        <div id="tooltip"></div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

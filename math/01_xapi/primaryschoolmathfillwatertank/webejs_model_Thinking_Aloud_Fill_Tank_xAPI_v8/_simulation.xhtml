@@ -1,0 +1,1008 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Thinking Aloud Fill Tank xAPI v8</title>
+<style type="text/css">
+.metadata { display: none; }
+</style>
+<script 
+async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+    <link rel="stylesheet"  type="text/css" href="./_ejs_library/css/ejss.css" />
+
+    <script type='text/javascript'><!--//--><![CDATA[//><!--
+      var gOldOnError = window.onerror;
+      window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+        console.log(errorMsg + " (at " + url.toString() + " => line:" + lineNumber + ")" );
+        if (gOldOnError) return gOldOnError(errorMsg, url, lineNumber);
+        return false;
+      }
+    //--><!]]></script>
+    <script src="./_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="./_ejs_library/ejsS.v1.min.js"></script>
+    <script src='./lib/xapiwrapper.min.js'></script>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+function _simulation (_topFrame, _libraryPath, _codebasePath, _inputParameters) {
+
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isEPub = false;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+  var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+  // Is this still needed if we don't have locales???
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var scenarios; // Model.Variables.initVar.scenarios
+  var pailX; // Model.Variables.initVar.pailX
+  var pailY; // Model.Variables.initVar.pailY
+  var pailIndex; // Model.Variables.initVar.pailIndex
+  var waterX; // Model.Variables.initVar.waterX
+  var waterY; // Model.Variables.initVar.waterY
+  var coverX; // Model.Variables.initVar.coverX
+  var coverY; // Model.Variables.initVar.coverY
+  var textX; // Model.Variables.initVar.textX
+  var textY; // Model.Variables.initVar.textY
+  var selectedScenario; // Model.Variables.initVar.selectedScenario
+  var selected; // Model.Variables.initVar.selected
+  var hose; // Model.Variables.initVar.hose
+  var stepsTaken; // Model.Variables.initVar.stepsTaken
+  var emptyX; // Model.Variables.initVar.emptyX
+  var emptyY; // Model.Variables.initVar.emptyY
+  var emptyIndex; // Model.Variables.initVar.emptyIndex
+  var waterEmptied; // Model.Variables.initVar.waterEmptied
+  var pastAttemptsByScenario; // Model.Variables.initVar.pastAttemptsByScenario
+
+  var score; // Model.Variables.xApi.score
+  var scenarioStartTime; // Model.Variables.xApi.scenarioStartTime
+  var currentAttempt; // Model.Variables.xApi.currentAttempt
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return { scenarios : scenarios, pailX : pailX, pailY : pailY, pailIndex : pailIndex, waterX : waterX, waterY : waterY, coverX : coverX, coverY : coverY, textX : textX, textY : textY, selectedScenario : selectedScenario, selected : selected, hose : hose, stepsTaken : stepsTaken, emptyX : emptyX, emptyY : emptyY, emptyIndex : emptyIndex, waterEmptied : waterEmptied, pastAttemptsByScenario : pastAttemptsByScenario, score : score, scenarioStartTime : scenarioStartTime, currentAttempt : currentAttempt };
+  }
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return { scenarios : scenarios, pailX : pailX, pailY : pailY, pailIndex : pailIndex, waterX : waterX, waterY : waterY, coverX : coverX, coverY : coverY, textX : textX, textY : textY, selectedScenario : selectedScenario, selected : selected, hose : hose, stepsTaken : stepsTaken, emptyX : emptyX, emptyY : emptyY, emptyIndex : emptyIndex, waterEmptied : waterEmptied, pastAttemptsByScenario : pastAttemptsByScenario, score : score, scenarioStartTime : scenarioStartTime, currentAttempt : currentAttempt };
+  }
+
+  _model._readParameters = function(json) {
+    if(typeof json.scenarios != 'undefined') scenarios = json.scenarios;
+    if(typeof json.pailX != 'undefined') pailX = json.pailX;
+    if(typeof json.pailY != 'undefined') pailY = json.pailY;
+    if(typeof json.pailIndex != 'undefined') pailIndex = json.pailIndex;
+    if(typeof json.waterX != 'undefined') waterX = json.waterX;
+    if(typeof json.waterY != 'undefined') waterY = json.waterY;
+    if(typeof json.coverX != 'undefined') coverX = json.coverX;
+    if(typeof json.coverY != 'undefined') coverY = json.coverY;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.selectedScenario != 'undefined') selectedScenario = json.selectedScenario;
+    if(typeof json.selected != 'undefined') selected = json.selected;
+    if(typeof json.hose != 'undefined') hose = json.hose;
+    if(typeof json.stepsTaken != 'undefined') stepsTaken = json.stepsTaken;
+    if(typeof json.emptyX != 'undefined') emptyX = json.emptyX;
+    if(typeof json.emptyY != 'undefined') emptyY = json.emptyY;
+    if(typeof json.emptyIndex != 'undefined') emptyIndex = json.emptyIndex;
+    if(typeof json.waterEmptied != 'undefined') waterEmptied = json.waterEmptied;
+    if(typeof json.pastAttemptsByScenario != 'undefined') pastAttemptsByScenario = json.pastAttemptsByScenario;
+    if(typeof json.score != 'undefined') score = json.score;
+    if(typeof json.scenarioStartTime != 'undefined') scenarioStartTime = json.scenarioStartTime;
+    if(typeof json.currentAttempt != 'undefined') currentAttempt = json.currentAttempt;
+  }
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.scenarios != 'undefined') scenarios = json.scenarios;
+    if(typeof json.pailX != 'undefined') pailX = json.pailX;
+    if(typeof json.pailY != 'undefined') pailY = json.pailY;
+    if(typeof json.pailIndex != 'undefined') pailIndex = json.pailIndex;
+    if(typeof json.waterX != 'undefined') waterX = json.waterX;
+    if(typeof json.waterY != 'undefined') waterY = json.waterY;
+    if(typeof json.coverX != 'undefined') coverX = json.coverX;
+    if(typeof json.coverY != 'undefined') coverY = json.coverY;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.selectedScenario != 'undefined') selectedScenario = json.selectedScenario;
+    if(typeof json.selected != 'undefined') selected = json.selected;
+    if(typeof json.hose != 'undefined') hose = json.hose;
+    if(typeof json.stepsTaken != 'undefined') stepsTaken = json.stepsTaken;
+    if(typeof json.emptyX != 'undefined') emptyX = json.emptyX;
+    if(typeof json.emptyY != 'undefined') emptyY = json.emptyY;
+    if(typeof json.emptyIndex != 'undefined') emptyIndex = json.emptyIndex;
+    if(typeof json.waterEmptied != 'undefined') waterEmptied = json.waterEmptied;
+    if(typeof json.pastAttemptsByScenario != 'undefined') pastAttemptsByScenario = json.pastAttemptsByScenario;
+    if(typeof json.score != 'undefined') score = json.score;
+    if(typeof json.scenarioStartTime != 'undefined') scenarioStartTime = json.scenarioStartTime;
+    if(typeof json.currentAttempt != 'undefined') currentAttempt = json.currentAttempt;
+  }
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  _model.getOdes = function() { return []; }
+
+  _model.removeEvents = function(){
+  }
+
+  _model.addToReset(function() {
+    __pagesEnabled['scenarios'] = true;
+    __pagesEnabled['init'] = true;
+  });
+
+  _model.addToReset(function() { // Reset of initVar
+    scenarios = {}; // Model.Variables.initVar.scenarios
+    pailX = []; // Model.Variables.initVar.pailX
+    pailY = []; // Model.Variables.initVar.pailY
+    pailIndex = -1; // Model.Variables.initVar.pailIndex
+    waterX = []; // Model.Variables.initVar.waterX
+    waterY = []; // Model.Variables.initVar.waterY
+    coverX = []; // Model.Variables.initVar.coverX
+    coverY = []; // Model.Variables.initVar.coverY
+    textX = []; // Model.Variables.initVar.textX
+    textY = []; // Model.Variables.initVar.textY
+    selectedScenario = "Demonstration"; // Model.Variables.initVar.selectedScenario
+    selected = []; // Model.Variables.initVar.selected
+    hose = "water-off.png"; // Model.Variables.initVar.hose
+    stepsTaken = 0; // Model.Variables.initVar.stepsTaken
+    emptyX = []; // Model.Variables.initVar.emptyX
+    emptyY = []; // Model.Variables.initVar.emptyY
+    emptyIndex = -1; // Model.Variables.initVar.emptyIndex
+    waterEmptied = 0; // Model.Variables.initVar.waterEmptied
+    pastAttemptsByScenario = {}; // Model.Variables.initVar.pastAttemptsByScenario
+  }); // End of reset of initVar
+
+  _model.addToReset(function() { // Reset of xApi
+    score = 0; // Model.Variables.xApi.score
+    scenarioStartTime = ""; // Model.Variables.xApi.scenarioStartTime
+    currentAttempt = {}; // Model.Variables.xApi.currentAttempt
+  }); // End of reset of xApi
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function initPails() { // > Custom code page: initFunctions - line 1
+      scenarios[selectedScenario].pails.forEach(pail => pail.currentVol = 0); // > Custom code page: initFunctions - line 2
+      scenarios[selectedScenario].tank.currentVol = 0; // > Custom code page: initFunctions - line 3
+      selected = []; // > Custom code page: initFunctions - line 4
+      scenarios[selectedScenario].pails.forEach(pail => pail.selected = false); // > Custom code page: initFunctions - line 5
+      hose = "water-off.png"; // > Custom code page: initFunctions - line 6
+      pailX = []; // > Custom code page: initFunctions - line 7
+      pailY = []; // > Custom code page: initFunctions - line 8
+      waterX = []; // > Custom code page: initFunctions - line 9
+      waterY = []; // > Custom code page: initFunctions - line 10
+      coverX = []; // > Custom code page: initFunctions - line 11
+      coverY = []; // > Custom code page: initFunctions - line 12
+      textX = []; // > Custom code page: initFunctions - line 13
+      textY = []; // > Custom code page: initFunctions - line 14
+      emptyX = []; // > Custom code page: initFunctions - line 15
+      emptyY = []; // > Custom code page: initFunctions - line 16
+      currentAttempt = { // > Custom code page: initFunctions - line 17
+          numberOfClicks: 0, // > Custom code page: initFunctions - line 18
+          log: [], // > Custom code page: initFunctions - line 19
+           // > Custom code page: initFunctions - line 20
+      }; // > Custom code page: initFunctions - line 21
+       // > Custom code page: initFunctions - line 22
+      let numOfPails = scenarios[selectedScenario].pails.length; // > Custom code page: initFunctions - line 23
+      let currentY = 5; // > Custom code page: initFunctions - line 24
+      let pailIndex = 0; // > Custom code page: initFunctions - line 25
+       // > Custom code page: initFunctions - line 26
+      while (pailIndex < numOfPails) { // > Custom code page: initFunctions - line 27
+          let pailsInRow = Math.min(3, numOfPails - pailIndex); // > Custom code page: initFunctions - line 28
+          let xCoords = []; // > Custom code page: initFunctions - line 29
+           // > Custom code page: initFunctions - line 30
+          for (let i = 0; i < pailsInRow; i++) { // > Custom code page: initFunctions - line 31
+              xCoords.push((i + 0.6) * (12 / (pailsInRow + 0.2))); // > Custom code page: initFunctions - line 32
+          } // > Custom code page: initFunctions - line 33
+           // > Custom code page: initFunctions - line 34
+          for (let i = 0; i < pailsInRow; i++) { // > Custom code page: initFunctions - line 35
+              pailX.push(xCoords[i]); // > Custom code page: initFunctions - line 36
+              pailY.push(currentY); // > Custom code page: initFunctions - line 37
+              coverX.push(xCoords[i]); // > Custom code page: initFunctions - line 38
+              coverY.push(currentY+scenarios[selectedScenario].pails[pailIndex].volume) // > Custom code page: initFunctions - line 39
+              waterX.push(xCoords[i]); // > Custom code page: initFunctions - line 40
+              waterY.push(currentY) // > Custom code page: initFunctions - line 41
+              textX.push(xCoords[i]); // > Custom code page: initFunctions - line 42
+              textY.push(currentY - 1) // > Custom code page: initFunctions - line 43
+              emptyX.push(xCoords[i]); // > Custom code page: initFunctions - line 44
+              emptyY.push(currentY - 1.5) // > Custom code page: initFunctions - line 45
+              pailIndex++; // > Custom code page: initFunctions - line 46
+          }  // > Custom code page: initFunctions - line 47
+       // > Custom code page: initFunctions - line 48
+          currentY -= 6; // > Custom code page: initFunctions - line 49
+      } // > Custom code page: initFunctions - line 50
+  } // > Custom code page: initFunctions - line 51
+
+  function onClick (element) { // > Custom code page: onClick - line 1
+       // > Custom code page: onClick - line 2
+      try { // > Custom code page: onClick - line 3
+          currentAttempt.numberOfClicks += 1; // > Custom code page: onClick - line 4
+           // > Custom code page: onClick - line 5
+          if (!scenarioStartTime){ // > Custom code page: onClick - line 6
+              scenarioStartTime= new Date(); // > Custom code page: onClick - line 7
+              console.log(`Timer started for ${selectedScenario} at ${scenarioStartTime}`); // > Custom code page: onClick - line 8
+          } // > Custom code page: onClick - line 9
+           // > Custom code page: onClick - line 10
+          if (!selected.length) { // > Custom code page: onClick - line 11
+              if (element === "tank") { // > Custom code page: onClick - line 12
+                  alert("Please select a pail first"); // > Custom code page: onClick - line 13
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on tank`); // > Custom code page: onClick - line 14
+                  return; // > Custom code page: onClick - line 15
+              } // > Custom code page: onClick - line 16
+              selected.push(element); // > Custom code page: onClick - line 17
+              if (typeof element === "number") { // > Custom code page: onClick - line 18
+                  scenarios[selectedScenario].pails[element].selected = true; // > Custom code page: onClick - line 19
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on ${scenarios[selectedScenario].pails[element].volume}L pail, pail has ${scenarios[selectedScenario].pails[element].currentVol}L of water`); // > Custom code page: onClick - line 20
+              } else { // > Custom code page: onClick - line 21
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on hose`); // > Custom code page: onClick - line 22
+              } // > Custom code page: onClick - line 23
+          } else { // > Custom code page: onClick - line 24
+              if (selected[0] === "hose" && element === "tank") { // > Custom code page: onClick - line 25
+                  alert("Please pour some water into the pail first"); // > Custom code page: onClick - line 26
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on hose, tried to transfer from hose to tank`); // > Custom code page: onClick - line 27
+                  hose = "water-off.png"; // > Custom code page: onClick - line 28
+                  selected = []; // > Custom code page: onClick - line 29
+                  return; // > Custom code page: onClick - line 30
+              } // > Custom code page: onClick - line 31
+               // > Custom code page: onClick - line 32
+              if (typeof selected[0] === "number" && element === "hose") { // > Custom code page: onClick - line 33
+                  alert("Please pour the water into the pail"); // > Custom code page: onClick - line 34
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on hose, tried to transfer water from ${scenarios[selectedScenario].pails[selected[0]].volume}L pail with ${scenarios[selectedScenario].pails[selected[0]].currentVol}L of water to hose`); // > Custom code page: onClick - line 35
+                  scenarios[selectedScenario].pails[selected[0]].selected = false; // > Custom code page: onClick - line 36
+                  selected = []; // > Custom code page: onClick - line 37
+                  return; // > Custom code page: onClick - line 38
+              } // > Custom code page: onClick - line 39
+               // > Custom code page: onClick - line 40
+              if (selected[0] === element) { // > Custom code page: onClick - line 41
+                  selected = []; // > Custom code page: onClick - line 42
+                  if (typeof element === "number") { // > Custom code page: onClick - line 43
+                      currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Unclicked on ${scenarios[selectedScenario].pails[element].volume}L pail, pail has ${scenarios[selectedScenario].pails[element].currentVol}L of water`); // > Custom code page: onClick - line 44
+                      scenarios[selectedScenario].pails[element].selected = false; // > Custom code page: onClick - line 45
+                  } else { // > Custom code page: onClick - line 46
+                      currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Unclicked on hose`); // > Custom code page: onClick - line 47
+                  } // > Custom code page: onClick - line 48
+                  return; // > Custom code page: onClick - line 49
+                   // > Custom code page: onClick - line 50
+              } // > Custom code page: onClick - line 51
+               // > Custom code page: onClick - line 52
+              if (selected[0] === "hose" && typeof element === "number") { // > Custom code page: onClick - line 53
+                  let tempVol = scenarios[selectedScenario].pails[element].currentVol; // > Custom code page: onClick - line 54
+                  scenarios[selectedScenario].pails[element].currentVol = scenarios[selectedScenario].pails[element].volume; // > Custom code page: onClick - line 55
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on ${scenarios[selectedScenario].pails[element].volume}L pail, transferred water from hose to pail. Pail went from ${tempVol}L to ${scenarios[selectedScenario].pails[element].currentVol}L of water`); // > Custom code page: onClick - line 56
+                  hose = "water-off.png"; // > Custom code page: onClick - line 57
+                  selected = []; // > Custom code page: onClick - line 58
+                  stepsTaken += 1; // > Custom code page: onClick - line 59
+                  return; // > Custom code page: onClick - line 60
+              } // > Custom code page: onClick - line 61
+               // > Custom code page: onClick - line 62
+              if (typeof selected[0] === "number" && element === "tank") { // > Custom code page: onClick - line 63
+                  const selectedPail = scenarios[selectedScenario].pails[selected[0]]; // > Custom code page: onClick - line 64
+                  const tank = scenarios[selectedScenario].tank; // > Custom code page: onClick - line 65
+                   // > Custom code page: onClick - line 66
+                  if (tank.currentVol === 15) { // > Custom code page: onClick - line 67
+                      alert("Tank is already full!"); // > Custom code page: onClick - line 68
+                      currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on tank. Tank is full. Can't transfer ${scenarios[selectedScenario].pails[selected[0]].currentVol}L of water from ${scenarios[selectedScenario].pails[selected[0]].volume}L pail to tank`); // > Custom code page: onClick - line 69
+                      selectedPail.selected = false; // > Custom code page: onClick - line 70
+                      selected = []; // > Custom code page: onClick - line 71
+                      return; // > Custom code page: onClick - line 72
+                  } // > Custom code page: onClick - line 73
+               // > Custom code page: onClick - line 74
+                  const transferableVolume = Math.min(15 - tank.currentVol, selectedPail.currentVol); // > Custom code page: onClick - line 75
+               // > Custom code page: onClick - line 76
+                  tank.currentVol += transferableVolume; // > Custom code page: onClick - line 77
+                  selectedPail.currentVol -= transferableVolume; // > Custom code page: onClick - line 78
+                   // > Custom code page: onClick - line 79
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on tank. Transferred ${transferableVolume}L of water from ${scenarios[selectedScenario].pails[selected[0]].volume}L pail to tank. Tank has ${tank.currentVol}L of water. ${scenarios[selectedScenario].pails[selected[0]].volume}L pail has ${selectedPail.currentVol}L of water`); // > Custom code page: onClick - line 80
+               // > Custom code page: onClick - line 81
+                  selectedPail.selected = false; // > Custom code page: onClick - line 82
+                  selected = []; // > Custom code page: onClick - line 83
+                  stepsTaken += 1; // > Custom code page: onClick - line 84
+                  return; // > Custom code page: onClick - line 85
+              } // > Custom code page: onClick - line 86
+               // > Custom code page: onClick - line 87
+              if (typeof selected[0] === "number" && typeof element === "number") { // > Custom code page: onClick - line 88
+                  const sourcePail = scenarios[selectedScenario].pails[selected[0]]; // > Custom code page: onClick - line 89
+                  const destinationPail = scenarios[selectedScenario].pails[element]; // > Custom code page: onClick - line 90
+               // > Custom code page: onClick - line 91
+                  if (destinationPail.currentVol === destinationPail.volume) { // > Custom code page: onClick - line 92
+                      alert("Pail is already full!"); // > Custom code page: onClick - line 93
+                      currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on ${destinationPail.volume}L pail. ${destinationPail.volume}L pail is full. Can't transfer ${sourcePail.currentVol}L of water from ${sourcePail.volume}L pail to ${destinationPail.volume}L pail`); // > Custom code page: onClick - line 94
+                      sourcePail.selected = false; // > Custom code page: onClick - line 95
+                      selected = []; // > Custom code page: onClick - line 96
+                      return; // > Custom code page: onClick - line 97
+                  } // > Custom code page: onClick - line 98
+               // > Custom code page: onClick - line 99
+                  const transferableVolume = Math.min(destinationPail.volume - destinationPail.currentVol, sourcePail.currentVol); // > Custom code page: onClick - line 100
+               // > Custom code page: onClick - line 101
+                  destinationPail.currentVol += transferableVolume; // > Custom code page: onClick - line 102
+                  sourcePail.currentVol -= transferableVolume; // > Custom code page: onClick - line 103
+               // > Custom code page: onClick - line 104
+                  currentAttempt.log.push(`Click ${currentAttempt.numberOfClicks}: Clicked on ${destinationPail.volume}L pail. Transferred ${transferableVolume}L of water from ${sourcePail.volume}L pail to ${destinationPail.volume}L pail. ${sourcePail.volume}L pail has ${sourcePail.currentVol}L of water. ${destinationPail.volume}L pail has ${destinationPail.currentVol}L of water`); // > Custom code page: onClick - line 105
+               // > Custom code page: onClick - line 106
+                  sourcePail.selected = false; // > Custom code page: onClick - line 107
+                  selected = []; // > Custom code page: onClick - line 108
+                  stepsTaken += 1; // > Custom code page: onClick - line 109
+              } // > Custom code page: onClick - line 110
+          } // > Custom code page: onClick - line 111
+      } finally { // > Custom code page: onClick - line 112
+          console.log(currentAttempt); // > Custom code page: onClick - line 113
+      } // > Custom code page: onClick - line 114
+  } // > Custom code page: onClick - line 115
+
+  function onEmpty (emptyIndex) { // > Custom code page: onEmpty - line 1
+      waterEmptied += scenarios[selectedScenario].pails[emptyIndex].currentVol; // > Custom code page: onEmpty - line 2
+      scenarios[selectedScenario].pails[emptyIndex].currentVol = 0; // > Custom code page: onEmpty - line 3
+  } // > Custom code page: onEmpty - line 4
+
+  function check() { // > Custom code page: check - line 1
+       // > Custom code page: check - line 2
+      if (!pastAttemptsByScenario[selectedScenario]) { // > Custom code page: check - line 3
+          pastAttemptsByScenario[selectedScenario] = { // > Custom code page: check - line 4
+              attemptsTakenToComplete: 0, // > Custom code page: check - line 5
+              completed: false, // > Custom code page: check - line 6
+              log: [], // > Custom code page: check - line 7
+              timeTakenToComplete: "Did not complete" // > Custom code page: check - line 8
+           }; // > Custom code page: check - line 9
+      } // > Custom code page: check - line 10
+       // > Custom code page: check - line 11
+      if (!pastAttemptsByScenario[selectedScenario].completed) { // > Custom code page: check - line 12
+          pastAttemptsByScenario[selectedScenario].attemptsTakenToComplete += 1; // > Custom code page: check - line 13
+      } // > Custom code page: check - line 14
+       // > Custom code page: check - line 15
+      pastAttemptsByScenario[selectedScenario].log.push({ // > Custom code page: check - line 16
+          attempt: currentAttempt, // > Custom code page: check - line 17
+          timeStamp: `${Math.floor((new Date() - scenarioStartTime) / 1000 / 60)}m ${Math.floor((new Date() - scenarioStartTime) / 1000 % 60)}s`, // > Custom code page: check - line 18
+          correct: false // > Custom code page: check - line 19
+      }) // > Custom code page: check - line 20
+       // > Custom code page: check - line 21
+      if (scenarios[selectedScenario].tank.currentVol === scenarios[selectedScenario].tank.volume) { // > Custom code page: check - line 22
+          alert("Congrats! You did it, now try a different approach or a different task!"); // > Custom code page: check - line 23
+          // if (!pastAttemptsByScenario[selectedScenario]) { // > Custom code page: check - line 24
+          //     pastAttemptsByScenario[selectedScenario] = []; // > Custom code page: check - line 25
+          // } // > Custom code page: check - line 26
+           // > Custom code page: check - line 27
+          // pastAttemptsByScenario[selectedScenario].push({stepsTaken, waterEmptied}); // > Custom code page: check - line 28
+           // > Custom code page: check - line 29
+          // displayPastAttempts(); // > Custom code page: check - line 30
+           // > Custom code page: check - line 31
+           // > Custom code page: check - line 32
+          if (!pastAttemptsByScenario[selectedScenario].completed) { // > Custom code page: check - line 33
+              pastAttemptsByScenario[selectedScenario].completed = true; // > Custom code page: check - line 34
+              pastAttemptsByScenario[selectedScenario].timeTakenToComplete = pastAttemptsByScenario[selectedScenario].log[pastAttemptsByScenario[selectedScenario].log.length-1].timeStamp // > Custom code page: check - line 35
+              score += 1; // > Custom code page: check - line 36
+          } // > Custom code page: check - line 37
+           // > Custom code page: check - line 38
+          pastAttemptsByScenario[selectedScenario].log[pastAttemptsByScenario[selectedScenario].log.length-1].correct = true; // > Custom code page: check - line 39
+           // > Custom code page: check - line 40
+   // > Custom code page: check - line 41
+      } else { // > Custom code page: check - line 42
+          alert("Incorrect, try again!"); // > Custom code page: check - line 43
+      } // > Custom code page: check - line 44
+       // > Custom code page: check - line 45
+      console.log(pastAttemptsByScenario); // > Custom code page: check - line 46
+       // > Custom code page: check - line 47
+      let attemptLogHtml = ''; // > Custom code page: check - line 48
+      pastAttemptsByScenario[selectedScenario].log.forEach((log, index) => { // > Custom code page: check - line 49
+          const clickLogs = log.attempt.log.map(click => '&nbsp;&nbsp;' + click).join('<br>'); // > Custom code page: check - line 50
+       // > Custom code page: check - line 51
+          attemptLogHtml +=  // > Custom code page: check - line 52
+              'Attempt ' + (index + 1) + ':<br>' + // > Custom code page: check - line 53
+              (log.correct ? 'Correct Attempt' : 'Incorrect Attempt') + '<br>' + // > Custom code page: check - line 54
+              'Time Taken: ' + log.timeStamp + '<br>' + // > Custom code page: check - line 55
+              'Number of Clicks: ' + log.attempt.numberOfClicks + '<br>' + // > Custom code page: check - line 56
+              'Click Log:<br>' + clickLogs + '<br><br>'; // > Custom code page: check - line 57
+      }); // > Custom code page: check - line 58
+       // > Custom code page: check - line 59
+      const feedback =  // > Custom code page: check - line 60
+        '<div>' + // > Custom code page: check - line 61
+          '<div>' + // > Custom code page: check - line 62
+            'Total Attempts Taken To Complete: ' + pastAttemptsByScenario[selectedScenario].attemptsTakenToComplete + '<br>' + // > Custom code page: check - line 63
+            'Managed To Complete: ' + pastAttemptsByScenario[selectedScenario].completed + '<br>' + // > Custom code page: check - line 64
+            'Total Time Taken to Complete: ' + pastAttemptsByScenario[selectedScenario].timeTakenToComplete + '<br><br>' + // > Custom code page: check - line 65
+            'Attempt Log:<br><br>' + // > Custom code page: check - line 66
+            attemptLogHtml + // > Custom code page: check - line 67
+          '</div>' + // > Custom code page: check - line 68
+        '</div>'; // > Custom code page: check - line 69
+   // > Custom code page: check - line 70
+          console.log(feedback) // > Custom code page: check - line 71
+          console.log(score) // > Custom code page: check - line 72
+          storeState({score, feedback}); // > Custom code page: check - line 73
+          reset(); // > Custom code page: check - line 74
+  } // > Custom code page: check - line 75
+   // > Custom code page: check - line 76
+
+  function reset() { // > Custom code page: reset - line 1
+    initPails(); // > Custom code page: reset - line 2
+  } // > Custom code page: reset - line 3
+
+  function displayPastAttempts() { // > Custom code page: displayPastAttempts - line 1
+      const pastAnswersDiv = document.getElementById("pastAttempts"); // > Custom code page: displayPastAttempts - line 2
+      pastAnswersDiv.innerHTML = ""; // > Custom code page: displayPastAttempts - line 3
+   // > Custom code page: displayPastAttempts - line 4
+      for (let scenario in pastAttemptsByScenario) { // > Custom code page: displayPastAttempts - line 5
+          let scenarioDiv = document.createElement("div"); // > Custom code page: displayPastAttempts - line 6
+          scenarioDiv.innerHTML = `<h3 style="margin: 0; font-size: 18px; font-weight: bold;">${scenario}:</h3>`; // > Custom code page: displayPastAttempts - line 7
+   // > Custom code page: displayPastAttempts - line 8
+          let attemptsContainer = document.createElement("div"); // > Custom code page: displayPastAttempts - line 9
+          attemptsContainer.style.display = "flex"; // > Custom code page: displayPastAttempts - line 10
+          attemptsContainer.style.flexWrap = "wrap"; // > Custom code page: displayPastAttempts - line 11
+   // > Custom code page: displayPastAttempts - line 12
+          pastAttemptsByScenario[scenario].forEach((attempt, index) => { // > Custom code page: displayPastAttempts - line 13
+              let attemptDiv = document.createElement("div"); // > Custom code page: displayPastAttempts - line 14
+              attemptDiv.innerHTML = `<strong style="font-size: 16px;">Attempt ${index + 1}:</strong><br>Steps taken: ${attempt.stepsTaken}<br>Water Emptied: ${attempt.waterEmptied}L`; // > Custom code page: displayPastAttempts - line 15
+              attemptDiv.style.padding = "10px"; // > Custom code page: displayPastAttempts - line 16
+              attemptDiv.style.width = "200px"; // > Custom code page: displayPastAttempts - line 17
+              attemptDiv.style.textAlign = "left"; // > Custom code page: displayPastAttempts - line 18
+              attemptsContainer.appendChild(attemptDiv); // > Custom code page: displayPastAttempts - line 19
+          }); // > Custom code page: displayPastAttempts - line 20
+   // > Custom code page: displayPastAttempts - line 21
+          scenarioDiv.appendChild(attemptsContainer); // > Custom code page: displayPastAttempts - line 22
+          pastAnswersDiv.appendChild(scenarioDiv); // > Custom code page: displayPastAttempts - line 23
+      } // > Custom code page: displayPastAttempts - line 24
+  } // > Custom code page: displayPastAttempts - line 25
+   // > Custom code page: displayPastAttempts - line 26
+
+  // Using a namespace to prevent global variable clashes // > Custom code page: xApi - line 1
+  const XAPIUtils = { // > Custom code page: xApi - line 2
+    parameters: null, // Parameters store // > Custom code page: xApi - line 3
+    getParameters: function () { // > Custom code page: xApi - line 4
+      if (!this.parameters) { // Ensure fetch once // > Custom code page: xApi - line 5
+        var urlParams = new URLSearchParams(window.location.search); // > Custom code page: xApi - line 6
+        var endpoint = urlParams.get('endpoint'); // > Custom code page: xApi - line 7
+        var auth = urlParams.get('auth'); // > Custom code page: xApi - line 8
+        var agent = JSON.parse(urlParams.get('agent')); // > Custom code page: xApi - line 9
+        var stateId = urlParams.get('stateId'); // > Custom code page: xApi - line 10
+        var activityId = urlParams.get('activityId'); // > Custom code page: xApi - line 11
+   // > Custom code page: xApi - line 12
+        // document.querySelector("#cookieId").innerText = "Cookie: " + auth; // > Custom code page: xApi - line 13
+        // document.querySelector("#questionId").innerText = "Question ID: " + activityId; // > Custom code page: xApi - line 14
+        // document.querySelector("#userId").innerText = "User ID: " + stateId; // > Custom code page: xApi - line 15
+   // > Custom code page: xApi - line 16
+        ADL.XAPIWrapper.changeConfig({ // > Custom code page: xApi - line 17
+          "endpoint": endpoint + "/", // > Custom code page: xApi - line 18
+          "auth": `Basic ${auth}` // > Custom code page: xApi - line 19
+        }); // > Custom code page: xApi - line 20
+        this.parameters = { // > Custom code page: xApi - line 21
+          agent, // > Custom code page: xApi - line 22
+          stateId, // > Custom code page: xApi - line 23
+          activityId // > Custom code page: xApi - line 24
+        }; // > Custom code page: xApi - line 25
+      } // > Custom code page: xApi - line 26
+   // > Custom code page: xApi - line 27
+      return this.parameters; // > Custom code page: xApi - line 28
+    } // > Custom code page: xApi - line 29
+  }; // > Custom code page: xApi - line 30
+   // > Custom code page: xApi - line 31
+  // Immediately invoke getParameters on page load // > Custom code page: xApi - line 32
+  document.addEventListener("DOMContentLoaded", function () { // > Custom code page: xApi - line 33
+    XAPIUtils.getParameters(); // Fetch parameters once on load // > Custom code page: xApi - line 34
+  }); // > Custom code page: xApi - line 35
+   // > Custom code page: xApi - line 36
+  function storeState(stateValue) { // Removed async // > Custom code page: xApi - line 37
+    try { // > Custom code page: xApi - line 38
+      const parameters = XAPIUtils.getParameters(); // Retrieve parameters from store // > Custom code page: xApi - line 39
+      const activityId = parameters.activityId; // > Custom code page: xApi - line 40
+      const stateId = parameters.stateId; // > Custom code page: xApi - line 41
+      const agent = parameters.agent; // > Custom code page: xApi - line 42
+      const registration = null; // > Custom code page: xApi - line 43
+   // > Custom code page: xApi - line 44
+      ADL.XAPIWrapper.sendState(activityId, agent, stateId, registration, stateValue); // > Custom code page: xApi - line 45
+      console.log("Submitted: " + JSON.stringify(stateValue, null, 2)); // > Custom code page: xApi - line 46
+    } catch (err) { // > Custom code page: xApi - line 47
+      console.error("An error has occurred!", err); // > Custom code page: xApi - line 48
+    } // > Custom code page: xApi - line 49
+  } // > Custom code page: xApi - line 50
+   // > Custom code page: xApi - line 51
+  function getState() { // > Custom code page: xApi - line 52
+    try { // > Custom code page: xApi - line 53
+      const parameters = XAPIUtils.getParameters(); // Retrieve parameters from store // > Custom code page: xApi - line 54
+      const activityId = parameters.activityId; // > Custom code page: xApi - line 55
+      const stateId = parameters.stateId; // > Custom code page: xApi - line 56
+      const agent = parameters.agent; // > Custom code page: xApi - line 57
+   // > Custom code page: xApi - line 58
+      const result = ADL.XAPIWrapper.getState(activityId, agent, stateId); // > Custom code page: xApi - line 59
+      document.querySelector("#getState").innerText = "First Load State: " + JSON.stringify(result, null, 2); // > Custom code page: xApi - line 60
+      return result; // > Custom code page: xApi - line 61
+    } catch (err) { // > Custom code page: xApi - line 62
+      console.error("An error has occurred!", err); // > Custom code page: xApi - line 63
+      document.querySelector("#getState").innerText = "Error has occurred: " + err; // > Custom code page: xApi - line 64
+    } // > Custom code page: xApi - line 65
+  } // > Custom code page: xApi - line 66
+   // > Custom code page: xApi - line 67
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['scenarios']) return;
+    scenarios = { // > Initialization page: scenarios - line 1
+        "Demonstration": { // > Initialization page: scenarios - line 2
+            scenario: "Ali wants to have exactly 2L of water in his tank. He only has a 3L and a 5L pail.<br/>How can he measure exactly 2L using both pails?", // > Initialization page: scenarios - line 3
+            pails: [ // > Initialization page: scenarios - line 4
+                { // > Initialization page: scenarios - line 5
+                    volume: 5, // > Initialization page: scenarios - line 6
+                    currentVol: 0, // > Initialization page: scenarios - line 7
+                    selected: false // > Initialization page: scenarios - line 8
+                }, // > Initialization page: scenarios - line 9
+                { // > Initialization page: scenarios - line 10
+                    volume: 3, // > Initialization page: scenarios - line 11
+                    currentVol: 0, // > Initialization page: scenarios - line 12
+                    selected: false // > Initialization page: scenarios - line 13
+                } // > Initialization page: scenarios - line 14
+            ], // > Initialization page: scenarios - line 15
+            tank: { // > Initialization page: scenarios - line 16
+                volume: 2, // > Initialization page: scenarios - line 17
+                currentVol: 0 // > Initialization page: scenarios - line 18
+            } // > Initialization page: scenarios - line 19
+        }, // > Initialization page: scenarios - line 20
+        "Task A": { // > Initialization page: scenarios - line 21
+            scenario: "Jia Hao wants to have 4L of water in his tank, he only has a 5L and 3L pail.<br/>How will he fill up his tank?", // > Initialization page: scenarios - line 22
+            pails: [ // > Initialization page: scenarios - line 23
+                { // > Initialization page: scenarios - line 24
+                    volume: 5, // > Initialization page: scenarios - line 25
+                    currentVol: 0, // > Initialization page: scenarios - line 26
+                    selected: false // > Initialization page: scenarios - line 27
+                }, // > Initialization page: scenarios - line 28
+                { // > Initialization page: scenarios - line 29
+                    volume: 3, // > Initialization page: scenarios - line 30
+                    currentVol: 0, // > Initialization page: scenarios - line 31
+                    selected: false // > Initialization page: scenarios - line 32
+                } // > Initialization page: scenarios - line 33
+            ], // > Initialization page: scenarios - line 34
+            tank: { // > Initialization page: scenarios - line 35
+                volume: 4, // > Initialization page: scenarios - line 36
+                currentVol: 0 // > Initialization page: scenarios - line 37
+            } // > Initialization page: scenarios - line 38
+        }, // > Initialization page: scenarios - line 39
+        "Task B": { // > Initialization page: scenarios - line 40
+        scenario: "Lina needs exactly 7L of water in her 7L tank. She has a 5L and a 3L pail.<br/>How can she measure exactly 7L into the tank using these pails?", // > Initialization page: scenarios - line 41
+            pails: [ // > Initialization page: scenarios - line 42
+                { // > Initialization page: scenarios - line 43
+                    volume: 5, // > Initialization page: scenarios - line 44
+                    currentVol: 0, // > Initialization page: scenarios - line 45
+                    selected: false // > Initialization page: scenarios - line 46
+                }, // > Initialization page: scenarios - line 47
+                { // > Initialization page: scenarios - line 48
+                    volume: 3, // > Initialization page: scenarios - line 49
+                    currentVol: 0, // > Initialization page: scenarios - line 50
+                    selected: false // > Initialization page: scenarios - line 51
+                } // > Initialization page: scenarios - line 52
+            ], // > Initialization page: scenarios - line 53
+            tank: { // > Initialization page: scenarios - line 54
+                volume: 7, // > Initialization page: scenarios - line 55
+                currentVol: 0 // > Initialization page: scenarios - line 56
+            } // > Initialization page: scenarios - line 57
+        }, // > Initialization page: scenarios - line 58
+        "Task C": { // > Initialization page: scenarios - line 59
+            scenario: "Ethan needs 2L of water for his experiment, but he only has a 6L and 5L pail.<br/>How will he measure out exactly 2L?", // > Initialization page: scenarios - line 60
+            pails: [ // > Initialization page: scenarios - line 61
+                { // > Initialization page: scenarios - line 62
+                    volume: 6, // > Initialization page: scenarios - line 63
+                    currentVol: 0, // > Initialization page: scenarios - line 64
+                    selected: false // > Initialization page: scenarios - line 65
+                }, // > Initialization page: scenarios - line 66
+                { // > Initialization page: scenarios - line 67
+                    volume: 5, // > Initialization page: scenarios - line 68
+                    currentVol: 0, // > Initialization page: scenarios - line 69
+                    selected: false // > Initialization page: scenarios - line 70
+                } // > Initialization page: scenarios - line 71
+            ], // > Initialization page: scenarios - line 72
+            tank: { // > Initialization page: scenarios - line 73
+                volume: 2, // > Initialization page: scenarios - line 74
+                currentVol: 0 // > Initialization page: scenarios - line 75
+            } // > Initialization page: scenarios - line 76
+        }, // > Initialization page: scenarios - line 77
+        "Task D": { // > Initialization page: scenarios - line 78
+            scenario: "Farah needs exactly 11L of water in her tank. She has a 7L, 5L, and 3L pail.<br/>How can she measure exactly 11L?", // > Initialization page: scenarios - line 79
+            pails: [ // > Initialization page: scenarios - line 80
+                { // > Initialization page: scenarios - line 81
+                    volume: 7, // > Initialization page: scenarios - line 82
+                    currentVol: 0, // > Initialization page: scenarios - line 83
+                    selected: false // > Initialization page: scenarios - line 84
+                }, // > Initialization page: scenarios - line 85
+                { // > Initialization page: scenarios - line 86
+                    volume: 5, // > Initialization page: scenarios - line 87
+                    currentVol: 0, // > Initialization page: scenarios - line 88
+                    selected: false // > Initialization page: scenarios - line 89
+                }, // > Initialization page: scenarios - line 90
+                { // > Initialization page: scenarios - line 91
+                    volume: 3, // > Initialization page: scenarios - line 92
+                    currentVol: 0, // > Initialization page: scenarios - line 93
+                    selected: false // > Initialization page: scenarios - line 94
+                } // > Initialization page: scenarios - line 95
+            ], // > Initialization page: scenarios - line 96
+            tank: { // > Initialization page: scenarios - line 97
+                volume: 11, // > Initialization page: scenarios - line 98
+                currentVol: 0 // > Initialization page: scenarios - line 99
+            } // > Initialization page: scenarios - line 100
+        } // > Initialization page: scenarios - line 101
+     // > Initialization page: scenarios - line 102
+    } // > Initialization page: scenarios - line 103
+     // > Initialization page: scenarios - line 104
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['init']) return;
+    initPails(); // > Initialization page: init - line 1
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  // Intentionally repeated
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model._fontResized = function(iBase,iSize,iDelta) {
+    _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _createView() {
+    _view = new _simulationView(_topFrame,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      _view.currentScenario.linkProperty('Text', function() { return scenarios[selectedScenario].scenario; }); // linking Text of currentScenario
+      _view.selectScenario.setAction('OnChange', function(_data, _info) { // Action OnChange for element selectScenario
+        var opts = _view.selectScenario.getProperty("SelectedOptions");   // property OnChange of selectScenario: line 1
+        selectedScenario = (opts.length > 0)? opts[0]:""; // property OnChange of selectScenario: line 2
+        initPails(); // property OnChange of selectScenario: line 3
+      });
+      _view.check.setAction('OnPress', function(_data, _info) { // Action OnPress for element check
+        check() // property OnPress of check: line 1
+      });
+      _view.reset.setAction('OnPress', function(_data, _info) { // Action OnPress for element reset
+        if (!pastAttemptsByScenario[selectedScenario]) { // property OnPress of reset: line 1
+                pastAttemptsByScenario[selectedScenario] = { // property OnPress of reset: line 2
+                    attemptsTakenToComplete: 0, // property OnPress of reset: line 3
+                    completed: false, // property OnPress of reset: line 4
+                    log: [], // property OnPress of reset: line 5
+                    timeTakenToComplete: "Did not complete" // property OnPress of reset: line 6
+                 }; // property OnPress of reset: line 7
+            } // property OnPress of reset: line 8
+             // property OnPress of reset: line 9
+            if (!pastAttemptsByScenario[selectedScenario].completed) { // property OnPress of reset: line 10
+                pastAttemptsByScenario[selectedScenario].attemptsTakenToComplete += 1; // property OnPress of reset: line 11
+            } // property OnPress of reset: line 12
+             // property OnPress of reset: line 13
+            pastAttemptsByScenario[selectedScenario].log.push({ // property OnPress of reset: line 14
+                attempt: currentAttempt, // property OnPress of reset: line 15
+                timeStamp: `${Math.floor((new Date() - scenarioStartTime) / 1000 / 60)}m ${Math.floor((new Date() - scenarioStartTime) / 1000 % 60)}s`, // property OnPress of reset: line 16
+                correct: false // property OnPress of reset: line 17
+            }) // property OnPress of reset: line 18
+         // property OnPress of reset: line 19
+            console.log(pastAttemptsByScenario); // property OnPress of reset: line 20
+             // property OnPress of reset: line 21
+            let attemptLogHtml = ''; // property OnPress of reset: line 22
+            pastAttemptsByScenario[selectedScenario].log.forEach((log, index) => { // property OnPress of reset: line 23
+                const clickLogs = log.attempt.log.map(click => '&nbsp;&nbsp;' + click).join('<br>'); // property OnPress of reset: line 24
+             // property OnPress of reset: line 25
+                attemptLogHtml +=  // property OnPress of reset: line 26
+                    'Attempt ' + (index + 1) + ':<br>' + // property OnPress of reset: line 27
+                    (log.correct ? 'Correct Attempt' : 'Incorrect Attempt') + '<br>' + // property OnPress of reset: line 28
+                    'Time Taken: ' + log.timeStamp + '<br>' + // property OnPress of reset: line 29
+                    'Number of Clicks: ' + log.attempt.numberOfClicks + '<br>' + // property OnPress of reset: line 30
+                    'Click Log:<br>' + clickLogs + '<br><br>'; // property OnPress of reset: line 31
+            }); // property OnPress of reset: line 32
+             // property OnPress of reset: line 33
+            const feedback =  // property OnPress of reset: line 34
+              '<div>' + // property OnPress of reset: line 35
+                '<div>' + // property OnPress of reset: line 36
+                  'Total Attempts Taken To Complete: ' + pastAttemptsByScenario[selectedScenario].attemptsTakenToComplete + '<br>' + // property OnPress of reset: line 37
+                  'Managed To Complete: ' + pastAttemptsByScenario[selectedScenario].completed + '<br>' + // property OnPress of reset: line 38
+                  'Total Time Taken to Complete: ' + pastAttemptsByScenario[selectedScenario].timeTakenToComplete + '<br><br>' + // property OnPress of reset: line 39
+                  'Attempt Log:<br><br>' + // property OnPress of reset: line 40
+                  attemptLogHtml + // property OnPress of reset: line 41
+                '</div>' + // property OnPress of reset: line 42
+              '</div>'; // property OnPress of reset: line 43
+         // property OnPress of reset: line 44
+                console.log(feedback) // property OnPress of reset: line 45
+                console.log(score) // property OnPress of reset: line 46
+                storeState({score, feedback}); // property OnPress of reset: line 47
+         // property OnPress of reset: line 48
+        reset(); // property OnPress of reset: line 49
+      });
+      _view.plottingPanel.setAction('OnPress', function(_data, _info) { // Action OnPress for element plottingPanel
+        selected = []; // property OnPress of plottingPanel: line 1
+        scenarios[selectedScenario].pails.forEach(pail => pail.selected = false); // property OnPress of plottingPanel: line 2
+        hose = "water-off.png" // property OnPress of plottingPanel: line 3
+      });
+      _view.tankWater.linkProperty('SizeY', function() { return scenarios[selectedScenario].tank.currentVol; }); // linking SizeY of tankWater
+      _view.tank.setAction('OnPress', function(_data, _info) { // Action OnPress for element tank
+        onClick("tank") // property OnPress of tank: line 1
+      });
+      _view.waterSet.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].pails.length; }); // linking NumberOfElements of waterSet
+      _view.waterSet.linkProperty('X', function() { return waterX; }, function(_v) { waterX = _v; }); // linking X of waterSet
+      _view.waterSet.linkProperty('Y', function() { return waterY; }, function(_v) { waterY = _v; }); // linking Y of waterSet
+      _view.waterSet.linkProperty('SizeY', function() { return scenarios[selectedScenario].pails.map(pail => pail.currentVol); }); // linking SizeY of waterSet
+      _view.pailSet.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].pails.length; }); // linking NumberOfElements of pailSet
+      _view.pailSet.setAction('OnPress', function(_data, _info) { // Action OnPress for element pailSet
+        onClick(pailIndex) // property OnPress of pailSet: line 1
+      });
+      _view.pailSet.linkProperty('X', function() { return pailX; }, function(_v) { pailX = _v; }); // linking X of pailSet
+      _view.pailSet.linkProperty('Y', function() { return pailY; }, function(_v) { pailY = _v; }); // linking Y of pailSet
+      _view.pailSet.linkProperty('SizeY', function() { return scenarios[selectedScenario].pails.map(pail => pail.volume); }); // linking SizeY of pailSet
+      _view.pailSet.linkProperty('ElementInteracted', function() { return pailIndex; }, function(_v) { pailIndex = _v; }); // linking ElementInteracted of pailSet
+      _view.pailSet.linkProperty('LineColor', function() { return scenarios[selectedScenario].pails.map(pail => pail.selected ? "Black" : "rgb(122, 122, 122)"); }); // linking LineColor of pailSet
+      _view.coverSet.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].pails.length; }); // linking NumberOfElements of coverSet
+      _view.coverSet.linkProperty('X', function() { return coverX; }, function(_v) { coverX = _v; }); // linking X of coverSet
+      _view.coverSet.linkProperty('Y', function() { return coverY; }, function(_v) { coverY = _v; }); // linking Y of coverSet
+      _view.textSet.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].pails.length; }); // linking NumberOfElements of textSet
+      _view.textSet.linkProperty('X', function() { return textX; }, function(_v) { textX = _v; }); // linking X of textSet
+      _view.textSet.linkProperty('Y', function() { return textY; }, function(_v) { textY = _v; }); // linking Y of textSet
+      _view.textSet.linkProperty('Text', function() { return scenarios[selectedScenario].pails.map(pail => `${pail.currentVol}L / ${pail.volume}L`); }); // linking Text of textSet
+      _view.emptySet.linkProperty('NumberOfElements', function() { return scenarios[selectedScenario].pails.length; }); // linking NumberOfElements of emptySet
+      _view.emptySet.linkProperty('X', function() { return emptyX; }, function(_v) { emptyX = _v; }); // linking X of emptySet
+      _view.emptySet.linkProperty('Y', function() { return emptyY; }, function(_v) { emptyY = _v; }); // linking Y of emptySet
+      _view.emptySet.linkProperty('ElementInteracted', function() { return emptyIndex; }, function(_v) { emptyIndex = _v; }); // linking ElementInteracted of emptySet
+      _view.emptySet.setAction('OnPress', function(_data, _info) { // Action OnPress for element emptySet
+        onEmpty(emptyIndex) // property OnPress of emptySet: line 1
+      });
+      _view.tankText.linkProperty('Text', function() { return `${scenarios[selectedScenario].tank.currentVol}L / ${scenarios[selectedScenario].tank.volume}L Tank`; }); // linking Text of tankText
+      _view.hose.setAction('OnPress', function(_data, _info) { // Action OnPress for element hose
+        onClick("hose") // property OnPress of hose: line 1
+        if (selected[0] == "hose") { // property OnPress of hose: line 2
+        hose = "water-on.png" // property OnPress of hose: line 3
+        } else { // property OnPress of hose: line 4
+        hose = "water-off.png" // property OnPress of hose: line 5
+        } // property OnPress of hose: line 6
+      });
+      _view.hose.linkProperty('ImageUrl', function() { return hose; }, function(_v) { hose = _v; }); // linking ImageUrl of hose
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _createView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _createView(); // this includes _model.reset()
+  return _model;
+}
+
+function _simulationView (_topFrame,_libraryPath,_codebasePath) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  if (_libraryPath)  _view._setLibraryPath(_libraryPath);
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel, 'wrapper', _view._topFrame);
+    _view._addElement(EJSS_INTERFACE.panel, 'firstRow', _view.wrapper)
+      .setProperty("CSS","{ margin-bottom: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'currentScenario', _view.firstRow);
+    _view._addElement(EJSS_INTERFACE.panel, 'secondRow', _view.wrapper)
+      .setProperty("CSS","{ margin-bottom: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.comboBox, 'selectScenario', _view.secondRow)
+      .setProperty("CSS","{ margin-right: 10px }")
+      .setProperty("Options",["Demonstration", "Task A", "Task B", "Task C", "Task D"])
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'check', _view.secondRow)
+      .setProperty("Text","check")
+      .setProperty("CSS","{ margin-right: 10px }")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'reset', _view.secondRow)
+      .setProperty("Text","reset")
+      ;
+    _view._addElement(EJSS_DRAWING2D.plottingPanel, 'plottingPanel', _view.wrapper)
+      .setProperty("Width","80%")
+      .setProperty("Height","70vh")
+      .setProperty("AutoScaleX",false)
+      .setProperty("AutoScaleY",false)
+      .setProperty("MinimumX",0)
+      .setProperty("MaximumX",20)
+      .setProperty("MinimumY",0)
+      .setProperty("MaximumY",20)
+      .setProperty("Gutters",[0,0,0,0])
+      .setProperty("Enabled",true)
+      .setProperty("TLMessage",`Click the hose and a pail to start filling it up with water!`)
+      ;
+    _view._addElement(EJSS_DRAWING2D.shape, 'tankWater', _view.plottingPanel)
+      .setProperty("X",16)
+      .setProperty("Y",10-15/2)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("FillColor","Cyan")
+      .setProperty("SizeX",6)
+      .setProperty("RelativePosition","SOUTH")
+      .setProperty("LineWidth",0)
+      ;
+    _view._addElement(EJSS_DRAWING2D.shape, 'tank', _view.plottingPanel)
+      .setProperty("X",16)
+      .setProperty("Y",10)
+      .setProperty("SizeX",6)
+      .setProperty("SizeY",15)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("FillColor","rgba(0,0,0,0)")
+      .setProperty("Visibility",true)
+      .setProperty("Sensitivity",0)
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      .setProperty("LineWidth",3)
+      .setProperty("LineColor","rgb(122, 122, 122)")
+      ;
+    _view._addElement(EJSS_DRAWING2D.shape, 'tankCover', _view.plottingPanel)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("Y",10+15/2)
+      .setProperty("X",16)
+      .setProperty("SizeX",6.1)
+      .setProperty("SizeY",0.2)
+      .setProperty("LineWidth",0)
+      .setProperty("FillColor","White")
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'waterSet', _view.plottingPanel)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("FillColor","Cyan")
+      .setProperty("RelativePosition","SOUTH")
+      .setProperty("SizeX",3)
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'pailSet', _view.plottingPanel)
+      .setProperty("Visibility",true)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("FillColor","rgba(0,0,0,0)")
+      .setProperty("SizeX",3)
+      .setProperty("Sensitivity",0)
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      .setProperty("LineWidth",3)
+      .setProperty("RelativePosition","SOUTH")
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'coverSet', _view.plottingPanel)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("LineWidth",0)
+      .setProperty("FillColor","White")
+      .setProperty("SizeX",3.1)
+      .setProperty("SizeY",0.2)
+      ;
+    _view._addElement(EJSS_DRAWING2D.textSet, 'textSet', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.textSet, 'emptySet', _view.plottingPanel)
+      .setProperty("Text","Empty")
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      .setProperty("Visibility",false)
+      ;
+    _view._addElement(EJSS_DRAWING2D.text, 'tankText', _view.plottingPanel)
+      .setProperty("X",16)
+      .setProperty("Y",10-15/2-1)
+      ;
+    _view._addElement(EJSS_DRAWING2D.image, 'hose', _view.plottingPanel)
+      .setProperty("Y",17.5)
+      .setProperty("SizeX",4)
+      .setProperty("SizeY",4)
+      .setProperty("X",1.5)
+      .setProperty("Sensitivity",0)
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      ;
+    _view._addElement(EJSS_INTERFACE.panel, 'pastAttempts', _view.wrapper)
+      .setProperty("CSS","{text-align: left}")
+      .setProperty("ClassName","pastAttempts")
+      ;
+  }; // end of _view._reset
+  return _view;
+}
+
+    //--><!]]></script>
+
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+    <div id='metadata' class='metadata'>
+      <br />
+      <div id='title_author'>
+        <hr />
+        <b>Title and author:</b>
+        <p>
+          Thinking Aloud Fill Tank xAPI v8<br/>
+          <img alt='Logo' src='./Screenshot2025-09-12092323.png'/>
+        </p>
+        <p>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+kangRui, meiYoke, looKang
+        </p>
+        <hr />
+      </div>
+      <p></p>
+      <div id='copyright_message'>
+        <div class='cc_left'  style='float:left'>
+          &#169;2025, kangRui, meiYoke, looKang. <br />
+          Compiled with <a href='https://t.um.es/webejs' target='_blank'>WebEJS : the web version of Easy JavaScript Simulations</a>.<br />
+          Version 1.0 (240505)
+        </div>
+        <div class='cc_right' style='float:right'>
+          Released under a <a rel='license' target='_blank' href='https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US'>
+          <img alt='Creative Commons Attribution-NonCommercial-ShareAlike' src='./_ejs_library/images/cc_icon.png' />
+          </a> license.
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () {
+          _model = new _simulation("_topFrame","./_ejs_library/",null);
+
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+                _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+                },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

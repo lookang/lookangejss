@@ -1,0 +1,529 @@
+// ============================================
+// BEE STING ADVENTURE GAME
+// Educational interactive for treating bee stings
+// Target: 13-year-old students, Secondary level
+// ============================================
+
+// Game State Management
+const gameState = {
+    lives: 3,
+    currentStep: 0,
+    timeRemaining: 60,
+    timerInterval: null,
+    isMuted: false,
+    totalSteps: 5
+};
+
+// Game Data - Steps to treat a bee sting with choices
+const gameSteps = [
+    {
+        scenario: "A bee has stung you during your outdoor adventure! What should you do first?",
+        image: "🐝",
+        speech: "Ouch! A bee just stung me! What should I do first?",
+        choices: [
+            {
+                text: "Remove the stinger by scraping it off with a flat edge",
+                icon: "💳",
+                correct: true,
+                feedback: "Correct! Scraping removes the stinger without squeezing more venom into the skin."
+            },
+            {
+                text: "Pull the stinger out with your fingers",
+                icon: "🤏",
+                correct: false,
+                feedback: "Wrong! Pulling with fingers can squeeze more venom into the skin. Use a flat edge to scrape it off."
+            },
+            {
+                text: "Leave the stinger in and ignore it",
+                icon: "🚫",
+                correct: false,
+                feedback: "Wrong! The stinger needs to be removed quickly to prevent more venom from entering."
+            }
+        ]
+    },
+    {
+        scenario: "Good! The stinger is removed. Now what should you do to the sting area?",
+        image: "🧼",
+        speech: "The stinger is out! What's the next step?",
+        choices: [
+            {
+                text: "Wash the area with soap and water",
+                icon: "🚿",
+                correct: true,
+                feedback: "Excellent! Washing prevents infection and cleans the wound."
+            },
+            {
+                text: "Rub dirt on it to stop the pain",
+                icon: "🪨",
+                correct: false,
+                feedback: "Wrong! Dirt can cause infection. Always clean the area with soap and water."
+            },
+            {
+                text: "Cover it immediately without cleaning",
+                icon: "🩹",
+                correct: false,
+                feedback: "Wrong! You must clean the area first before covering to prevent infection."
+            }
+        ]
+    },
+    {
+        scenario: "The area is clean! How can you reduce the swelling and pain?",
+        image: "🧊",
+        speech: "It's starting to swell. How can I reduce the swelling?",
+        choices: [
+            {
+                text: "Apply a cold compress or ice pack",
+                icon: "❄️",
+                correct: true,
+                feedback: "Perfect! Cold reduces swelling and numbs the pain."
+            },
+            {
+                text: "Apply hot water to the sting",
+                icon: "🔥",
+                correct: false,
+                feedback: "Wrong! Heat increases swelling. Use cold compress instead."
+            },
+            {
+                text: "Scratch the area vigorously",
+                icon: "✋",
+                correct: false,
+                feedback: "Wrong! Scratching can damage skin and increase infection risk."
+            }
+        ]
+    },
+    {
+        scenario: "Great! The swelling is reducing. What should you do to keep the area comfortable?",
+        image: "💊",
+        speech: "It still itches a bit. What can help?",
+        choices: [
+            {
+                text: "Apply calamine lotion or hydrocortisone cream",
+                icon: "🧴",
+                correct: true,
+                feedback: "Correct! These help reduce itching and inflammation."
+            },
+            {
+                text: "Apply cooking oil to the sting",
+                icon: "🛢️",
+                correct: false,
+                feedback: "Wrong! Cooking oil doesn't help. Use proper anti-itch cream or calamine lotion."
+            },
+            {
+                text: "Squeeze the area to release toxins",
+                icon: "👊",
+                correct: false,
+                feedback: "Wrong! Squeezing can damage tissue and spread venom. Apply proper medication instead."
+            }
+        ]
+    },
+    {
+        scenario: "Almost done! What should you monitor for after a bee sting?",
+        image: "👀",
+        speech: "I'm feeling better! Is there anything I should watch out for?",
+        choices: [
+            {
+                text: "Watch for signs of allergic reaction (difficulty breathing, severe swelling)",
+                icon: "🚨",
+                correct: true,
+                feedback: "Excellent! Always monitor for allergic reactions and seek help if symptoms worsen."
+            },
+            {
+                text: "Go to sleep immediately and ignore any symptoms",
+                icon: "😴",
+                correct: false,
+                feedback: "Wrong! You must stay alert and monitor for allergic reactions which can be serious."
+            },
+            {
+                text: "Continue outdoor activities without any precautions",
+                icon: "🏃",
+                correct: false,
+                feedback: "Wrong! Rest and monitor the sting area. Watch for any worsening symptoms."
+            }
+        ]
+    }
+];
+
+// Audio Context for sound generation (no external files needed)
+let audioContext;
+let backgroundMusicGain;
+
+// Initialize the game when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    initializeGame();
+    setupEventListeners();
+    createBackgroundMusic();
+});
+
+// Initialize game state and display
+function initializeGame() {
+    gameState.lives = 3;
+    gameState.currentStep = 0;
+    gameState.timeRemaining = 60;
+    
+    updateLivesDisplay();
+    updateStepCounter();
+    loadStep(gameState.currentStep);
+    startTimer();
+}
+
+// Setup event listeners for buttons
+function setupEventListeners() {
+    document.getElementById('restart-btn').addEventListener('click', restartGame);
+    document.getElementById('retry-btn').addEventListener('click', restartGame);
+    document.getElementById('mute-btn').addEventListener('click', toggleMute);
+}
+
+// Load a specific step/question
+function loadStep(stepIndex) {
+    const step = gameSteps[stepIndex];
+    
+    // Update character speech
+    document.getElementById('character-speech').textContent = step.speech;
+    
+    // Update scenario
+    document.getElementById('scenario-image').textContent = step.image;
+    document.getElementById('scenario-text').textContent = step.scenario;
+    
+    // Clear and create choices
+    const choicesContainer = document.getElementById('choices-container');
+    choicesContainer.innerHTML = '';
+    
+    step.choices.forEach((choice, index) => {
+        const button = document.createElement('button');
+        button.className = 'choice-button';
+        button.innerHTML = `
+            <span class="choice-icon">${choice.icon}</span>
+            <span class="choice-text">${choice.text}</span>
+        `;
+        button.addEventListener('click', () => handleChoice(choice, button));
+        choicesContainer.appendChild(button);
+    });
+    
+    // Hide feedback panel
+    document.getElementById('feedback-panel').classList.add('hidden');
+}
+
+// Handle choice selection
+function handleChoice(choice, button) {
+    // Disable all choice buttons
+    const allButtons = document.querySelectorAll('.choice-button');
+    allButtons.forEach(btn => btn.style.pointerEvents = 'none');
+    
+    if (choice.correct) {
+        // Correct answer
+        button.classList.add('correct');
+        playCorrectSound();
+        showFeedback(choice.feedback, true);
+        
+        // Move to next step after delay
+        setTimeout(() => {
+            gameState.currentStep++;
+            updateStepCounter();
+            
+            if (gameState.currentStep >= gameState.totalSteps) {
+                // Game completed
+                endGame(true);
+            } else {
+                loadStep(gameState.currentStep);
+            }
+        }, 2000);
+        
+    } else {
+        // Wrong answer
+        button.classList.add('incorrect');
+        playWrongSound();
+        showFeedback(choice.feedback, false);
+        
+        // Lose a life
+        gameState.lives--;
+        updateLivesDisplay();
+        
+        if (gameState.lives <= 0) {
+            // Game over
+            setTimeout(() => {
+                endGame(false);
+            }, 2000);
+        } else {
+            // Re-enable buttons after delay
+            setTimeout(() => {
+                allButtons.forEach(btn => {
+                    btn.style.pointerEvents = 'auto';
+                    btn.classList.remove('incorrect');
+                });
+                document.getElementById('feedback-panel').classList.add('hidden');
+            }, 2000);
+        }
+    }
+}
+
+// Show feedback message
+function showFeedback(message, isCorrect) {
+    const feedbackPanel = document.getElementById('feedback-panel');
+    const feedbackContent = document.getElementById('feedback-content');
+    
+    const icon = isCorrect ? '✅' : '❌';
+    feedbackContent.innerHTML = `<span style="font-size: 24px; margin-right: 10px;">${icon}</span>${message}`;
+    
+    feedbackPanel.classList.remove('hidden');
+}
+
+// Update lives display
+function updateLivesDisplay() {
+    const hearts = document.querySelectorAll('.heart');
+    hearts.forEach((heart, index) => {
+        if (index >= gameState.lives) {
+            heart.classList.add('lost');
+        } else {
+            heart.classList.remove('lost');
+        }
+    });
+}
+
+// Update step counter
+function updateStepCounter() {
+    document.getElementById('step-counter').textContent = `${gameState.currentStep + 1}/${gameState.totalSteps}`;
+}
+
+// Timer management
+function startTimer() {
+    // Clear existing timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+        document.getElementById('timer').textContent = gameState.timeRemaining;
+        
+        // Warning when time is low
+        if (gameState.timeRemaining <= 10) {
+            document.getElementById('timer').style.animation = 'pulse 0.5s infinite';
+        }
+        
+        // Time's up
+        if (gameState.timeRemaining <= 0) {
+            clearInterval(gameState.timerInterval);
+            endGame(false);
+        }
+    }, 1000);
+}
+
+// End game - show results
+function endGame(success) {
+    // Stop timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    // Hide game screen
+    document.getElementById('game-screen').classList.add('hidden');
+    
+    if (success) {
+        // Show result screen with badge
+        const resultScreen = document.getElementById('result-screen');
+        const badgeDisplay = document.getElementById('badge-display');
+        const resultTitle = document.getElementById('result-title');
+        const resultMessage = document.getElementById('result-message');
+        
+        let badge, title, message;
+        
+        if (gameState.lives === 3) {
+            badge = '🏆';
+            title = 'Outdoor Champion!';
+            message = 'Amazing! You completed all steps perfectly without losing any lives. You\'re a true outdoor survival expert!';
+        } else if (gameState.lives === 2) {
+            badge = '🎖️';
+            title = 'Outdoor Survivor!';
+            message = 'Great job! You successfully treated the bee sting with 2 lives remaining. You have good survival skills!';
+        } else {
+            badge = '🏅';
+            title = 'Outdoor Amateur!';
+            message = 'Well done! You completed the challenge with 1 life left. Keep practicing to become an expert!';
+        }
+        
+        badgeDisplay.textContent = badge;
+        resultTitle.textContent = title;
+        resultMessage.textContent = message;
+        
+        resultScreen.classList.remove('hidden');
+        playVictorySound();
+        
+    } else {
+        // Show game over screen
+        document.getElementById('gameover-screen').classList.remove('hidden');
+        playGameOverSound();
+    }
+}
+
+// Restart game
+function restartGame() {
+    // Hide result screens
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    
+    // Show game screen
+    document.getElementById('game-screen').classList.remove('hidden');
+    
+    // Reset timer style
+    document.getElementById('timer').style.animation = '';
+    
+    // Reinitialize game
+    initializeGame();
+}
+
+// Toggle mute
+function toggleMute() {
+    gameState.isMuted = !gameState.isMuted;
+    const muteBtn = document.getElementById('mute-btn');
+    muteBtn.textContent = gameState.isMuted ? '🔇' : '🔊';
+    
+    if (backgroundMusicGain) {
+        backgroundMusicGain.gain.value = gameState.isMuted ? 0 : 0.1;
+    }
+}
+
+// ============================================
+// AUDIO FUNCTIONS - Generate sounds without external files
+// ============================================
+
+function initAudioContext() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Create background music (jungle-like ambient)
+function createBackgroundMusic() {
+    const ctx = initAudioContext();
+    
+    // Create a simple ambient background
+    const oscillator1 = ctx.createOscillator();
+    const oscillator2 = ctx.createOscillator();
+    backgroundMusicGain = ctx.createGain();
+    
+    oscillator1.type = 'sine';
+    oscillator2.type = 'sine';
+    oscillator1.frequency.setValueAtTime(220, ctx.currentTime); // A3
+    oscillator2.frequency.setValueAtTime(165, ctx.currentTime); // E3
+    
+    backgroundMusicGain.gain.setValueAtTime(0.05, ctx.currentTime);
+    
+    oscillator1.connect(backgroundMusicGain);
+    oscillator2.connect(backgroundMusicGain);
+    backgroundMusicGain.connect(ctx.destination);
+    
+    oscillator1.start();
+    oscillator2.start();
+    
+    // Add subtle frequency modulation for jungle feel
+    setInterval(() => {
+        if (!gameState.isMuted && oscillator1 && oscillator2) {
+            const freq1 = 220 + Math.random() * 20;
+            const freq2 = 165 + Math.random() * 15;
+            oscillator1.frequency.setValueAtTime(freq1, ctx.currentTime);
+            oscillator2.frequency.setValueAtTime(freq2, ctx.currentTime);
+        }
+    }, 3000);
+}
+
+// Play correct answer sound
+function playCorrectSound() {
+    if (gameState.isMuted) return;
+    
+    const ctx = initAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+    
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+}
+
+// Play wrong answer sound
+function playWrongSound() {
+    if (gameState.isMuted) return;
+    
+    const ctx = initAudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.setValueAtTime(200, ctx.currentTime);
+    oscillator.frequency.setValueAtTime(150, ctx.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.2);
+}
+
+// Play victory sound
+function playVictorySound() {
+    if (gameState.isMuted) return;
+    
+    const ctx = initAudioContext();
+    const notes = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5, D5, E5, G5, A5
+    
+    notes.forEach((freq, index) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime + index * 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * 0.1 + 0.3);
+        
+        oscillator.start(ctx.currentTime + index * 0.1);
+        oscillator.stop(ctx.currentTime + index * 0.1 + 0.3);
+    });
+}
+
+// Play game over sound
+function playGameOverSound() {
+    if (gameState.isMuted) return;
+    
+    const ctx = initAudioContext();
+    const notes = [392.00, 369.99, 349.23, 329.63]; // G4, F#4, F4, E4 (descending)
+    
+    notes.forEach((freq, index) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.setValueAtTime(freq, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime + index * 0.15);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * 0.15 + 0.4);
+        
+        oscillator.start(ctx.currentTime + index * 0.15);
+        oscillator.stop(ctx.currentTime + index * 0.15 + 0.4);
+    });
+}
+
+// Detect if running in iframe
+if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+}
+
+// Resume audio context on user interaction (browser requirement)
+document.addEventListener('click', () => {
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+}, { once: true });

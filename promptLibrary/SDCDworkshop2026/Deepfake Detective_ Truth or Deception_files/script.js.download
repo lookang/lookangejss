@@ -1,0 +1,529 @@
+// ===== DEEPFAKE DETECTIVE - MAIN JAVASCRIPT =====
+// This script handles the sorting game mechanics, audio, scoring, and narrative progression
+
+// ===== AUDIO SYSTEM =====
+// Create audio context for background music and sound effects
+const AudioSystem = {
+    context: null,
+    backgroundMusic: null,
+    
+    // Initialize audio context (must be triggered by user interaction)
+    init() {
+        if (!this.context) {
+            this.context = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    },
+    
+    // Play background music using Web Audio API oscillators
+    playBackgroundMusic() {
+        this.init();
+        if (this.backgroundMusic) return; // Already playing
+        
+        const ctx = this.context;
+        const now = ctx.currentTime;
+        
+        // Create a mysterious, tension-building background track
+        const oscillator1 = ctx.createOscillator();
+        const oscillator2 = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator1.type = 'sine';
+        oscillator2.type = 'triangle';
+        oscillator1.frequency.setValueAtTime(110, now); // A2
+        oscillator2.frequency.setValueAtTime(165, now); // E3
+        
+        gainNode.gain.setValueAtTime(0.05, now);
+        
+        oscillator1.connect(gainNode);
+        oscillator2.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator1.start(now);
+        oscillator2.start(now);
+        
+        this.backgroundMusic = { oscillator1, oscillator2, gainNode };
+    },
+    
+    // Play success sound effect
+    playCorrectSound() {
+        this.init();
+        const ctx = this.context;
+        const now = ctx.currentTime;
+        
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523.25, now); // C5
+        oscillator.frequency.exponentialRampToValueAtTime(783.99, now + 0.1); // G5
+        
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.start(now);
+        oscillator.stop(now + 0.3);
+    },
+    
+    // Play error sound effect
+    playIncorrectSound() {
+        this.init();
+        const ctx = this.context;
+        const now = ctx.currentTime;
+        
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(200, now);
+        oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+        
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.start(now);
+        oscillator.stop(now + 0.2);
+    },
+    
+    // Stop background music
+    stopBackgroundMusic() {
+        if (this.backgroundMusic) {
+            this.backgroundMusic.oscillator1.stop();
+            this.backgroundMusic.oscillator2.stop();
+            this.backgroundMusic = null;
+        }
+    }
+};
+
+// ===== GAME DATA =====
+// Media items with their classification and educational explanations
+const mediaItems = [
+    {
+        id: 1,
+        icon: '📹',
+        label: 'Celebrity Speech',
+        category: 'fake',
+        explanation: 'Unnatural lip movements and inconsistent lighting around the face indicate AI manipulation.'
+    },
+    {
+        id: 2,
+        icon: '📸',
+        label: 'News Photo',
+        category: 'real',
+        explanation: 'Verified source with consistent metadata and natural lighting patterns.'
+    },
+    {
+        id: 3,
+        icon: '🎬',
+        label: 'Viral Video',
+        category: 'fake',
+        explanation: 'Face edges show blurring artifacts typical of face-swap technology.'
+    },
+    {
+        id: 4,
+        icon: '📰',
+        label: 'Press Release',
+        category: 'real',
+        explanation: 'Cross-verified with official channels and contains authentic source information.'
+    },
+    {
+        id: 5,
+        icon: '🎥',
+        label: 'Interview Clip',
+        category: 'fake',
+        explanation: 'Abnormal blinking pattern and audio-visual desynchronization detected.'
+    },
+    {
+        id: 6,
+        icon: '📱',
+        label: 'Social Post',
+        category: 'real',
+        explanation: 'Original content with verifiable timestamp and location data.'
+    },
+    {
+        id: 7,
+        icon: '🎞️',
+        label: 'Documentary',
+        category: 'real',
+        explanation: 'Professional production with consistent quality and verified credentials.'
+    },
+    {
+        id: 8,
+        icon: '💬',
+        label: 'Quote Video',
+        category: 'fake',
+        explanation: 'Voice synthesis detected with unnatural speech patterns and facial inconsistencies.'
+    }
+];
+
+// Narrative dialogues that progress through the game
+const narrativeDialogues = [
+    "Welcome, Detective. A wave of suspicious media has flooded social networks. Your mission: identify which content is real and which are deepfakes. Use your investigation steps wisely...",
+    "Good work! Remember to check lip synchronization - deepfakes often struggle with matching mouth movements to audio.",
+    "Excellent detective work! Lighting inconsistencies are a common giveaway. Keep analyzing the evidence...",
+    "You're making progress! Unnatural blinking patterns can reveal AI-generated faces. Stay vigilant!",
+    "Outstanding! Edge detection helps spot where AI has blended faces. Continue your investigation...",
+    "Nearly there, Detective! Always verify the source - misinformation often comes from unverified accounts.",
+    "Impressive work! You're becoming skilled at identifying deepfakes. Just a few more cases to solve...",
+    "Final evidence to analyze! Use all your investigation skills to complete this case successfully.",
+    "Case closed! You've successfully identified all deepfakes and protected against misinformation."
+];
+
+// ===== GAME STATE =====
+let gameState = {
+    score: 0,
+    totalAttempts: 0,
+    correctAttempts: 0,
+    itemsSorted: 0,
+    currentDialogueIndex: 0
+};
+
+// ===== DOM ELEMENTS =====
+const elements = {
+    itemsContainer: document.getElementById('items-container'),
+    realZone: document.getElementById('real-zone'),
+    fakeZone: document.getElementById('fake-zone'),
+    realContent: document.getElementById('real-content'),
+    fakeContent: document.getElementById('fake-content'),
+    scoreValue: document.getElementById('score-value'),
+    accuracyValue: document.getElementById('accuracy-value'),
+    casesValue: document.getElementById('cases-value'),
+    dialogueText: document.getElementById('dialogue-text'),
+    feedbackModal: document.getElementById('feedback-modal'),
+    feedbackIcon: document.getElementById('feedback-icon'),
+    feedbackText: document.getElementById('feedback-text'),
+    feedbackExplanation: document.getElementById('feedback-explanation'),
+    completionModal: document.getElementById('completion-modal'),
+    completionTitle: document.getElementById('completion-title'),
+    completionStats: document.getElementById('completion-stats'),
+    completionMessage: document.getElementById('completion-message'),
+    resetBtn: document.getElementById('reset-btn'),
+    playAgainBtn: document.getElementById('play-again-btn'),
+    headerTooltip: document.getElementById('header-tooltip'),
+    stepTooltip: document.getElementById('step-tooltip'),
+    appContainer: document.getElementById('app-container')
+};
+
+// ===== INITIALIZATION =====
+function init() {
+    // Detect if running in iframe or standalone
+    if (window.self !== window.top) {
+        document.body.classList.add('in-iframe');
+    }
+    
+    // Start background music on first user interaction
+    document.addEventListener('click', () => {
+        AudioSystem.playBackgroundMusic();
+    }, { once: true });
+    
+    // Create media items
+    createMediaItems();
+    
+    // Setup drag and drop
+    setupDragAndDrop();
+    
+    // Setup tooltips
+    setupTooltips();
+    
+    // Setup event listeners
+    elements.resetBtn.addEventListener('click', resetGame);
+    elements.playAgainBtn.addEventListener('click', resetGame);
+    
+    // Show header tooltip on hover over main area
+    elements.appContainer.addEventListener('mouseenter', showHeaderTooltip);
+    elements.appContainer.addEventListener('mouseleave', hideHeaderTooltip);
+    
+    // Update UI
+    updateUI();
+}
+
+// ===== CREATE MEDIA ITEMS =====
+function createMediaItems() {
+    elements.itemsContainer.innerHTML = '';
+    
+    // Shuffle items for variety
+    const shuffledItems = [...mediaItems].sort(() => Math.random() - 0.5);
+    
+    shuffledItems.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'media-item';
+        itemElement.draggable = true;
+        itemElement.dataset.id = item.id;
+        itemElement.dataset.category = item.category;
+        
+        itemElement.innerHTML = `
+            <div class="media-icon">${item.icon}</div>
+            <div class="media-label">${item.label}</div>
+        `;
+        
+        elements.itemsContainer.appendChild(itemElement);
+    });
+}
+
+// ===== DRAG AND DROP SYSTEM =====
+function setupDragAndDrop() {
+    let draggedElement = null;
+    
+    // Drag start
+    elements.itemsContainer.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('media-item')) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+    });
+    
+    // Drag end
+    elements.itemsContainer.addEventListener('dragend', (e) => {
+        if (e.target.classList.contains('media-item')) {
+            e.target.classList.remove('dragging');
+        }
+    });
+    
+    // Setup drop zones
+    [elements.realZone, elements.fakeZone].forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('drag-over');
+        });
+        
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('drag-over');
+        });
+        
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag-over');
+            
+            if (draggedElement) {
+                handleDrop(draggedElement, zone.dataset.category);
+                draggedElement = null;
+            }
+        });
+    });
+    
+    // Touch support for mobile devices
+    let touchStartX, touchStartY;
+    
+    elements.itemsContainer.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.media-item')) {
+            const item = e.target.closest('.media-item');
+            draggedElement = item;
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        }
+    });
+    
+    elements.itemsContainer.addEventListener('touchmove', (e) => {
+        if (draggedElement) {
+            e.preventDefault();
+        }
+    });
+    
+    elements.itemsContainer.addEventListener('touchend', (e) => {
+        if (draggedElement) {
+            const touch = e.changedTouches[0];
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            const zone = dropTarget?.closest('.category-zone');
+            
+            if (zone) {
+                handleDrop(draggedElement, zone.dataset.category);
+            }
+            
+            draggedElement = null;
+        }
+    });
+}
+
+// ===== HANDLE DROP =====
+function handleDrop(itemElement, targetCategory) {
+    const itemId = parseInt(itemElement.dataset.id);
+    const itemData = mediaItems.find(item => item.id === itemId);
+    const isCorrect = itemData.category === targetCategory;
+    
+    // Update game state
+    gameState.totalAttempts++;
+    gameState.itemsSorted++;
+    
+    if (isCorrect) {
+        gameState.correctAttempts++;
+        gameState.score += 100;
+        AudioSystem.playCorrectSound();
+        
+        // Move item to correct zone
+        const targetContent = targetCategory === 'real' ? elements.realContent : elements.fakeContent;
+        targetContent.appendChild(itemElement);
+        itemElement.draggable = false;
+        
+        // Show positive feedback
+        showFeedback(true, itemData.explanation);
+        
+        // Progress narrative
+        progressNarrative();
+        
+    } else {
+        gameState.score = Math.max(0, gameState.score - 50);
+        AudioSystem.playIncorrectSound();
+        
+        // Show negative feedback
+        showFeedback(false, itemData.explanation);
+    }
+    
+    // Update UI
+    updateUI();
+    
+    // Check if game is complete
+    if (gameState.itemsSorted === mediaItems.length) {
+        setTimeout(showCompletion, 1500);
+    }
+}
+
+// ===== FEEDBACK SYSTEM =====
+function showFeedback(isCorrect, explanation) {
+    elements.feedbackIcon.textContent = isCorrect ? '✅' : '❌';
+    elements.feedbackText.textContent = isCorrect ? 'Correct Analysis!' : 'Incorrect Classification';
+    elements.feedbackText.style.color = isCorrect ? 'var(--real-green)' : 'var(--fake-red)';
+    elements.feedbackExplanation.textContent = explanation;
+    
+    elements.feedbackModal.classList.remove('hidden');
+    
+    setTimeout(() => {
+        elements.feedbackModal.classList.add('hidden');
+    }, 2500);
+}
+
+// ===== NARRATIVE PROGRESSION =====
+function progressNarrative() {
+    if (gameState.currentDialogueIndex < narrativeDialogues.length - 1) {
+        gameState.currentDialogueIndex++;
+        elements.dialogueText.textContent = narrativeDialogues[gameState.currentDialogueIndex];
+    }
+}
+
+// ===== UPDATE UI =====
+function updateUI() {
+    elements.scoreValue.textContent = gameState.score;
+    
+    const accuracy = gameState.totalAttempts > 0 
+        ? Math.round((gameState.correctAttempts / gameState.totalAttempts) * 100)
+        : 0;
+    elements.accuracyValue.textContent = accuracy + '%';
+    
+    elements.casesValue.textContent = `${gameState.itemsSorted}/${mediaItems.length}`;
+}
+
+// ===== COMPLETION SCREEN =====
+function showCompletion() {
+    const accuracy = Math.round((gameState.correctAttempts / gameState.totalAttempts) * 100);
+    
+    let rank, message;
+    if (accuracy >= 90) {
+        rank = 'Master Detective';
+        message = 'Outstanding! You have exceptional skills in identifying deepfakes and protecting against misinformation.';
+    } else if (accuracy >= 75) {
+        rank = 'Senior Detective';
+        message = 'Great work! You demonstrate strong analytical skills in detecting digital deception.';
+    } else if (accuracy >= 60) {
+        rank = 'Detective';
+        message = 'Good effort! Continue practicing to improve your deepfake detection abilities.';
+    } else {
+        rank = 'Junior Detective';
+        message = 'Keep learning! Review the investigation steps and try again to improve your skills.';
+    }
+    
+    elements.completionTitle.textContent = `Case Closed - ${rank}!`;
+    elements.completionStats.innerHTML = `
+        <div>Final Score: <strong>${gameState.score}</strong></div>
+        <div>Accuracy: <strong>${accuracy}%</strong></div>
+        <div>Correct: <strong>${gameState.correctAttempts}/${gameState.totalAttempts}</strong></div>
+    `;
+    elements.completionMessage.textContent = message;
+    
+    elements.completionModal.classList.remove('hidden');
+    
+    // Update final narrative
+    elements.dialogueText.textContent = narrativeDialogues[narrativeDialogues.length - 1];
+}
+
+// ===== RESET GAME =====
+function resetGame() {
+    // Reset game state
+    gameState = {
+        score: 0,
+        totalAttempts: 0,
+        correctAttempts: 0,
+        itemsSorted: 0,
+        currentDialogueIndex: 0
+    };
+    
+    // Clear sorting zones
+    elements.realContent.innerHTML = '';
+    elements.fakeContent.innerHTML = '';
+    
+    // Recreate media items
+    createMediaItems();
+    
+    // Reset narrative
+    elements.dialogueText.textContent = narrativeDialogues[0];
+    
+    // Hide modals
+    elements.completionModal.classList.add('hidden');
+    elements.feedbackModal.classList.add('hidden');
+    
+    // Update UI
+    updateUI();
+    
+    // Restart drag and drop
+    setupDragAndDrop();
+}
+
+// ===== TOOLTIP SYSTEM =====
+function setupTooltips() {
+    const steps = document.querySelectorAll('.step');
+    
+    steps.forEach(step => {
+        step.addEventListener('mouseenter', (e) => {
+            const tooltipText = step.dataset.tooltip;
+            elements.stepTooltip.textContent = tooltipText;
+            elements.stepTooltip.classList.remove('hidden');
+            positionTooltip(e, elements.stepTooltip);
+        });
+        
+        step.addEventListener('mousemove', (e) => {
+            positionTooltip(e, elements.stepTooltip);
+        });
+        
+        step.addEventListener('mouseleave', () => {
+            elements.stepTooltip.classList.add('hidden');
+        });
+    });
+}
+
+function positionTooltip(e, tooltip) {
+    const x = e.clientX;
+    const y = e.clientY;
+    tooltip.style.left = x + 10 + 'px';
+    tooltip.style.top = y + 10 + 'px';
+}
+
+function showHeaderTooltip() {
+    elements.headerTooltip.classList.remove('hidden');
+}
+
+function hideHeaderTooltip() {
+    elements.headerTooltip.classList.add('hidden');
+}
+
+// ===== START THE GAME =====
+// Initialize when DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

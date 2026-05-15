@@ -1,0 +1,554 @@
+// ============================================
+// TENT BUILDING CHALLENGE - INTERACTIVE GAME
+// ============================================
+// This interactive teaches students the correct sequence for setting up a tent
+// Uses drag-and-drop mechanics with immediate feedback
+// Aligned with cognitive load theory and multimedia learning principles
+
+// ============================================
+// DATA STRUCTURE
+// ============================================
+
+// Correct sequence of tent setup steps
+const correctSequence = [
+    { id: 1, text: "Choose flat, dry ground away from hazards", step: 1 },
+    { id: 2, text: "Lay out tent footprint or groundsheet", step: 2 },
+    { id: 3, text: "Spread tent body over groundsheet", step: 3 },
+    { id: 4, text: "Assemble tent poles and insert through sleeves", step: 4 },
+    { id: 5, text: "Secure poles to tent corners and raise structure", step: 5 },
+    { id: 6, text: "Stake down tent corners and guy lines", step: 6 }
+];
+
+// Learning points to display at the end
+const learningPoints = [
+    "Always check the ground for rocks, roots, and water drainage before setting up",
+    "The groundsheet protects the tent floor from moisture and damage",
+    "Tent poles should be assembled carefully to avoid breaking",
+    "Proper staking ensures tent stability in wind and rain",
+    "Guy lines provide additional support in adverse weather"
+];
+
+// ============================================
+// GLOBAL VARIABLES
+// ============================================
+
+let draggedElement = null;
+let dropZones = [];
+let userSequence = [];
+let startTime = null;
+let timerInterval = null;
+let hintsUsed = 0;
+let attempts = 0;
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Detect if running in iframe or standalone
+    detectDisplayMode();
+    
+    // Initialize event listeners
+    initializeEventListeners();
+});
+
+// Detect if content is in iframe or standalone browser
+function detectDisplayMode() {
+    if (window.self !== window.top) {
+        // Running in iframe - use 450px height
+        document.getElementById('mainContainer').style.height = '450px';
+    } else {
+        // Running standalone - use 90vh
+        document.body.classList.add('standalone');
+        document.getElementById('mainContainer').style.height = '90vh';
+    }
+}
+
+// Initialize all event listeners
+function initializeEventListeners() {
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+    document.getElementById('hintBtn').addEventListener('click', provideHint);
+    document.getElementById('tryAgainBtn').addEventListener('click', restartFromBeginning);
+}
+
+// ============================================
+// GAME FLOW FUNCTIONS
+// ============================================
+
+// Start the game
+function startGame() {
+    // Hide story panel, show game area
+    document.getElementById('storyPanel').classList.add('hidden');
+    document.getElementById('gameArea').classList.remove('hidden');
+    
+    // Initialize game state
+    startTime = Date.now();
+    attempts = 0;
+    hintsUsed = 0;
+    userSequence = new Array(correctSequence.length).fill(null);
+    
+    // Start timer
+    startTimer();
+    
+    // Create game elements
+    createDropZones();
+    createDraggableItems();
+    
+    // Update progress
+    updateProgress();
+}
+
+// Start the timer
+function startTimer() {
+    timerInterval = setInterval(function() {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('timer').textContent = 
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Update weather indicator based on time (adds urgency)
+        updateWeatherIndicator(elapsed);
+    }, 1000);
+}
+
+// Update weather indicator to create sense of urgency
+function updateWeatherIndicator(seconds) {
+    const weatherEl = document.getElementById('weatherIndicator');
+    if (seconds < 30) {
+        weatherEl.textContent = '☀️';
+    } else if (seconds < 60) {
+        weatherEl.textContent = '⛅';
+    } else if (seconds < 90) {
+        weatherEl.textContent = '☁️';
+    } else {
+        weatherEl.textContent = '⛈️';
+    }
+}
+
+// ============================================
+// DROP ZONES CREATION
+// ============================================
+
+// Create drop zones where items will be placed
+function createDropZones() {
+    const container = document.getElementById('dropZones');
+    container.innerHTML = '';
+    
+    for (let i = 0; i < correctSequence.length; i++) {
+        const zone = document.createElement('div');
+        zone.className = 'drop-zone';
+        zone.dataset.position = i;
+        
+        // Add step number indicator
+        const numberLabel = document.createElement('div');
+        numberLabel.className = 'zone-number';
+        numberLabel.textContent = i + 1;
+        zone.appendChild(numberLabel);
+        
+        // Add drag and drop event listeners
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('drop', handleDrop);
+        zone.addEventListener('dragleave', handleDragLeave);
+        
+        // Touch event support for mobile
+        zone.addEventListener('touchmove', handleTouchMove);
+        zone.addEventListener('touchend', handleTouchEnd);
+        
+        container.appendChild(zone);
+        dropZones.push(zone);
+    }
+}
+
+// ============================================
+// DRAGGABLE ITEMS CREATION
+// ============================================
+
+// Create draggable items (shuffled)
+function createDraggableItems() {
+    const container = document.getElementById('draggableItems');
+    container.innerHTML = '';
+    
+    // Shuffle the items for cognitive challenge
+    const shuffled = [...correctSequence].sort(() => Math.random() - 0.5);
+    
+    shuffled.forEach(item => {
+        const draggable = document.createElement('div');
+        draggable.className = 'draggable-item';
+        draggable.textContent = item.text;
+        draggable.dataset.id = item.id;
+        draggable.draggable = true;
+        
+        // Drag event listeners
+        draggable.addEventListener('dragstart', handleDragStart);
+        draggable.addEventListener('dragend', handleDragEnd);
+        
+        // Touch event listeners for mobile support
+        draggable.addEventListener('touchstart', handleTouchStart);
+        
+        container.appendChild(draggable);
+    });
+}
+
+// ============================================
+// DRAG AND DROP HANDLERS
+// ============================================
+
+// Handle drag start
+function handleDragStart(e) {
+    if (this.classList.contains('placed')) return;
+    
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+// Handle drag end
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    
+    // Remove drag-over class from all zones
+    dropZones.forEach(zone => zone.classList.remove('drag-over'));
+}
+
+// Handle drag over drop zone
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drag-over');
+    return false;
+}
+
+// Handle drag leave drop zone
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+// Handle drop on zone
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    this.classList.remove('drag-over');
+    
+    if (!draggedElement) return;
+    
+    const position = parseInt(this.dataset.position);
+    
+    // Check if zone already has an item
+    if (userSequence[position] !== null) {
+        // Return previous item to pool
+        const previousItem = document.querySelector(`[data-id="${userSequence[position]}"]`);
+        if (previousItem) {
+            previousItem.classList.remove('placed');
+        }
+    }
+    
+    // Place new item
+    const itemId = parseInt(draggedElement.dataset.id);
+    userSequence[position] = itemId;
+    
+    // Update UI
+    this.innerHTML = `<div class="zone-number">${position + 1}</div>` + draggedElement.textContent;
+    this.classList.add('filled');
+    draggedElement.classList.add('placed');
+    
+    // Update progress and enable check button
+    updateProgress();
+    checkIfAllPlaced();
+    
+    // Provide immediate feedback sound (visual cue)
+    providePlacementFeedback(this);
+    
+    return false;
+}
+
+// ============================================
+// TOUCH SUPPORT FOR MOBILE
+// ============================================
+
+let touchStartX, touchStartY;
+let touchElement = null;
+
+function handleTouchStart(e) {
+    if (this.classList.contains('placed')) return;
+    
+    touchElement = this;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    
+    this.classList.add('dragging');
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+}
+
+function handleTouchEnd(e) {
+    if (!touchElement) return;
+    
+    const touch = e.changedTouches[0];
+    const dropZone = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    touchElement.classList.remove('dragging');
+    
+    if (dropZone && dropZone.classList.contains('drop-zone')) {
+        const position = parseInt(dropZone.dataset.position);
+        
+        // Check if zone already has an item
+        if (userSequence[position] !== null) {
+            const previousItem = document.querySelector(`[data-id="${userSequence[position]}"]`);
+            if (previousItem) {
+                previousItem.classList.remove('placed');
+            }
+        }
+        
+        // Place item
+        const itemId = parseInt(touchElement.dataset.id);
+        userSequence[position] = itemId;
+        
+        dropZone.innerHTML = `<div class="zone-number">${position + 1}</div>` + touchElement.textContent;
+        dropZone.classList.add('filled');
+        touchElement.classList.add('placed');
+        
+        updateProgress();
+        checkIfAllPlaced();
+        providePlacementFeedback(dropZone);
+    }
+    
+    touchElement = null;
+}
+
+// ============================================
+// FEEDBACK AND VALIDATION
+// ============================================
+
+// Provide visual feedback when item is placed
+function providePlacementFeedback(zone) {
+    zone.style.transform = 'scale(1.05)';
+    setTimeout(() => {
+        zone.style.transform = 'scale(1)';
+    }, 200);
+}
+
+// Update progress bar
+function updateProgress() {
+    const filled = userSequence.filter(item => item !== null).length;
+    const percentage = (filled / correctSequence.length) * 100;
+    document.getElementById('progressFill').style.width = percentage + '%';
+}
+
+// Check if all positions are filled
+function checkIfAllPlaced() {
+    const allFilled = userSequence.every(item => item !== null);
+    document.getElementById('checkBtn').disabled = !allFilled;
+}
+
+// Check if the answer is correct
+function checkAnswer() {
+    attempts++;
+    
+    let allCorrect = true;
+    let correctCount = 0;
+    
+    // Check each position
+    for (let i = 0; i < correctSequence.length; i++) {
+        const zone = dropZones[i];
+        const userItem = userSequence[i];
+        const correctItem = correctSequence[i].id;
+        
+        // Remove previous feedback classes
+        zone.classList.remove('correct', 'incorrect');
+        
+        if (userItem === correctItem) {
+            zone.classList.add('correct');
+            correctCount++;
+        } else {
+            zone.classList.add('incorrect');
+            allCorrect = false;
+        }
+    }
+    
+    // Provide feedback
+    if (allCorrect) {
+        showSuccessFeedback();
+    } else {
+        showErrorFeedback(correctCount);
+    }
+}
+
+// Show success feedback
+function showSuccessFeedback() {
+    clearInterval(timerInterval);
+    
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    // Hide game area, show success panel
+    document.getElementById('gameArea').classList.add('hidden');
+    document.getElementById('successPanel').classList.remove('hidden');
+    
+    // Display statistics
+    const statsHTML = `
+        <div><strong>Time Taken:</strong> ${minutes}:${seconds.toString().padStart(2, '0')}</div>
+        <div><strong>Attempts:</strong> ${attempts}</div>
+        <div><strong>Hints Used:</strong> ${hintsUsed}</div>
+    `;
+    document.getElementById('finalStats').innerHTML = statsHTML;
+    
+    // Display learning points
+    const learningList = document.getElementById('learningPoints');
+    learningList.innerHTML = '';
+    learningPoints.forEach(point => {
+        const li = document.createElement('li');
+        li.textContent = point;
+        learningList.appendChild(li);
+    });
+}
+
+// Show error feedback
+function showErrorFeedback(correctCount) {
+    const feedbackPanel = document.getElementById('feedbackPanel');
+    const feedbackContent = document.getElementById('feedbackContent');
+    
+    feedbackPanel.classList.remove('hidden');
+    feedbackContent.className = 'feedback-content feedback-error';
+    feedbackContent.innerHTML = `
+        ❌ Not quite right! You have ${correctCount} out of ${correctSequence.length} steps correct. 
+        Review the incorrect steps (marked in red) and try again.
+    `;
+    
+    // Hide feedback after 4 seconds
+    setTimeout(() => {
+        feedbackPanel.classList.add('hidden');
+    }, 4000);
+}
+
+// ============================================
+// HINT SYSTEM
+// ============================================
+
+// Provide a hint to the user
+function provideHint() {
+    hintsUsed++;
+    
+    // Find first incorrect position
+    let hintPosition = -1;
+    for (let i = 0; i < correctSequence.length; i++) {
+        if (userSequence[i] !== correctSequence[i].id) {
+            hintPosition = i;
+            break;
+        }
+    }
+    
+    if (hintPosition === -1) {
+        // All correct, just need to check
+        showHintFeedback("All steps are in the correct position! Click 'Check My Answer' to complete.");
+        return;
+    }
+    
+    const correctItem = correctSequence[hintPosition];
+    const feedbackPanel = document.getElementById('feedbackPanel');
+    const feedbackContent = document.getElementById('feedbackContent');
+    
+    feedbackPanel.classList.remove('hidden');
+    feedbackContent.className = 'feedback-content feedback-hint';
+    feedbackContent.innerHTML = `
+        💡 Hint: Step ${hintPosition + 1} should be: "${correctItem.text}"
+    `;
+    
+    // Highlight the zone
+    dropZones[hintPosition].style.boxShadow = '0 0 20px rgba(33, 150, 243, 0.8)';
+    setTimeout(() => {
+        dropZones[hintPosition].style.boxShadow = '';
+    }, 2000);
+    
+    // Hide feedback after 5 seconds
+    setTimeout(() => {
+        feedbackPanel.classList.add('hidden');
+    }, 5000);
+}
+
+// Show hint feedback
+function showHintFeedback(message) {
+    const feedbackPanel = document.getElementById('feedbackPanel');
+    const feedbackContent = document.getElementById('feedbackContent');
+    
+    feedbackPanel.classList.remove('hidden');
+    feedbackContent.className = 'feedback-content feedback-hint';
+    feedbackContent.innerHTML = `💡 ${message}`;
+    
+    setTimeout(() => {
+        feedbackPanel.classList.add('hidden');
+    }, 3000);
+}
+
+// ============================================
+// RESET FUNCTIONS
+// ============================================
+
+// Reset the current game
+function resetGame() {
+    // Clear user sequence
+    userSequence = new Array(correctSequence.length).fill(null);
+    
+    // Reset drop zones
+    dropZones.forEach((zone, index) => {
+        zone.innerHTML = `<div class="zone-number">${index + 1}</div>`;
+        zone.classList.remove('filled', 'correct', 'incorrect');
+    });
+    
+    // Reset draggable items
+    const items = document.querySelectorAll('.draggable-item');
+    items.forEach(item => {
+        item.classList.remove('placed');
+    });
+    
+    // Reset UI
+    updateProgress();
+    document.getElementById('checkBtn').disabled = true;
+    document.getElementById('feedbackPanel').classList.add('hidden');
+    
+    // Don't reset timer or attempts - this is just a reset of current attempt
+}
+
+// Restart from beginning
+function restartFromBeginning() {
+    // Clear timer
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+    
+    // Reset all state
+    userSequence = [];
+    dropZones = [];
+    startTime = null;
+    hintsUsed = 0;
+    attempts = 0;
+    
+    // Show story panel
+    document.getElementById('successPanel').classList.add('hidden');
+    document.getElementById('storyPanel').classList.remove('hidden');
+}
+
+// ============================================
+// COGNITIVE LOAD OPTIMIZATION
+// ============================================
+// This interactive applies several principles:
+// 1. Chunking: Steps are broken into manageable pieces
+// 2. Immediate feedback: Visual cues show correct/incorrect placement
+// 3. Progressive disclosure: Story -> Game -> Success
+// 4. Dual coding: Text + visual positioning + color coding
+// 5. Worked examples: Hints provide scaffolding
+// 6. Reduced split attention: All elements in one view
+// 7. Signaling: Color, position numbers, and icons guide attention
+// ============================================

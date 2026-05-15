@@ -1,0 +1,220 @@
+<html>
+  <head>
+    <title> LorentzForce.ipynb (Exercise 1)</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      %matplotlib inline
+    </p>
+    <p style="margin-top: 0">
+      import numpy
+    </p>
+    <p style="margin-top: 0">
+      import matplotlib.pyplot as mpl
+    </p>
+    <p style="margin-top: 0">
+      from mpl_toolkits.mplot3d import Axes3D
+    </p>
+    <p style="margin-top: 0">
+      # Parameters for plot attributes
+    </p>
+    <p style="margin-top: 0">
+      mpl.rc(&quot;xtick&quot;, labelsize=&quot;large&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.rc(&quot;ytick&quot;, labelsize=&quot;large&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.rc(&quot;axes&quot;, labelsize=&quot;xx-large&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.rc(&quot;axes&quot;, titlesize=&quot;xx-large&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.rc(&quot;figure&quot;, figsize=(8,8))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <h3 id="Exercise-1.-Uniform-Magnetic-Field" align="start" style="line-height: 1; margin-top: 0; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; letter-spacing: normal; text-indent: 0px; text-transform: none; white-space: normal; word-spacing: 0px; background-color: rgb(255, 255, 255)">
+      Exercise 1. Uniform Magnetic Field
+    </h3>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # define key constants
+    </p>
+    <p style="margin-top: 0">
+      m_p = 1.67E-27 # mass of proton: kg
+    </p>
+    <p style="margin-top: 0">
+      qe = 1.602E-19 # charge of proton: C
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # now, setting up an alpha particle
+    </p>
+    <p style="margin-top: 0">
+      m = 4.0*m_p
+    </p>
+    <p style="margin-top: 0">
+      q = 2.0*qe
+    </p>
+    <p style="margin-top: 0">
+      QoverM = q/m
+    </p>
+    <p style="margin-top: 0">
+      dt = 1.0E-8
+    </p>
+    <p style="margin-top: 0">
+      t = numpy.arange(0.0, 0.002, dt)
+    </p>
+    <p style="margin-top: 0">
+      rp = numpy.zeros((len(t), 3))
+    </p>
+    <p style="margin-top: 0">
+      vp = numpy.zeros((len(t), 3))
+    </p>
+    <p style="margin-top: 0">
+      v0 = numpy.sqrt(2.0*QoverM*10.0)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # negative ion
+    </p>
+    <p style="margin-top: 0">
+      mn = 1.0 * m_p
+    </p>
+    <p style="margin-top: 0">
+      qn = -1.0*qe
+    </p>
+    <p style="margin-top: 0">
+      QoverMn = qn/mn
+    </p>
+    <p style="margin-top: 0">
+      rn = numpy.zeros((len(t), 3))
+    </p>
+    <p style="margin-top: 0">
+      vn = numpy.zeros((len(t), 3))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Strength of Magnetic Field
+    </p>
+    <p style="margin-top: 0">
+      B0 = 1.0E-4
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      expected_R = m*v0/(q*B0)
+    </p>
+    <p style="margin-top: 0">
+      expected_T = 2.0*numpy.pi*expected_R / v0
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;v0 = &quot;, v0)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;Expected trajectory radius = &quot;, expected_R)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;Expected cyclotron period = &quot;, expected_T)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # initial condition
+    </p>
+    <p style="margin-top: 0">
+      rp[0,:] = numpy.array([0.0, 0.0, 0.0])
+    </p>
+    <p style="margin-top: 0">
+      vp[0,:] = numpy.array([v0, 0.0, 0.0])
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # initial condition for negative ion
+    </p>
+    <p style="margin-top: 0">
+      rn[0,:] = numpy.array([0.0, 0.0, 0.0])
+    </p>
+    <p style="margin-top: 0">
+      vn[0,:] = numpy.array([v0, 0.0, 0.0])
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Euler time steps
+    </p>
+    <p style="margin-top: 0">
+      for it in range(0, len(t)-1):
+    </p>
+    <p style="margin-top: 0">
+      Bp = numpy.array([0.0, 0.0, B0])
+    </p>
+    <p style="margin-top: 0">
+      Ap = QoverM * numpy.cross(vp[it,:], Bp)
+    </p>
+    <p style="margin-top: 0">
+      vp[it+1] = vp[it] + dt*Ap
+    </p>
+    <p style="margin-top: 0">
+      rp[it+1] = rp[it] + dt*vp[it]
+    </p>
+    <p style="margin-top: 0">
+      An = QoverMn * numpy.cross(vn[it,:], Bp)
+    </p>
+    <p style="margin-top: 0">
+      vn[it+1] = vn[it] + dt*An
+    </p>
+    <p style="margin-top: 0">
+      rn[it+1] = rn[it] + dt*vn[it]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the particle's trajectory, in the xy-plane
+    </p>
+    <p style="margin-top: 0">
+      mpl.plot(rp[:,0], rp[:,1], label=&quot;Alpha particle&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.plot(rn[:,0], rn[:,1], linestyle = &quot;--&quot;, label=&quot;H$^-$ ion&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.xlabel(&quot;$x$&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.ylabel(&quot;$y$&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.title(&quot;Particle Trajectories in Uniform Magnetic Field&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.legend(fontsize=&quot;x-large&quot;)
+    </p>
+    <p style="margin-top: 0">
+      mpl.xlim(-13,13)
+    </p>
+    <p style="margin-top: 0">
+      mpl.ylim(-13,13)
+    </p>
+  
+  </body>
+</html>

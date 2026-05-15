@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bee Colony Behaviour Model | Secondary Biology 3–4</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --honey:#f5a623;--amber:#e67e22;--hive:#7b3f00;
+  --dark:#2c3e50;--light:#f0f4f8;
+  --teal:#1abc9c;--green:#27ae60;--blue:#2980b9;
+  --red:#e74c3c;
+  --radius:8px;
+}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:var(--dark);min-height:100vh;font-size:15px}
+a{color:var(--blue)}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+header{
+  background:linear-gradient(135deg,var(--hive),var(--amber));
+  color:#fff;padding:14px 20px;text-align:center;
+}
+header h1{font-size:clamp(1.1rem,4vw,1.7rem);margin-bottom:3px}
+header p{font-size:.85rem;opacity:.9}
+
+/* ─── KEY CONCEPTS BAR ────────────────────────────────── */
+.concepts-bar{
+  display:flex;flex-wrap:wrap;gap:8px;
+  padding:10px 14px;background:#fff;
+  border-bottom:1px solid #e0e0e0;max-width:1100px;margin:0 auto;
+}
+.concept-chip{
+  background:var(--light);border:1px solid #ddd;
+  border-radius:20px;padding:5px 12px;font-size:.78rem;
+  cursor:help;position:relative;
+}
+.concept-chip:hover .chip-tip{display:block}
+.chip-tip{
+  display:none;position:absolute;bottom:calc(100%+6px);left:50%;
+  transform:translateX(-50%);background:var(--dark);color:#fff;
+  padding:8px 12px;border-radius:6px;font-size:.75rem;
+  width:200px;z-index:200;line-height:1.5;pointer-events:none;
+}
+.chip-tip::after{
+  content:'';position:absolute;top:100%;left:50%;
+  transform:translateX(-50%);border:6px solid transparent;
+  border-top-color:var(--dark);
+}
+
+/* ─── SIM LAYOUT ──────────────────────────────────────── */
+.sim-wrapper{
+  display:grid;grid-template-columns:1fr 290px;
+  gap:12px;padding:12px;max-width:1100px;margin:0 auto;
+}
+@media(max-width:700px){.sim-wrapper{grid-template-columns:1fr}}
+
+#beeCanvas{
+  width:100%;display:block;
+  border:2px solid #cdd;border-radius:var(--radius);
+  background:#e8f0f8;cursor:crosshair;touch-action:none;
+}
+
+/* ─── CONTROLS ────────────────────────────────────────── */
+.ctrl-panel{
+  background:#fff;border-radius:var(--radius);
+  padding:14px;border:1px solid #e0e0e0;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  max-height:calc(100vh - 160px);overflow-y:auto;
+}
+.ctrl-panel h3{
+  font-size:.95rem;margin-bottom:10px;
+  border-bottom:2px solid var(--honey);padding-bottom:5px;
+}
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.preset-btn{
+  padding:8px 4px;border:none;border-radius:6px;cursor:pointer;
+  font-size:.78rem;font-weight:700;transition:.2s;min-height:42px;
+}
+.preset-btn:hover{filter:brightness(.92)}
+.pc{background:#d5f5e3;color:#1a7a3c}
+.pb{background:#d6eaf8;color:#1a5276}
+.pw{background:#fef9e7;color:#b7950b}
+.ps{background:#fadbd8;color:#922b21}
+
+.cg{margin-bottom:12px}
+.cl{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:3px;font-weight:600}
+.cl span{color:var(--amber);font-weight:700}
+input[type=range]{width:100%;height:6px;accent-color:var(--amber);cursor:pointer}
+.hint{font-size:.73rem;color:#888;margin-top:2px;line-height:1.4}
+
+.dir-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:5px}
+.dir-btn{
+  padding:5px;border:1px solid #ddd;border-radius:4px;
+  background:#fff;cursor:pointer;font-size:.9rem;text-align:center;
+  min-height:36px;transition:.15s;
+}
+.dir-btn.active{background:var(--amber);color:#fff;border-color:var(--amber)}
+.dir-btn:hover{background:#fef3e2}
+.dir-btn.empty{opacity:0;pointer-events:none}
+
+.tog-row{display:flex;align-items:center;gap:10px;margin:10px 0}
+.tog{position:relative;width:40px;height:22px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;background:#ccc;border-radius:22px;cursor:pointer;transition:.3s}
+.tog-sl::before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.tog input:checked+.tog-sl{background:var(--amber)}
+.tog input:checked+.tog-sl::before{transform:translateX(18px)}
+
+#resetBtn{
+  width:100%;padding:10px;background:var(--dark);color:#fff;
+  border:none;border-radius:6px;cursor:pointer;font-size:.88rem;
+  margin-top:8px;min-height:44px;transition:.2s;
+}
+#resetBtn:hover{background:#3d5166}
+
+.info-box{
+  background:#fef9e7;border:1px solid #f0c060;
+  border-radius:6px;padding:10px;margin-top:10px;
+  font-size:.78rem;line-height:1.5;
+}
+.info-box strong{color:var(--amber);display:block;margin-bottom:3px}
+
+/* ─── LEGEND + LABEL ──────────────────────────────────── */
+.legend-row{
+  display:flex;flex-wrap:wrap;gap:8px 14px;
+  padding:8px 14px;background:#fff;border-top:1px solid #eee;
+  font-size:.78rem;max-width:1100px;margin:0 auto;
+}
+.li{display:flex;align-items:center;gap:5px}
+.ld{width:13px;height:13px;border-radius:50%}
+.lh{width:13px;height:13px;border-radius:50%;border:2px solid var(--teal)}
+
+/* ─── GRAPHS ──────────────────────────────────────────── */
+.graph-wrap{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;padding:0 12px 12px;
+  max-width:1100px;margin:0 auto;
+}
+@media(max-width:560px){.graph-wrap{grid-template-columns:1fr}}
+.graph-card{
+  background:#fff;border-radius:var(--radius);
+  padding:10px;border:1px solid #e0e0e0;
+}
+.graph-card h4{font-size:.8rem;margin-bottom:6px;color:#555}
+.graph-card canvas{width:100%;display:block;border-radius:4px}
+
+/* ─── TOAST ───────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%) translateY(120px);
+  background:var(--dark);color:#fff;
+  padding:12px 20px;border-radius:8px;font-size:.88rem;
+  z-index:1000;transition:transform .3s;max-width:90vw;
+  text-align:center;line-height:1.5;pointer-events:none;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}.toast.enc{background:var(--amber)}
+
+/* ─── ANALYTICS ───────────────────────────────────────── */
+.analytics{background:var(--dark);color:#ecf0f1;margin-top:16px}
+.an-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;cursor:pointer;user-select:none;
+}
+.an-head h3{font-size:.88rem;display:flex;align-items:center;gap:6px}
+.an-toggle{background:none;border:none;color:#ecf0f1;cursor:pointer;font-size:.8rem}
+.an-body{display:none;padding:0 14px 14px}
+.an-body.open{display:block}
+.log-box{
+  height:180px;overflow-y:auto;background:rgba(0,0,0,.25);
+  border-radius:6px;padding:8px;font-family:monospace;font-size:.76rem;line-height:1.7;
+}
+.li-row{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.li-t{color:#f39c12;margin-right:6px}.li-i{margin-right:4px}.li-d{color:#bdc3c7}
+.clear-btn{
+  margin-top:8px;padding:5px 12px;background:rgba(255,255,255,.1);
+  color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.78rem;
+}
+.clear-btn:hover{background:rgba(255,255,255,.2)}
+
+/* ─── EQUATIONS ────────────────────────────────────────── */
+.eq-section{padding:0 12px 12px;max-width:1100px;margin:0 auto}
+.eq-header{
+  background:linear-gradient(135deg,#1a1a2e,#16213e);
+  color:#dde;border-radius:var(--radius) var(--radius) 0 0;
+  padding:13px 18px;display:flex;justify-content:space-between;
+  align-items:center;cursor:pointer;user-select:none;margin-top:12px;
+}
+.eq-header h2{font-size:.95rem;display:flex;align-items:center;gap:8px}
+.eq-toggle{background:none;border:none;color:#dde;cursor:pointer;font-size:.82rem}
+.eq-body{
+  background:#12172a;color:#c8d4f0;
+  border-radius:0 0 var(--radius) var(--radius);
+  padding:18px;display:none;
+}
+.eq-body.open{display:block}
+.eq-group{margin-bottom:20px}
+.eq-group h3{
+  color:var(--honey);font-size:.88rem;font-weight:700;
+  border-bottom:1px solid rgba(245,166,35,.3);
+  padding-bottom:5px;margin-bottom:9px;
+}
+.eq-desc{font-size:.8rem;color:#8faac8;line-height:1.65;margin-bottom:7px}
+.eq-desc strong{color:#c8d8f4}
+.eq-desc em{color:#f0c060;font-style:normal}
+.eq-box{
+  background:rgba(0,0,0,.35);border-radius:6px;
+  padding:10px 16px;margin:8px 0;overflow-x:auto;
+  border-left:3px solid var(--amber);font-size:.92rem;
+}
+.param-table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:8px}
+.param-table th{
+  background:rgba(245,166,35,.14);color:var(--honey);
+  padding:7px 9px;text-align:left;border-bottom:1px solid rgba(245,166,35,.3);
+}
+.param-table td{
+  padding:5px 9px;border-bottom:1px solid rgba(255,255,255,.06);
+  color:#b0c4df;vertical-align:middle;
+}
+.param-table tr:hover td{background:rgba(255,255,255,.04)}
+.param-table td:nth-child(2){font-family:monospace;color:#f0d080}
+.param-table td:nth-child(3){color:#a0e8c0;font-weight:600}
+.ref-list{list-style:none;padding:0}
+.ref-list li{
+  font-size:.78rem;color:#8faac8;line-height:1.6;
+  padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.ref-list li em{color:#f0c060}
+
+/* ─── QUIZ ──────────────────────────────────────────────── */
+.quiz-section{padding:0 12px 12px;max-width:1100px;margin:0 auto}
+.quiz-header{
+  background:linear-gradient(135deg,#102820,#0f1f18);
+  color:#c0f0cc;border-radius:var(--radius) var(--radius) 0 0;
+  padding:13px 18px;display:flex;justify-content:space-between;
+  align-items:center;cursor:pointer;user-select:none;margin-top:10px;
+}
+.quiz-header h2{font-size:.95rem;display:flex;align-items:center;gap:8px}
+.quiz-toggle{background:none;border:none;color:#c0f0cc;cursor:pointer;font-size:.82rem}
+.quiz-body{
+  background:#0b1810;color:#c0e0c8;
+  border-radius:0 0 var(--radius) var(--radius);
+  padding:16px;display:none;
+}
+.quiz-body.open{display:block}
+.quiz-intro{font-size:.8rem;color:#80a888;margin-bottom:14px;line-height:1.5}
+.q-card{
+  background:rgba(255,255,255,.05);border-radius:7px;
+  padding:13px;margin-bottom:12px;
+  border-left:3px solid var(--teal);transition:.2s;
+}
+.q-card.q-ok{border-color:var(--green);background:rgba(39,174,96,.09)}
+.q-card.q-err{border-color:var(--red);background:rgba(231,76,60,.09)}
+.q-text{font-size:.86rem;font-weight:600;margin-bottom:10px;line-height:1.6;color:#d8f0dc}
+.q-opts{display:flex;flex-direction:column;gap:6px}
+.q-opt{
+  display:flex;align-items:flex-start;gap:9px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:6px;padding:9px 11px;cursor:pointer;
+  font-size:.8rem;line-height:1.45;transition:.15s;min-height:44px;
+}
+.q-opt:hover{background:rgba(255,255,255,.09);border-color:var(--teal)}
+.q-opt input[type=radio]{flex-shrink:0;accent-color:var(--teal);margin-top:2px}
+.q-opt.oc{background:rgba(39,174,96,.18);border-color:var(--green)!important;color:#90e8a0}
+.q-opt.ow{background:rgba(231,76,60,.18);border-color:var(--red)!important;color:#f09898}
+.q-fb{font-size:.78rem;margin-top:9px;padding:7px 10px;border-radius:5px;display:none;line-height:1.5}
+.q-fb.vis{display:block}
+.q-fb.fok{background:rgba(39,174,96,.14);color:#80e090;border-left:3px solid var(--green)}
+.q-fb.ferr{background:rgba(231,76,60,.14);color:#f08888;border-left:3px solid var(--red)}
+.quiz-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.qbtn{padding:10px 22px;border:none;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:700;min-height:44px;transition:.18s}
+.qbtn:hover{filter:brightness(.88)}
+.qbtn.qp{background:var(--teal);color:#fff}
+.qbtn.qr{background:#3a4a40;color:#c0e0c8}
+.quiz-score{
+  background:rgba(0,0,0,.3);border-radius:7px;padding:14px;
+  margin-top:12px;display:none;text-align:center;
+}
+.quiz-score.vis{display:block}
+.qs-big{font-size:2.4rem;font-weight:800;color:var(--honey)}
+.qs-msg{font-size:.88rem;color:#a0c8a8;margin-top:5px}
+
+/* ─── FOOTER ─────────────────────────────────────────── */
+footer{
+  text-align:center;
+  padding:18px 16px 20px;
+  background:var(--dark);
+  color:#aab8c2;
+  font-size:13px;
+  margin-top:32px;
+  border-top:3px solid var(--amber);
+}
+footer a{color:var(--honey);text-decoration:none;font-weight:600}
+footer a:hover{text-decoration:underline}
+footer .ft-credit{margin-bottom:4px}
+footer .ft-emoji{font-size:18px;vertical-align:middle;margin-right:4px}
+</style>
+<script>MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  svg: { fontCache: 'global' },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+<header>
+  <h1>🐝 Bee Colony Behaviour Model</h1>
+  <p>Secondary Biology 3–4 &nbsp;|&nbsp; Explore how bees respond collectively to windy conditions</p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════
+     SIMULATION
+════════════════════════════════════════════════════════ -->
+<div id="tab-sim">
+
+  <!-- Key concept chips -->
+  <div class="concepts-bar">
+    <span class="concept-chip">Agent-Based Model
+      <span class="chip-tip">Each bee follows simple local rules. Complex colony behaviour emerges from these interactions — no single bee is in charge!</span>
+    </span>
+    <span class="concept-chip">Collective Behaviour
+      <span class="chip-tip">The colony acts as a "superorganism". Individual bees respond to neighbours, producing coordinated group patterns.</span>
+    </span>
+    <span class="concept-chip">Thermoregulation
+      <span class="chip-tip">Bees cluster tightly in wind to maintain hive warmth (~35 °C). Outer bees insulate inner bees, protecting the queen and brood.</span>
+    </span>
+    <span class="concept-chip">Waggle Dance
+      <span class="chip-tip">Forager bees perform a figure-8 "waggle dance" to communicate the direction and distance of food sources to hive-mates.</span>
+    </span>
+    <span class="concept-chip">Beard Formation
+      <span class="chip-tip">In strong wind, bees hang in a teardrop "beard" below the hive entrance. This shape minimises wind resistance while keeping the cluster stable.</span>
+    </span>
+  </div>
+
+  <!-- Canvas + Controls -->
+  <div class="sim-wrapper">
+    <div>
+      <canvas id="beeCanvas" height="380"></canvas>
+      <!-- Click-to-label instructions -->
+      <p style="font-size:.75rem;color:#888;padding:4px 2px">💡 Click anywhere on the canvas to label that region.</p>
+      <!-- Legend -->
+      <div class="legend-row">
+        <div class="li"><div class="ld" style="background:hsl(35,85%,50%)"></div><span>Active (nurse/worker)</span></div>
+        <div class="li"><div class="ld" style="background:hsl(100,65%,42%)"></div><span>Guard bee</span></div>
+        <div class="li"><div class="lh"></div><span>Peripheral bee</span></div>
+        <div class="li"><span>→</span><span style="margin-left:4px">Direction of movement</span></div>
+        <div class="li"><span style="color:#6495ED;font-size:1.1rem">→</span><span style="margin-left:4px">Wind</span></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ctrl-panel">
+      <h3>🎛️ Simulation Controls</h3>
+
+      <!-- Presets -->
+      <div class="preset-grid">
+        <button class="preset-btn pc" onclick="applyPreset('calm')">☀️ Calm</button>
+        <button class="preset-btn pb" onclick="applyPreset('breezy')">🌬️ Breezy</button>
+        <button class="preset-btn pw" onclick="applyPreset('windy')">💨 Windy</button>
+        <button class="preset-btn ps" onclick="applyPreset('storm')">⛈️ Storm</button>
+      </div>
+
+      <!-- Wind speed -->
+      <div class="cg">
+        <div class="cl">💨 Wind Speed <span id="wVal">0.0</span> m/s</div>
+        <input type="range" id="sWind" min="0" max="10" step=".5" value="0" oninput="setWind(+this.value)">
+        <div class="hint">Higher wind → bees cluster more tightly (beard formation)</div>
+      </div>
+
+      <!-- Wind direction -->
+      <div class="cg">
+        <div class="cl">🧭 Wind blowing FROM</div>
+        <div class="dir-grid">
+          <button class="dir-btn" data-d="315" onclick="setDir(this,315)">↖ NW</button>
+          <button class="dir-btn active" data-d="270" onclick="setDir(this,270)">↑ N</button>
+          <button class="dir-btn" data-d="225" onclick="setDir(this,225)">↗ NE</button>
+          <button class="dir-btn" data-d="0"   onclick="setDir(this,0)">← W</button>
+          <button class="dir-btn empty">·</button>
+          <button class="dir-btn" data-d="180" onclick="setDir(this,180)">→ E</button>
+          <button class="dir-btn" data-d="45"  onclick="setDir(this,45)">↙ SW</button>
+          <button class="dir-btn" data-d="90"  onclick="setDir(this,90)">↓ S</button>
+          <button class="dir-btn" data-d="135" onclick="setDir(this,135)">↘ SE</button>
+        </div>
+      </div>
+
+      <!-- Bee count -->
+      <div class="cg">
+        <div class="cl">🐝 Number of Bees <span id="bVal">80</span></div>
+        <input type="range" id="sBees" min="20" max="200" step="10" value="80" oninput="setBees(+this.value)">
+        <div class="hint">Larger colonies cluster more effectively in wind</div>
+      </div>
+
+      <!-- Cluster strength -->
+      <div class="cg">
+        <div class="cl">🔗 Cluster Strength <span id="cVal">0.5</span></div>
+        <input type="range" id="sCluster" min="0" max="1" step=".1" value=".5" oninput="setCluster(+this.value)">
+        <div class="hint">How strongly bees are drawn to the swarm centre</div>
+      </div>
+
+      <!-- Waggle dance -->
+      <div class="tog-row">
+        <label class="tog">
+          <input type="checkbox" id="togWaggle" onchange="setWaggle(this.checked)">
+          <span class="tog-sl"></span>
+        </label>
+        <div>
+          <strong style="font-size:.83rem">Waggle Dance</strong>
+          <div class="hint">Show forager bees signalling food sources (figure-8 motion)</div>
+        </div>
+      </div>
+
+      <button id="resetBtn" onclick="resetSim()">↺ Reset Simulation</button>
+
+      <div class="info-box">
+        <strong>💡 Observation</strong>
+        <span id="infoTxt">Try increasing Wind Speed to see how the colony reorganises into a "beard"!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphs -->
+  <div class="graph-wrap">
+    <div class="graph-card">
+      <h4>📊 Cluster Compactness (%) — higher = tighter cluster</h4>
+      <canvas id="gCompact" height="110"></canvas>
+    </div>
+    <div class="graph-card">
+      <h4>📊 Average Bee Speed — relative units</h4>
+      <canvas id="gSpeed" height="110"></canvas>
+    </div>
+  </div>
+
+</div><!-- end sim -->
+
+<!-- ═══════════════════════════════════════════════════════
+     EQUATIONS SECTION
+════════════════════════════════════════════════════════ -->
+<section class="eq-section">
+  <div class="eq-header" onclick="toggleEq()">
+    <h2>📐 Mathematical Model — Bee Cluster Evolution Equations</h2>
+    <button class="eq-toggle" id="eqBtn">▼ Show</button>
+  </div>
+  <div class="eq-body" id="eqBody">
+
+    <p class="eq-desc">This simulation implements a <strong>Reynolds–Boids agent-based model</strong>
+    extended with wind forcing and colony-level clustering, following the formalism used in
+    computational ethology and swarm-intelligence research
+    (Reynolds 1987; Bonabeau, Dorigo &amp; Théraulaz 1999).
+    Each bee \(i \in \{1,\ldots,N\}\) is an autonomous agent with position
+    \(\vec{x}_i \in \mathbb{R}^2\) and velocity \(\vec{v}_i \in \mathbb{R}^2\),
+    updated at each discrete time step \(t\).</p>
+
+    <!-- 1. State update -->
+    <div class="eq-group">
+      <h3>1 · Equation of Motion — Euler Integration (\(\Delta t = 1\) step)</h3>
+      <p class="eq-desc">Agent positions are advanced by first-order (forward) Euler integration:</p>
+      <div class="eq-box">
+        $$\vec{x}_i(t+1) \;=\; \vec{x}_i(t) + \vec{v}_i(t)$$
+      </div>
+    </div>
+
+    <!-- 2. Velocity update -->
+    <div class="eq-group">
+      <h3>2 · Velocity Update — Superposition of Behavioural Forces</h3>
+      <p class="eq-desc">The velocity is updated by summing five independent force terms, then clamped to a maximum speed \(v_{max}\):</p>
+      <div class="eq-box">
+        $$\vec{v}_i(t+1) \;=\; \mathrm{clamp}\!\Bigl(\,\vec{v}_i(t)
+          + \vec{f}^{\,\mathrm{sep}}_i
+          + \vec{f}^{\,\mathrm{ali}}_i
+          + \vec{f}^{\,\mathrm{coh}}_i
+          + \vec{f}^{\,\mathrm{wind}}
+          + \vec{f}^{\,\mathrm{clust}}_i,\;\;v_{max}\Bigr)$$
+      </div>
+    </div>
+
+    <!-- 3. Neighbourhood -->
+    <div class="eq-group">
+      <h3>3 · Neighbourhood Definition</h3>
+      <p class="eq-desc">Each bee perceives conspecifics within a topometric radius \(r_\mathrm{per}\).
+      Two nested neighbourhoods are defined — a <em>separation zone</em> \(r_\mathrm{sep}\) and a larger
+      <em>perception zone</em> \(r_\mathrm{per}\):</p>
+      <div class="eq-box">
+        $$d_{ij} \;=\; \|\vec{x}_j - \vec{x}_i\|_2, \qquad
+          \mathcal{N}(i) \;=\; \bigl\{\,j \neq i \;:\; d_{ij} < r_\mathrm{per}\bigr\}$$
+        $$\mathcal{N}_\mathrm{sep}(i) \;=\; \bigl\{\,j \neq i \;:\; d_{ij} < r_\mathrm{sep}\bigr\}, \qquad
+          r_\mathrm{sep} < r_\mathrm{per}$$
+      </div>
+    </div>
+
+    <!-- 4. Separation -->
+    <div class="eq-group">
+      <h3>4 · Separation Force — Avoid Crowding</h3>
+      <p class="eq-desc">Bees steer away from neighbours within the personal-space radius.
+      This prevents physical crushing and maintains airflow — critical for colony thermoregulation:</p>
+      <div class="eq-box">
+        $$\vec{s}_i \;=\; -\!\!\!\sum_{j \;\in\; \mathcal{N}_\mathrm{sep}(i)}
+          \frac{\vec{x}_j - \vec{x}_i}{d_{ij}}, \qquad
+          \vec{f}^{\,\mathrm{sep}}_i \;=\;
+          \begin{cases}
+            \alpha_\mathrm{sep}\,\dfrac{\vec{s}_i}{\|\vec{s}_i\|} & \text{if } \|\vec{s}_i\| > 0 \\[4pt]
+            \vec{0} & \text{otherwise}
+          \end{cases}$$
+      </div>
+    </div>
+
+    <!-- 5. Alignment -->
+    <div class="eq-group">
+      <h3>5 · Alignment Force — Match Neighbours' Heading</h3>
+      <p class="eq-desc">Bees steer toward the mean normalised heading of their local neighbourhood,
+      producing the coordinated flight patterns seen in swarms:</p>
+      <div class="eq-box">
+        $$\bar{\vec{v}}_{\mathcal{N}(i)} \;=\;
+          \frac{1}{|\mathcal{N}(i)|}\sum_{j\,\in\,\mathcal{N}(i)} \vec{v}_j, \qquad
+          \vec{f}^{\,\mathrm{ali}}_i \;=\;
+          \alpha_\mathrm{ali}\!\left(\frac{\bar{\vec{v}}_{\mathcal{N}(i)}}
+            {\|\bar{\vec{v}}_{\mathcal{N}(i)}\|} - \vec{v}_i\right)$$
+      </div>
+    </div>
+
+    <!-- 6. Cohesion -->
+    <div class="eq-group">
+      <h3>6 · Cohesion Force — Steer Toward Local Centre of Mass</h3>
+      <p class="eq-desc">Each bee is attracted to the centroid of its neighbourhood,
+      scaled by the user-controlled cluster-strength parameter \(\phi_s \in [0,1]\):</p>
+      <div class="eq-box">
+        $$\bar{\vec{x}}_{\mathcal{N}(i)} \;=\;
+          \frac{1}{|\mathcal{N}(i)|}\sum_{j\,\in\,\mathcal{N}(i)}\vec{x}_j, \qquad
+          \vec{f}^{\,\mathrm{coh}}_i \;=\;
+          \alpha_\mathrm{coh}\cdot\phi_s\cdot
+          \frac{\bar{\vec{x}}_{\mathcal{N}(i)} - \vec{x}_i}
+               {\|\bar{\vec{x}}_{\mathcal{N}(i)} - \vec{x}_i\|}$$
+      </div>
+    </div>
+
+    <!-- 7. Wind -->
+    <div class="eq-group">
+      <h3>7 · Wind Force — Uniform Environmental Perturbation</h3>
+      <p class="eq-desc">A spatially uniform wind of speed \(v_w\) blowing in direction \(\theta_w\)
+      exerts an identical translational impulse on every agent at every step:</p>
+      <div class="eq-box">
+        $$\vec{f}^{\,\mathrm{wind}} \;=\;
+          \alpha_w \cdot v_w
+          \begin{pmatrix}\cos\theta_w \\ \sin\theta_w\end{pmatrix}$$
+      </div>
+      <p class="eq-desc" style="margin-top:6px">
+      where \(\theta_w\) is the compass bearing of the wind direction
+      (e.g.\ \(\theta_w = 270°\) corresponds to wind from the north, pushing bees southward).</p>
+    </div>
+
+    <!-- 8. Colony centroid pull -->
+    <div class="eq-group">
+      <h3>8 · Colony Centroid Pull — Wind Resistance via Collective Clustering</h3>
+      <p class="eq-desc">Each bee is attracted toward the global colony centroid \(\vec{x}_c\).
+      Crucially, this force grows with <em>both</em> wind speed \(v_w\) and cluster strength \(\phi_s\),
+      modelling the empirically observed transition to tight beard formation in adverse conditions:</p>
+      <div class="eq-box">
+        $$\vec{x}_c \;=\; \frac{1}{N}\sum_{k=1}^{N}\vec{x}_k, \qquad
+          \vec{f}^{\,\mathrm{clust}}_i \;=\;
+          \alpha_c \cdot v_w \cdot \phi_s \cdot
+          \frac{\vec{x}_c - \vec{x}_i}{\|\vec{x}_c - \vec{x}_i\|}$$
+      </div>
+      <p class="eq-desc" style="margin-top:6px">
+      The product \(v_w \cdot \phi_s\) ensures that clustering only intensifies when wind is actually
+      present — reflecting the behavioural switch observed in <em>Apis mellifera</em> colonies.</p>
+    </div>
+
+    <!-- 9. Speed clamping -->
+    <div class="eq-group">
+      <h3>9 · Speed Clamping — Biological Locomotion Limit</h3>
+      <p class="eq-desc">Individual bee flight speed is bounded by \(v_{max}\),
+      preventing numerical blow-up and approximating metabolic constraints:</p>
+      <div class="eq-box">
+        $$\vec{v}_i \;\leftarrow\;
+          \begin{cases}
+            \vec{v}_i & \text{if}\;\|\vec{v}_i\| \leq v_{max} \\[5pt]
+            v_{max}\,\dfrac{\vec{v}_i}{\|\vec{v}_i\|} & \text{otherwise}
+          \end{cases}$$
+      </div>
+    </div>
+
+    <!-- 10. Activity / thermal density -->
+    <div class="eq-group">
+      <h3>10 · Local Activity — Thermal Density Proxy</h3>
+      <p class="eq-desc">The activity level \(a_i \in [0,1]\) approximates local bee density and
+      is used to colour-code agents (orange = high activity / warm; teal hollow = peripheral / cool).
+      It serves as a visual proxy for the thermal gradient observed in real beard formations:</p>
+      <div class="eq-box">
+        $$a_i(t) \;=\; \min\!\left(1,\;\frac{|\mathcal{N}(i)|}{N_\mathrm{act}}\right),
+          \qquad
+          |\mathcal{N}(i)| \;=\; \#\bigl\{j\neq i : d_{ij} < r_\mathrm{per}\bigr\}$$
+      </div>
+      <p class="eq-desc" style="margin-top:6px">
+      \(N_\mathrm{act} = 11\) is a normalisation constant set so that a fully surrounded
+      bee saturates at \(a_i = 1\). The colour mapping is:
+      \(a_i > 0.6\;\Rightarrow\) orange \(\approx\) 35–38 °C (nurse/worker core);
+      \(0.28 < a_i \leq 0.6\;\Rightarrow\) yellow–green (mid zone);
+      \(a_i \leq 0.28\;\Rightarrow\) teal hollow (peripheral guard bees, \(\approx\) 20–25 °C).</p>
+    </div>
+
+    <!-- 11. Compactness observable -->
+    <div class="eq-group">
+      <h3>11 · Observable — Cluster Compactness \(C(t)\)</h3>
+      <p class="eq-desc">The graph plots a real-time compactness metric: the mean distance of all agents
+      from the colony centroid, inverted and normalised to \([0, 100]\%\):</p>
+      <div class="eq-box">
+        $$\bar{d}(t) \;=\; \frac{1}{N}\sum_{i=1}^{N}\|\vec{x}_i - \vec{x}_c\|, \qquad
+          C(t) \;=\; \max\!\left(0,\;100 - \frac{\bar{d}(t)}{1.8}\right)$$
+      </div>
+    </div>
+
+    <!-- 12. Parameter table -->
+    <div class="eq-group">
+      <h3>12 · Model Parameters</h3>
+      <table class="param-table">
+        <thead>
+          <tr><th>Parameter</th><th>Symbol</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Separation strength</td><td>\(\alpha_\mathrm{sep}\)</td><td>0.12</td><td>Avoidance force magnitude weight</td></tr>
+          <tr><td>Alignment strength</td><td>\(\alpha_\mathrm{ali}\)</td><td>0.03</td><td>Velocity-matching weight</td></tr>
+          <tr><td>Cohesion strength</td><td>\(\alpha_\mathrm{coh}\)</td><td>0.04</td><td>Local centering weight</td></tr>
+          <tr><td>Wind coupling coeff.</td><td>\(\alpha_w\)</td><td>0.018</td><td>Wind–velocity coupling constant</td></tr>
+          <tr><td>Cluster pull coeff.</td><td>\(\alpha_c\)</td><td>0.007</td><td>Colony centroid attraction constant</td></tr>
+          <tr><td>Separation radius</td><td>\(r_\mathrm{sep}\)</td><td>22 px</td><td>Personal space boundary</td></tr>
+          <tr><td>Perception radius</td><td>\(r_\mathrm{per}\)</td><td>65 px</td><td>Neighbourhood sensing range</td></tr>
+          <tr><td>Maximum speed</td><td>\(v_{max}\)</td><td>2.8 px/step</td><td>Speed limiter (locomotion cap)</td></tr>
+          <tr><td>Cluster strength</td><td>\(\phi_s\)</td><td>[0, 1]</td><td>User-controlled cohesion scale</td></tr>
+          <tr><td>Wind speed</td><td>\(v_w\)</td><td>[0, 10]</td><td>User-controlled (m/s, scaled)</td></tr>
+          <tr><td>Wind direction</td><td>\(\theta_w\)</td><td>270°</td><td>Bearing of wind FROM (degrees)</td></tr>
+          <tr><td>Activity normaliser</td><td>\(N_\mathrm{act}\)</td><td>11</td><td>Neighbourhood saturation count</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 13. References -->
+    <div class="eq-group">
+      <h3>13 · Key References</h3>
+      <ul class="ref-list">
+        <li>Reynolds, C. W. (1987). Flocks, herds, and schools: A distributed behavioral model. <em>SIGGRAPH Computer Graphics</em>, 21(4), 25–34. https://doi.org/10.1145/37402.37406</li>
+        <li>Bonabeau, E., Dorigo, M., &amp; Théraulaz, G. (1999). <em>Swarm Intelligence: From Natural to Artificial Systems.</em> Oxford University Press.</li>
+        <li>Seeley, T. D., &amp; Heinrich, B. (1981). Regulation of temperature in the nests of social insects. In B. Heinrich (Ed.), <em>Insect Thermoregulation</em> (pp. 159–234). Wiley.</li>
+        <li>Gilad, T., &amp; Shoresh, N. (2021). Collective thermoregulation of honeybee clusters: A model. <em>PLOS Computational Biology</em>, 17(2), e1008740.</li>
+        <li>Vicsek, T., Czirók, A., Ben-Jacob, E., Cohen, I., &amp; Shochet, O. (1995). Novel type of phase transition in a system of self-driven particles. <em>Physical Review Letters</em>, 75(6), 1226.</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     QUIZ SECTION
+════════════════════════════════════════════════════════ -->
+<section class="quiz-section">
+  <div class="quiz-header" onclick="toggleQuiz()">
+    <h2>🧠 Check Your Understanding — Swarm Behaviour Quiz</h2>
+    <button class="quiz-toggle" id="quizBtn">▼ Show</button>
+  </div>
+  <div class="quiz-body" id="quizBody">
+    <p class="quiz-intro">Answer all 6 questions, then click <strong>Submit Quiz</strong> to check your answers.
+    Each question connects directly to the equations above — refer back to them if you are unsure!</p>
+
+    <!-- Q1 -->
+    <div class="q-card" id="qc0">
+      <div class="q-text">1. The <strong>separation force</strong> \(\vec{f}^{\,\mathrm{sep}}_i\) is active whenever two bees are closer than \(r_\mathrm{sep} = 22\) px. What is its primary biological purpose in a real bee colony?</div>
+      <div class="q-opts">
+        <label class="q-opt"><input type="radio" name="q0" value="0"> <span>Bees move faster when crowded — the force gives them an energy boost</span></label>
+        <label class="q-opt"><input type="radio" name="q0" value="1"> <span>Bees avoid over-crowding to prevent crushing, allow airflow, and stop overheating inside the cluster</span></label>
+        <label class="q-opt"><input type="radio" name="q0" value="2"> <span>Bees use physical spacing to detect and repel predators</span></label>
+        <label class="q-opt"><input type="radio" name="q0" value="3"> <span>The separation force only activates when wind speed exceeds 5 m/s</span></label>
+      </div>
+      <div class="q-fb" id="qf0"></div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="q-card" id="qc1">
+      <div class="q-text">2. From the colony centroid pull equation:
+      \(\vec{f}^{\,\mathrm{clust}}_i = \alpha_c \cdot v_w \cdot \phi_s \cdot \dfrac{\vec{x}_c - \vec{x}_i}{\|\vec{x}_c - \vec{x}_i\|}\) — if wind speed \(v_w\) <strong>triples</strong> while \(\phi_s\) and \(\alpha_c\) stay constant, what happens to \(\|\vec{f}^{\,\mathrm{clust}}_i\|\)?</div>
+      <div class="q-opts">
+        <label class="q-opt"><input type="radio" name="q1" value="0"> <span>The force stays the same — only \(\phi_s\) controls clustering</span></label>
+        <label class="q-opt"><input type="radio" name="q1" value="1"> <span>The force increases by \(\sqrt{3}\)</span></label>
+        <label class="q-opt"><input type="radio" name="q1" value="2"> <span>The force triples — \(v_w\) is a direct linear multiplier</span></label>
+        <label class="q-opt"><input type="radio" name="q1" value="3"> <span>The force halves — higher wind creates turbulence that disrupts the force</span></label>
+      </div>
+      <div class="q-fb" id="qf1"></div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="q-card" id="qc2">
+      <div class="q-text">3. The activity metric \(a_i = \min\!\left(1,\,\tfrac{|\mathcal{N}(i)|}{11}\right)\) is highest for bees with the most neighbours within \(r_\mathrm{per}\). These are rendered <strong>orange</strong> in the simulation. Where are they in the cluster, and what does this represent biologically?</div>
+      <div class="q-opts">
+        <label class="q-opt"><input type="radio" name="q2" value="0"> <span>On the outer rim — these peripheral bees face the wind and are most active</span></label>
+        <label class="q-opt"><input type="radio" name="q2" value="1"> <span>Near the hive entrance at the very top — these are the foragers</span></label>
+        <label class="q-opt"><input type="radio" name="q2" value="2"> <span>In the dense core at the cluster centre — warmest bees, modelling the thermal core protecting brood and queen</span></label>
+        <label class="q-opt"><input type="radio" name="q2" value="3"> <span>Randomly scattered — activity is independent of position</span></label>
+      </div>
+      <div class="q-fb" id="qf2"></div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="q-card" id="qc3">
+      <div class="q-text">4. The compactness observable is \(C(t) = \max\!\left(0,\;100 - \tfrac{\bar{d}(t)}{1.8}\right)\). If you increase wind speed from 0 to 8 m/s in the simulation, the compactness graph rises steeply then <strong>levels off</strong>. Which pair of forces creates this equilibrium — one pushing bees together and one pushing them apart?</div>
+      <div class="q-opts">
+        <label class="q-opt"><input type="radio" name="q3" value="0"> <span>Wind force (inward) balances alignment force (outward)</span></label>
+        <label class="q-opt"><input type="radio" name="q3" value="1"> <span>Centroid pull force (inward) balances separation force (outward)</span></label>
+        <label class="q-opt"><input type="radio" name="q3" value="2"> <span>Cohesion force (inward) balances wind force (outward)</span></label>
+        <label class="q-opt"><input type="radio" name="q3" value="3"> <span>Alignment force (inward) balances cohesion force (outward)</span></label>
+      </div>
+      <div class="q-fb" id="qf3"></div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="q-card" id="qc4">
+      <div class="q-text">5. In the model, the waggle dance is implemented by adding \(v_x \mathrel{+}= A\cos(\omega t)\) and \(v_y \mathrel{+}= A\sin(2\omega t)\) to about 8% of bees, producing a figure-8 trajectory. What does the <strong>real waggle dance</strong> communicate to hive-mates?</div>
+      <div class="q-opts">
+        <label class="q-opt"><input type="radio" name="q4" value="0"> <span>The current temperature and humidity inside the hive</span></label>
+        <label class="q-opt"><input type="radio" name="q4" value="1"> <span>The direction and distance of a profitable food source, encoded relative to the sun's position</span></label>
+        <label class="q-opt"><input type="radio" name="q4" value="2"> <span>A warning that the queen is about to swarm and leave the hive</span></label>
+        <label class="q-opt"><input type="radio" name="q4" value="3"> <span>The identity of which bee role (nurse, guard, forager) the dancer holds</span></label>
+      </div>
+      <div class="q-fb" id="qf4"></div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="q-card" id="qc5">
+      <div class="q-text">6. The alignment force is \(\vec{f}^{\,\mathrm{ali}}_i = \alpha_\mathrm{ali}\!\left(\hat{\bar{v}}_{\mathcal{N}(i)} - \vec{v}_i\right)\). In the <strong>Storm preset</strong> (\(v_w = 9\) m/s), most bees in the core align their velocity toward the hive. What emergent phenomenon does this model at the <em>colony level</em>, even though no single bee is "in charge"?</div>
+      <div class="q-opts">
+        <label class="q-opt"><input type="radio" name="q5" value="0"> <span>Random diffusion — the bees have no coordinated direction in a storm</span></label>
+        <label class="q-opt"><input type="radio" name="q5" value="1"> <span>Collective self-organisation — local velocity matching produces a globally coordinated cluster that resists wind without any central controller</span></label>
+        <label class="q-opt"><input type="radio" name="q5" value="2"> <span>Queen pheromone control — the queen issues chemical commands to align all bees</span></label>
+        <label class="q-opt"><input type="radio" name="q5" value="3"> <span>Individual learning — each bee memorises the storm direction and adapts alone</span></label>
+      </div>
+      <div class="q-fb" id="qf5"></div>
+    </div>
+
+    <div class="quiz-btns">
+      <button class="qbtn qp" onclick="submitQuiz()">✅ Submit Quiz</button>
+      <button class="qbtn qr" onclick="resetQuiz()">↺ Try Again</button>
+    </div>
+    <div class="quiz-score" id="quizScore">
+      <div class="qs-big" id="qsBig"></div>
+      <div class="qs-msg" id="qsMsg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── ANALYTICS PANEL ──────────────────────────────── -->
+<div class="analytics">
+  <div class="an-head" onclick="toggleAn()">
+    <h3>📊 Learning Analytics <span style="font-size:.72rem;opacity:.7;margin-left:8px">(Teacher view — tracks student interactions)</span></h3>
+    <button class="an-toggle" id="anBtn">▼ Show</button>
+  </div>
+  <div class="an-body" id="anBody">
+    <div class="log-box" id="logBox"></div>
+    <button class="clear-btn" onclick="clearLog()">🗑️ Clear Log</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ANALYTICS
+============================================================ */
+const LOG = {
+  entries:[],
+  t0: Date.now(),
+  add(icon, desc, state=''){
+    const t = ((Date.now()-this.t0)/1000).toFixed(1);
+    this.entries.push({t,icon,desc,state});
+    const box = document.getElementById('logBox');
+    if(!box) return;
+    const row = document.createElement('div');
+    row.className='li-row';
+    row.innerHTML=`<span class="li-t">t=${t}s</span><span class="li-i">${icon}</span>`+
+      `<span class="li-d">${desc}${state?' | '+state:''}</span>`;
+    box.appendChild(row);
+    box.scrollTop=box.scrollHeight;
+  },
+  clear(){
+    this.entries=[];this.t0=Date.now();
+    const b=document.getElementById('logBox');if(b)b.innerHTML='';
+  }
+};
+function clearLog(){LOG.clear()}
+function toggleAn(){
+  const b=document.getElementById('anBody');
+  const btn=document.getElementById('anBtn');
+  b.classList.toggle('open');
+  btn.textContent=b.classList.contains('open')?'▲ Hide':'▼ Show';
+}
+
+/* ============================================================
+   BEE SIMULATION
+============================================================ */
+const P = { // simulation parameters
+  n:80, wind:0, dir:270, cs:0.5, waggle:false,
+  sep:22, per:65, maxSpd:2.8
+};
+
+class Bee{
+  constructor(x,y,W,H){
+    this.x=x; this.y=y;
+    const a=Math.random()*Math.PI*2, s=.3+Math.random()*.7;
+    this.vx=Math.cos(a)*s; this.vy=Math.sin(a)*s;
+    this.W=W; this.H=H;
+    this.act=0; // activity 0-1
+    this.wag=false; this.wp=Math.random()*Math.PI*2;
+  }
+  step(flock,cx,cy){
+    let sx=0,sy=0,sn=0, ax=0,ay=0, cohx=0,cohy=0,nn=0;
+    for(const o of flock){
+      if(o===this) continue;
+      const dx=o.x-this.x, dy=o.y-this.y;
+      const d=Math.hypot(dx,dy);
+      if(d<P.sep&&d>0){sx-=dx/d;sy-=dy/d;sn++;}
+      if(d<P.per){ax+=o.vx;ay+=o.vy;cohx+=o.x;cohy+=o.y;nn++;}
+    }
+    if(sn>0){const m=Math.hypot(sx,sy)||1;this.vx+=(sx/m)*.12;this.vy+=(sy/m)*.12;}
+    if(nn>0){
+      const dx=cohx/nn-this.x,dy=cohy/nn-this.y;
+      const m=Math.hypot(dx,dy)||1;
+      this.vx+=(dx/m)*.04*P.cs; this.vy+=(dy/m)*.04*P.cs;
+      const am=Math.hypot(ax,ay)||1;
+      this.vx+=(ax/nn/am-this.vx)*.03; this.vy+=(ay/nn/am-this.vy)*.03;
+      this.act=Math.min(1,nn/11);
+    }else{this.act*=.96;}
+    // Wind
+    const wr=P.dir*Math.PI/180;
+    this.vx+=Math.cos(wr)*P.wind*.018; this.vy+=Math.sin(wr)*P.wind*.018;
+    // Cluster pull (counters wind)
+    const tcx=cx-this.x,tcy=cy-this.y,dc=Math.hypot(tcx,tcy)||1;
+    if(dc>4){const f=P.wind*P.cs*.007;this.vx+=tcx/dc*f;this.vy+=tcy/dc*f;}
+    // Waggle dance
+    if(P.waggle&&this.wag){this.wp+=.14;this.vx+=Math.cos(this.wp)*.14;this.vy+=Math.sin(this.wp*2)*.09;}
+    // Speed limit
+    const spd=Math.hypot(this.vx,this.vy);
+    if(spd>P.maxSpd){this.vx=this.vx/spd*P.maxSpd;this.vy=this.vy/spd*P.maxSpd;}
+    this.x+=this.vx; this.y+=this.vy;
+    // Soft walls
+    const m=28;
+    if(this.x<m)this.vx+=.25; if(this.x>this.W-m)this.vx-=.25;
+    if(this.y<m)this.vy+=.25; if(this.y>this.H-m)this.vy-=.25;
+    this.x=Math.max(1,Math.min(this.W-1,this.x));
+    this.y=Math.max(1,Math.min(this.H-1,this.y));
+  }
+  draw(ctx){
+    const a=Math.atan2(this.vy,this.vx), r=5;
+    const act=this.act;
+    // colour: orange (high activity) → green → teal (low)
+    let h,s=78,l=46;
+    if(act>.6){h=30+(1-act)*30;}
+    else if(act>.28){h=60+(0.6-act)*200;l=44;}
+    else{h=175;s=62;l=52;}
+    ctx.save();ctx.translate(this.x,this.y);ctx.rotate(a);
+    if(act<.24){
+      ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);
+      ctx.strokeStyle=`hsl(${h},${s}%,${l}%)`;ctx.lineWidth=1.5;ctx.stroke();
+    }else{
+      ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);
+      ctx.fillStyle=`hsl(${h},${s}%,${l}%)`;ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,.12)';ctx.lineWidth=.5;ctx.stroke();
+      // arrow
+      ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(r+6,0);
+      ctx.strokeStyle='rgba(30,30,30,.55)';ctx.lineWidth=1.2;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(r+6,0);ctx.lineTo(r+3,-2.5);ctx.lineTo(r+3,2.5);
+      ctx.closePath();ctx.fillStyle='rgba(30,30,30,.5)';ctx.fill();
+    }
+    if(P.waggle&&this.wag){
+      ctx.beginPath();ctx.arc(0,0,r+3,0,Math.PI*2);
+      ctx.strokeStyle='rgba(255,210,0,.75)';ctx.lineWidth=2;
+      ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+}
+
+const SIM={
+  canvas:null,ctx:null,bees:[],cx:0,cy:0,
+  frame:0,gd:{c:[],s:[]},raf:null,hY:28,
+  labelMsg:null,labelTimer:null,
+
+  init(){
+    this.canvas=document.getElementById('beeCanvas');
+    this.ctx=this.canvas.getContext('2d');
+    this.resize();
+    this.spawn();
+    this.loop();
+    this.canvas.addEventListener('click',e=>this.onCanvasClick(e));
+    window.addEventListener('resize',()=>this.resize());
+    LOG.add('🚀','Simulation started',`Bees:${P.n}, Wind:${P.wind}`);
+  },
+
+  resize(){
+    const W=this.canvas.parentElement.clientWidth||600;
+    const w=Math.min(W,700), h=Math.round(w*.58);
+    this.canvas.width=w; this.canvas.height=h;
+    this.hY=28;
+  },
+
+  spawn(){
+    this.bees=[];
+    const w=this.canvas.width,h=this.canvas.height;
+    const cx=w/2, cy=h*.38;
+    for(let i=0;i<P.n;i++){
+      const a=Math.random()*Math.PI*2;
+      const r=Math.random()**.5*90;
+      const b=new Bee(cx+Math.cos(a)*r, cy+Math.sin(a)*r*.7, w, h);
+      if(P.waggle&&Math.random()<.08) b.wag=true;
+      this.bees.push(b);
+    }
+    this.gd={c:[],s:[]};this.frame=0;
+  },
+
+  loop(){
+    this.raf=requestAnimationFrame(()=>this.loop());
+    let sx=0,sy=0;
+    for(const b of this.bees){sx+=b.x;sy+=b.y;}
+    this.cx=sx/this.bees.length; this.cy=sy/this.bees.length;
+    for(const b of this.bees) b.step(this.bees,this.cx,this.cy);
+    this.draw();
+    this.frame++;
+    if(this.frame%9===0) this.tick();
+  },
+
+  draw(){
+    const ctx=this.ctx, w=this.canvas.width, h=this.canvas.height;
+    // Background
+    const sky=ctx.createLinearGradient(0,0,0,h);
+    sky.addColorStop(0,'#cce4f5');sky.addColorStop(1,'#eef4fb');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+    // Hive bar
+    const bx=w/2,bw=150,bh=14;
+    ctx.fillStyle='#7b3f00';
+    ctx.beginPath();
+    this.rr(ctx,bx-bw/2,this.hY-bh/2,bw,bh,4);ctx.fill();
+    ctx.fillStyle='#c07830';
+    for(let x=bx-bw/2+8;x<bx+bw/2-10;x+=18){
+      ctx.beginPath();this.rr(ctx,x,this.hY-4,12,8,2);ctx.fill();
+    }
+    ctx.fillStyle='rgba(80,30,5,.6)';ctx.font=`${Math.max(9,w*.016)}px Arial`;
+    ctx.textAlign='center';ctx.fillText('Hive Entrance',bx,this.hY-bh/2-5);ctx.textAlign='left';
+    // Wind indicators
+    if(P.wind>.3) this.drawWind(ctx,w,h);
+    // Bees (low act first)
+    const sorted=[...this.bees].sort((a,b)=>a.act-b.act);
+    for(const b of sorted) b.draw(ctx);
+    // Cluster dot
+    ctx.beginPath();ctx.arc(this.cx,this.cy,4,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,120,0,.35)';ctx.fill();
+    // Stats
+    ctx.fillStyle='rgba(0,0,0,.55)';ctx.font=`${Math.max(10,w*.018)}px Arial`;
+    ctx.fillText(`Wind: ${P.wind.toFixed(1)} m/s`,7,h-18);
+    ctx.fillText(`Bees: ${P.n}`,7,h-5);
+    const lvl=['Calm','Light Breeze','Moderate','Strong','Very Strong','Storm Force'];
+    ctx.textAlign='right';
+    ctx.fillStyle=P.wind>6?'#e74c3c':P.wind>3?'#e67e22':'#27ae60';
+    ctx.fillText(lvl[Math.min(5,Math.floor(P.wind/2))],w-6,h-5);
+    ctx.textAlign='left';
+    // Canvas label tooltip
+    if(this.labelMsg){
+      ctx.fillStyle='rgba(30,30,80,.82)';ctx.font='bold 12px Arial';
+      const tw=ctx.measureText(this.labelMsg).width;
+      ctx.beginPath();this.rr(ctx,this.labelX-4,this.labelY-14,tw+10,20,4);ctx.fill();
+      ctx.fillStyle='#fff';ctx.fillText(this.labelMsg,this.labelX,this.labelY);
+    }
+  },
+
+  drawWind(ctx,w,h){
+    const wr=P.dir*Math.PI/180, al=18+P.wind*4;
+    const alpha=Math.min(.7,.2+P.wind*.045);
+    [[18,h*.2],[18,h*.5],[18,h*.8]].forEach(([px,py])=>{
+      ctx.save();ctx.translate(px,py);ctx.rotate(wr);
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(al,0);
+      ctx.strokeStyle=`rgba(80,130,220,${alpha})`;ctx.lineWidth=1.5+P.wind*.18;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(al,0);ctx.lineTo(al-6,-3);ctx.lineTo(al-6,3);ctx.closePath();
+      ctx.fillStyle=`rgba(80,130,220,${alpha})`;ctx.fill();
+      ctx.restore();
+    });
+  },
+
+  rr(ctx,x,y,w,h,r){
+    r=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  },
+
+  tick(){
+    let ad=0;
+    for(const b of this.bees) ad+=Math.hypot(b.x-this.cx,b.y-this.cy);
+    ad/=this.bees.length;
+    const comp=Math.max(0,Math.min(100,100-ad/1.8));
+    let asp=0;
+    for(const b of this.bees) asp+=Math.hypot(b.vx,b.vy);
+    asp/=this.bees.length;
+    this.gd.c.push(comp); this.gd.s.push(asp*22);
+    if(this.gd.c.length>80){this.gd.c.shift();this.gd.s.shift();}
+    this.drawGraph('gCompact',this.gd.c,'#e67e22');
+    this.drawGraph('gSpeed',this.gd.s,'#2980b9');
+  },
+
+  drawGraph(id,data,col){
+    const cv=document.getElementById(id); if(!cv) return;
+    const W=cv.parentElement.clientWidth-20||260; cv.width=W;
+    const H=cv.height; const ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#f8f9fa';ctx.fillRect(0,0,W,H);
+    // Grid
+    ctx.strokeStyle='#e8e8e8';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){
+      const y=Math.round(H*i/4);
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+      ctx.fillStyle='#aaa';ctx.font='9px Arial';ctx.fillText(100-i*25,2,y+9);
+    }
+    if(data.length<2) return;
+    ctx.beginPath();
+    for(let i=0;i<data.length;i++){
+      const x=(i/(data.length-1))*W;
+      const y=H-(Math.min(data[i],100)/100)*H;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.stroke();
+    // Fill
+    ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+    ctx.fillStyle=col+'28';ctx.fill();
+    const last=data[data.length-1];
+    ctx.fillStyle=col;ctx.font='bold 11px Arial';
+    ctx.fillText(Math.round(last),W-30,14);
+  },
+
+  onCanvasClick(e){
+    const rect=this.canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const cx=this.cx, cy=this.cy;
+    let msg='';
+    const dHive=Math.hypot(mx-this.canvas.width/2, my-this.hY);
+    const dCtr=Math.hypot(mx-cx, my-cy);
+    if(dHive<50) msg='🏠 Hive entrance — bees return here with nectar & pollen';
+    else if(dCtr<40) msg='🟠 Cluster core — warmest, most active nurse/worker bees';
+    else if(dCtr<100) msg='🟢 Middle zone — guard & transitional worker bees';
+    else msg='⚪ Cluster periphery — cooler bees forming living insulation';
+    this.labelMsg=msg; this.labelX=Math.min(mx,this.canvas.width-5); this.labelY=Math.max(my-8,18);
+    clearTimeout(this.labelTimer);
+    this.labelTimer=setTimeout(()=>{ this.labelMsg=null; },3500);
+    LOG.add('🖱️','Canvas click — region labelled',msg.substring(0,40));
+  }
+};
+
+/* ─── CONTROL HANDLERS ───────────────────────────────── */
+const INFO={
+  calm:'In calm conditions bees explore freely. Foragers range widely for nectar sources.',
+  breezy:'A gentle breeze triggers early clustering. Watch the teardrop "beard" form!',
+  windy:'Strong wind = tight cluster. Outer bees insulate inner ones, protecting queen & brood.',
+  storm:'Storm conditions: maximum clustering! Each outer bee is a living shield against the cold.'
+};
+const PRESETS={
+  calm: {n:60,wind:0,  dir:270,cs:.3},
+  breezy:{n:80,wind:2, dir:270,cs:.6},
+  windy:{n:120,wind:5,dir:270,cs:.8},
+  storm:{n:150,wind:9,dir:270,cs:1.0}
+};
+
+function setWind(v){
+  P.wind=v; document.getElementById('wVal').textContent=v.toFixed(1);
+  updateInfo();
+  LOG.add('🎛️','Wind speed',v.toFixed(1)+' m/s');
+}
+function setDir(btn,deg){
+  document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); P.dir=deg;
+  LOG.add('🧭','Wind direction',deg+'°');
+}
+function setBees(v){
+  P.n=v; document.getElementById('bVal').textContent=v;
+  // adjust live
+  const cx=SIM.cx||SIM.canvas.width/2, cy=SIM.cy||SIM.canvas.height/2;
+  const w=SIM.canvas.width,h=SIM.canvas.height;
+  while(SIM.bees.length<P.n){
+    const a=Math.random()*Math.PI*2,r=Math.random()*30;
+    SIM.bees.push(new Bee(cx+Math.cos(a)*r,cy+Math.sin(a)*r,w,h));
+  }
+  while(SIM.bees.length>P.n) SIM.bees.pop();
+  LOG.add('🎛️','Bee count',v);
+}
+function setCluster(v){
+  P.cs=v; document.getElementById('cVal').textContent=v.toFixed(1);
+  LOG.add('🎛️','Cluster strength',v.toFixed(1));
+}
+function setWaggle(on){
+  P.waggle=on;
+  SIM.bees.forEach(b=>{ b.wag=on&&Math.random()<.08; });
+  LOG.add('💃','Waggle dance',on?'ON':'OFF');
+}
+function updateInfo(){
+  const s=P.wind;
+  let t='';
+  if(s<1) t=INFO.calm;
+  else if(s<3) t=INFO.breezy;
+  else if(s<6) t=INFO.windy;
+  else t=INFO.storm;
+  document.getElementById('infoTxt').textContent=t;
+}
+function applyPreset(name){
+  const pr=PRESETS[name]; if(!pr) return;
+  Object.assign(P,pr);
+  document.getElementById('sWind').value=pr.wind;
+  document.getElementById('sBees').value=pr.n;
+  document.getElementById('sCluster').value=pr.cs;
+  document.getElementById('wVal').textContent=pr.wind.toFixed(1);
+  document.getElementById('bVal').textContent=pr.n;
+  document.getElementById('cVal').textContent=pr.cs.toFixed(1);
+  document.getElementById('infoTxt').textContent=INFO[name];
+  SIM.spawn();
+  LOG.add('⚡','Preset: '+name,`Wind:${pr.wind}, Bees:${pr.n}`);
+}
+function resetSim(){SIM.spawn();LOG.add('↺','Simulation reset');}
+
+/* Toast */
+let toastT;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3600);
+}
+
+/* ============================================================
+   EQUATIONS PANEL TOGGLE
+============================================================ */
+function toggleEq(){
+  const b=document.getElementById('eqBody');
+  const btn=document.getElementById('eqBtn');
+  b.classList.toggle('open');
+  btn.textContent=b.classList.contains('open')?'▲ Hide':'▼ Show';
+  if(b.classList.contains('open')){
+    LOG.add('📐','Equations panel opened');
+    // Ask MathJax to re-typeset newly revealed content
+    if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([b]);
+  }
+}
+
+/* ============================================================
+   QUIZ
+============================================================ */
+// Correct answer index (0-based) for each question
+const QANS = [1, 2, 2, 1, 1, 1];
+
+const QEXP = [
+  'Correct! Separation prevents physical crowding — in real colonies it maintains airflow and prevents dangerous overheating. Without spacing, the dense core would exceed lethal temperatures (~45 °C).',
+  'Correct! \\ v_w is a direct linear multiplier in the equation, so tripling \\ v_w triples the centroid pull force. This linear coupling means the colony clusters proportionally harder as wind intensifies.',
+  'Correct! Bees in the dense core have the most neighbours within \\ r_per, giving the highest \\ |𝒩(i)| and therefore the highest activity \\ a_i ≈ 1. In real colonies these inner bees sustain ~35–38 °C to protect the brood.',
+  'Correct! The centroid pull \\(\\vec{f}^{\\,clust}_i\\) draws bees inward; when two bees get closer than \\ r_sep, the separation force \\(\\vec{f}^{\\,sep}_i\\) pushes them apart. Their balance sets the equilibrium cluster density.',
+  'Correct! Karl von Frisch (Nobel 1973) showed the waggle run direction encodes the angle to the food source relative to the sun, and run duration encodes distance. One of the most sophisticated non-human communication systems known.',
+  'Correct! This is the hallmark of emergent collective behaviour — each bee follows only local rules (velocity matching within \\ r_per), yet a globally coordinated, wind-resistant cluster self-organises with no central command.'
+];
+
+const QWRONG = [
+  'Not quite. Think physically: what would happen inside the cluster if bees could crowd without limit? The separation force acts at the smallest scale — between individual bee pairs. Look at the eq for \\( \\mathcal{N}_{sep}(i) \\).',
+  'Not quite. Inspect the equation carefully: \\( \\vec{f}^{\\,clust}_i = \\alpha_c \\cdot v_w \\cdot \\phi_s \\cdot \\hat{u} \\). What operation connects \\( \\alpha_c \\), \\( v_w \\), and \\( \\phi_s \\)? When you multiply something by 3, what happens to the product?',
+  'Not quite. \\( a_i \\) counts how many neighbours \\( j \\) fall within \\( r_{per} \\). Is that count higher at the edge of the cluster, where bees are sparse, or deep in the centre, where bees are packed tightly?',
+  'Not quite. Think about direction: you need one force pulling inward (toward the centre) and one force pushing outward (away from neighbours). Match each force to its direction from the equations.',
+  'Not quite. The waggle dance encodes navigation information — not temperature, not colony identity, not swarming signals. Think: what would a returning forager most usefully tell her hive-mates?',
+  'Not quite. There is no central controller in the model — no single bee runs an algorithm for the whole colony. What is the principle called when simple local rules (each bee looks at neighbours only) produce complex global patterns?'
+];
+
+function toggleQuiz(){
+  const b=document.getElementById('quizBody');
+  const btn=document.getElementById('quizBtn');
+  b.classList.toggle('open');
+  btn.textContent=b.classList.contains('open')?'▲ Hide':'▼ Show';
+  if(b.classList.contains('open')){
+    LOG.add('🧠','Quiz opened');
+    if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([b]);
+  }
+}
+
+function submitQuiz(){
+  let score=0, unanswered=0;
+  QANS.forEach((ans,i)=>{
+    const sel=document.querySelector(`input[name="q${i}"]:checked`);
+    const card=document.getElementById('qc'+i);
+    const fb=document.getElementById('qf'+i);
+    card.querySelectorAll('.q-opt').forEach(o=>o.classList.remove('oc','ow'));
+    card.classList.remove('q-ok','q-err');
+    if(!sel){
+      unanswered++;
+      fb.textContent='⚠️ Please select an answer for this question.';
+      fb.className='q-fb vis ferr'; return;
+    }
+    const chosen=parseInt(sel.value);
+    // Always reveal correct option
+    card.querySelectorAll('.q-opt')[ans].classList.add('oc');
+    if(chosen===ans){
+      score++;
+      card.classList.add('q-ok');
+      fb.innerHTML='✅ '+QEXP[i];
+      fb.className='q-fb vis fok';
+    } else {
+      card.querySelectorAll('.q-opt')[chosen].classList.add('ow');
+      card.classList.add('q-err');
+      fb.innerHTML='❌ '+QWRONG[i];
+      fb.className='q-fb vis ferr';
+    }
+  });
+  if(unanswered>0){ return; } // don't show score until all answered
+  const msgs=[
+    '📚 Keep exploring — re-read the equations and try again!',
+    '💪 Good start! Review the force equations you found tricky.',
+    '🔍 Solid effort — 2 more to master. Check the ones you missed.',
+    '🌟 Well done! One more to go — you almost have it.',
+    '🎉 Excellent! Strong understanding of the swarm model.',
+    '🏆 Perfect score! You have mastered the bee swarm behaviour model.'
+  ];
+  document.getElementById('qsBig').textContent=`${score} / 6`;
+  document.getElementById('qsMsg').textContent=msgs[score];
+  document.getElementById('quizScore').classList.add('vis');
+  LOG.add('📝','Quiz submitted: '+score+'/6');
+  if(window.MathJax && MathJax.typesetPromise)
+    MathJax.typesetPromise([document.getElementById('quizBody')]);
+}
+
+function resetQuiz(){
+  document.querySelectorAll('.q-card').forEach(c=>c.classList.remove('q-ok','q-err'));
+  document.querySelectorAll('.q-opt').forEach(o=>o.classList.remove('oc','ow'));
+  document.querySelectorAll('.q-fb').forEach(f=>{f.className='q-fb';f.textContent='';});
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  document.getElementById('quizScore').classList.remove('vis');
+  LOG.add('↺','Quiz reset');
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+window.addEventListener('load',()=>{
+  SIM.init();
+  LOG.add('📖','Interactive loaded — ready to explore!');
+});
+</script>
+
+<!-- ─── FOOTER ─────────────────────────────────────────── -->
+<footer>
+  <p class="ft-credit">
+    <span class="ft-emoji">🐝</span>
+    Made by <strong>lookang</strong>, using <strong>Claude 4.5</strong>
+  </p>
+  <p>
+    For more interactive resources:
+    <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/biology"
+       target="_blank" rel="noopener noreferrer">
+      sg.iwant2study.org — Biology Interactives ↗
+    </a>
+  </p>
+</footer>
+
+</body>
+</html>

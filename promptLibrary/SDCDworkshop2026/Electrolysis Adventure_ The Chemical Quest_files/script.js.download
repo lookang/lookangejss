@@ -1,0 +1,617 @@
+// ===== GAME STATE MANAGEMENT =====
+// Core game state object tracking progress, score, and current stage
+const gameState = {
+    score: 0,
+    currentStage: 0,
+    totalStages: 5,
+    playerChoices: [],
+    currentAnswers: {}
+};
+
+// ===== AUDIO SYSTEM =====
+// Web Audio API for generating musical score and sound effects
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Background music generator - creates ambient atmospheric tones
+let backgroundMusic = null;
+let musicGainNode = null;
+
+function initBackgroundMusic() {
+    // Create oscillators for layered ambient music
+    musicGainNode = audioContext.createGain();
+    musicGainNode.gain.value = 0.1; // Low volume for background
+    musicGainNode.connect(audioContext.destination);
+    
+    // Base tone
+    const osc1 = audioContext.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.value = 110; // A2
+    
+    // Harmonic layer
+    const osc2 = audioContext.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = 165; // E3
+    
+    osc1.connect(musicGainNode);
+    osc2.connect(musicGainNode);
+    
+    osc1.start();
+    osc2.start();
+    
+    backgroundMusic = { osc1, osc2 };
+}
+
+// Sound effect for correct answers - pleasant ascending tones
+function playCorrectSound() {
+    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    osc.frequency.setValueAtTime(523.25, now); // C5
+    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+    
+    gainNode.gain.setValueAtTime(0.3, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    
+    osc.start(now);
+    osc.stop(now + 0.5);
+}
+
+// Sound effect for incorrect answers - descending tone
+function playIncorrectSound() {
+    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.setValueAtTime(200, now + 0.3);
+    
+    gainNode.gain.setValueAtTime(0.3, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    
+    osc.start(now);
+    osc.stop(now + 0.4);
+}
+
+// Click sound for interactions
+function playClickSound() {
+    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    osc.frequency.value = 800;
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    
+    osc.start(now);
+    osc.stop(now + 0.1);
+}
+
+// ===== STORY AND CHALLENGE DATA =====
+// Adventure narrative with branching choices and electrolysis challenges
+const storyData = [
+    {
+        type: 'story',
+        text: 'Welcome, young chemist! You have been recruited by the International Chemical Research Institute to investigate mysterious energy fluctuations in an abandoned laboratory. Your mission: restore the lab\'s electrolysis systems to unlock its secrets. Your knowledge of electrolysis will be crucial to success.',
+        choices: [
+            { text: 'Accept the mission and enter the laboratory', next: 1 },
+            { text: 'Learn more about the laboratory\'s history', next: 1, info: true }
+        ]
+    },
+    {
+        type: 'challenge',
+        text: 'You enter the first chamber. Ancient electrolysis equipment lies dormant. To power it up, you must correctly set up the electrolysis of molten lead(II) bromide (PbBr₂). Identify the correct products at each electrode and the electrolyte.',
+        challenge: {
+            electrodes: true,
+            electrolyte: true,
+            correctAnswers: {
+                anode: 'Br₂ (bromine gas)',
+                cathode: 'Pb (lead metal)',
+                electrolyte: 'Molten PbBr₂'
+            },
+            options: [
+                'Br₂ (bromine gas)',
+                'Pb (lead metal)',
+                'Molten PbBr₂',
+                'H₂ (hydrogen gas)',
+                'O₂ (oxygen gas)',
+                'Aqueous NaCl'
+            ]
+        },
+        correctFeedback: 'Excellent! The equipment hums to life. At the anode (+), bromide ions (Br⁻) are oxidised: 2Br⁻ → Br₂ + 2e⁻. At the cathode (−), lead ions (Pb²⁺) are reduced: Pb²⁺ + 2e⁻ → Pb. The molten electrolyte allows ion movement. You earn 20 points!',
+        incorrectFeedback: 'The equipment sparks dangerously! Remember: at the anode, anions are oxidised (lose electrons). At the cathode, cations are reduced (gain electrons). In molten PbBr₂, Pb²⁺ moves to cathode forming Pb metal, and Br⁻ moves to anode forming Br₂ gas.',
+        points: 20,
+        next: 2
+    },
+    {
+        type: 'story',
+        text: 'The first chamber illuminates, revealing a passage deeper into the laboratory. You discover a logbook: "Day 47 - We\'ve been experimenting with aqueous electrolysis. The results are... unexpected." What lies ahead?',
+        choices: [
+            { text: 'Proceed to the next chamber cautiously', next: 3 },
+            { text: 'Examine the logbook more carefully', next: 3, info: true }
+        ]
+    },
+    {
+        type: 'challenge',
+        text: 'Chamber Two contains a water purification system using electrolysis of dilute sulfuric acid (H₂SO₄). The system needs recalibration. Identify the products formed at each electrode.',
+        challenge: {
+            electrodes: true,
+            electrolyte: true,
+            correctAnswers: {
+                anode: 'O₂ (oxygen gas)',
+                cathode: 'H₂ (hydrogen gas)',
+                electrolyte: 'Dilute H₂SO₄(aq)'
+            },
+            options: [
+                'O₂ (oxygen gas)',
+                'H₂ (hydrogen gas)',
+                'Dilute H₂SO₄(aq)',
+                'SO₂ (sulfur dioxide)',
+                'Cl₂ (chlorine gas)',
+                'Molten NaCl'
+            ]
+        },
+        correctFeedback: 'Perfect! The purification system activates. In dilute H₂SO₄, water molecules are preferentially discharged. At the anode: 4OH⁻ → O₂ + 2H₂O + 4e⁻ (or 2H₂O → O₂ + 4H⁺ + 4e⁻). At the cathode: 2H⁺ + 2e⁻ → H₂. The ratio is 1:2 by volume (O₂:H₂). You earn 25 points!',
+        incorrectFeedback: 'The system malfunctions! In aqueous solutions, consider the preferential discharge series. H⁺ ions are reduced at the cathode to form H₂. OH⁻ ions (from water) are oxidised at the anode to form O₂. Sulfate ions (SO₄²⁻) remain in solution.',
+        points: 25,
+        next: 4
+    },
+    {
+        type: 'story',
+        text: 'Water begins flowing through purified channels. You notice the laboratory is coming alive. A holographic message appears: "To access the core, demonstrate mastery of industrial electrolysis." The stakes are rising.',
+        choices: [
+            { text: 'Face the final challenge', next: 5 },
+            { text: 'Review your knowledge before proceeding', next: 5, info: true }
+        ]
+    },
+    {
+        type: 'challenge',
+        text: 'The Core Chamber: A massive industrial electroplating setup for copper purification. Set up the electrolysis correctly using copper(II) sulfate solution with copper electrodes. Identify what happens at each electrode.',
+        challenge: {
+            electrodes: true,
+            electrolyte: true,
+            correctAnswers: {
+                anode: 'Cu → Cu²⁺ + 2e⁻ (oxidation)',
+                cathode: 'Cu²⁺ + 2e⁻ → Cu (reduction)',
+                electrolyte: 'CuSO₄(aq)'
+            },
+            options: [
+                'Cu → Cu²⁺ + 2e⁻ (oxidation)',
+                'Cu²⁺ + 2e⁻ → Cu (reduction)',
+                'CuSO₄(aq)',
+                'O₂ formation',
+                'H₂ formation',
+                'Molten CuSO₄'
+            ]
+        },
+        correctFeedback: 'Masterful! The electroplating system roars to life. At the anode (impure Cu), copper atoms are oxidised: Cu → Cu²⁺ + 2e⁻. At the cathode (pure Cu), copper ions are reduced: Cu²⁺ + 2e⁻ → Cu. This purifies copper industrially. The core is restored! You earn 30 points!',
+        incorrectFeedback: 'The system overloads! In copper electroplating with copper electrodes, the anode dissolves (oxidation) while copper deposits at the cathode (reduction). The concentration of Cu²⁺ ions remains relatively constant. This is key to copper purification.',
+        points: 30,
+        next: 6
+    },
+    {
+        type: 'story',
+        text: `Mission Complete! You've successfully restored the laboratory's electrolysis systems. The core reveals its secret: a database of advanced chemical research. Your final score: ${gameState.score} points. The Institute commends your expertise in electrolysis!`,
+        choices: [
+            { text: 'Restart Adventure', next: 0, restart: true }
+        ]
+    }
+];
+
+// ===== DOM ELEMENTS =====
+const elements = {
+    storyPanel: document.getElementById('story-panel'),
+    gamePanel: document.getElementById('game-panel'),
+    feedbackPanel: document.getElementById('feedback-panel'),
+    storyText: document.getElementById('story-text'),
+    choicesContainer: document.getElementById('choices-container'),
+    challengeDescription: document.getElementById('challenge-description'),
+    draggableItems: document.getElementById('draggable-items'),
+    anodeDrop: document.getElementById('anode-drop'),
+    cathodeDrop: document.getElementById('cathode-drop'),
+    electrolyteDrop: document.getElementById('electrolyte-drop'),
+    submitBtn: document.getElementById('submit-btn'),
+    feedbackText: document.getElementById('feedback-text'),
+    continueBtn: document.getElementById('continue-btn'),
+    scoreValue: document.getElementById('score-value'),
+    progressFill: document.getElementById('progress-fill'),
+    tooltip: document.getElementById('tooltip')
+};
+
+// ===== TOOLTIP SYSTEM =====
+// Shows informative tooltips on hover without taking vertical space
+function showTooltip(text) {
+    elements.tooltip.textContent = text;
+    elements.tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    elements.tooltip.classList.remove('show');
+}
+
+// Add hover listeners for elements with title attributes
+document.addEventListener('mouseover', (e) => {
+    if (e.target.hasAttribute('title')) {
+        showTooltip(e.target.getAttribute('title'));
+    }
+});
+
+document.addEventListener('mouseout', (e) => {
+    if (e.target.hasAttribute('title')) {
+        hideTooltip();
+    }
+});
+
+// ===== DRAG AND DROP SYSTEM =====
+// Implements intuitive drag-and-drop mechanics for electrolysis setup
+let draggedElement = null;
+let draggedData = null;
+
+function createDraggableItem(text, index) {
+    const item = document.createElement('div');
+    item.className = 'draggable-item';
+    item.textContent = text;
+    item.draggable = true;
+    item.dataset.value = text;
+    item.dataset.index = index;
+    
+    // Touch and mouse support
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragend', handleDragEnd);
+    
+    // Touch events for mobile
+    item.addEventListener('touchstart', handleTouchStart, { passive: false });
+    item.addEventListener('touchmove', handleTouchMove, { passive: false });
+    item.addEventListener('touchend', handleTouchEnd);
+    
+    return item;
+}
+
+function handleDragStart(e) {
+    draggedElement = e.target;
+    draggedData = e.target.dataset.value;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
+    playClickSound();
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    draggedElement = null;
+}
+
+// Touch support for mobile devices
+let touchStartX, touchStartY;
+let clonedElement = null;
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    draggedElement = e.target;
+    draggedData = e.target.dataset.value;
+    
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    
+    // Create visual clone for dragging
+    clonedElement = e.target.cloneNode(true);
+    clonedElement.style.position = 'fixed';
+    clonedElement.style.zIndex = '1000';
+    clonedElement.style.pointerEvents = 'none';
+    clonedElement.style.opacity = '0.8';
+    document.body.appendChild(clonedElement);
+    
+    e.target.classList.add('dragging');
+    playClickSound();
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!clonedElement) return;
+    
+    const touch = e.touches[0];
+    clonedElement.style.left = touch.clientX - 50 + 'px';
+    clonedElement.style.top = touch.clientY - 20 + 'px';
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    if (clonedElement) {
+        document.body.removeChild(clonedElement);
+        clonedElement = null;
+    }
+    
+    if (draggedElement) {
+        draggedElement.classList.remove('dragging');
+        
+        // Find drop zone under touch point
+        const touch = e.changedTouches[0];
+        const dropZone = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        if (dropZone && dropZone.classList.contains('drop-zone')) {
+            handleDrop({ target: dropZone, preventDefault: () => {} });
+        }
+        
+        draggedElement = null;
+        draggedData = null;
+    }
+}
+
+// Drop zone event handlers
+function setupDropZones() {
+    const dropZones = document.querySelectorAll('.drop-zone');
+    
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('dragleave', handleDragLeave);
+        zone.addEventListener('drop', handleDrop);
+        
+        // Allow clicking to remove items
+        zone.addEventListener('click', handleDropZoneClick);
+    });
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.target.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.target.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const dropZone = e.target.closest('.drop-zone');
+    if (!dropZone) return;
+    
+    dropZone.classList.remove('drag-over');
+    
+    if (draggedData) {
+        // Clear previous content
+        dropZone.innerHTML = '';
+        
+        // Create placed item
+        const placedItem = document.createElement('div');
+        placedItem.className = 'draggable-item placed';
+        placedItem.textContent = draggedData;
+        placedItem.dataset.value = draggedData;
+        dropZone.appendChild(placedItem);
+        dropZone.classList.add('filled');
+        
+        // Store answer
+        const zoneId = dropZone.id;
+        if (zoneId === 'anode-drop') {
+            gameState.currentAnswers.anode = draggedData;
+        } else if (zoneId === 'cathode-drop') {
+            gameState.currentAnswers.cathode = draggedData;
+        } else if (zoneId === 'electrolyte-drop') {
+            gameState.currentAnswers.electrolyte = draggedData;
+        }
+        
+        // Mark original as placed
+        if (draggedElement && !draggedElement.classList.contains('placed')) {
+            draggedElement.style.opacity = '0.3';
+            draggedElement.draggable = false;
+        }
+        
+        playClickSound();
+    }
+}
+
+function handleDropZoneClick(e) {
+    const dropZone = e.target.closest('.drop-zone');
+    if (!dropZone || !dropZone.classList.contains('filled')) return;
+    
+    // Remove item from drop zone
+    const removedValue = dropZone.querySelector('.draggable-item')?.dataset.value;
+    dropZone.innerHTML = '';
+    dropZone.classList.remove('filled');
+    
+    // Clear from answers
+    const zoneId = dropZone.id;
+    if (zoneId === 'anode-drop') {
+        delete gameState.currentAnswers.anode;
+    } else if (zoneId === 'cathode-drop') {
+        delete gameState.currentAnswers.cathode;
+    } else if (zoneId === 'electrolyte-drop') {
+        delete gameState.currentAnswers.electrolyte;
+    }
+    
+    // Re-enable original draggable item
+    const originalItem = Array.from(elements.draggableItems.children).find(
+        item => item.dataset.value === removedValue
+    );
+    if (originalItem) {
+        originalItem.style.opacity = '1';
+        originalItem.draggable = true;
+    }
+    
+    playClickSound();
+}
+
+// ===== GAME FLOW CONTROL =====
+// Manages progression through story and challenges
+function showStage(stageIndex) {
+    if (stageIndex >= storyData.length) {
+        stageIndex = storyData.length - 1;
+    }
+    
+    gameState.currentStage = stageIndex;
+    updateProgress();
+    
+    const stage = storyData[stageIndex];
+    
+    // Hide all panels
+    elements.storyPanel.classList.add('hidden');
+    elements.gamePanel.classList.add('hidden');
+    elements.feedbackPanel.classList.add('hidden');
+    
+    if (stage.type === 'story') {
+        showStory(stage);
+    } else if (stage.type === 'challenge') {
+        showChallenge(stage);
+    }
+}
+
+function showStory(stage) {
+    elements.storyPanel.classList.remove('hidden');
+    elements.storyText.textContent = stage.text;
+    
+    // Clear and populate choices
+    elements.choicesContainer.innerHTML = '';
+    stage.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = choice.text;
+        btn.addEventListener('click', () => {
+            playClickSound();
+            if (choice.restart) {
+                restartGame();
+            } else {
+                showStage(choice.next);
+            }
+        });
+        elements.choicesContainer.appendChild(btn);
+    });
+}
+
+function showChallenge(stage) {
+    elements.gamePanel.classList.remove('hidden');
+    elements.challengeDescription.textContent = stage.text;
+    
+    // Reset answers
+    gameState.currentAnswers = {};
+    
+    // Clear drop zones
+    elements.anodeDrop.innerHTML = '';
+    elements.cathodeDrop.innerHTML = '';
+    elements.electrolyteDrop.innerHTML = '';
+    elements.anodeDrop.classList.remove('filled');
+    elements.cathodeDrop.classList.remove('filled');
+    elements.electrolyteDrop.classList.remove('filled');
+    
+    // Populate draggable options
+    elements.draggableItems.innerHTML = '';
+    stage.challenge.options.forEach((option, index) => {
+        const item = createDraggableItem(option, index);
+        elements.draggableItems.appendChild(item);
+    });
+    
+    setupDropZones();
+}
+
+// ===== ANSWER CHECKING =====
+// Validates student responses and provides immediate feedback
+function checkAnswer() {
+    const stage = storyData[gameState.currentStage];
+    const correct = stage.challenge.correctAnswers;
+    const student = gameState.currentAnswers;
+    
+    // Check if all required fields are filled
+    if (!student.anode || !student.cathode || !student.electrolyte) {
+        showTooltip('Please fill all drop zones before submitting!');
+        setTimeout(hideTooltip, 2000);
+        return;
+    }
+    
+    // Check correctness
+    const isCorrect = 
+        student.anode === correct.anode &&
+        student.cathode === correct.cathode &&
+        student.electrolyte === correct.electrolyte;
+    
+    showFeedback(isCorrect, stage);
+}
+
+function showFeedback(isCorrect, stage) {
+    elements.gamePanel.classList.add('hidden');
+    elements.feedbackPanel.classList.remove('hidden');
+    
+    elements.feedbackText.classList.remove('correct', 'incorrect');
+    
+    if (isCorrect) {
+        elements.feedbackText.classList.add('correct');
+        elements.feedbackText.textContent = stage.correctFeedback;
+        gameState.score += stage.points;
+        updateScore();
+        playCorrectSound();
+        elements.feedbackPanel.classList.add('pulse');
+    } else {
+        elements.feedbackText.classList.add('incorrect');
+        elements.feedbackText.textContent = stage.incorrectFeedback;
+        playIncorrectSound();
+        elements.feedbackPanel.classList.add('shake');
+    }
+    
+    // Remove animation classes
+    setTimeout(() => {
+        elements.feedbackPanel.classList.remove('pulse', 'shake');
+    }, 500);
+}
+
+// ===== UI UPDATES =====
+function updateScore() {
+    elements.scoreValue.textContent = gameState.score;
+    elements.scoreDisplay.classList.add('pulse');
+    setTimeout(() => {
+        elements.scoreDisplay.classList.remove('pulse');
+    }, 500);
+}
+
+function updateProgress() {
+    const progress = (gameState.currentStage / (storyData.length - 1)) * 100;
+    elements.progressFill.style.width = progress + '%';
+}
+
+function restartGame() {
+    gameState.score = 0;
+    gameState.currentStage = 0;
+    gameState.currentAnswers = {};
+    updateScore();
+    updateProgress();
+    showStage(0);
+}
+
+// ===== EVENT LISTENERS =====
+elements.submitBtn.addEventListener('click', () => {
+    playClickSound();
+    checkAnswer();
+});
+
+elements.continueBtn.addEventListener('click', () => {
+    playClickSound();
+    const stage = storyData[gameState.currentStage];
+    showStage(stage.next);
+});
+
+// ===== INITIALIZATION =====
+// Start the game when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize audio on first user interaction (browser requirement)
+    document.addEventListener('click', () => {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        if (!backgroundMusic) {
+            initBackgroundMusic();
+        }
+    }, { once: true });
+    
+    // Start game
+    showStage(0);
+    updateScore();
+    updateProgress();
+});

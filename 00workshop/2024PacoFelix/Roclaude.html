@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple R0 Tree Simulation</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        canvas { border: 1px solid #ccc; }
+        div { margin: 10px 0; }
+        button { margin: 0 5px; }
+    </style>
+</head>
+<body>
+    <h1>R0 Tree Simulation</h1>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div>
+        R0: <input type="range" id="r0Slider" min="0" max="5" step="0.1" value="3">
+        <span id="r0Value">3.0</span>
+    </div>
+    <div>
+        Stop Infections After: <input type="range" id="stopInfectionSlider" min="1" max="6" step="1" value="4">
+        <span id="stopInfectionValue">4</span>
+    </div>
+    <div>
+        <button id="playPauseBtn">Play/Pause</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let r0 = 3;
+        let stopInfection = 4;
+        let generations = [[{infected: true}]];
+        let isRunning = false;
+
+        function updateR0() {
+            r0 = parseFloat(document.getElementById('r0Slider').value);
+            document.getElementById('r0Value').textContent = r0.toFixed(1);
+            reset();
+        }
+
+        function updateStopInfection() {
+            stopInfection = parseInt(document.getElementById('stopInfectionSlider').value);
+            document.getElementById('stopInfectionValue').textContent = stopInfection;
+            reset();
+        }
+
+        function toggleSimulation() {
+            isRunning = !isRunning;
+            if (isRunning) update();
+        }
+
+        function reset() {
+            generations = [[{infected: true}]];
+            isRunning = false;
+            draw();
+        }
+
+        function update() {
+            if (!isRunning || generations.length >= stopInfection) return;
+            let newGen = [];
+            generations[generations.length - 1].forEach(() => {
+                for (let i = 0; i < Math.round(r0); i++) {
+                    newGen.push({infected: true});
+                }
+            });
+            if (newGen.length > 0) generations.push(newGen);
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            generations.forEach((gen, genIndex) => {
+                gen.forEach((person, personIndex) => {
+                    let x = 50 + genIndex * 100;
+                    let y = 300 + (personIndex - (gen.length - 1) / 2) * 40;
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(x - 10, y - 10, 20, 20);
+                    if (genIndex > 0) {
+                        let parentIndex = Math.floor(personIndex / Math.round(r0));
+                        let parentY = 300 + (parentIndex - (generations[genIndex - 1].length - 1) / 2) * 40;
+                        ctx.beginPath();
+                        ctx.moveTo(x - 100, parentY);
+                        ctx.lineTo(x, y);
+                        ctx.stroke();
+                    }
+                });
+            });
+        }
+
+        document.getElementById('r0Slider').addEventListener('input', updateR0);
+        document.getElementById('stopInfectionSlider').addEventListener('input', updateStopInfection);
+        document.getElementById('playPauseBtn').addEventListener('click', toggleSimulation);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        reset();
+    </script>
+</body>
+</html>

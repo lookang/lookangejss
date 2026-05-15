@@ -1,0 +1,573 @@
+// ===================================
+// SINGAPORE ART DETECTIVE GAME
+// Educational game for Primary 3 students (9 years old)
+// Learning about Singapore art through discovery and role-playing
+// ===================================
+
+// ===================================
+// GAME DATA - Singapore Artworks
+// ===================================
+const artworks = [
+    {
+        id: 1,
+        emoji: '🌆',
+        title: 'Singapore River',
+        description: 'A painting showing boats on the Singapore River with old shophouses',
+        artist: 'Chen Wen Hsi',
+        clues: [
+            'This artwork shows boats on the Singapore River with old shophouses',
+            'This artwork is about Mount Faber with cable cars',
+            'This artwork shows Marina Bay Sands at night'
+        ],
+        correctIndex: 0
+    },
+    {
+        id: 2,
+        emoji: '🦆',
+        title: 'Ducks',
+        description: 'Beautiful Chinese ink painting of ducks swimming',
+        artist: 'Chen Wen Hsi',
+        clues: [
+            'This artwork shows tigers in the jungle',
+            'This artwork is a Chinese ink painting of ducks swimming',
+            'This artwork shows children playing in a kampong'
+        ],
+        correctIndex: 1
+    },
+    {
+        id: 3,
+        emoji: '🏘️',
+        title: 'Kampong Life',
+        description: 'A colorful painting of children playing in a traditional village',
+        artist: 'Chua Mia Tee',
+        clues: [
+            'This artwork shows HDB flats in Toa Payoh',
+            'This artwork shows the Merlion statue',
+            'This artwork is a colorful painting of children playing in a traditional village'
+        ],
+        correctIndex: 2
+    },
+    {
+        id: 4,
+        emoji: '🎭',
+        title: 'Wayang Show',
+        description: 'A painting showing a traditional Chinese opera performance',
+        artist: 'Liu Kang',
+        clues: [
+            'This artwork shows a traditional Chinese opera performance',
+            'This artwork shows people eating at a hawker centre',
+            'This artwork shows dancers performing ballet'
+        ],
+        correctIndex: 0
+    },
+    {
+        id: 5,
+        emoji: '🌴',
+        title: 'Tropical Garden',
+        description: 'A painting of Singapore\'s tropical plants and flowers',
+        artist: 'Georgette Chen',
+        clues: [
+            'This artwork shows the Singapore Zoo',
+            'This artwork is a painting of Singapore\'s tropical plants and flowers',
+            'This artwork shows Sentosa Beach'
+        ],
+        correctIndex: 1
+    },
+    {
+        id: 6,
+        emoji: '🏛️',
+        title: 'National Museum',
+        description: 'A painting of the National Museum building',
+        artist: 'Tan Swie Hian',
+        clues: [
+            'This artwork shows the Esplanade theatre',
+            'This artwork shows Raffles Hotel',
+            'This artwork is a painting of the National Museum building'
+        ],
+        correctIndex: 2
+    }
+];
+
+// ===================================
+// BADGE SYSTEM - Achievement Rewards
+// ===================================
+const badges = [
+    { id: 1, emoji: '🌟', name: 'First Find', requirement: 1 },
+    { id: 2, emoji: '🎨', name: 'Art Lover', requirement: 2 },
+    { id: 3, emoji: '🔍', name: 'Detective', requirement: 3 },
+    { id: 4, emoji: '🏆', name: 'Art Expert', requirement: 4 },
+    { id: 5, emoji: '👑', name: 'Art Master', requirement: 5 },
+    { id: 6, emoji: '💎', name: 'Perfect Score', requirement: 6 }
+];
+
+// ===================================
+// GAME STATE MANAGEMENT
+// ===================================
+let gameState = {
+    score: 0,
+    correctAnswers: 0,
+    currentArtwork: null,
+    completedArtworks: [],
+    earnedBadges: [],
+    timeLeft: 60,
+    timerInterval: null,
+    soundEnabled: true,
+    isGameActive: false
+};
+
+// ===================================
+// AUDIO CONTEXT - Background Music & Sound Effects
+// Using Web Audio API for offline audio generation
+// ===================================
+let audioContext;
+let backgroundMusicGain;
+let backgroundMusicInterval;
+
+// Initialize audio context
+function initAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        backgroundMusicGain = audioContext.createGain();
+        backgroundMusicGain.connect(audioContext.destination);
+        backgroundMusicGain.gain.value = 0.1;
+    } catch (e) {
+        console.log('Web Audio API not supported');
+    }
+}
+
+// Play a simple tone (for sound effects)
+function playTone(frequency, duration, type = 'sine') {
+    if (!gameState.soundEnabled || !audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Play correct answer sound (happy melody)
+function playCorrectSound() {
+    if (!gameState.soundEnabled) return;
+    playTone(523.25, 0.1); // C5
+    setTimeout(() => playTone(659.25, 0.1), 100); // E5
+    setTimeout(() => playTone(783.99, 0.2), 200); // G5
+}
+
+// Play incorrect answer sound (sad tone)
+function playIncorrectSound() {
+    if (!gameState.soundEnabled) return;
+    playTone(300, 0.1);
+    setTimeout(() => playTone(250, 0.2), 100);
+}
+
+// Play badge earned sound (triumphant)
+function playBadgeSound() {
+    if (!gameState.soundEnabled) return;
+    playTone(523.25, 0.1);
+    setTimeout(() => playTone(659.25, 0.1), 80);
+    setTimeout(() => playTone(783.99, 0.1), 160);
+    setTimeout(() => playTone(1046.50, 0.3), 240);
+}
+
+// Background music (simple melody loop)
+function startBackgroundMusic() {
+    if (!gameState.soundEnabled || !audioContext) return;
+    
+    const melody = [523.25, 587.33, 659.25, 783.99, 659.25, 587.33];
+    let noteIndex = 0;
+    
+    backgroundMusicInterval = setInterval(() => {
+        if (gameState.soundEnabled && gameState.isGameActive) {
+            const oscillator = audioContext.createOscillator();
+            oscillator.connect(backgroundMusicGain);
+            oscillator.frequency.value = melody[noteIndex];
+            oscillator.type = 'sine';
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+            
+            noteIndex = (noteIndex + 1) % melody.length;
+        }
+    }, 500);
+}
+
+function stopBackgroundMusic() {
+    if (backgroundMusicInterval) {
+        clearInterval(backgroundMusicInterval);
+        backgroundMusicInterval = null;
+    }
+}
+
+// ===================================
+// DOM ELEMENTS
+// ===================================
+const elements = {
+    startScreen: document.getElementById('start-screen'),
+    endScreen: document.getElementById('end-screen'),
+    startBtn: document.getElementById('start-btn'),
+    restartBtn: document.getElementById('restart-btn'),
+    timer: document.getElementById('timer'),
+    score: document.getElementById('score'),
+    badges: document.getElementById('badges'),
+    artCards: document.getElementById('art-cards'),
+    selectedArt: document.getElementById('selected-art'),
+    clueOptions: document.getElementById('clue-options'),
+    badgeCollection: document.getElementById('badge-collection'),
+    feedbackOverlay: document.getElementById('feedback-overlay'),
+    feedbackIcon: document.getElementById('feedback-icon'),
+    feedbackText: document.getElementById('feedback-text'),
+    soundToggle: document.getElementById('sound-toggle'),
+    finalScore: document.getElementById('final-score'),
+    finalBadges: document.getElementById('final-badges'),
+    achievementMessage: document.getElementById('achievement-message'),
+    timerDisplay: document.getElementById('timer-display')
+};
+
+// ===================================
+// INITIALIZATION
+// ===================================
+function init() {
+    // Check if running in iframe or standalone
+    if (window.self === window.top) {
+        document.body.classList.add('standalone');
+    }
+    
+    // Initialize audio
+    initAudio();
+    
+    // Render initial UI
+    renderArtCards();
+    renderBadgeCollection();
+    
+    // Event listeners
+    elements.startBtn.addEventListener('click', startGame);
+    elements.restartBtn.addEventListener('click', restartGame);
+    elements.soundToggle.addEventListener('click', toggleSound);
+    
+    // Tooltip hover effect
+    const gameArea = document.getElementById('game-area');
+    gameArea.addEventListener('mouseenter', showTooltip);
+    gameArea.addEventListener('mouseleave', hideTooltip);
+}
+
+function showTooltip() {
+    const tooltip = document.getElementById('header-tooltip');
+    tooltip.style.opacity = '1';
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('header-tooltip');
+    tooltip.style.opacity = '0';
+}
+
+// ===================================
+// GAME FLOW FUNCTIONS
+// ===================================
+function startGame() {
+    // Reset game state
+    gameState = {
+        score: 0,
+        correctAnswers: 0,
+        currentArtwork: null,
+        completedArtworks: [],
+        earnedBadges: [],
+        timeLeft: 60,
+        timerInterval: null,
+        soundEnabled: gameState.soundEnabled,
+        isGameActive: true
+    };
+    
+    // Hide start screen
+    elements.startScreen.classList.add('hidden');
+    
+    // Update UI
+    updateScore();
+    updateBadges();
+    renderArtCards();
+    renderBadgeCollection();
+    
+    // Start timer
+    startTimer();
+    
+    // Start background music
+    startBackgroundMusic();
+    
+    // Show initial message
+    elements.selectedArt.innerHTML = '<div class="placeholder-text">🕵️ Click on an artwork to start investigating!</div>';
+    elements.clueOptions.innerHTML = '';
+}
+
+function startTimer() {
+    elements.timer.textContent = gameState.timeLeft;
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        elements.timer.textContent = gameState.timeLeft;
+        
+        // Warning animation when time is low
+        if (gameState.timeLeft <= 10) {
+            elements.timerDisplay.classList.add('timer-warning');
+        }
+        
+        // Game over when time runs out
+        if (gameState.timeLeft <= 0) {
+            endGame();
+        }
+    }, 1000);
+}
+
+function endGame() {
+    // Stop timer and music
+    clearInterval(gameState.timerInterval);
+    stopBackgroundMusic();
+    gameState.isGameActive = false;
+    
+    // Calculate final stats
+    elements.finalScore.textContent = gameState.score;
+    elements.finalBadges.textContent = gameState.earnedBadges.length;
+    
+    // Achievement message based on performance
+    let message = '';
+    if (gameState.correctAnswers === artworks.length) {
+        message = '🌟 PERFECT! You are a true Art Master! 🌟';
+    } else if (gameState.correctAnswers >= 4) {
+        message = '🎉 Great job! You are an Art Expert! 🎉';
+    } else if (gameState.correctAnswers >= 2) {
+        message = '👍 Good work! Keep learning about art! 👍';
+    } else {
+        message = '💪 Nice try! Play again to learn more! 💪';
+    }
+    elements.achievementMessage.textContent = message;
+    
+    // Show end screen
+    elements.endScreen.classList.remove('hidden');
+}
+
+function restartGame() {
+    elements.endScreen.classList.add('hidden');
+    elements.timerDisplay.classList.remove('timer-warning');
+    startGame();
+}
+
+// ===================================
+// RENDERING FUNCTIONS
+// ===================================
+function renderArtCards() {
+    elements.artCards.innerHTML = '';
+    
+    artworks.forEach(artwork => {
+        const card = document.createElement('div');
+        card.className = 'art-card';
+        card.dataset.artworkId = artwork.id;
+        
+        // Check if completed
+        if (gameState.completedArtworks.includes(artwork.id)) {
+            card.classList.add('completed');
+        }
+        
+        card.innerHTML = `
+            <div class="art-emoji">${artwork.emoji}</div>
+            <div class="art-title">${artwork.title}</div>
+        `;
+        
+        card.addEventListener('click', () => selectArtwork(artwork));
+        
+        elements.artCards.appendChild(card);
+    });
+}
+
+function renderBadgeCollection() {
+    elements.badgeCollection.innerHTML = '';
+    
+    badges.forEach(badge => {
+        const badgeItem = document.createElement('div');
+        badgeItem.className = 'badge-item';
+        badgeItem.dataset.badgeId = badge.id;
+        
+        // Check if earned
+        if (gameState.earnedBadges.includes(badge.id)) {
+            badgeItem.classList.add('earned');
+        }
+        
+        badgeItem.innerHTML = `
+            <div class="badge-emoji">${badge.emoji}</div>
+            <div class="badge-name">${badge.name}</div>
+        `;
+        
+        elements.badgeCollection.appendChild(badgeItem);
+    });
+}
+
+// ===================================
+// GAME INTERACTION FUNCTIONS
+// ===================================
+function selectArtwork(artwork) {
+    // Don't allow selecting completed artworks
+    if (gameState.completedArtworks.includes(artwork.id)) {
+        return;
+    }
+    
+    // Update current artwork
+    gameState.currentArtwork = artwork;
+    
+    // Update visual selection
+    document.querySelectorAll('.art-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`[data-artwork-id="${artwork.id}"]`).classList.add('selected');
+    
+    // Display selected artwork
+    elements.selectedArt.innerHTML = `
+        <div class="selected-art-display">
+            <div class="art-emoji">${artwork.emoji}</div>
+            <div class="art-title">${artwork.title}</div>
+        </div>
+    `;
+    
+    // Display clue options
+    renderClueOptions(artwork);
+}
+
+function renderClueOptions(artwork) {
+    elements.clueOptions.innerHTML = '';
+    
+    // Shuffle clues for variety
+    const shuffledClues = [...artwork.clues].sort(() => Math.random() - 0.5);
+    
+    shuffledClues.forEach((clue, index) => {
+        const button = document.createElement('button');
+        button.className = 'option-btn';
+        button.textContent = clue;
+        
+        // Find the original index to check if correct
+        const originalIndex = artwork.clues.indexOf(clue);
+        const isCorrect = originalIndex === artwork.correctIndex;
+        
+        button.addEventListener('click', () => checkAnswer(isCorrect, artwork));
+        
+        elements.clueOptions.appendChild(button);
+    });
+}
+
+function checkAnswer(isCorrect, artwork) {
+    if (isCorrect) {
+        // Correct answer!
+        gameState.score += 100;
+        gameState.correctAnswers++;
+        gameState.completedArtworks.push(artwork.id);
+        
+        // Add bonus points for speed
+        if (gameState.timeLeft > 40) {
+            gameState.score += 50;
+        }
+        
+        // Play correct sound
+        playCorrectSound();
+        
+        // Show feedback
+        showFeedback(true, 'Correct! Well done, Detective! 🎉');
+        
+        // Update UI
+        updateScore();
+        renderArtCards();
+        
+        // Check for new badges
+        checkBadges();
+        
+        // Clear selection
+        setTimeout(() => {
+            gameState.currentArtwork = null;
+            elements.selectedArt.innerHTML = '<div class="placeholder-text">Great! Pick another artwork! 🎨</div>';
+            elements.clueOptions.innerHTML = '';
+            
+            // Check if all artworks completed
+            if (gameState.completedArtworks.length === artworks.length) {
+                setTimeout(() => endGame(), 1000);
+            }
+        }, 1500);
+        
+    } else {
+        // Incorrect answer
+        playIncorrectSound();
+        showFeedback(false, 'Oops! Try again! 🤔');
+    }
+}
+
+function showFeedback(isCorrect, message) {
+    elements.feedbackIcon.textContent = isCorrect ? '✅' : '❌';
+    elements.feedbackText.textContent = message;
+    elements.feedbackOverlay.classList.remove('hidden');
+    
+    setTimeout(() => {
+        elements.feedbackOverlay.classList.add('hidden');
+    }, 1200);
+}
+
+// ===================================
+// BADGE SYSTEM
+// ===================================
+function checkBadges() {
+    badges.forEach(badge => {
+        // Check if badge should be earned
+        if (!gameState.earnedBadges.includes(badge.id) && 
+            gameState.correctAnswers >= badge.requirement) {
+            
+            // Earn badge
+            gameState.earnedBadges.push(badge.id);
+            
+            // Play badge sound
+            playBadgeSound();
+            
+            // Update badge display
+            const badgeElement = document.querySelector(`[data-badge-id="${badge.id}"]`);
+            if (badgeElement) {
+                badgeElement.classList.add('earned');
+            }
+            
+            // Update badge count
+            updateBadges();
+            
+            // Show badge notification
+            setTimeout(() => {
+                showFeedback(true, `🏆 Badge Earned: ${badge.name}! 🏆`);
+            }, 500);
+        }
+    });
+}
+
+// ===================================
+// UI UPDATE FUNCTIONS
+// ===================================
+function updateScore() {
+    elements.score.textContent = gameState.score;
+}
+
+function updateBadges() {
+    elements.badges.textContent = gameState.earnedBadges.length;
+}
+
+function toggleSound() {
+    gameState.soundEnabled = !gameState.soundEnabled;
+    elements.soundToggle.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+    elements.soundToggle.classList.toggle('muted');
+    
+    if (!gameState.soundEnabled) {
+        stopBackgroundMusic();
+    } else if (gameState.isGameActive) {
+        startBackgroundMusic();
+    }
+}
+
+// ===================================
+// START THE GAME
+// ===================================
+document.addEventListener('DOMContentLoaded', init);

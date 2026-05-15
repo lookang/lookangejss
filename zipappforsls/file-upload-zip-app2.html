@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Simulation File Upload and Zip App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #file-input-section {
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #file-info {
+            margin-top: 10px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #666;
+        }
+        .app-description {
+            margin-top: 30px;
+        }
+        .feature-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Advanced Simulation File Upload and Zip App</h1>
+    
+    <div id="file-input-section">
+        <input type="file" id="file-input" accept=".zip,.xhtml,.html">
+        <div id="file-info"></div>
+        <button id="process-file" disabled>Process and Download</button>
+    </div>
+
+    <div class="app-description">
+        <h2>About This App</h2>
+        <p>This application helps users prepare and correct simulation files for web deployment. It addresses common issues with zip files and HTML simulations, ensuring they're properly structured for online use.</p>
+        
+        <h3>Key Features:</h3>
+        <ul class="feature-list">
+            <li>Processes .zip, .html, and .xhtml files</li>
+            <li>Corrects zip file structures by removing unnecessary top-level folders</li>
+            <li>Renames the main HTML file to index.html if needed</li>
+            <li>Preserves internal folder structures to maintain relative paths</li>
+            <li>Creates a zip file from single HTML/XHTML files</li>
+        </ul>
+
+        <h3>How to Use:</h3>
+        <ol>
+            <li>Click "Choose File" and select a .zip file containing your simulation, or a single .html/.xhtml file.</li>
+            <li>Click the "Process and Download" button.</li>
+            <li>The app will analyze and correct your file, then provide a download of the processed zip.</li>
+        </ol>
+
+        <p>This tool aims to streamline the process of preparing web simulations, saving time and reducing errors in deployment.</p>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const processButton = document.getElementById('process-file');
+        let uploadedFile = null;
+
+        fileInput.addEventListener('change', (e) => {
+            uploadedFile = e.target.files[0];
+            if (uploadedFile) {
+                fileInfo.innerHTML = `<p>Selected file: ${uploadedFile.name}</p>`;
+                processButton.disabled = false;
+            } else {
+                fileInfo.innerHTML = '<p>Please select a file.</p>';
+                processButton.disabled = true;
+            }
+        });
+
+        processButton.addEventListener('click', processFile);
+
+        async function processFile() {
+            if (!uploadedFile) {
+                alert('Please select a file.');
+                return;
+            }
+
+            if (uploadedFile.name.endsWith('.zip')) {
+                await processZipFile(uploadedFile);
+            } else if (uploadedFile.name.endsWith('.xhtml') || uploadedFile.name.endsWith('.html')) {
+                await processSingleFile(uploadedFile);
+            } else {
+                alert('Unsupported file type. Please upload a .zip, .xhtml, or .html file.');
+            }
+        }
+
+        async function processZipFile(file) {
+            const zip = await JSZip.loadAsync(file);
+            const newZip = new JSZip();
+
+            let hasIndexHtml = false;
+            let htmlFiles = [];
+            let commonPrefix = null;
+
+            // First pass: check for index.html, collect HTML files, and find common prefix
+            for (let [path, zipEntry] of Object.entries(zip.files)) {
+                const pathParts = path.split('/');
+                if (commonPrefix === null) {
+                    commonPrefix = pathParts[0];
+                } else if (pathParts[0] !== commonPrefix) {
+                    commonPrefix = '';
+                }
+
+                if (!zipEntry.dir) {
+                    const fileName = pathParts[pathParts.length - 1].toLowerCase();
+                    if (fileName === 'index.html') {
+                        hasIndexHtml = true;
+                    } else if (fileName.endsWith('.html')) {
+                        htmlFiles.push(path);
+                    }
+                }
+            }
+
+            // Second pass: process and add files to the new zip
+            for (let [path, zipEntry] of Object.entries(zip.files)) {
+                let newPath = path;
+                if (commonPrefix) {
+                    newPath = path.substring(commonPrefix.length + 1);
+                }
+
+                if (!zipEntry.dir) {
+                    let content = await zipEntry.async('uint8array');
+
+                    if (!hasIndexHtml && htmlFiles.length > 0 && path === htmlFiles[0]) {
+                        // Rename the first HTML file to index.html, preserving its path
+                        const pathParts = newPath.split('/');
+                        pathParts[pathParts.length - 1] = 'index.html';
+                        newPath = pathParts.join('/');
+                    }
+
+                    newZip.file(newPath, content);
+                } else if (newPath) {
+                    // Preserve folder structure, but don't create empty folders
+                    newZip.folder(newPath);
+                }
+            }
+
+            const zipContent = await newZip.generateAsync({type: 'blob'});
+            saveAs(zipContent, 'corrected_simulation.zip');
+        }
+
+        async function processSingleFile(file) {
+            const content = await readFileAsArrayBuffer(file);
+            const zip = new JSZip();
+            zip.file('index.html', content);
+            const zipContent = await zip.generateAsync({type: 'blob'});
+            saveAs(zipContent, 'simulation.zip');
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e.target.error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+    </script>
+
+    <footer>
+        Created by weelookang@gmail.com
+    </footer>
+</body>
+</html>

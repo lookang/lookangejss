@@ -1,0 +1,657 @@
+// ============================================
+// INTERVIEW QUEST - GAME INITIALIZATION
+// ============================================
+
+// Game state management
+let gameState = {
+    isPlaying: false,
+    score: 0,
+    timeLeft: 60,
+    totalTips: 12,
+    sortedTips: 0,
+    timerInterval: null,
+    soundEnabled: true,
+    currentDraggedItem: null
+};
+
+// Interview tips data with categories
+const interviewTips = [
+    { id: 1, text: "Research the company and role", category: "before", icon: "📚" },
+    { id: 2, text: "Prepare answers to common questions", category: "before", icon: "📝" },
+    { id: 3, text: "Choose appropriate interview attire", category: "before", icon: "👔" },
+    { id: 4, text: "Plan your route and arrive early", category: "before", icon: "🗺️" },
+    { id: 5, text: "Make eye contact and smile", category: "during", icon: "😊" },
+    { id: 6, text: "Listen carefully to questions", category: "during", icon: "👂" },
+    { id: 7, text: "Speak clearly and confidently", category: "during", icon: "🗣️" },
+    { id: 8, text: "Ask thoughtful questions", category: "during", icon: "❓" },
+    { id: 9, text: "Send a thank-you email", category: "after", icon: "✉️" },
+    { id: 10, text: "Reflect on your performance", category: "after", icon: "🤔" },
+    { id: 11, text: "Follow up if no response", category: "after", icon: "📞" },
+    { id: 12, text: "Keep track of interview details", category: "after", icon: "📋" }
+];
+
+// Audio context for sound effects (using Web Audio API)
+let audioContext;
+let soundEffects = {};
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializeGame();
+    setupEventListeners();
+    checkIfInIframe();
+    initializeAudio();
+});
+
+// Check if running in iframe and adjust height
+function checkIfInIframe() {
+    if (window.self !== window.top) {
+        document.body.classList.add('iframe-mode');
+    }
+}
+
+// Initialize audio context for sound effects
+function initializeAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        createSoundEffects();
+    } catch (e) {
+        console.log('Web Audio API not supported');
+    }
+}
+
+// Create sound effects using Web Audio API
+function createSoundEffects() {
+    // Background music (simple melody loop)
+    soundEffects.bgMusic = createMelody([262, 294, 330, 349], 0.3, 0.5);
+    
+    // Correct sound
+    soundEffects.correct = createTone(523.25, 0.2, 0.3);
+    
+    // Incorrect sound
+    soundEffects.incorrect = createTone(196, 0.3, 0.3);
+    
+    // Click sound
+    soundEffects.click = createTone(440, 0.1, 0.2);
+    
+    // Victory sound
+    soundEffects.victory = createMelody([523, 587, 659, 784], 0.2, 0.5);
+    
+    // Time warning sound
+    soundEffects.warning = createTone(880, 0.15, 0.3);
+}
+
+// Create a single tone
+function createTone(frequency, duration, volume) {
+    return () => {
+        if (!gameState.soundEnabled || !audioContext) return;
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    };
+}
+
+// Create a melody sequence
+function createMelody(frequencies, noteDuration, volume) {
+    return () => {
+        if (!gameState.soundEnabled || !audioContext) return;
+        
+        frequencies.forEach((freq, index) => {
+            setTimeout(() => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = freq;
+                oscillator.type = 'triangle';
+                
+                gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + noteDuration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + noteDuration);
+            }, index * noteDuration * 1000);
+        });
+    };
+}
+
+// ============================================
+// GAME SETUP
+// ============================================
+
+function initializeGame() {
+    renderTips();
+    updateScore();
+    updateProgress();
+}
+
+// Render all tip items in the pool
+function renderTips() {
+    const tipsContainer = document.getElementById('tips-container');
+    tipsContainer.innerHTML = '';
+    
+    // Shuffle tips for variety
+    const shuffledTips = [...interviewTips].sort(() => Math.random() - 0.5);
+    
+    shuffledTips.forEach(tip => {
+        const tipElement = createTipElement(tip);
+        tipsContainer.appendChild(tipElement);
+    });
+}
+
+// Create a draggable tip element
+function createTipElement(tip) {
+    const div = document.createElement('div');
+    div.className = 'tip-item';
+    div.draggable = true;
+    div.dataset.tipId = tip.id;
+    div.dataset.category = tip.category;
+    div.innerHTML = `${tip.icon} ${tip.text}`;
+    
+    // Drag events
+    div.addEventListener('dragstart', handleDragStart);
+    div.addEventListener('dragend', handleDragEnd);
+    
+    // Touch events for mobile
+    div.addEventListener('touchstart', handleTouchStart, { passive: false });
+    div.addEventListener('touchmove', handleTouchMove, { passive: false });
+    div.addEventListener('touchend', handleTouchEnd);
+    
+    // Tooltip on hover
+    div.addEventListener('mouseenter', (e) => showTooltip(tip.text));
+    div.addEventListener('mouseleave', hideTooltip);
+    
+    return div;
+}
+
+// ============================================
+// EVENT LISTENERS SETUP
+// ============================================
+
+function setupEventListeners() {
+    // Start button
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    
+    // Reset button
+    document.getElementById('reset-btn').addEventListener('click', resetGame);
+    
+    // Sound toggle
+    document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+    
+    // Modal close
+    document.getElementById('close-modal').addEventListener('click', closeModal);
+    
+    // Category zones - drag and drop
+    const categoryZones = document.querySelectorAll('.category-zone');
+    categoryZones.forEach(zone => {
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('drop', handleDrop);
+        zone.addEventListener('dragleave', handleDragLeave);
+        
+        // Tooltip for categories
+        zone.addEventListener('mouseenter', (e) => {
+            const tooltip = e.currentTarget.dataset.tooltip;
+            if (tooltip) showTooltip(tooltip);
+        });
+        zone.addEventListener('mouseleave', hideTooltip);
+    });
+}
+
+// ============================================
+// GAME CONTROL FUNCTIONS
+// ============================================
+
+function startGame() {
+    if (gameState.isPlaying) return;
+    
+    gameState.isPlaying = true;
+    gameState.score = 0;
+    gameState.timeLeft = 60;
+    gameState.sortedTips = 0;
+    
+    // UI updates
+    document.getElementById('start-btn').style.display = 'none';
+    document.getElementById('reset-btn').style.display = 'inline-block';
+    
+    updateStoryText("The interview is in 60 seconds! Quickly sort these tips into the right categories!");
+    
+    // Start timer
+    startTimer();
+    
+    // Play start sound
+    if (soundEffects.click) soundEffects.click();
+    
+    // Enable dragging
+    enableDragging(true);
+}
+
+function resetGame() {
+    // Stop timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    gameState.isPlaying = false;
+    gameState.score = 0;
+    gameState.timeLeft = 60;
+    gameState.sortedTips = 0;
+    
+    // Reset UI
+    document.getElementById('start-btn').style.display = 'inline-block';
+    document.getElementById('reset-btn').style.display = 'none';
+    document.getElementById('timer').textContent = '60';
+    document.getElementById('timer').classList.remove('warning');
+    document.getElementById('timer-fill').style.width = '100%';
+    
+    updateStoryText("Welcome to Interview Quest! You're about to attend your dream sports academy interview. Sort the interview tips into the correct categories before time runs out!");
+    
+    // Clear categories
+    document.querySelectorAll('.category-content').forEach(content => {
+        content.innerHTML = '';
+    });
+    
+    // Re-render tips
+    renderTips();
+    updateScore();
+    updateProgress();
+    
+    // Play click sound
+    if (soundEffects.click) soundEffects.click();
+}
+
+function endGame(reason) {
+    gameState.isPlaying = false;
+    
+    // Stop timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    // Disable dragging
+    enableDragging(false);
+    
+    // Show results
+    showResults(reason);
+}
+
+// ============================================
+// TIMER FUNCTIONS
+// ============================================
+
+function startTimer() {
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        
+        // Update timer display
+        document.getElementById('timer').textContent = gameState.timeLeft;
+        
+        // Update timer bar
+        const percentage = (gameState.timeLeft / 60) * 100;
+        document.getElementById('timer-fill').style.width = percentage + '%';
+        
+        // Warning state
+        if (gameState.timeLeft <= 10) {
+            document.getElementById('timer').classList.add('warning');
+            if (gameState.timeLeft % 2 === 0 && soundEffects.warning) {
+                soundEffects.warning();
+            }
+        }
+        
+        // Time's up
+        if (gameState.timeLeft <= 0) {
+            endGame('timeout');
+        }
+    }, 1000);
+}
+
+// ============================================
+// DRAG AND DROP HANDLERS
+// ============================================
+
+function handleDragStart(e) {
+    if (!gameState.isPlaying) {
+        e.preventDefault();
+        return;
+    }
+    
+    gameState.currentDraggedItem = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target.innerHTML);
+    
+    if (soundEffects.click) soundEffects.click();
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    if (!gameState.isPlaying) return;
+    
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const zone = e.currentTarget;
+    zone.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!gameState.isPlaying || !gameState.currentDraggedItem) return;
+    
+    const zone = e.currentTarget;
+    zone.classList.remove('drag-over');
+    
+    const tipCategory = gameState.currentDraggedItem.dataset.category;
+    const zoneCategory = zone.dataset.category;
+    
+    // Check if correct category
+    if (tipCategory === zoneCategory) {
+        // Correct placement
+        handleCorrectPlacement(zone, gameState.currentDraggedItem);
+    } else {
+        // Incorrect placement
+        handleIncorrectPlacement(gameState.currentDraggedItem);
+    }
+    
+    gameState.currentDraggedItem = null;
+}
+
+// ============================================
+// TOUCH HANDLERS FOR MOBILE
+// ============================================
+
+let touchData = {
+    element: null,
+    startX: 0,
+    startY: 0,
+    clone: null
+};
+
+function handleTouchStart(e) {
+    if (!gameState.isPlaying) {
+        e.preventDefault();
+        return;
+    }
+    
+    touchData.element = e.currentTarget;
+    const touch = e.touches[0];
+    touchData.startX = touch.clientX;
+    touchData.startY = touch.clientY;
+    
+    // Create visual clone for dragging
+    touchData.clone = touchData.element.cloneNode(true);
+    touchData.clone.style.position = 'fixed';
+    touchData.clone.style.pointerEvents = 'none';
+    touchData.clone.style.opacity = '0.7';
+    touchData.clone.style.zIndex = '1000';
+    document.body.appendChild(touchData.clone);
+    
+    updateClonePosition(touch.clientX, touch.clientY);
+    
+    if (soundEffects.click) soundEffects.click();
+}
+
+function handleTouchMove(e) {
+    if (!touchData.element) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    updateClonePosition(touch.clientX, touch.clientY);
+}
+
+function handleTouchEnd(e) {
+    if (!touchData.element) return;
+    
+    const touch = e.changedTouches[0];
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Remove clone
+    if (touchData.clone) {
+        touchData.clone.remove();
+    }
+    
+    // Find category zone
+    const zone = dropTarget?.closest('.category-zone');
+    if (zone) {
+        const tipCategory = touchData.element.dataset.category;
+        const zoneCategory = zone.dataset.category;
+        
+        if (tipCategory === zoneCategory) {
+            handleCorrectPlacement(zone, touchData.element);
+        } else {
+            handleIncorrectPlacement(touchData.element);
+        }
+    }
+    
+    // Reset touch data
+    touchData = { element: null, startX: 0, startY: 0, clone: null };
+}
+
+function updateClonePosition(x, y) {
+    if (touchData.clone) {
+        touchData.clone.style.left = (x - 50) + 'px';
+        touchData.clone.style.top = (y - 20) + 'px';
+    }
+}
+
+// ============================================
+// PLACEMENT HANDLERS
+// ============================================
+
+function handleCorrectPlacement(zone, tipElement) {
+    // Visual feedback
+    tipElement.classList.add('correct');
+    
+    // Play correct sound
+    if (soundEffects.correct) soundEffects.correct();
+    
+    // Move to category
+    const categoryContent = zone.querySelector('.category-content');
+    categoryContent.appendChild(tipElement);
+    
+    // Update score and progress
+    gameState.score += 10;
+    gameState.sortedTips++;
+    
+    updateScore();
+    updateProgress();
+    
+    // Remove draggable
+    tipElement.draggable = false;
+    tipElement.style.cursor = 'default';
+    
+    // Update story
+    updateStoryText(getEncouragementMessage());
+    
+    // Check if all sorted
+    if (gameState.sortedTips >= gameState.totalTips) {
+        setTimeout(() => endGame('complete'), 500);
+    }
+}
+
+function handleIncorrectPlacement(tipElement) {
+    // Visual feedback
+    tipElement.classList.add('incorrect');
+    
+    // Play incorrect sound
+    if (soundEffects.incorrect) soundEffects.incorrect();
+    
+    // Deduct score
+    gameState.score = Math.max(0, gameState.score - 5);
+    updateScore();
+    
+    // Update story
+    updateStoryText("Oops! That doesn't fit there. Try another category!");
+    
+    // Remove incorrect class after animation
+    setTimeout(() => {
+        tipElement.classList.remove('incorrect');
+    }, 500);
+}
+
+// ============================================
+// UI UPDATE FUNCTIONS
+// ============================================
+
+function updateScore() {
+    document.getElementById('score').textContent = gameState.score;
+}
+
+function updateProgress() {
+    document.getElementById('progress').textContent = `${gameState.sortedTips}/${gameState.totalTips}`;
+}
+
+function updateStoryText(text) {
+    document.getElementById('story-text').textContent = text;
+}
+
+function enableDragging(enabled) {
+    const tips = document.querySelectorAll('.tip-item');
+    tips.forEach(tip => {
+        tip.draggable = enabled;
+    });
+}
+
+// ============================================
+// TOOLTIP FUNCTIONS
+// ============================================
+
+function showTooltip(text) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = text;
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('show');
+}
+
+// ============================================
+// RESULTS AND MODAL
+// ============================================
+
+function showResults(reason) {
+    const modal = document.getElementById('result-modal');
+    const title = document.getElementById('result-title');
+    const message = document.getElementById('result-message');
+    const details = document.getElementById('result-details');
+    
+    if (reason === 'complete') {
+        title.textContent = '🎉 Quest Complete!';
+        message.textContent = `Congratulations! You've successfully prepared for your interview!`;
+        
+        // Calculate performance
+        const timeBonus = gameState.timeLeft * 2;
+        const finalScore = gameState.score + timeBonus;
+        
+        details.innerHTML = `
+            <p><strong>Final Score:</strong> ${finalScore}</p>
+            <p><strong>Base Score:</strong> ${gameState.score}</p>
+            <p><strong>Time Bonus:</strong> ${timeBonus}</p>
+            <p><strong>Time Remaining:</strong> ${gameState.timeLeft}s</p>
+            <p style="margin-top: 15px; color: #667eea;">You're now ready to ace that interview! Remember these tips for your real interview day.</p>
+        `;
+        
+        // Play victory sound
+        if (soundEffects.victory) soundEffects.victory();
+        
+    } else if (reason === 'timeout') {
+        title.textContent = '⏰ Time\'s Up!';
+        message.textContent = `The interview started before you finished preparing!`;
+        
+        details.innerHTML = `
+            <p><strong>Score:</strong> ${gameState.score}</p>
+            <p><strong>Tips Sorted:</strong> ${gameState.sortedTips}/${gameState.totalTips}</p>
+            <p style="margin-top: 15px; color: #ff6b6b;">Don't worry! Practice makes perfect. Try again to improve your time management skills!</p>
+        `;
+    }
+    
+    modal.classList.add('show');
+}
+
+function closeModal() {
+    const modal = document.getElementById('result-modal');
+    modal.classList.remove('show');
+    resetGame();
+}
+
+// ============================================
+// SOUND CONTROL
+// ============================================
+
+function toggleSound() {
+    gameState.soundEnabled = !gameState.soundEnabled;
+    const btn = document.getElementById('sound-toggle');
+    btn.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+    
+    if (soundEffects.click) soundEffects.click();
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function getEncouragementMessage() {
+    const messages = [
+        "Great job! Keep going!",
+        "You're doing awesome!",
+        "Perfect placement!",
+        "You're a natural!",
+        "Excellent work!",
+        "You've got this!",
+        "Fantastic sorting!",
+        "You're on fire!",
+        "Keep up the great work!",
+        "Almost there!"
+    ];
+    
+    return messages[Math.floor(Math.random() * messages.length)];
+}
+
+// ============================================
+// ACCESSIBILITY ENHANCEMENTS
+// ============================================
+
+// Keyboard navigation support
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('result-modal');
+        if (modal.classList.contains('show')) {
+            closeModal();
+        }
+    }
+});
+
+// Prevent accidental page navigation during drag
+document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+});
+
+document.addEventListener('drop', (e) => {
+    e.preventDefault();
+});

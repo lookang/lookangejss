@@ -1,0 +1,535 @@
+<html>
+  <head>
+    <title> Rainbows_Exercise_5.py</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Rainbows_Exercise_5.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Plot the irradiance as a function of
+    </p>
+    <p style="margin-top: 0">
+      # deflection angle for rays undergoing
+    </p>
+    <p style="margin-top: 0">
+      # a single internal reflection,
+    </p>
+    <p style="margin-top: 0">
+      # assuming a spherical water drop
+    </p>
+    <p style="margin-top: 0">
+      # and two wavelengths.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Here, as a 'zeroeth' approximation,
+    </p>
+    <p style="margin-top: 0">
+      # the Fresnel coefficients are NOT taken into account.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # The refractive index of water is taken from
+    </p>
+    <p style="margin-top: 0">
+      # Eq. 3 of P.D.T Huibers, Applied Optics,
+    </p>
+    <p style="margin-top: 0">
+      # Vol. 36, No. 16, pp. 3785-3787 (1997).
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # The refractive index of air is taken from
+    </p>
+    <p style="margin-top: 0">
+      # Eq. 1 of P.E. Ciddor, Applied Optics,
+    </p>
+    <p style="margin-top: 0">
+      # Vol. 35, No. 9, pp. 1566-1573 (1996).
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Written by:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20160109 by ERB
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      from __future__ import print_function
+    </p>
+    <p style="margin-top: 0">
+      from pylab import 
+      figure,plot,xlim,xlabel,ylim,ylabel,grid,legend,title,show
+    </p>
+    <p style="margin-top: 0">
+      from math import pi,asin
+    </p>
+    <p style="margin-top: 0">
+      from numpy import linspace,arcsin,sin,exp,zeros,argmin,argmax
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the index of refraction function for water
+    </p>
+    <p style="margin-top: 0">
+      def water_index(wavelength):
+    </p>
+    <p style="margin-top: 0">
+      n_H2O = 1.31279 + 15.762/wavelength - 4382.0/(wavelength**2) + 
+      1.1455e6/(wavelength**3)
+    </p>
+    <p style="margin-top: 0">
+      return(n_H2O)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the index of refraction function for air
+    </p>
+    <p style="margin-top: 0">
+      # Note: wavelength is supposed to be in micrometers
+    </p>
+    <p style="margin-top: 0">
+      def air_index_minus_one(wavelength):
+    </p>
+    <p style="margin-top: 0">
+      term1 = 0.05792105/(238.0185 - 1.0e6/(wavelength**2))
+    </p>
+    <p style="margin-top: 0">
+      term2 = 0.00167917/(57.362 - 1.0e6/(wavelength**2))
+    </p>
+    <p style="margin-top: 0">
+      return(term1+term2)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Inputs
+    </p>
+    <p style="margin-top: 0">
+      wavelength_r = 650 # vacuum wavelength in nm (&quot;red&quot;)
+    </p>
+    <p style="margin-top: 0">
+      wavelength_v = 400 # vacuum wavelength in nm (&quot;violet&quot;)
+    </p>
+    <p style="margin-top: 0">
+      n_r = water_index(wavelength_r) # refractive index of water at 
+      wavelength_r
+    </p>
+    <p style="margin-top: 0">
+      n_v = water_index(wavelength_v) # refractive index of water at 
+      wavelength_v
+    </p>
+    <p style="margin-top: 0">
+      npts = 801 # the number of scaled impact parameters, i.e., rays
+    </p>
+    <p style="margin-top: 0">
+      width = 1.0 # angular width of ray [deg]
+    </p>
+    <p style="margin-top: 0">
+      ndetpts = 501 # the number of detector points
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      n_ar = 1.0 + air_index_minus_one(wavelength_r) # refractive index of air 
+      at wavelength_r
+    </p>
+    <p style="margin-top: 0">
+      n_av = 1.0 + air_index_minus_one(wavelength_v) # refractive index of air 
+      at wavelength_v
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the array of uniformly distributed scaled impact parameters
+    </p>
+    <p style="margin-top: 0">
+      scaled_b = linspace(0.0,1.0,npts)
+    </p>
+    <p style="margin-top: 0">
+      # Generate the corresponding array of incident angle values [rad]
+    </p>
+    <p style="margin-top: 0">
+      theta_i = arcsin(scaled_b)
+    </p>
+    <p style="margin-top: 0">
+      # Generate the corresponding array of incident angle values [deg]
+    </p>
+    <p style="margin-top: 0">
+      theta_i_deg = 180.0*theta_i/pi
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set up the arrays of deflection angles
+    </p>
+    <p style="margin-top: 0">
+      theta_r = zeros(npts)
+    </p>
+    <p style="margin-top: 0">
+      theta_v = zeros(npts)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the refraction angle for each incident angle
+    </p>
+    <p style="margin-top: 0">
+      # and for red and for violet light
+    </p>
+    <p style="margin-top: 0">
+      for j in range(0,npts):
+    </p>
+    <p style="margin-top: 0">
+      theta_r[j] = asin((n_ar/n_r)*sin(theta_i[j]))
+    </p>
+    <p style="margin-top: 0">
+      theta_v[j] = asin((n_av/n_v)*sin(theta_i[j]))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the deflection angle for each incident angle for red light
+    </p>
+    <p style="margin-top: 0">
+      theta1r = 2.0*(theta_i - theta_r) + 1.0*(pi - 2.0*theta_r) # First 
+      deflection function
+    </p>
+    <p style="margin-top: 0">
+      theta1r_deg = theta1r*180.0/pi
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the deflection angle for each incident angle for violet light
+    </p>
+    <p style="margin-top: 0">
+      theta1v = 2.0*(theta_i - theta_v) + 1.0*(pi - 2.0*theta_v) # First 
+      deflection function
+    </p>
+    <p style="margin-top: 0">
+      theta1v_deg = theta1v*180.0/pi
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The primary rainbow deflection angle for red light is 
+      &quot;,min(theta1r_deg))
+    </p>
+    <p style="margin-top: 0">
+      # The index of this value is
+    </p>
+    <p style="margin-top: 0">
+      index_r = argmin(theta1r_deg)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;This primary rainbow deflection angle for red light corresponds 
+      to&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;an incident angle of &quot;,theta_i_deg[index_r],&quot; deg.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The red band of the primary rainbow appears at 
+      &quot;,180.0-min(theta1r_deg),&quot; above the horizontal.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot; &quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The primary rainbow deflection angle for violet light is 
+      &quot;,min(theta1v_deg))
+    </p>
+    <p style="margin-top: 0">
+      # The index of this value is
+    </p>
+    <p style="margin-top: 0">
+      index_v = argmin(theta1v_deg)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;This primary rainbow deflection angle for violet light 
+      corresponds to&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;an incident angle of &quot;,theta_i_deg[index_v],&quot; deg.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The violet band of the primary rainbow appears at 
+      &quot;,180.0-min(theta1v_deg),&quot; above the horizontal.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot; &quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set up the array of irradiance versus deflection angle
+    </p>
+    <p style="margin-top: 0">
+      deflection_angles_deg = linspace(130,180,ndetpts)
+    </p>
+    <p style="margin-top: 0">
+      irradiance_r = zeros(ndetpts)
+    </p>
+    <p style="margin-top: 0">
+      irradiance_v = zeros(ndetpts)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Accummulate irradiance from each ray
+    </p>
+    <p style="margin-top: 0">
+      # that corresponds to one impact parameter
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      for i in range(0,ndetpts):
+    </p>
+    <p style="margin-top: 0">
+      # for every detection angle...
+    </p>
+    <p style="margin-top: 0">
+      for j in range(0,npts):
+    </p>
+    <p style="margin-top: 0">
+      # accumulate the irradiance into a particular angle from each ray
+    </p>
+    <p style="margin-top: 0">
+      irradiance_r[i] = irradiance_r[i] + exp(-((deflection_angles_deg[i] - 
+      theta1r_deg[j])/width)**2)
+    </p>
+    <p style="margin-top: 0">
+      irradiance_v[i] = irradiance_v[i] + exp(-((deflection_angles_deg[i] - 
+      theta1v_deg[j])/width)**2)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Scale the intensities
+    </p>
+    <p style="margin-top: 0">
+      scaled_irradiance_r = irradiance_r/max(irradiance_r)
+    </p>
+    <p style="margin-top: 0">
+      scaled_irradiance_v = irradiance_v/max(irradiance_v)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # The index of this value at which the maximum scaled irradiance occurs 
+      is
+    </p>
+    <p style="margin-top: 0">
+      index_r_irradiance = argmax(scaled_irradiance_r)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The detection angle at which &quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;the red irradiance is maximum = 
+      &quot;,deflection_angles_deg[index_r_irradiance],&quot; deg.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The maximum appears 
+      &quot;,180.0-deflection_angles_deg[index_r_irradiance], &quot; deg. above the 
+      horizontal.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot; &quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # The index of this value is
+    </p>
+    <p style="margin-top: 0">
+      index_v_irradiance = argmax(scaled_irradiance_v)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The detection angle at which &quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;the violet irradiance is maximum = 
+      &quot;,deflection_angles_deg[index_v_irradiance],&quot; deg.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The maximum appears 
+      &quot;,180.0-deflection_angles_deg[index_v_irradiance], &quot; deg. above the 
+      horizontal.&quot;)
+    </p>
+    <p style="margin-top: 0">
+      print(&quot; &quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #----------------------------------------------------------------------
+    </p>
+    <p style="margin-top: 0">
+      # Start a new figure. This will be a plot of the
+    </p>
+    <p style="margin-top: 0">
+      # scaled irradiance versus deflection angles
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set the limits of the horizontal axis
+    </p>
+    <p style="margin-top: 0">
+      xlim(130,180)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the horizontal axis
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;Detection angle relative to incident ray $\\phi$ [deg]&quot;, size = 
+      16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set the limits of the vertical axis
+    </p>
+    <p style="margin-top: 0">
+      ylim(0.0,1.0)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the vertical axis
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;Scaled irradiance $I/I_{max}$&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Draw a grid
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the deflection functions
+    </p>
+    <p style="margin-top: 0">
+      plot(deflection_angles_deg,scaled_irradiance_r,&quot;r-&quot;,label=&quot;$\lambda = 
+      650 \\, {\\rm nm}$&quot;)
+    </p>
+    <p style="margin-top: 0">
+      plot(deflection_angles_deg,scaled_irradiance_v,&quot;b-&quot;,label=&quot;$\lambda = 
+      400 \\, {\\rm nm}$&quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the legend
+    </p>
+    <p style="margin-top: 0">
+      legend(loc=1)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the title
+    </p>
+    <p style="margin-top: 0">
+      title(&quot;Crude estimate of irradiance versus deflection angle\n for one 
+      internal reflection&quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

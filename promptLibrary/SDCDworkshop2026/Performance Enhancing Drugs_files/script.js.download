@@ -1,0 +1,333 @@
+// Performance Enhancing Drugs Interactive Module
+// Designed following cognitive load theory and Mayer's multimedia principles
+
+// Drug data structure - organized for easy access and maintenance
+const drugData = {
+    stimulants: {
+        title: "Stimulants",
+        icon: "⚡",
+        effect: "Increase alertness and competitiveness",
+        sideEffects: [
+            "Difficulty sleeping (insomnia)",
+            "Increased anxiety and aggression",
+            "Heart attack or stroke",
+            "Involuntary shaking or trembling",
+            "Problems with coordination and balance",
+            "Increased and irregular heart rate"
+        ]
+    },
+    anabolic: {
+        title: "Anabolic Agents",
+        icon: "💪",
+        effect: "Make muscles grow bigger and stronger",
+        sideEffects: [
+            "Acne",
+            "Hair loss",
+            "Suicidal thoughts",
+            "Mood swings",
+            "Increased aggression",
+            "Higher risk of liver and cardiovascular disease"
+        ],
+        genderSpecific: {
+            men: [
+                "Breast growth",
+                "Smaller testicles"
+            ],
+            women: [
+                "Deeper voice",
+                "Abnormal menstrual cycles",
+                "Excessive facial and body hair"
+            ]
+        }
+    },
+    diuretics: {
+        title: "Diuretics (Masking Agents)",
+        icon: "🎭",
+        effect: "Cover up signs of drug abuse",
+        sideEffects: [
+            "Dehydration",
+            "Muscle cramps",
+            "Low blood pressure",
+            "Cardiac disorders",
+            "Confusion and moodiness",
+            "Dizziness and fainting spells",
+            "Loss of coordination and balance"
+        ]
+    },
+    epo: {
+        title: "Erythropoietin (EPO)",
+        icon: "🫁",
+        effect: "Helps with the way the body uses oxygen",
+        sideEffects: [
+            "High blood pressure",
+            "Thickening of the blood",
+            "Fatigue"
+        ]
+    },
+    growth: {
+        title: "Growth Hormones",
+        icon: "📈",
+        effect: "Help repair and strengthen muscles and bones",
+        sideEffects: [
+            "Crippling arthritis",
+            "Damage to the liver, thyroid and vision",
+            "Enlarged heart and even heart failure",
+            "Acromegaly, with symptoms such as a protruding forehead and jaw"
+        ]
+    },
+    beta: {
+        title: "Beta Blockers",
+        icon: "🧘",
+        effect: "Reduce anxiety and relax muscles; lower heart rate and reduce tremors",
+        sideEffects: [
+            "Drowsiness",
+            "Headache",
+            "Dizziness",
+            "Upset stomach, constipation or diarrhoea",
+            "Tingling or coldness in the hands or feet"
+        ]
+    }
+};
+
+// Initialize the application when DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAccordion();
+    initializeDrugCards();
+    initializeModal();
+    detectStandaloneMode();
+});
+
+// Detect if opened in standalone mode (new tab) vs iframe
+function detectStandaloneMode() {
+    try {
+        if (window.self === window.top) {
+            document.body.classList.add('standalone');
+        }
+    } catch (e) {
+        // If we can't access window.top, we're likely in an iframe
+        console.log('Running in iframe mode');
+    }
+}
+
+// Initialize accordion functionality
+// Implements progressive disclosure to reduce cognitive load
+function initializeAccordion() {
+    const accordionButtons = document.querySelectorAll('.accordion-button');
+    
+    accordionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Toggle active state
+            const isActive = this.classList.contains('active');
+            
+            // Close all accordion items (one at a time principle)
+            accordionButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.nextElementSibling.classList.remove('active');
+            });
+            
+            // Open clicked item if it wasn't active
+            if (!isActive) {
+                this.classList.add('active');
+                this.nextElementSibling.classList.add('active');
+            }
+        });
+        
+        // Keyboard accessibility
+        button.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+            }
+        });
+    });
+}
+
+// Initialize drug cards with click handlers
+function initializeDrugCards() {
+    const drugCards = document.querySelectorAll('.drug-card');
+    
+    drugCards.forEach(card => {
+        // Mouse click event
+        card.addEventListener('click', function() {
+            const drugType = this.getAttribute('data-drug');
+            showDrugModal(drugType);
+        });
+        
+        // Keyboard accessibility
+        card.setAttribute('tabindex', '0');
+        card.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const drugType = this.getAttribute('data-drug');
+                showDrugModal(drugType);
+            }
+        });
+        
+        // Touch feedback for mobile devices
+        card.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        card.addEventListener('touchend', function() {
+            this.style.transform = '';
+        });
+    });
+}
+
+// Initialize modal functionality
+function initializeModal() {
+    const modal = document.getElementById('drug-modal');
+    const closeBtn = document.querySelector('.modal-close');
+    
+    // Close modal when clicking close button
+    closeBtn.addEventListener('click', closeModal);
+    
+    // Close modal when clicking outside content
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+}
+
+// Show modal with drug information
+// Implements spatial contiguity principle - related information presented together
+function showDrugModal(drugType) {
+    const drug = drugData[drugType];
+    if (!drug) return;
+    
+    const modal = document.getElementById('drug-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalEffect = document.getElementById('modal-effect');
+    const modalSideEffects = document.getElementById('modal-side-effects');
+    
+    // Set title and effect
+    modalTitle.textContent = drug.title;
+    modalEffect.textContent = drug.effect;
+    
+    // Build side effects list
+    let sideEffectsHTML = '<h3>Common Side Effects:</h3><ul>';
+    drug.sideEffects.forEach(effect => {
+        sideEffectsHTML += `<li>${effect}</li>`;
+    });
+    sideEffectsHTML += '</ul>';
+    
+    // Add gender-specific effects if available (for anabolic agents)
+    if (drug.genderSpecific) {
+        sideEffectsHTML += '<div class="gender-specific">';
+        sideEffectsHTML += '<h4>Side Effects Specific to Men:</h4><ul>';
+        drug.genderSpecific.men.forEach(effect => {
+            sideEffectsHTML += `<li>${effect}</li>`;
+        });
+        sideEffectsHTML += '</ul></div>';
+        
+        sideEffectsHTML += '<div class="gender-specific">';
+        sideEffectsHTML += '<h4>Side Effects Specific to Women:</h4><ul>';
+        drug.genderSpecific.women.forEach(effect => {
+            sideEffectsHTML += `<li>${effect}</li>`;
+        });
+        sideEffectsHTML += '</ul></div>';
+    }
+    
+    modalSideEffects.innerHTML = sideEffectsHTML;
+    
+    // Show modal with animation
+    modal.classList.add('active');
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+}
+
+// Close modal
+function closeModal() {
+    const modal = document.getElementById('drug-modal');
+    modal.classList.remove('active');
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+}
+
+// Smooth scroll behavior for better UX
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Performance optimization - debounce resize events
+let resizeTimer;
+window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+        // Recalculate layout if needed
+        console.log('Window resized');
+    }, 250);
+});
+
+// Analytics helper - track user interactions (optional)
+function trackInteraction(action, label) {
+    console.log(`User interaction: ${action} - ${label}`);
+    // Can be extended to send data to analytics service
+}
+
+// Add interaction tracking to key elements
+document.querySelectorAll('.accordion-button').forEach(button => {
+    button.addEventListener('click', function() {
+        trackInteraction('accordion_click', this.querySelector('.accordion-title').textContent);
+    });
+});
+
+document.querySelectorAll('.drug-card').forEach(card => {
+    card.addEventListener('click', function() {
+        trackInteraction('drug_card_click', this.getAttribute('data-drug'));
+    });
+});
+
+// Accessibility announcement for screen readers
+function announceToScreenReader(message) {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.className = 'sr-only';
+    announcement.textContent = message;
+    document.body.appendChild(announcement);
+    
+    setTimeout(() => {
+        document.body.removeChild(announcement);
+    }, 1000);
+}
+
+// Add screen reader only class to CSS dynamically if not present
+const style = document.createElement('style');
+style.textContent = `
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+`;
+document.head.appendChild(style);
+
+// Console log for debugging
+console.log('Performance Enhancing Drugs Interactive Module Loaded');
+console.log('Drug data available for:', Object.keys(drugData).join(', '));

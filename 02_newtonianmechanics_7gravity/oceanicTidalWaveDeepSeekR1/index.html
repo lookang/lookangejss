@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tidal Earth and Moon System Simulation with Controls</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Styles remain unchanged */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .controls {
+            padding: 1rem;
+            background: #111;
+            width: 100%;
+            max-width: 800px; /* Fixed maximum width */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: space-between; /* Distribute elements evenly */
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .controls > div,
+        .controls > button {
+            flex: 1 1 auto; /* Allow elements to grow and shrink */
+            min-width: 150px; /* Prevent elements from shrinking too much */
+        }
+
+        #simulation {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 600px;
+            max-height: 600px;
+            position: relative;
+            margin: 1rem auto;
+        }
+
+        .earth {
+            width: 50%;
+            height: 50%;
+            border-radius: 50%;
+            position: absolute;
+            left: 25%;
+            top: 25%;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 100, 255, 0.5);
+        }
+
+        .earth img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .moon {
+            width: 12.5%;
+            height: 12.5%;
+            border-radius: 50%;
+            position: absolute;
+            overflow: hidden;
+            transition: all 0.1s linear;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        .moon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .tidal-bulge {
+            position: absolute;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+        }
+
+        .label {
+            position: absolute;
+            color: white;
+            font-size: 1.2em;
+            text-shadow: 1px 1px 2px black;
+            white-space: nowrap;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .earth-label {
+            bottom: -30px;
+        }
+
+        .moon-label {
+            bottom: -25px;
+        }
+
+        .description {
+            max-width: 800px;
+            padding: 2rem;
+            line-height: 1.6;
+            background: #111;
+            margin: 1rem;
+            border-radius: 10px;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background: #0022ff;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-family: Arial, sans-serif;
+            font-size: 1rem;
+            min-width: 100px; /* Prevent buttons from shrinking */
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .time-display {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .angle-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: nowrap; /* Prevent wrapping */
+        }
+
+        /* Style for angle display */
+        .angle-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #00ff00;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        /* Ensure slider doesn't cause layout shifts */
+        input[type="range"] {
+            width: 150px; /* Fixed width for slider */
+            margin-right: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+      Earth's Ocean due to Moon Tidal Simulation, not drawn to scale
+      <div class="angle-control">
+        &#127769; Angle : 
+        <input type="range" id="angleSlider" min="0" max="360" value="0">
+        <span class="angle-display">Angle: <span id="angleValue">000</span>°</span>
+      </div>
+        <button id="toggle">&#9208; Pause</button>
+        <button id="step">&#9193; Step</button>
+        <button id="reset">&#128260; Reset</button>
+      
+        <div class="time-display">
+            🕒 Time: <span id="time">0.0</span> hours
+        </div>
+    </div>
+
+    <div id="simulation">
+        <div class="tidal-bulge"></div>
+        <div class="earth">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg" alt="Earth">
+            <div class="label earth-label">Earth</div>
+        </div>
+        <div class="moon">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg" alt="Moon">
+            <div class="label moon-label">Moon</div>
+        </div>
+    </div>
+
+    <div class="description">
+        <h2>Physics-Accurate Tidal Simulation</h2>
+        <p>Features:</p>
+        <ul>
+            <li>Clear Earth/Moon labels</li>
+            <li>Direct angle control slider</li>
+            <li>Real-time tidal bulge visualization</li>
+            <li>Accurate gravitational deformation</li>
+            <li>Time tracking (1 hour = 15° rotation)</li>
+        </ul>
+        <p>Use the angle slider to directly control the Moon's position relative to Earth.</p>
+        <p style="color: #888; margin-top: 1rem;">
+            Created by weelookang@gmail.com<br>
+            Based on original concept by butikov.faculty.ifmo.ru
+        </p>
+    </div>
+
+    <script>
+        const moon = document.querySelector('.moon');
+        const tidalBulge = document.querySelector('.tidal-bulge');
+        const timeDisplay = document.querySelector('#time');
+        const angleSlider = document.querySelector('#angleSlider');
+        const angleValueDisplay = document.querySelector('#angleValue');
+
+        // Simulation parameters
+        let isAnimating = true;
+        let angle = 0;
+        const TIDAL_DEFORMATION = 0.1;
+
+        function updateTidalBulge() {
+            const earthSize = tidalBulge.parentElement.offsetWidth * 0.5;
+            const majorAxis = earthSize * (1 + TIDAL_DEFORMATION);
+            const minorAxis = earthSize / (1 + TIDAL_DEFORMATION);
+
+            tidalBulge.style.width = `${majorAxis}px`;
+            tidalBulge.style.height = `${minorAxis}px`;
+            tidalBulge.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        }
+
+        function updateMoonPosition() {
+            const simWidth = document.querySelector('#simulation').offsetWidth;
+            const radius = simWidth * 0.375;
+            const centerX = simWidth / 2 - moon.offsetWidth / 2;
+            const centerY = simWidth / 2 - moon.offsetHeight / 2;
+
+            moon.style.left = `${centerX + radius * Math.cos(angle * Math.PI / 180)}px`;
+            moon.style.top = `${centerY + radius * Math.sin(angle * Math.PI / 180)}px`;
+
+            // Update time display with one decimal place
+            timeDisplay.textContent = ((angle % 360) / 15).toFixed(1); // Convert angle to hours
+        }
+
+        function animate() {
+            if (isAnimating) {
+                angle += 1; // 0.5;
+
+                // Ensure angle stays within 0-359
+                angle = angle % 360;
+
+                // Update slider value and display
+                angleSlider.value = angle;
+                angleValueDisplay.textContent = String(angle).padStart(3, '0'); // Format as XXX
+
+                updateMoonPosition();
+                updateTidalBulge();
+
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // Event handlers
+        document.querySelector('#toggle').addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            document.querySelector('#toggle').innerHTML = isAnimating ? '&#9208; Pause' : '&#9654; Play';
+            if (isAnimating) animate();
+        });
+
+        document.querySelector('#step').addEventListener('click', () => {
+            angle = (angle + 5) % 360; // Increment by 5°
+            angleSlider.value = angle;
+            angleValueDisplay.textContent = String(angle).padStart(3, '0'); // Format as XXX
+
+            updateMoonPosition();
+            updateTidalBulge();
+        });
+
+        document.querySelector('#reset').addEventListener('click', () => {
+            angle = 0;
+            isAnimating = false;
+            document.querySelector('#toggle').innerHTML = '&#9654; Play';
+
+            // Reset slider value and display
+            angleSlider.value = angle;
+            angleValueDisplay.textContent = String(angle).padStart(3, '0'); // Format as XXX
+
+            updateMoonPosition();
+            updateTidalBulge();
+        });
+
+        angleSlider.addEventListener('input', (e) => {
+            // Snap to nearest 5 degrees
+            angle = Math.round(parseFloat(e.target.value) / 5) * 5;
+            angle = angle % 360; // Ensure angle stays within 0-359
+
+            // Update slider value and display
+            angleSlider.value = angle;
+            angleValueDisplay.textContent = String(angle).padStart(3, '0'); // Format as XXX
+
+            isAnimating = false;
+            document.querySelector('#toggle').innerHTML = '&#9654; Play';
+
+            updateMoonPosition();
+            updateTidalBulge();
+        });
+
+        // Initial setup
+        updateMoonPosition();
+        updateTidalBulge();
+        animate();
+    </script>
+</body>
+</html>

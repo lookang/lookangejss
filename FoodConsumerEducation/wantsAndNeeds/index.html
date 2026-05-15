@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Allowance Adventure </title>
+
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      @font-face {
+        font-family: 'LucideIcons';
+        src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf) format('truetype');
+      }
+      .lucide {
+        font-family: 'LucideIcons';
+        font-size: 1.2rem;
+        line-height: 1;
+        vertical-align: middle;
+        display: inline-block;
+      }
+      /* Basic styling for buy button feedback */
+      .buy-button.bought {
+          background-color: #d1fae5;
+          color: #065f46;
+          cursor: not-allowed;
+          opacity: 0.7;
+      }
+      /* Styling for level buttons */
+      .level-button {
+          transition: all 0.2s ease-in-out;
+      }
+      .level-button.active {
+          background-color: #6d28d9;
+          color: white;
+          font-weight: bold;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      }
+      .level-button:not(.active):hover {
+           background-color: #ede9fe;
+      }
+      /* Update items container to grid layout */
+      #items-container {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+      }
+      #items-container > div {
+          min-width: 0; /* Remove fixed min-width */
+      }
+      /* Ensure cart items are list items */
+       #cart-list li {
+           list-style: none;
+           padding-left: 0;
+       }
+
+    </style>
+    <script>
+        // Basic Tailwind configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'], // Use Inter font
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 min-h-screen font-sans p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8">
+
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-purple-700 mb-2">Allowance Adventure!</h1>
+            <p class="text-gray-600">Manage your budget, buy needs first, and see what's left for wants and savings!</p>
+        </header>
+
+        <div id="level-selection" class="text-center mb-6 flex justify-center gap-4">
+            <button data-level="student" class="level-button active bg-violet-50 border border-violet-200 text-violet-700 font-medium py-2 px-5 rounded-lg shadow-sm">
+                Student Week
+            </button>
+            <button data-level="adult" class="level-button bg-violet-50 border border-violet-200 text-violet-700 font-medium py-2 px-5 rounded-lg shadow-sm">
+                Adult Paycheck
+            </button>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-around items-center mb-6 p-4 bg-gray-50 rounded-lg shadow-inner gap-4">
+            <div class="text-center">
+                <h2 class="text-lg font-semibold text-gray-700">Starting Budget:</h2>
+                <p class="text-2xl font-bold text-green-600">$<span id="initial-allowance">40.00</span></p>
+            </div>
+            <div class="text-center">
+                <h2 class="text-lg font-semibold text-gray-700">Money Left:</h2>
+                <p class="text-2xl font-bold text-blue-600">$<span id="current-budget">40.00</span></p>
+            </div>
+             <div class="text-center">
+                <h2 class="text-lg font-semibold text-gray-700">Actual Savings:</h2>
+                <p class="text-2xl font-bold text-yellow-600">$<span id="actual-savings">0.00</span></p>
+            </div>
+        </div>
+
+        <div id="message-area" class="mb-6 p-3 text-center rounded-md min-h-[3rem] flex items-center justify-center transition-all duration-300 ease-in-out bg-blue-100 text-blue-700">
+             <p class="font-medium">Select a level and start buying items!</p>
+        </div>
+
+        <div id="items-container" class="flex flex-wrap gap-4 md:gap-6 mb-8 justify-center">
+            </div>
+
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center"><span class="lucide mr-2">&#xf07a;</span> Your Shopping Cart</h3>
+            <ul id="cart-list" class="list-none pl-0 bg-gray-50 p-4 rounded-lg min-h-[5rem] text-gray-700">
+                <li id="empty-cart-message" class="text-gray-500 italic">Your cart is empty.</li>
+            </ul>
+        </div>
+
+        <div class="text-center mb-8"> 
+             <button id="finish-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg shadow mr-4 transition duration-150 ease-in-out" disabled>
+                Finish Shopping
+             </button>
+            <button id="reset-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg shadow transition duration-150 ease-in-out" disabled>
+                Reset Level
+            </button>
+        </div>
+
+        <footer class="text-center text-sm text-gray-500 mt-8 pt-4 border-t border-gray-200">
+            <p>Created by <a href="mailto:weelookang@gmail.com" class="text-blue-600 hover:underline">weelookang@gmail.com</a> using Gemini Pro.</p>
+            <p> inspired by SLS module <a href="https://vle.learning.moe.edu.sg/moe-library/lesson/view/8016a8f0-b43b-4ade-bf72-ebbad0ada6e0/cover" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Needs and Wants</a></p>
+            <p><a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/others" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Explore more resources</a></p>
+        </footer>
+
+    </div> <script>
+        // --- Game Data ---
+        const levels = {
+            student: {
+                initialAllowance: 40.00,
+                items: [
+                    { id: 'bus', name: 'Weekly Bus Pass', minPrice: 13.00, maxPrice: 15.00, type: 'need', essential: true, icon: '&#xf079;' }, // bus
+                    { id: 'recess', name: 'School Recess (5 days)', minPrice: 11.50, maxPrice: 13.50, type: 'need', essential: true, icon: '&#xf0f5;' }, // food
+                    { id: 'lunch', name: 'School Lunch (5 days)', minPrice: 11.50, maxPrice: 13.50, type: 'need', essential: true, icon: '&#xf2e7;' }, // utensils
+                    { id: 'movie', name: 'Movie Ticket', minPrice: 7.00, maxPrice: 9.00, type: 'want', essential: false, icon: '&#xf008;' }, // film
+                    { id: 'game', name: 'Mobile Game', minPrice: 4.00, maxPrice: 6.00, type: 'want', essential: false, icon: '&#xf11b;' }, // gamepad
+                    { id: 'snack', name: 'Extra Snack', minPrice: 2.00, maxPrice: 3.50, type: 'want', essential: false, icon: '&#xf1fd;' }, // cake
+                    { id: 'book', name: 'Story Book', minPrice: 6.50, maxPrice: 8.50, type: 'want', essential: false, icon: '&#xf02d;' }, // book
+                    { id: 'savings_jar', name: 'Put in Savings Jar', minPrice: 5.00, maxPrice: 5.00, type: 'saving', essential: false, icon: '&#xf155;' } // dollar
+                ]
+            },
+            adult: {
+                initialAllowance: 500.00, // Example adult budget
+                items: [
+                    { id: 'rent', name: 'Rent Contribution', minPrice: 200.00, maxPrice: 250.00, type: 'need', essential: true, icon: '&#xf015;' }, // home
+                    { id: 'groceries', name: 'Groceries (Week)', minPrice: 80.00, maxPrice: 120.00, type: 'need', essential: true, icon: '&#xf07a;' }, // cart
+                    { id: 'utilities', name: 'Utilities (Share)', minPrice: 40.00, maxPrice: 60.00, type: 'need', essential: true, icon: '&#xf0e7;' }, // bolt/lightning
+                    { id: 'transport', name: 'Public Transport', minPrice: 35.00, maxPrice: 45.00, type: 'need', essential: true, icon: '&#xf207;' }, // bus-alt
+                    { id: 'phone', name: 'Phone Bill', minPrice: 25.00, maxPrice: 35.00, type: 'need', essential: true, icon: '&#xf095;' }, // phone
+                    { id: 'dinner_out', name: 'Dinner Out', minPrice: 20.00, maxPrice: 40.00, type: 'want', essential: false, icon: '&#xf2e7;' }, // utensils
+                    { id: 'streaming', name: 'Streaming Service', minPrice: 10.00, maxPrice: 15.00, type: 'want', essential: false, icon: '&#xf144;' }, // tv
+                    { id: 'coffee', name: 'Cafe Coffees', minPrice: 15.00, maxPrice: 25.00, type: 'want', essential: false, icon: '&#xf0f4;' }, // coffee mug
+                    { id: 'hobby', name: 'Hobby Supplies', minPrice: 20.00, maxPrice: 50.00, type: 'want', essential: false, icon: '&#xf06d;' }, // fire/passion
+                    { id: 'savings_invest', name: 'Save / Invest', minPrice: 50.00, maxPrice: 50.00, type: 'saving', essential: false, icon: '&#xf155;' } // dollar
+                ]
+            }
+        };
+
+        const randomEvents = [
+            { message: "You found $5 on the street!", budgetChange: 5.00, type: 'good' },
+            { message: "Unexpected bus fare increase this week.", budgetChange: -2.00, type: 'bad' },
+            { message: "Sold an old book online!", budgetChange: 7.50, type: 'good' },
+            { message: "Your phone charger broke! Need a new one.", budgetChange: -10.00, type: 'bad' },
+            { message: "Received a small rebate check.", budgetChange: 12.00, type: 'good' },
+            { message: "Oops! Late library book fine.", budgetChange: -3.00, type: 'bad' }
+        ];
+
+        // --- Game State ---
+        let currentLevel = 'student'; // Default level
+        let currentItems = []; // Holds items for the current level with randomized prices
+        let currentAllowance = 0;
+        let currentBudget = 0;
+        let purchasedItems = [];
+        let totalSpent = 0;
+        let explicitSavings = 0;
+
+        // --- DOM Elements ---
+        const initialAllowanceEl = document.getElementById('initial-allowance');
+        const currentBudgetEl = document.getElementById('current-budget');
+        const actualSavingsEl = document.getElementById('actual-savings');
+        const messageAreaEl = document.getElementById('message-area');
+        const itemsContainerEl = document.getElementById('items-container');
+        const cartListEl = document.getElementById('cart-list');
+        const emptyCartMessageEl = document.getElementById('empty-cart-message');
+        const finishButton = document.getElementById('finish-button');
+        const resetButton = document.getElementById('reset-button');
+        const levelSelectionContainer = document.getElementById('level-selection');
+
+        // --- Utility Functions ---
+
+        /** Shuffle array in place using Fisher-Yates */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+        }
+
+        /** Generate random price within min/max */
+        function getRandomPrice(min, max) {
+            if (min === max) return parseFloat(min.toFixed(2)); // Handle fixed prices (like savings)
+            const price = Math.random() * (max - min) + min;
+            return parseFloat(price.toFixed(2)); // Round to 2 decimal places
+        }
+
+        // --- Core Game Functions ---
+
+        /** Updates the displayed budget and actual savings */
+        function updateDisplay() {
+            initialAllowanceEl.textContent = currentAllowance.toFixed(2);
+            currentBudgetEl.textContent = currentBudget.toFixed(2);
+            // Actual savings = money left at the end (calculated differently now)
+            // We calculate this properly in finishShopping(). Here, just show money left.
+            // For consistency, let's rename "Actual Savings" display to "Money Left" or similar during play?
+            // Or calculate savings = allowance - (totalSpent - explicitSavings) ?
+            // Let's stick to the definition: Savings = Allowance - Spending on non-saving items
+            const nonSavingSpent = purchasedItems
+                .map(id => currentItems.find(item => item.id === id))
+                .filter(item => item && item.type !== 'saving')
+                .reduce((sum, item) => sum + item.currentPrice, 0);
+
+            const currentSavings = currentAllowance - nonSavingSpent;
+            // Display current savings potential based on items bought so far
+            actualSavingsEl.textContent = currentSavings.toFixed(2);
+        }
+
+
+        /** Displays messages to the user */
+        function showMessage(text, type = 'info') {
+            messageAreaEl.innerHTML = `<p class="font-medium">${text}</p>`;
+            messageAreaEl.className = 'mb-6 p-3 text-center rounded-md min-h-[3rem] flex items-center justify-center transition-all duration-300 ease-in-out'; // Reset classes
+            switch (type) {
+                case 'error': messageAreaEl.classList.add('bg-red-100', 'text-red-700'); break;
+                case 'success': messageAreaEl.classList.add('bg-green-100', 'text-green-700'); break;
+                case 'event_good': messageAreaEl.classList.add('bg-yellow-100', 'text-yellow-700'); break;
+                case 'event_bad': messageAreaEl.classList.add('bg-orange-100', 'text-orange-700'); break;
+                case 'info': default: messageAreaEl.classList.add('bg-blue-100', 'text-blue-700'); break;
+            }
+        }
+
+        /** Renders the items available for purchase */
+        function renderItems() {
+            itemsContainerEl.innerHTML = '';
+            currentItems.forEach(item => {
+                const isPurchased = purchasedItems.includes(item.id);
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `border rounded-lg p-4 shadow hover:shadow-md transition-shadow duration-150 ease-in-out flex flex-col justify-between ${item.type === 'need' ? 'border-red-300 bg-red-50' : (item.type === 'want' ? 'border-blue-300 bg-blue-50' : 'border-yellow-400 bg-yellow-50')}`;
+                itemDiv.innerHTML = `
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-800 mb-1 flex items-center">
+                            <span class="lucide mr-2">${item.icon}</span> ${item.name}
+                        </h4>
+                        <p class="text-sm font-bold mb-2 ${item.type === 'need' ? 'text-red-600' : (item.type === 'want' ? 'text-blue-600' : 'text-yellow-700')}">
+                            ${item.type.toUpperCase()} ${item.essential && item.type === 'need' ? '(Essential)' : ''}
+                        </p>
+                        <p class="text-xl font-bold text-gray-900 mb-3">$${item.currentPrice.toFixed(2)}</p>
+                    </div>
+                    <button
+                        class="buy-button w-full mt-auto bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 ease-in-out ${isPurchased ? 'bought' : ''}"
+                        data-id="${item.id}"
+                        ${isPurchased ? 'disabled' : ''}
+                    >
+                        ${isPurchased ? 'Purchased' : 'Buy'}
+                    </button>
+                `;
+                itemsContainerEl.appendChild(itemDiv);
+
+                // Add event listener to the button if not purchased
+                 const buyButton = itemDiv.querySelector('.buy-button');
+                 if (!isPurchased) {
+                     buyButton.addEventListener('click', () => buyItem(item.id));
+                 }
+            });
+        }
+
+        /** Handles buying an item */
+        function buyItem(itemId) {
+            const item = currentItems.find(i => i.id === itemId);
+            if (!item || purchasedItems.includes(itemId)) return;
+
+            if (currentBudget >= item.currentPrice) {
+                // Sufficient funds
+                currentBudget -= item.currentPrice;
+                totalSpent += item.currentPrice; // Keep track of total spent regardless of type
+                purchasedItems.push(item.id);
+
+                if (item.type === 'saving') {
+                    explicitSavings += item.currentPrice; // Track money explicitly saved
+                }
+
+                updateDisplay(); // Update budget and savings display
+                updateCart();
+                renderItems(); // Re-render to update button states
+                showMessage(`${item.name} purchased!`, 'success');
+
+                // Trigger random event? (e.g., 20% chance)
+                if (Math.random() < 0.20) {
+                    triggerRandomEvent();
+                }
+
+            } else {
+                // Insufficient funds
+                showMessage(`Not enough money to buy ${item.name}. You need $${item.currentPrice.toFixed(2)}, but only have $${currentBudget.toFixed(2)}.`, 'error');
+            }
+        }
+
+        /** Updates the shopping cart display */
+        function updateCart() {
+             cartListEl.innerHTML = ''; // Clear cart
+             const emptyMsg = document.getElementById('empty-cart-message');
+             if (purchasedItems.length === 0) {
+                 if(emptyMsg) emptyMsg.style.display = 'list-item'; // Show empty message if it exists
+                 else { // Create it if it doesn't exist (might be removed)
+                     const li = document.createElement('li');
+                     li.id = 'empty-cart-message';
+                     li.className = 'text-gray-500 italic';
+                     li.textContent = 'Your cart is empty.';
+                     cartListEl.appendChild(li);
+                 }
+                 return;
+             } else {
+                 if(emptyMsg) emptyMsg.style.display = 'none'; // Hide empty message
+             }
+
+
+            purchasedItems.forEach(itemId => {
+                const item = currentItems.find(i => i.id === itemId);
+                if (item) {
+                    const li = document.createElement('li');
+                    li.className = `mb-1 flex items-center ${item.type === 'need' ? 'text-red-700' : (item.type === 'want' ? 'text-blue-700' : 'text-yellow-800')}`;
+                    // Use textContent for safety against potential HTML injection if item names were dynamic
+                    li.innerHTML = `<span class="lucide mr-2 text-sm">${item.icon}</span> ${item.name} - $${item.currentPrice.toFixed(2)}`;
+                    cartListEl.appendChild(li);
+                }
+            });
+        }
+
+        /** Trigger a random event */
+        function triggerRandomEvent() {
+            const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+            let message = `Random Event: ${event.message}`;
+            let messageType = event.type === 'good' ? 'event_good' : 'event_bad';
+
+            if (event.budgetChange) {
+                // Check if applying change makes budget negative (for negative changes)
+                if (currentBudget + event.budgetChange < 0 && event.budgetChange < 0) {
+                     message += ` (But you don't have enough funds for this unexpected expense!)`;
+                     messageType = 'error'; // Treat as error if it makes budget negative
+                } else {
+                    currentBudget += event.budgetChange;
+                    message += ` ($${event.budgetChange > 0 ? '+' : ''}${event.budgetChange.toFixed(2)})`;
+                    updateDisplay(); // Update display after budget change
+                }
+            }
+             // Show event message after a short delay to allow purchase message to be seen
+             setTimeout(() => showMessage(message, messageType), 1500);
+        }
+
+
+        /** Checks results and provides feedback */
+        function finishShopping() {
+            const essentialNeeds = currentItems.filter(item => item.essential);
+            const missedEssentialNeeds = essentialNeeds.filter(item => !purchasedItems.includes(item.id));
+
+            let finalMessage = "";
+            let messageType = 'info';
+
+            // Final savings calculation: Money left in budget
+            const finalSavings = currentBudget;
+
+            // Update the "Actual Savings" display to show the final amount left
+            actualSavingsEl.textContent = finalSavings.toFixed(2);
+
+
+            if (missedEssentialNeeds.length > 0) {
+                finalMessage = `Uh oh! You finished but missed ${missedEssentialNeeds.length} essential need(s): ${missedEssentialNeeds.map(i => i.name).join(', ')}. Remember to cover needs first! You ended with $${finalSavings.toFixed(2)} left.`;
+                messageType = 'error';
+            } else {
+                 finalMessage = `Great job! You covered all essential needs for the ${currentLevel === 'student' ? 'week' : 'paycheck'}. You ended with $${finalSavings.toFixed(2)} left over. Well done budgeting!`;
+                 messageType = 'success';
+                 if (finalSavings >= levels[currentLevel].initialAllowance * 0.2) { // Saved 20% or more
+                    finalMessage += " That's excellent saving!";
+                 } else if (finalSavings > 0) {
+                    finalMessage += " Every bit saved helps!";
+                 } else if (finalSavings === 0 && totalSpent > 0) { // Check totalSpent > 0 to avoid message if nothing was bought
+                     finalMessage += " You spent exactly your budget!";
+                 } else if (finalSavings < 0) {
+                     finalMessage = `Oh dear! You seem to have overspent by $${Math.abs(finalSavings).toFixed(2)}. Remember to check prices before buying!`;
+                     messageType = 'error';
+                 }
+            }
+
+            showMessage(finalMessage, messageType);
+            // Disable buttons
+            document.querySelectorAll('.buy-button').forEach(btn => btn.disabled = true);
+            finishButton.disabled = true;
+            resetButton.disabled = false; // Allow resetting
+        }
+
+        /** Resets the game state for the current level */
+        function resetGame() {
+            const levelData = levels[currentLevel];
+            currentAllowance = levelData.initialAllowance;
+            currentBudget = currentAllowance;
+            purchasedItems = [];
+            totalSpent = 0;
+            explicitSavings = 0;
+
+            // Create a fresh copy of items for the current session & randomize prices
+            currentItems = levelData.items.map(item => ({
+                ...item, // Copy original item properties
+                currentPrice: getRandomPrice(item.minPrice, item.maxPrice) // Assign random price for this session
+            }));
+
+            // Shuffle the items for random display order
+            shuffleArray(currentItems);
+
+            updateDisplay(); // Update displays (budget, savings)
+            updateCart(); // Shows empty message
+            renderItems(); // Renders shuffled items with new prices
+            showMessage(`Level: ${currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)}. Budget: $${currentAllowance.toFixed(2)}. Buy your items!`, 'info');
+
+            // Enable buttons
+            finishButton.disabled = false;
+            resetButton.disabled = false;
+            // Ensure buy buttons are re-enabled (renderItems handles this, but belt-and-suspenders)
+            // document.querySelectorAll('.buy-button').forEach(btn => btn.disabled = false);
+        }
+
+        /** Initialize the game for a specific level */
+        function initializeGame(levelId) {
+            currentLevel = levelId;
+
+            // Update active button style
+            levelSelectionContainer.querySelectorAll('.level-button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.level === levelId);
+            });
+
+            resetGame(); // Reset game state for the selected level
+        }
+
+        // --- Event Listeners ---
+        finishButton.addEventListener('click', finishShopping);
+        resetButton.addEventListener('click', resetGame); // Reset current level
+        levelSelectionContainer.addEventListener('click', (event) => {
+             // Use closest to handle clicks inside the button (like on text)
+             const button = event.target.closest('.level-button');
+             if (button) {
+                 const levelId = button.dataset.level;
+                 if (levelId && levelId !== currentLevel) {
+                    initializeGame(levelId);
+                 }
+             }
+        });
+
+        // --- Start Game ---
+        initializeGame(currentLevel); // Initialize with the default level ('student')
+
+    </script>
+
+</body>
+</html>

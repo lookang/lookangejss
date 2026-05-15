@@ -1,0 +1,458 @@
+/* ===================================
+   GLOBAL STYLES & RESET
+   =================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Arial Rounded MT Bold', cursive, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow: hidden;
+    user-select: none;
+}
+
+/* ===================================
+   MAIN CONTAINER - Responsive Height
+   Adapts to iframe (450px) or standalone (90vh)
+   =================================== */
+#app-container {
+    width: 100%;
+    height: 450px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* When opened in new tab, use 90vh */
+body.standalone #app-container {
+    height: 90vh;
+}
+
+/* ===================================
+   TOOLTIP - Shows header/info on hover
+   Saves vertical space by not having permanent headers
+   =================================== */
+.tooltip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 80%;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+/* ===================================
+   STORY PANEL - Character and Narrative
+   Cute aesthetic with emoji characters
+   =================================== */
+.story-panel {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    border-bottom: 3px solid #ff9a9e;
+    gap: 12px;
+    min-height: 80px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.character-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.character {
+    font-size: 48px;
+    animation: bounce 2s infinite;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.character-name {
+    font-size: 11px;
+    font-weight: bold;
+    color: #6b4c9a;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+.story-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #333;
+    font-weight: 600;
+}
+
+/* ===================================
+   PROGRESS TRACKER
+   Visual feedback for learning progress
+   =================================== */
+.progress-container {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 2px solid #ffa726;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.progress-label {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #6b4c9a;
+    min-width: 120px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+.timer {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ff6b6b;
+    min-width: 70px;
+    text-align: right;
+}
+
+/* ===================================
+   GAME AREA - Main Interaction Space
+   Sorting and Categorization mechanics
+   =================================== */
+.game-area {
+    flex: 1;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Cards Container - Situations to sort */
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    min-height: 80px;
+}
+
+.situation-card {
+    background: white;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: grab;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    border: 3px solid transparent;
+    max-width: 180px;
+    text-align: center;
+    position: relative;
+}
+
+.situation-card:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    border-color: #ffa726;
+}
+
+.situation-card:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+.situation-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.situation-card.correct {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    border-color: #4caf50;
+    animation: correctPulse 0.5s ease;
+}
+
+@keyframes correctPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.situation-card.incorrect {
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    border-color: #f44336;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+
+/* Categories Container - Drop zones */
+.categories-container {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.category-zone {
+    flex: 1;
+    min-width: 140px;
+    max-width: 200px;
+    min-height: 100px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 3px dashed #9c27b0;
+    border-radius: 16px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.category-zone:hover {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+    transform: scale(1.02);
+}
+
+.category-zone.drag-over {
+    background: rgba(156, 39, 176, 0.2);
+    border-color: #ffa726;
+    border-style: solid;
+    transform: scale(1.05);
+}
+
+.category-icon {
+    font-size: 32px;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+}
+
+.category-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #6b4c9a;
+    text-align: center;
+}
+
+.category-description {
+    font-size: 10px;
+    color: #666;
+    text-align: center;
+    line-height: 1.3;
+}
+
+/* ===================================
+   BUTTONS - Action Controls
+   Optimized for touch and mouse
+   =================================== */
+.button-container {
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.8);
+    border-top: 2px solid #ffa726;
+}
+
+.action-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    font-family: inherit;
+    white-space: nowrap;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.secondary-btn {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.restart-btn {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+/* ===================================
+   SOUND TOGGLE
+   =================================== */
+.sound-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.sound-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.sound-toggle.muted {
+    opacity: 0.5;
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+@media (max-width: 600px) {
+    .story-text {
+        font-size: 12px;
+    }
+    
+    .character {
+        font-size: 40px;
+    }
+    
+    .situation-card {
+        font-size: 11px;
+        padding: 8px 12px;
+        max-width: 150px;
+    }
+    
+    .category-zone {
+        min-width: 120px;
+    }
+    
+    .action-btn {
+        font-size: 12px;
+        padding: 8px 16px;
+    }
+}
+
+/* ===================================
+   ACCESSIBILITY - Touch targets
+   Minimum 44x44px for touch interactions
+   =================================== */
+@media (pointer: coarse) {
+    .situation-card {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .action-btn {
+        min-height: 44px;
+    }
+}
+
+/* ===================================
+   ANIMATIONS FOR FEEDBACK
+   =================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Success/Completion Effects */
+.celebration {
+    position: absolute;
+    font-size: 48px;
+    pointer-events: none;
+    animation: celebrate 1s ease-out forwards;
+}
+
+@keyframes celebrate {
+    0% {
+        transform: translateY(0) scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) scale(1.5);
+        opacity: 0;
+    }
+}

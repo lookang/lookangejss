@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participant Self-Service Helpdesk</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            letter-spacing: 0.3px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e1e8ed;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2c3e50;
+            box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+        }
+
+        .search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #f8f9fa;
+            font-weight: 500;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item.highlighted {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .clear-button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .clear-button:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .participant-info {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e1e8ed;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.4s ease;
+            display: none;
+        }
+
+        .participant-info.show {
+            transform: translateY(0);
+            opacity: 1;
+            display: block;
+        }
+
+        .participant-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e1e8ed;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #2c3e50;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .info-value a {
+            color: #2c3e50;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .info-value a:hover {
+            border-bottom-color: #2c3e50;
+        }
+
+        .system-info {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #e1e8ed;
+        }
+
+        .system-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e1e8ed;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .validation-status {
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .validation-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .validation-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .search-section,
+            .participant-info,
+            .system-info {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Participant Self-Service Helpdesk</h1>
+        <p>Find your SLS assignment link, breakout room, and meeting information</p>
+    </div>
+
+    <div class="container">
+        <div class="search-section">
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Type your name to find your information..."
+                    autocomplete="off"
+                >
+                <div class="search-dropdown" id="searchDropdown"></div>
+            </div>
+            <button class="clear-button" onclick="clearSearch()">Clear Search</button>
+        </div>
+
+        <div class="participant-info" id="participantInfo">
+            <div class="participant-name" id="participantName"></div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">SLS Assignment URL</div>
+                    <div class="info-label">Note: Log in to SLS first BEFORE clicking the URL below</div>
+                    <div class="info-value" id="assignmentLink"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Breakout Room</div>
+                    <div class="info-value" id="breakoutRoom"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Teams Meeting Link</div>
+                    <div class="info-value" id="teamsLink"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="system-info">
+            <div class="system-title">System Information</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalParticipants">169</span>
+                    <span class="stat-label">Total Participants</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="totalRooms">20</span>
+                    <span class="stat-label">Breakout Rooms</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="uniqueAssignments">2</span>
+                    <span class="stat-label">Assignment URLs</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="dataIntegrity">100%</span>
+                    <span class="stat-label">Data Integrity</span>
+                </div>
+            </div>
+            <div class="validation-status validation-success" id="validationStatus">
+                <strong>System Status:</strong> All data validation checks passed successfully. 169 participants loaded across 20 breakout rooms.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Real participant data from the uploaded Excel file
+        const participantData = [
+          {
+                    "name": "Lau Charmaine",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Ling Pei Ling",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Gary Chua Chiang Leong",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Rystine Tan",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "CHAN SHEE WAI DESMOND",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Yap Lian Li Elvina",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Lim Yi Lin",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Ong Lin Jin",
+                    "breakoutRoom": 1,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzg3ZjIwMjctM2QyYy00MzVhLWFlZmUtNDRjNGFkZWRjODQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22e78e1eaf-7b57-4bea-b9c9-b08d21c32086%22%7d"
+          },
+          {
+                    "name": "Goh Jia Ying Jocelyn",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Nur'ain Hamzah",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Lee Xuefen",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "WOO WEI SHAN",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Ang Xiu Qin",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Kong Su San",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Celine Goh",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Norazlin Binte Normin",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Aden Tan",
+                    "breakoutRoom": 2,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDMxODliMzktMzlhYy00NTlhLWFlZTktYzZjNjJiNWZlZmY2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%220094160a-f8bf-42b5-ab4d-36cf6219d11b%22%7d"
+          },
+          {
+                    "name": "Chew Jia Zhen, Geraldine",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Karen Chin Lee Yong",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "How Si Si Jacqueline",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Ng Guan Han Norman",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Dorothy Tay Wyn Hui",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Mohammad Alfiyan Ahmad Buhari",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Lim Mei Teng",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Irene Allan",
+                    "breakoutRoom": 3,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjQ1OTQ4YTktZDJiNC00MmI5LWI0NTktNzRlN2ZhNTk5NDlk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22bfd5441d-d087-4b30-8119-1b4759d4549e%22%7d"
+          },
+          {
+                    "name": "Lim Siew Mei Agnes",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Quek Shir Ryn",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Chian Yuan Lin",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "David Yee Chee Wei",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Tan Aik Ling",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Boon Lishi Lisa",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Nilasari",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Tay Zhi Xiong",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Alicia Lock",
+                    "breakoutRoom": 4,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWYyN2ZlMTgtNmYwMy00NjkwLWFiMzMtNzA2MGEyMWE4YmJh%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22a17687e3-fda0-4503-ab34-6fdf1130eca1%22%7d"
+          },
+          {
+                    "name": "Yu Sheau Jen",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Colleen Ng",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Yam Wei Ling",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Tay Jang Shen",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Goh Khan Sen",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Daniel Tan",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Tham Zi Sheng",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Wong Mingwei",
+                    "breakoutRoom": 5,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZDAzZjI0ZTAtNDYwNy00ODEwLTk5ODAtYmRhNTEyNThkNjE4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22029d8a52-f092-4e76-95c9-162dced23b77%22%7d"
+          },
+          {
+                    "name": "Chia Wai Yee",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "See Boon Tiam",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Shirley Tay Li Hui",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Lee Miao Qing Marie",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Ng Mui Hoon",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Ong Wei Xiang Adrian",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Shaikha Nur Hajibah",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Lee Si Jia",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Alvin Peh",
+                    "breakoutRoom": 6,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Lee Qian Ying",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "Goh Shin Ee Astee",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTVhZGE0YjMtMDZmOS00MTZhLThlZWYtNjgwZjY5ZWM2YTA2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22048f6d37-c76d-475f-a3b1-a5c774d1a102%22%7d"
+          },
+          {
+                    "name": "Tang Kum Meng Alvin",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "Peh KaiJia",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "Oh Wei Ting",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "Teo Sing Yee",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "Low Zhiyong",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "Alex Mah Shao Wei",
+                    "breakoutRoom": 7,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MDdlM2UwOGQtMTMwNS00ZTU3LTlkZjQtNDY3MTNkNWQzODgz%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%222276e1a9-f3bd-4cb4-8efd-d895944dcfb7%22%7d"
+          },
+          {
+                    "name": "LOW WEI CHUAN",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Yang Wenqing",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Tan Kok Boon",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Foong Sheng Hui",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "YU YANG MING ERNEST",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Toh May May Lisa",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Loh Zhi Xiong, Dominique",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Ong Kai Kun",
+                    "breakoutRoom": 8,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWY4MjIyZjctN2E3OC00YTQ0LWIwMDMtYzlkNGI1MWI3MDdj%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d40066c5-ef52-4203-ac7b-c1730cc4a4af%22%7d"
+          },
+          {
+                    "name": "Madeline Koh",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Tay Siew Peng",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Lilian Tan",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Tan-Lim Pui Yee",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Yap Ching Ying",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Tan Xing Yu",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Lee Song Choon",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Chia Chee Weng, Michael",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Rozianna Mohammed Affendi",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Wong Yih Check",
+                    "breakoutRoom": 9,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NWM4NjY5NzEtNzAyOS00OWM3LTkyN2UtMzgyY2I5ZTljNjUx%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2212f6b3da-e290-4866-ab57-c156df3f43ff%22%7d"
+          },
+          {
+                    "name": "Goh Kien Huay",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Jessica Lew Ching Min",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Sim Li Wen Zoanne",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Eunice Hung Pek Hui",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Loke Lay Fang",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Kwok Kah Weng",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Stephanie JEE",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Tan Thiam Soon",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "Ho Sze Gin",
+                    "breakoutRoom": 10,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/17fc8bed-2545-4d71-b9dd-0465c1ac9a82",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_OTU1MmEyNzEtZjc5Yy00MDhmLTgzZDktZjQzYjU1YTExYzNk%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2294ea7f8f-8503-408c-9c59-227490929784%22%7d"
+          },
+          {
+                    "name": "S Ravindran",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Goh Joo Leng Jeffrey",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Soh Poh Ping",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Edwin Chia Kian Boon",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Doreen The",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Sng Yi Wei Emily",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Serwin Leong",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Fu Shin Hui",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "Chew Chioh Sian Alan",
+                    "breakoutRoom": 11,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YjcyMzAzMDEtNmI4My00YWE0LWJlZDQtZmVkMzI1ZTQzMDI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22939f780f-8ade-4025-8485-cf1143412552%22%7d"
+          },
+          {
+                    "name": "MD SHAHRIN S/O K S MOORTHY",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Nehemiah Phua",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Lim Wee Khiang",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Tan Siok Lee",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Chin Tan Yin",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Kwek Swee Hee Edwin",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Chan Khai Mun",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Johari Bin Khalil",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Rebecca Kong Chui Lin",
+                    "breakoutRoom": 12,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjdmYTEwNTUtNjRiMC00ODRiLWExMGQtZjg5ZWJiMWRmZWU0%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22cef82065-d66e-4651-8555-cfa5986fc2ca%22%7d"
+          },
+          {
+                    "name": "Anna Koh",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Ang Li Wen Daphne",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Yeo Chong Keat Rene",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Toh Hui Khee Jazreel",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Ivan Ng",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Thenmozhi Nalathamby",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Hisham Bin Zainal",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Tan Huilin",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "Widayah Othman",
+                    "breakoutRoom": 13,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Mzc0OGYzNWUtMjdjZC00NWQxLTk3MGEtMjA0ZjVhZTRiYzQ2%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%228ee13e08-7b62-4443-809a-987b08ed4305%22%7d"
+          },
+          {
+                    "name": "YAP BOON CHIEN",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Sujena SETHURAM",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Ang Chip Pin",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Kwek Yu Zhen",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Cheong Kim Fatt",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Ang Keng Kiat",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Kwok Honey",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Soh Geok Peng",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Sim Kang Kiang",
+                    "breakoutRoom": 14,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YWFjMGM0YjMtMTk4MS00YTU0LWFjMTgtZTZmMGQ4ODRmOTVi%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2238df69fe-2c30-40a8-bf49-1389f7295c9a%22%7d"
+          },
+          {
+                    "name": "Jensen Ong Kia Siang",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Lim hwee Chin",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Chia Ai Li Joan",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Liew Hoe Meng Keith",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Ashwin Selvarajan",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Goh Han Pin",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Yu Mei Yi Priscilla",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Kristine Anne Koh",
+                    "breakoutRoom": 15,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjA3OTUyNWItNGE5Yi00ZDgyLTk0MDctM2ZjYWI3YTFiN2M4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%2222105a22-a672-47b9-af2b-c79c8ffcb735%22%7d"
+          },
+          {
+                    "name": "Karen Lam",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Ng Boon Leng",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Peck Chin Hee, Gregory",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Tan Chang Ci",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "NG AI ZI SHEENA",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Heng Hui Peng",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Wong Wei Dee",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Chua Chong Yi, Mario",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Estella Yeo",
+                    "breakoutRoom": 16,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZjAwMDM3YzQtZTU3OS00OWJlLWJiM2YtMDc0MmM0NWFlNmIw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224ac3627e-1bee-44b9-8976-65ca398a0bf6%22%7d"
+          },
+          {
+                    "name": "Wang Jianyu",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Muhamad Firdaus Bin Mohamed Yasin",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Goh Yuh Mein",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "SOUNTHIRA PANDIAN S/O MUTHURAJ",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Yan Meixian",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Yeo Puay Joo",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Deborah Gian",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Lee JING XIANG ERIC",
+                    "breakoutRoom": 17,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_MjEzNjE0NDQtMWM4Mi00NjI0LTkzYzItYmJjOTI4MmVhMDcw%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22b6abb586-d0cd-4f32-b18e-99406000299e%22%7d"
+          },
+          {
+                    "name": "Ng Qin Lin, Angeline",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Low Swee Hian",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Tay Yian Ling",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Chee Danjie, Jacqueline",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Hamsavallii d/o Suppayan Sodimani",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Teo Qing Cong Eugene",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Rajeswari d/o Sinkaram",
+                    "breakoutRoom": 18,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YzJlMzJjOTgtZDZjNS00NDNiLWIxODUtYTRkMTlhZDk1NmI5%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22392d3ebf-dfc7-4490-8c4e-38c15d6e7f21%22%7d"
+          },
+          {
+                    "name": "Lee Yanmei",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Chung Wing Shun Vincent",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Preeti Kulkarni",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Chia-Chew Chia Ling Sharrel",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Liang Xingfen",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Sirhan Bin Ahmadiah",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Ng Shuwen",
+                    "breakoutRoom": 19,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_YmNjMjBjNTgtMDc4NS00MmM4LWJmNGMtZDYwMDE1NGRmZDhm%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%224b9e4429-f6d6-4e33-a44d-f9ae1ec4c3fb%22%7d"
+          },
+          {
+                    "name": "Mellissa Chia Pei Shan",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "Chng Jun Liang Emmanuel",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "T Sharmini",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "Yong Kwong Fui",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "Grace Tan Jia Lin",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "Jason Chew",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "Shuryati Mohd Shariff",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          },
+          {
+                    "name": "Ong Huei Huey",
+                    "breakoutRoom": 20,
+                    "assignmentLink": "https://vle.learning.moe.edu.sg/class-group/assignment/attempt/74307072-4bd3-4d49-9ab0-27d04ff518d7",
+                    "teamsLink": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_Y2U1MDM1YTgtOThmMi00Yjk5LWE1NTUtY2QzYmIyMGRhOTM4%40thread.v2/0?context=%7b%22Tid%22%3a%220b11c524-9a1c-4e1b-84cb-6336aefc2243%22%2c%22Oid%22%3a%22d24a8ff6-4a44-457c-99ff-9254f8a735ac%22%7d"
+          }
+];
+
+        let currentHighlight = -1;
+        let searchTimeout;
+
+        const searchInput = document.getElementById('searchInput');
+        const searchDropdown = document.getElementById('searchDropdown');
+        const participantInfo = document.getElementById('participantInfo');
+
+        searchInput.addEventListener('input', handleSearch);
+        searchInput.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('click', handleClickOutside);
+
+        function handleSearch(event) {
+            clearTimeout(searchTimeout);
+            const query = event.target.value.trim();
+            
+            if (query.length < 2) {
+                hideDropdown();
+                return;
+            }
+
+            searchTimeout = setTimeout(() => {
+                const matches = searchParticipants(query);
+                showDropdown(matches);
+            }, 150);
+        }
+
+        function searchParticipants(query) {
+            const queryLower = query.toLowerCase();
+            return participantData.filter(participant => 
+                participant.name.toLowerCase().includes(queryLower)
+            ).slice(0, 8); // Limit to 8 results
+        }
+
+        function showDropdown(matches) {
+            if (matches.length === 0) {
+                hideDropdown();
+                return;
+            }
+
+            searchDropdown.innerHTML = matches.map((participant, index) => 
+                `<div class="dropdown-item" onclick="selectParticipant('${participant.name}')" data-index="${index}">
+                    ${participant.name}
+                </div>`
+            ).join('');
+
+            searchDropdown.style.display = 'block';
+            currentHighlight = -1;
+        }
+
+        function hideDropdown() {
+            searchDropdown.style.display = 'none';
+            currentHighlight = -1;
+        }
+
+        function handleKeyDown(event) {
+            const items = searchDropdown.querySelectorAll('.dropdown-item');
+            
+            switch(event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    currentHighlight = Math.min(currentHighlight + 1, items.length - 1);
+                    updateHighlight();
+                    break;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    currentHighlight = Math.max(currentHighlight - 1, -1);
+                    updateHighlight();
+                    break;
+                case 'Enter':
+                    event.preventDefault();
+                    if (currentHighlight >= 0 && items[currentHighlight]) {
+                        const name = items[currentHighlight].textContent.trim();
+                        selectParticipant(name);
+                    }
+                    break;
+                case 'Escape':
+                    hideDropdown();
+                    break;
+            }
+        }
+
+        function updateHighlight() {
+            const items = searchDropdown.querySelectorAll('.dropdown-item');
+            items.forEach((item, index) => {
+                item.classList.toggle('highlighted', index === currentHighlight);
+            });
+        }
+
+        function handleClickOutside(event) {
+            if (!event.target.closest('.search-container')) {
+                hideDropdown();
+            }
+        }
+
+        function selectParticipant(name) {
+            const participant = participantData.find(p => p.name === name);
+            if (participant) {
+                displayParticipantInfo(participant);
+                searchInput.value = name;
+                hideDropdown();
+            }
+        }
+
+        function displayParticipantInfo(participant) {
+            document.getElementById('participantName').textContent = participant.name;
+            
+            document.getElementById('assignmentLink').innerHTML = 
+                `<a href="${participant.assignmentLink}" target="_blank">Open Assignment</a>`;
+            
+            document.getElementById('breakoutRoom').textContent = `Room ${participant.breakoutRoom}`;
+            
+            document.getElementById('teamsLink').innerHTML = 
+                `<a href="${participant.teamsLink}" target="_blank">Join Teams Meeting</a>`;
+
+            participantInfo.classList.add('show');
+        }
+
+        function clearSearch() {
+            searchInput.value = '';
+            hideDropdown();
+            participantInfo.classList.remove('show');
+        }
+    </script>
+</body>
+</html>

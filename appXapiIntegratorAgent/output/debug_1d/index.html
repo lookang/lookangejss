@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1D Collision Simulator</title>
+    <style>
+        /* --- Basic Setup & Layout --- */
+        /* Apply border-box sizing globally for easier layout management */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* Set up the body to fill the viewport */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* Prevent scrolling on the main page */
+        }
+
+        /* * Main container: Uses flexbox for the primary layout.
+         * It's designed to fill the available space, with a min-height 
+         * for iframes (450px) and a default height for new tabs (90vh).
+         */
+        #main-container {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on very small screens */
+            width: 100%;
+            height: 100vh; /* Fallback for older browsers */
+            height: 90vh;  /* Default for new tab */
+            min-height: 450px; /* Ensure it's usable in a 450px iframe */
+            max-height: 90vh;
+            background: #f4f4f9;
+        }
+
+        /* * Simulation Panel (Left Side)
+         * - Contains the canvas and control buttons.
+         * - flex: 3 makes it take up more space than the controls.
+         * - position: relative is needed for the tooltip.
+         */
+        #sim-panel {
+            flex: 3;
+            min-width: 300px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* * Controls Panel (Right Side)
+         * - Contains sliders and data readouts.
+         * - flex: 2 provides a good balance.
+         * - overflow-y: auto allows scrolling if content exceeds height.
+         */
+        #controls-panel {
+            flex: 2;
+            min-width: 280px;
+            max-width: 400px;
+            padding: 1rem;
+            background: #ffffff;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+            height: 100%; /* Fill the container height */
+        }
+
+        /* --- Simulation Elements --- */
+        
+        /* New container for canvas + graphs */
+        #viz-container {
+            display: flex;
+            flex-direction: row;
+            flex-grow: 1; /* Make it fill the remaining space in sim-panel */
+            gap: 1rem;
+            width: 100%;
+            min-height: 0; /* Fix for flexbox overflow */
+        }
+        
+        #sim-canvas {
+            /* width: 100%; */ /* OLD */
+            /* flex-grow: 1; */ /* OLD */
+            flex: 2; /* Give it 2/3 of the space */
+            min-width: 0; /* Fix flexbox shrink issue */
+            min-height: 200px;
+            height: 100%; /* Fill the viz-container height */
+            background: #ffffff;
+            border: 1px solid #b0b0b0;
+            border-radius: 8px;
+        }
+
+        #button-bar {
+            text-align: center;
+            padding-bottom: 1rem; /* Changed from padding-top */
+        }
+
+        /* * Buttons: Designed to fit text content, with visual feedback.
+         * This aligns with the request to save vertical space.
+         */
+        .sim-button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            margin: 0 0.25rem;
+            cursor: pointer;
+            border: 1px solid #005a9c;
+            background-color: #0078d4;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .sim-button:hover {
+            background-color: #005a9c;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #reset-button {
+            background-color: #d83b01;
+            border-color: #a22c00;
+        }
+        #reset-button:hover {
+            background-color: #a22c00;
+        }
+
+        /* --- Graph Styles --- */
+        #graph-container {
+            display: none; /* JS will change this to 'flex' */
+            flex-direction: column; /* Stack graphs vertically */
+            gap: 1rem;
+            /* margin-top: 1rem; */ /* OLD */
+            /* width: 100%; */ /* OLD */
+            flex: 1; /* Give it 1/3 of the space */
+            /* height: 150px; */ /* OLD */
+            min-height: 0; /* Fix flexbox overflow */
+        }
+        .graph-canvas {
+            flex: 1; /* Each graph takes 1/2 of the graph-container height */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            /* height: 100%; */ /* OLD - flex: 1 handles height */
+            width: 100%; /* Fill parent width */
+            min-height: 75px; /* Give it some min height */
+            display: none; /* JS will change this to 'block' */
+        }
+        .checkbox-group label {
+            font-weight: normal;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+        .checkbox-group div {
+            margin-bottom: 0.25rem;
+        }
+
+        /* --- Controls Elements --- */
+        .control-section {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: #fdfdfd;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        
+        .control-section h3 {
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.25rem;
+        }
+
+        .control-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* Style for the slider + value readout container */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        input[type="range"] {
+            flex-grow: 1;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* Value readout next to slider */
+        .value-readout {
+            font-size: 0.95rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            color: #0078d4;
+            min-width: 60px; /* Ensure alignment */
+            text-align: right;
+        }
+        
+        /* Dropdown for collision type */
+        select {
+            width: 100%;
+            padding: 0.4rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        /* --- Data Readout --- */
+        #data-readout {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .data-box {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: #f0f7ff;
+            border: 1px solid #cce4ff;
+        }
+        
+        .data-box h4 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            color: #005a9c;
+        }
+
+        .data-box p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .data-box .value {
+            font-weight: bold;
+            float: right;
+            color: #333;
+        }
+
+        /* --- Tooltip (for header) --- */
+        #tooltip {
+            position: absolute;
+            display: none;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            z-index: 100;
+            pointer-events: none; /* So it doesn't block mouse events */
+            white-space: nowrap;
+        }
+        
+        /* Media Query for smaller screens */
+        @media (max-width: 700px) {
+            #main-container {
+                flex-direction: column;
+                height: auto; /* Allow height to be determined by content */
+                min-height: 100vh; /* Fill screen */
+            }
+            #controls-panel {
+                width: 100%;
+                max-width: 100%;
+                border-left: none;
+                border-top: 1px solid #ddd;
+                height: auto; /* Auto height */
+                overflow-y: visible;
+            }
+            #sim-panel {
+                min-height: 350px; /* Give canvas space */
+            }
+            #data-readout {
+                flex-direction: column;
+            }
+        }
+    </style>
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data) {
+    xapiState.actions.push({ t: Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const m = text.match(/(d+)s*/s*(d+)/);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    return lines.join('
+');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max);
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 1000));
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: seconds, type: a.type, label };
+    });
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', addSaveBtn); } else { addSaveBtn(); }
+})();
+    </script>
+  </head>
+<body>
+
+    <!-- Tooltip element, hidden by default. Used for the main title. -->
+    <div id="tooltip">1D Collision Simulator</div>
+
+    <!-- Main container for the entire application -->
+    <main id="main-container">
+
+        <!-- Left Panel: Simulation Canvas and Buttons -->
+        <section id="sim-panel"
+                 title="Simulation Area. Mouse over to see title.">
+            
+            <div id="button-bar">
+                <button id="play-pause-button" class="sim-button">Play</button>
+                <button id="reset-button" class="sim-button">Reset</button>
+            </div>
+
+            <!-- New container for canvas and graphs -->
+            <div id="viz-container">
+                <canvas id="sim-canvas" width="600" height="300">
+                    Your browser does not support the HTML5 canvas tag.
+                </canvas>
+                
+                <div id="graph-container">
+                    <canvas id="p-graph-canvas" class="graph-canvas"></canvas>
+                    <canvas id="ke-graph-canvas" class="graph-canvas"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Controls and Data Readouts -->
+        <aside id="controls-panel">
+
+            <!-- General Settings -->
+            <div class="control-section">
+                <h3>Settings</h3>
+                <div class="control-group">
+                    <label for="restitution-slider">Coefficient of Restitution (e)</label>
+                    <div class="slider-container">
+                        <input type="range" id="restitution-slider" min="0" max="1" step="0.1" value="1">
+                        <span id="restitution-value" class="value-readout">1.0</span>
+                    </div>
+                </div>
+                <p style="font-size: 0.8rem; color: #666; margin: 0;">
+                    (e=1: Elastic, 0&le;e&lt;1: Inelastic, e=0: Perfectly Inelastic)
+                </p>
+                
+                <div class="control-group checkbox-group" style="margin-top: 1rem;">
+                    <label style="font-weight: bold; color: #555; margin-bottom: 0.5rem; display: block;">Show Graphs:</label>
+                    <div>
+                        <input type="checkbox" id="show-p-graph" name="show-p-graph">
+                        <label for="show-p-graph">Momentum vs. Time</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="show-ke-graph" name="show-ke-graph">
+                        <label for="show-ke-graph">Kinetic Energy vs. Time</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart 1 Controls -->
+            <div class="control-section">
+                <h3>Cart 1 (Blue)</h3>
+                <div class="control-group">
+                    <label for="m1-slider">Mass (m₁)</label>
+                    <div class="slider-container">
+                        <input type="range" id="m1-slider" min="1" max="10" step="0.5" value="2">
+                        <span id="m1-value" class="value-readout">2.0 kg</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="u1-slider">Initial Velocity (u₁)</label>
+                    <div class="slider-container">
+                        <input type="range" id="u1-slider" min="-10" max="10" step="0.5" value="5">
+                        <span id="u1-value" class="value-readout">5.0 m/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart 2 Controls -->
+            <div class="control-section">
+                <h3>Cart 2 (Red)</h3>
+                <div class="control-group">
+                    <label for="m2-slider">Mass (m₂)</label>
+                    <div class="slider-container">
+                        <input type="range" id="m2-slider" min="1" max="10" step="0.5" value="4">
+                        <span id="m2-value" class="value-readout">4.0 kg</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="u2-slider">Initial Velocity (u₂)</label>
+                    <div class="slider-container">
+                        <input type="range" id="u2-slider" min="-10" max="10" step="0.5" value="0">
+                        <span id="u2-value" class="value-readout">0.0 m/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Readout Section -->
+            <div id="data-readout">
+                <div class="data-box" id="before-data">
+                    <h4>Before Collision</h4>
+                    <p>p (total) <span id="p-before" class="value">0.00</span></p>
+                    <p>KE (total) <span id="ke-before" class="value">0.00</span></p>
+                    <hr style="border: 0; border-top: 1px solid #cce4ff; margin: 0.5rem 0;">
+                    <p>v₁ (final) <span id="v1-final" class="value">0.00</span></p>
+                    <p>v₂ (final) <span id="v2-final" class="value">0.00</span></p>
+                </div>
+                
+                <div class="data-box" id="after-data">
+                    <h4>After Collision</h4>
+                    <p>p (total) <span id="p-after" class="value">0.00</span></p>
+                    <p>KE (total) <span id="ke-after" class="value">0.00</span></p>
+                    <hr style="border: 0; border-top: 1px solid #cce4ff; margin: 0.5rem 0;">
+                    <p style="font-size: 0.8rem;">&Delta;p (change)<span id="p-change" class="value">0.00</span></p>
+                    <p style="font-size: 0.8rem;">&Delta;KE (change)<span id="ke-change" class="value">0.00</span></p>
+                </div>
+            </div>
+
+        </aside>
+    </main>
+
+    <script>
+        // Wait for the DOM to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. GET DOM ELEMENTS ---
+            // Canvas and drawing context
+            const canvas = document.getElementById('sim-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Simulation panel (for tooltip)
+            const simPanel = document.getElementById('sim-panel');
+            const tooltip = document.getElementById('tooltip');
+
+            // Buttons
+            const playPauseBtn = document.getElementById('play-pause-button');
+            const resetBtn = document.getElementById('reset-button');
+
+            // Sliders
+            const eSlider = document.getElementById('restitution-slider');
+            const m1Slider = document.getElementById('m1-slider');
+            const u1Slider = document.getElementById('u1-slider');
+            const m2Slider = document.getElementById('m2-slider');
+            const u2Slider = document.getElementById('u2-slider');
+
+            // Value Readouts (next to sliders)
+            const eValue = document.getElementById('restitution-value');
+            const m1Value = document.getElementById('m1-value');
+            const u1Value = document.getElementById('u1-value');
+            const m2Value = document.getElementById('m2-value');
+            const u2Value = document.getElementById('u2-value');
+
+            // Data Readouts (Before Collision)
+            const pBefore = document.getElementById('p-before');
+            const keBefore = document.getElementById('ke-before');
+            const v1Final = document.getElementById('v1-final'); // Predicted final v1
+            const v2Final = document.getElementById('v2-final'); // Predicted final v2
+
+            // Data Readouts (After Collision)
+            const pAfter = document.getElementById('p-after');
+            const keAfter = document.getElementById('ke-after');
+            const pChange = document.getElementById('p-change');
+            const keChange = document.getElementById('ke-change');
+
+            // Graph elements
+            const showPGraphCheck = document.getElementById('show-p-graph');
+            const showKEGraphCheck = document.getElementById('show-ke-graph');
+            const graphContainer = document.getElementById('graph-container');
+            const pGraphCanvas = document.getElementById('p-graph-canvas');
+            const pGraphCtx = pGraphCanvas.getContext('2d');
+            const keGraphCanvas = document.getElementById('ke-graph-canvas');
+            const keGraphCtx = keGraphCanvas.getContext('2d');
+
+            // --- 2. SIMULATION STATE & CONSTANTS ---
+            let simState = 'idle'; // 'idle', 'running', 'collided'
+            let lastTime = 0;
+            let animationFrameId = null;
+
+            // Graph data
+            let timeHistory = [];
+            let p1History = [], p2History = [], pTotalHistory = [];
+            let ke1History = [], ke2History = [], keTotalHistory = [];
+            let maxP = 0, minP = 0;
+            let maxKE = 0;
+            let simTime = 0; // Total simulation time
+
+            // Define cart objects
+            let cart1 = {};
+            let cart2 = {};
+            
+            // Physics results
+            let physics = {
+                u1: 0, u2: 0, v1: 0, v2: 0,
+                m1: 0, m2: 0, e: 1,
+                p_before: 0, ke_before: 0,
+                p_after: 0, ke_after: 0
+            };
+
+            // Drawing constants
+            const cartHeight = 50;
+            const trackY = 200; // Y-position of the track
+            const pixelsPerMeter = 10; // Scaling factor: 10px = 1 meter
+            const arrowY = trackY - cartHeight - 30; // Y-position for arrows
+
+            // --- 3. CORE FUNCTIONS ---
+
+            /**
+             * Resizes the canvas to fit its container.
+             * This is crucial for a responsive layout.
+             */
+            function resizeCanvas() {
+                // Get the computed size of the canvas container
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                // Redraw the scene after resizing
+                // draw() will be called by resetSimulation()
+            }
+
+            /**
+             * Resets the simulation to its initial state.
+             * Reads all slider values, calculates physics, and resets positions.
+             */
+            function resetSimulation() {
+                simState = 'idle';
+                playPauseBtn.textContent = 'Play';
+                
+                // Stop any existing animation
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+
+                // Read values from sliders
+                physics.m1 = parseFloat(m1Slider.value);
+                physics.u1 = parseFloat(u1Slider.value);
+                physics.m2 = parseFloat(m2Slider.value);
+                physics.u2 = parseFloat(u2Slider.value);
+                physics.e = parseFloat(eSlider.value);
+
+                // Update slider value text
+                m1Value.textContent = `${physics.m1.toFixed(1)} kg`;
+                u1Value.textContent = `${physics.u1.toFixed(1)} m/s`;
+                m2Value.textContent = `${physics.m2.toFixed(1)} kg`;
+                u2Value.textContent = `${physics.u2.toFixed(1)} m/s`;
+                eValue.textContent = physics.e.toFixed(1);
+
+                // Calculate cart dimensions based on mass (log scale for visual)
+                const baseWidth = 40;
+                cart1.width = baseWidth + Math.log(physics.m1) * 15;
+                cart2.width = baseWidth + Math.log(physics.m2) * 15;
+                cart1.height = cartHeight;
+                cart2.height = cartHeight;
+                cart1.color = '#0078d4'; // Blue
+                cart2.color = '#d83b01'; // Red
+                
+                // Set initial positions (separated)
+                // We center the system based on the initial velocities
+                // This is a simple heuristic to keep them on screen
+                if (physics.u1 > physics.u2) {
+                    // Cart 1 moving towards Cart 2
+                    cart1.x = canvas.width * 0.3;
+                    cart2.x = canvas.width * 0.6;
+                } else {
+                    // Cart 2 moving towards Cart 1
+                    cart1.x = canvas.width * 0.6;
+                    cart2.x = canvas.width * 0.3;
+                }
+                cart1.y = trackY - cartHeight;
+                cart2.y = trackY - cartHeight;
+
+                // Calculate physics and update data
+                calculatePhysics();
+                updateDataReadout();
+
+                // Draw the initial state
+                draw();
+
+                // Reset graph data
+                timeHistory = [];
+                p1History = []; p2History = []; pTotalHistory = [];
+                ke1History = []; ke2History = []; keTotalHistory = [];
+                simTime = 0;
+                
+                // Redraw empty graphs
+                drawGraphs();
+            }
+
+            /**
+             * Calculates all initial and final physics values.
+             */
+            function calculatePhysics() {
+                const { m1, m2, u1, u2, e } = physics;
+
+                // --- 1. Calculate final velocities (v1, v2) ---
+                // Using the formulas derived from conservation of momentum
+                // and the coefficient of restitution.
+                
+                // Handle the case of infinite mass (m1 + m2 = 0)
+                if (m1 + m2 === 0) {
+                    physics.v1 = 0;
+                    physics.v2 = 0;
+                } else {
+                    physics.v1 = (m1 * u1 + m2 * u2 - m2 * e * (u1 - u2)) / (m1 + m2);
+                    physics.v2 = (m1 * u1 + m2 * u2 + m1 * e * (u1 - u2)) / (m1 + m2);
+                }
+
+                // --- 2. Calculate "Before" values ---
+                const p1_before = m1 * u1;
+                const p2_before = m2 * u2;
+                physics.p_before = p1_before + p2_before;
+
+                const ke1_before = 0.5 * m1 * u1 * u1;
+                const ke2_before = 0.5 * m2 * u2 * u2;
+                physics.ke_before = ke1_before + ke2_before;
+
+                // --- 3. Calculate "After" values ---
+                const p1_after = m1 * physics.v1;
+                const p2_after = m2 * physics.v2;
+                physics.p_after = p1_after + p2_after;
+
+                const ke1_after = 0.5 * m1 * physics.v1 * physics.v1;
+                const ke2_after = 0.5 * m2 * physics.v2 * physics.v2;
+                physics.ke_after = ke1_after + ke2_after;
+
+                // Set initial graph bounds based on pre-collision values
+                // We re-use the variables from the "Before" calculation above
+                maxP = Math.max(p1_before, p2_before, physics.p_before, 0);
+                minP = Math.min(p1_before, p2_before, physics.p_before, 0);
+                maxKE = Math.max(ke1_before, ke2_before, physics.ke_before, 0);
+
+                // Add a buffer
+                maxP = maxP * 1.2 + 5;
+                minP = minP * 1.2 - 5;
+                maxKE = maxKE * 1.2 + 5;
+            }
+
+            /**
+             * Updates the HTML data readouts with calculated physics values.
+             */
+            function updateDataReadout() {
+                const { v1, v2, p_before, ke_before, p_after, ke_after } = physics;
+
+                // Format to 2 decimal places
+                pBefore.textContent = p_before.toFixed(2);
+                keBefore.textContent = ke_before.toFixed(2);
+                
+                v1Final.textContent = `${v1.toFixed(2)} m/s`;
+                v2Final.textContent = `${v2.toFixed(2)} m/s`;
+
+                pAfter.textContent = p_after.toFixed(2);
+                keAfter.textContent = ke_after.toFixed(2);
+
+                // Show changes (delta)
+                // Use a small epsilon to handle floating point errors for momentum
+                const p_delta = p_after - p_before;
+                pChange.textContent = (Math.abs(p_delta) < 1e-9) ? "0.00" : p_delta.toFixed(2);
+                
+                const ke_delta = ke_after - ke_before;
+                keChange.textContent = (ke_delta > 1e-9) ? ke_delta.toFixed(2) : "0.00";
+            }
+
+            /**
+             * The main animation loop, called by requestAnimationFrame.
+             * @param {number} currentTime - The current time in milliseconds.
+             */
+            function animationLoop(currentTime) {
+                if (simState === 'idle') return; // Should be 'running' or 'collided'
+
+                // Calculate time elapsed since last frame (in seconds)
+                const deltaTime = (currentTime - lastTime) / 1000;
+                lastTime = currentTime;
+                
+                // Add to simulation time
+                if (simState === 'running' || simState === 'collided') {
+                    simTime += deltaTime;
+                }
+                
+                if (simState === 'running' || simState === 'collided') {
+                    // Update positions based on current velocities
+                    updatePositions(deltaTime);
+                    
+                    // Check for collision
+                    if (simState === 'running') {
+                        checkCollision();
+                    }
+                    
+                    // Check for wall boundaries
+                    checkWallCollisions();
+                }
+                
+                // Collect data for graphs
+                if (simState === 'running' || simState === 'collided') {
+                    collectGraphData();
+                }
+
+                // Redraw the entire scene
+                draw();
+                
+                // Draw graphs if toggled
+                if (showPGraphCheck.checked || showKEGraphCheck.checked) {
+                    drawGraphs();
+                }
+
+                // Request the next frame
+                animationFrameId = requestAnimationFrame(animationLoop);
+            }
+
+            /**
+             * Updates cart positions based on their velocity and delta time.
+             * @param {number} dt - The delta time in seconds.
+             */
+            function updatePositions(dt) {
+                const scale = pixelsPerMeter;
+                
+                // Get the current velocity for each cart
+                // If 'collided', use final velocity (v), otherwise use initial (u)
+                const current_v1 = (simState === 'collided') ? physics.v1 : physics.u1;
+                const current_v2 = (simState === 'collided') ? physics.v2 : physics.u2;
+
+                cart1.x += current_v1 * scale * dt;
+                cart2.x += current_v2 * scale * dt;
+            }
+
+            /**
+             * Checks if the two carts are colliding.
+             */
+            function checkCollision() {
+                // Simple AABB (Axis-Aligned Bounding Box) collision detection
+                const isColliding = cart1.x < cart2.x + cart2.width &&
+                                  cart1.x + cart1.width > cart2.x;
+
+                if (isColliding) {
+                    simState = 'collided';
+                    
+                    // Nudge carts apart to prevent sticking
+                    // This is a simple separation logic
+                    const overlap = (cart1.x + cart1.width) - cart2.x;
+                    cart1.x -= overlap / 2;
+                    cart2.x += overlap / 2;
+                }
+            }
+
+            /**
+             * Checks if carts are colliding with the canvas walls.
+             * This makes them "bounce" off the edges.
+             */
+            function checkWallCollisions() {
+                // Cart 1 wall collision
+                if (cart1.x < 0) {
+                    cart1.x = 0; // Prevent going off-screen
+                    if (simState === 'collided') physics.v1 *= -1; // Bounce
+                    else physics.u1 *= -1; // Bounce
+                } else if (cart1.x + cart1.width > canvas.width) {
+                    cart1.x = canvas.width - cart1.width; // Prevent going off-screen
+                    if (simState === 'collided') physics.v1 *= -1; // Bounce
+                    else physics.u1 *= -1; // Bounce
+                }
+                
+                // Cart 2 wall collision
+                if (cart2.x < 0) {
+                    cart2.x = 0;
+                    if (simState === 'collided') physics.v2 *= -1;
+                    else physics.u2 *= -1;
+                } else if (cart2.x + cart2.width > canvas.width) {
+                    cart2.x = canvas.width - cart2.width;
+                    if (simState === 'collided') physics.v2 *= -1;
+                    else physics.u2 *= -1;
+                }
+            }
+
+            /**
+             * Collects data for plotting graphs.
+             */
+            function collectGraphData() {
+                if (!showPGraphCheck.checked && !showKEGraphCheck.checked) return;
+                
+                const current_v1 = (simState === 'collided') ? physics.v1 : physics.u1;
+                const current_v2 = (simState === 'collided') ? physics.v2 : physics.u2;
+                const { m1, m2 } = physics;
+
+                const p1 = m1 * current_v1;
+                const p2 = m2 * current_v2;
+                const pTotal = p1 + p2;
+                
+                const ke1 = 0.5 * m1 * current_v1 * current_v1;
+                const ke2 = 0.5 * m2 * current_v2 * current_v2;
+                const keTotal = ke1 + ke2;
+
+                timeHistory.push(simTime);
+                p1History.push(p1);
+                p2History.push(p2);
+                pTotalHistory.push(pTotal);
+                ke1History.push(ke1);
+                ke2History.push(ke2);
+                keTotalHistory.push(keTotal);
+            }
+
+
+            // --- 4. DRAWING FUNCTIONS ---
+
+            /**
+             * Main draw function. Clears and redraws the entire canvas.
+             */
+            function draw() {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw the track
+                ctx.fillStyle = '#999';
+                ctx.fillRect(0, trackY, canvas.width, 5); // Track line
+                ctx.fillStyle = '#ccc';
+                ctx.fillRect(0, trackY + 5, canvas.width, 15); // Track base
+
+                // Draw the carts
+                drawCart(cart1);
+                drawCart(cart2);
+
+                // Draw velocity vectors
+                drawVector(cart1, (simState === 'collided') ? physics.v1 : physics.u1);
+                drawVector(cart2, (simState === 'collided') ? physics.v2 : physics.u2);
+            }
+
+            /**
+             * Draws a single cart on the canvas.
+             * @param {object} cart - The cart object to draw.
+             */
+            function drawCart(cart) {
+                // Draw cart body
+                ctx.fillStyle = cart.color;
+                ctx.fillRect(cart.x, cart.y, cart.width, cart.height);
+                
+                // Draw wheels
+                const wheelRadius = 8;
+                ctx.fillStyle = '#333';
+                // Front wheel
+                ctx.beginPath();
+                ctx.arc(cart.x + wheelRadius + 5, cart.y + cart.height + wheelRadius, wheelRadius, 0, Math.PI * 2);
+                ctx.fill();
+                // Back wheel
+                ctx.beginPath();
+                ctx.arc(cart.x + cart.width - wheelRadius - 5, cart.y + cart.height + wheelRadius, wheelRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw mass label
+                const cartPhysics = (cart === cart1) ? physics : physics;
+                const mass = (cart === cart1) ? cartPhysics.m1 : cartPhysics.m2;
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${mass.toFixed(1)} kg`, cart.x + cart.width / 2, cart.y + cart.height / 2 + 5);
+            }
+            
+            /**
+             * Draws a velocity vector arrow above the cart.
+             * @param {object} cart - The cart object.
+             * @param {number} velocity - The velocity to visualize.
+             */
+            function drawVector(cart, velocity) {
+                if (Math.abs(velocity) < 0.1) return; // Don't draw zero-length arrows
+
+                const arrowScale = 8; // Pixels per m/s
+                const headSize = 8;
+                const length = velocity * arrowScale;
+                
+                const startX = cart.x + cart.width / 2;
+                const startY = arrowY;
+                const endX = startX + length;
+
+                ctx.strokeStyle = cart.color;
+                ctx.fillStyle = cart.color;
+                ctx.lineWidth = 3;
+
+                // Draw line
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, startY);
+                ctx.stroke();
+
+                // Draw arrowhead
+                ctx.beginPath();
+                ctx.moveTo(endX, startY);
+                if (velocity > 0) {
+                    ctx.lineTo(endX - headSize, startY - headSize / 2);
+                    ctx.lineTo(endX - headSize, startY + headSize / 2);
+                } else {
+                    ctx.lineTo(endX + headSize, startY - headSize / 2);
+                    ctx.lineTo(endX + headSize, startY + headSize / 2);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Draw velocity label
+                ctx.fillStyle = '#000';
+                ctx.font = '12px Arial';
+                ctx.textAlign = (velocity > 0) ? 'left' : 'right';
+                const textX = endX + (velocity > 0 ? 5 : -5);
+                ctx.fillText(velocity.toFixed(1) + ' m/s', textX, startY + 4);
+            }
+
+            /**
+             * Helper function to map a value from one range to another.
+             */
+            function mapRange(value, inMin, inMax, outMin, outMax) {
+                // Avoid division by zero
+                if (inMin === inMax) return outMax; 
+                return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+            }
+
+            /**
+             * Draws the p and KE graphs.
+             */
+            function drawGraphs() {
+                if (showPGraphCheck.checked) {
+                    drawSingleGraph(pGraphCtx, pGraphCanvas, timeHistory, 
+                        [p1History, p2History, pTotalHistory], 
+                        [cart1.color, cart2.color, '#000000'], // Colors
+                        "Momentum (kg·m/s)", minP, maxP);
+                }
+                if (showKEGraphCheck.checked) {
+                    drawSingleGraph(keGraphCtx, keGraphCanvas, timeHistory, 
+                        [ke1History, ke2History, keTotalHistory], 
+                        [cart1.color, cart2.color, '#000000'], // Colors
+                        "Kinetic Energy (J)", 0, maxKE); // KE min is always 0
+                }
+            }
+
+            /**
+             * Generic function to draw a single graph.
+             */
+            function drawSingleGraph(gCtx, gCanvas, xData, yDataSets, colors, yLabel, yMin, yMax) {
+                gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+                
+                const padding = { top: 10, right: 10, bottom: 20, left: 40 };
+                const w = gCanvas.width - padding.left - padding.right;
+                const h = gCanvas.height - padding.top - padding.bottom;
+
+                if (xData.length === 0) {
+                    // Draw empty graph with axes
+                    drawGraphAxes(gCtx, gCanvas, padding, w, h, yLabel, 0, 10, yMin, yMax);
+                    return;
+                }
+
+                const xMax = timeHistory[timeHistory.length - 1];
+                const xMin = 0;
+
+                // Draw axes
+                drawGraphAxes(gCtx, gCanvas, padding, w, h, yLabel, xMin, xMax, yMin, yMax);
+
+                // Plot each data set
+                yDataSets.forEach((yData, index) => {
+                    gCtx.strokeStyle = colors[index];
+                    gCtx.lineWidth = 2;
+                    gCtx.beginPath();
+                    
+                    for (let i = 0; i < xData.length; i++) {
+                        const x = mapRange(xData[i], xMin, xMax, padding.left, padding.left + w);
+                        const y = mapRange(yData[i], yMin, yMax, padding.top + h, padding.top); // Y is inverted
+                        
+                        if (i === 0) gCtx.moveTo(x, y);
+                        else gCtx.lineTo(x, y);
+                    }
+                    gCtx.stroke();
+                });
+            }
+
+            /**
+             * Draws the axes and labels for a graph.
+             */
+            function drawGraphAxes(gCtx, gCanvas, padding, w, h, yLabel, xMin, xMax, yMin, yMax) {
+                gCtx.strokeStyle = '#333';
+                gCtx.lineWidth = 1;
+                gCtx.font = '10px Arial';
+                gCtx.fillStyle = '#333';
+                gCtx.textAlign = 'center';
+                gCtx.textBaseline = 'middle';
+
+                // Y-Axis
+                gCtx.beginPath();
+                gCtx.moveTo(padding.left, padding.top);
+                gCtx.lineTo(padding.left, padding.top + h);
+                gCtx.stroke();
+                
+                // X-Axis
+                gCtx.beginPath();
+                gCtx.moveTo(padding.left, padding.top + h);
+                gCtx.lineTo(padding.left + w, padding.top + h);
+                gCtx.stroke();
+
+                // Y-Axis labels
+                gCtx.textAlign = 'right';
+                gCtx.fillText(yMax.toFixed(1), padding.left - 5, padding.top);
+                gCtx.fillText(yMin.toFixed(1), padding.left - 5, padding.top + h);
+                
+                // Y-Axis Title (rotated)
+                gCtx.save();
+                gCtx.translate(10, gCanvas.height / 2);
+                gCtx.rotate(-Math.PI / 2);
+                gCtx.fillText(yLabel, 0, 0);
+                gCtx.restore();
+
+                // X-Axis labels
+                gCtx.textAlign = 'center';
+                gCtx.fillText(xMin.toFixed(1) + 's', padding.left, padding.top + h + 10);
+                gCtx.fillText(xMax.toFixed(1) + 's', padding.left + w, padding.top + h + 10);
+            }
+
+            // --- 5. EVENT LISTENERS ---
+
+            // Play/Pause Button
+            playPauseBtn.addEventListener('click', () => {
+                if (simState === 'idle') {
+                    // Start the simulation
+                    simState = 'running';
+                    playPauseBtn.textContent = 'Pause';
+                    lastTime = performance.now();
+                    animationFrameId = requestAnimationFrame(animationLoop);
+                } else if (simState === 'running' || simState === 'collided') {
+                    // Pause the simulation
+                    simState = 'paused';
+                    playPauseBtn.textContent = 'Play';
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                } else if (simState === 'paused') {
+                    // Resume the simulation
+                    simState = (checkCollision()) ? 'collided' : 'running'; // Re-check state
+                    playPauseBtn.textContent = 'Pause';
+                    lastTime = performance.now();
+                    animationFrameId = requestAnimationFrame(animationLoop);
+                }
+            });
+
+            // Reset Button
+            resetBtn.addEventListener('click', () => {
+                resetSimulation();
+            });
+
+            // Checkbox listeners
+            function updateGraphVisibility() {
+                const pVisible = showPGraphCheck.checked;
+                const keVisible = showKEGraphCheck.checked;
+
+                if (pVisible || keVisible) {
+                    graphContainer.style.display = 'flex';
+                } else {
+                    graphContainer.style.display = 'none';
+                }
+                
+                pGraphCanvas.style.display = pVisible ? 'block' : 'none';
+                keGraphCanvas.style.display = keVisible ? 'block' : 'none';
+                
+                // Resize canvas elements when they become visible
+                if (pVisible) resizeGraphCanvas(pGraphCanvas);
+                if (keVisible) resizeGraphCanvas(keGraphCanvas);
+
+                // Redraw graphs when toggled
+                drawGraphs();
+            }
+            
+            function resizeGraphCanvas(gCanvas) {
+                const rect = gCanvas.getBoundingClientRect();
+                if (rect.width > 0 && gCanvas.width !== rect.width) gCanvas.width = rect.width;
+                if (rect.height > 0 && gCanvas.height !== rect.height) gCanvas.height = rect.height;
+            }
+
+            showPGraphCheck.addEventListener('change', updateGraphVisibility);
+            showKEGraphCheck.addEventListener('change', updateGraphVisibility);
+
+            // Sliders: When any slider is changed, reset the simulation
+            const sliders = [eSlider, m1Slider, u1Slider, m2Slider, u2Slider];
+            sliders.forEach(slider => {
+                slider.addEventListener('input', () => {
+                    // Only reset if the simulation is 'idle'
+                    // This allows changing values *before* running
+                    if (simState === 'idle') {
+                        resetSimulation();
+                    }
+                });
+            });
+
+            // Tooltip Listeners (for the "header")
+            simPanel.addEventListener('mouseenter', () => {
+                tooltip.style.display = 'block';
+            });
+            
+            simPanel.addEventListener('mouseleave', () => {
+                tooltip.style.display = 'none';
+            });
+
+            simPanel.addEventListener('mousemove', (e) => {
+                // Position tooltip relative to the sim-panel
+                const rect = simPanel.getBoundingClientRect();
+                // Place it 10px below and to the right of the cursor
+                // Use e.clientX/Y (viewport) and subtract rect.left/top
+                let x = (e.clientX - rect.left) + 10;
+                let y = (e.clientY - rect.top) + 10;
+                
+                // Prevent tooltip from going off the right edge of the panel
+                if (x + tooltip.offsetWidth > simPanel.offsetWidth) {
+                    x = simPanel.offsetWidth - tooltip.offsetWidth - 5;
+                }
+                
+                // Prevent tooltip from going off the bottom edge
+                if (y + tooltip.offsetHeight > simPanel.offsetHeight) {
+                    y = e.clientY - rect.top - tooltip.offsetHeight - 5;
+                }
+                
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            });
+
+            // Window resize listener
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                // Re-calculate positions based on new canvas size
+                resetSimulation();
+                // Resize and show/hide graphs
+                updateGraphVisibility();
+            });
+
+            // --- 6. INITIALIZE ---
+            resizeCanvas(); // Set initial canvas size
+            resetSimulation(); // Set initial values and draw
+
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Singapore Young Physicists' Tournament (SYPT) Team Assignment App</title>
+    <!-- Google Analytics -->
+    <script 
+    async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <!-- End Google Analytics -->
+    <!-- Include JSZip library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        textarea {
+        width: 100%;
+        height: 60px;
+        font-family: 'Courier New', monospace; /* Change to your preferred font */
+        font-size: 16px; /* Adjust font size */
+        color: #333; /* Text color */
+        background-color: #f9f9f9; /* Background color */
+        padding: 10px; /* Padding for better readability */
+        border: 1px solid #ccc; /* Border style */
+        border-radius: 5px; /* Optional: Rounded corners */
+        }
+        input[type="text"] {
+            width: 150px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 5px;
+            text-align: center;
+        }
+        .attempts {
+            font-weight: bold;
+        }
+        .download-buttons button {
+            margin-bottom: 20px;
+            margin-right: 10px;
+        }
+        .section-title {
+            margin-top: 40px;
+            margin-bottom: 10px;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 0.9em;
+            text-align: center;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Singapore Young Physicists' Tournament (SYPT) Team Assignment App</h1>
+        <p>Input the team list and room list below. You can also specify up to 4 matchup restrictions.</p>
+
+        <label for="team_list">Team List (separate by commas):</label><br>
+        <textarea id="team_list">RI1, RGS1, NUSH1, NUSH2, NJC1, NJC2, HCI1, HCI2, RVHS1, TJC1</textarea><br><br>
+
+        <label for="room_list">Room List (separate by commas):</label><br>
+        <textarea id="room_list">A, B, C, D, E</textarea><br><br>
+
+        <h2>Matchup Restrictions (optional):</h2>
+        <p><em>Note: If you enter a team name without a number at the end (e.g., "NUSH"), it will apply to all teams starting with that name (e.g., "NUSH1", "NUSH2").</em></p>
+        <label for="restriction1">Restriction 1:</label>
+        <input type="text" id="restriction1_team1" placeholder="Team 1"> cannot face <input type="text" id="restriction1_team2" placeholder="Team 2"><br><br>
+
+        <label for="restriction2">Restriction 2:</label>
+        <input type="text" id="restriction2_team1" placeholder="Team 1"> cannot face <input type="text" id="restriction2_team2" placeholder="Team 2"><br><br>
+
+        <label for="restriction3">Restriction 3:</label>
+        <input type="text" id="restriction3_team1" placeholder="Team 1"> cannot face <input type="text" id="restriction3_team2" placeholder="Team 2"><br><br>
+
+        <label for="restriction4">Restriction 4:</label>
+        <input type="text" id="restriction4_team1" placeholder="Team 1"> cannot face <input type="text" id="restriction4_team2" placeholder="Team 2"><br><br>
+
+        <button onclick="assignTeams()">Assign Teams, Keyboard Shortcut: P</button>
+        <p>Keyboard Shortcut: Press "P" to trigger the "Assign Teams" action.</p>
+
+        <div class="results" id="results"></div>
+        <div class="footer">
+            This web app is created by <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> based on original Python code by nic_wong.
+            You can view the original Python source code on <a href="https://github.com/lookang/SYPTPython" target="_blank">GitHub</a>.
+        </div>
+    </div>
+
+    <script>
+        let assignment_matrix_global = null;
+        let team_list_global = null;
+        let room_matrix_global = null;
+        let transposed_room_matrix_global = null;
+        let school_matrix_global = null;
+            // Listen for keypress event to trigger processFiles function when "P" is pressed
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'p' || event.key === 'P') {
+                assignTeams();
+            }
+        });
+        function assignTeams() {
+            // Get team list and room list from input fields
+            const teamListInput = document.getElementById('team_list').value;
+            const roomListInput = document.getElementById('room_list').value;
+
+            // Split input strings into arrays and trim whitespace
+            const team_list = teamListInput.split(',').map(s => s.trim());
+            const room_list = roomListInput.split(',').map(s => s.trim());
+
+            team_list_global = team_list; // Save for later use in download
+            const same_school = {};
+
+            // Identify teams from the same school
+            for (let i = 0; i < team_list.length; i++) {
+                for (let j = i + 1; j < team_list.length; j++) {
+                    const text_i = team_list[i];
+                    const text_j = team_list[j];
+                    if (text_i.slice(0, -1) === text_j.slice(0, -1)) {
+                        same_school[i] = same_school[i] || [];
+                        same_school[i].push(j);
+                        same_school[j] = same_school[j] || [];
+                        same_school[j].push(i);
+                    }
+                }
+            }
+
+            // Get matchup restrictions
+            const restrictions = [];
+            for (let k = 1; k <= 4; k++) {
+                const team1 = document.getElementById(`restriction${k}_team1`).value.trim();
+                const team2 = document.getElementById(`restriction${k}_team2`).value.trim();
+                if (team1 && team2) {
+                    restrictions.push([team1, team2]);
+                }
+            }
+
+            let proceed = false;
+            let attempts = 0;
+            const MAX_ATTEMPT = 500;
+            let assignment_matrix;
+            let team_p_count;
+            let room_matrix;
+            let school_matrix;
+
+            while (!proceed && attempts < MAX_ATTEMPT) {
+                // Initialize assignment matrix and presentation counts
+                assignment_matrix = Array.from({ length: team_list.length }, () => Array(4).fill(null));
+                team_p_count = Array(team_list.length).fill(0);
+                room_matrix = Array.from({ length: room_list.length }, () => Array(8).fill(null));
+                school_matrix = Array.from({ length: team_list.length }, () => Array(team_list.length).fill(null));
+                let all_okay = true;
+
+                try {
+                    for (let round = 0; round < 4; round++) {
+                        let roomIndex = 0;
+
+                        while (roomIndex < room_list.length) {
+                            // Assign presenter
+                            const remainingTeams = [];
+                            for (let idx = 0; idx < team_list.length; idx++) {
+                                if (assignment_matrix[idx][round] === null) {
+                                    remainingTeams.push(idx);
+                                }
+                            }
+
+                            const priority_order = [...new Set(team_p_count)].sort((a, b) => a - b);
+                            let school_j = null;
+                            let error = 0;
+                            let current_priority_index = 0;
+
+                            while (school_j === null && error < 100) {
+                                const current_priority_count = priority_order[current_priority_index];
+                                const team_priority = [];
+
+                                for (let idx = 0; idx < team_p_count.length; idx++) {
+                                    if (team_p_count[idx] === current_priority_count && remainingTeams.includes(idx)) {
+                                        team_priority.push(idx);
+                                    }
+                                }
+
+                                if (team_priority.length > 0) {
+                                    const randomIndex = Math.floor(Math.random() * team_priority.length);
+                                    school_j = team_priority[randomIndex];
+                                }
+
+                                current_priority_index++;
+                                error++;
+                            }
+
+                            if (school_j === null) {
+                                all_okay = false;
+                                break;
+                            }
+
+                            // Assign presenter
+                            assignment_matrix[school_j][round] = room_list[roomIndex] + "P";
+                            team_p_count[school_j] += 1;
+
+                            // Update remaining teams for opponent selection
+                            let remainingOpponents = remainingTeams.filter(idx => idx !== school_j);
+
+                            // Remove same school teams
+                            if (same_school.hasOwnProperty(school_j)) {
+                                remainingOpponents = remainingOpponents.filter(idx => !same_school[school_j].includes(idx));
+                            }
+
+                            // Remove previous opponents
+                            for (let prevRound = 0; prevRound < round; prevRound++) {
+                                const presenterRoom = assignment_matrix[school_j][prevRound];
+                                if (presenterRoom) {
+                                    const presenterRoomChar = presenterRoom.charAt(0);
+                                    const previousOpponents = assignment_matrix.map((row, idx) => {
+                                        return row[prevRound] && row[prevRound].startsWith(presenterRoomChar) && idx !== school_j ? idx : null;
+                                    }).filter(idx => idx !== null);
+                                    remainingOpponents = remainingOpponents.filter(idx => !previousOpponents.includes(idx));
+                                }
+                            }
+
+                            // Apply matchup restrictions
+                            const currentTeam = team_list[school_j];
+                            remainingOpponents = remainingOpponents.filter(opponentIdx => {
+                                const opponentTeam = team_list[opponentIdx];
+                                return !restrictions.some(([teamA, teamB]) => {
+                                    return (teamMatches(currentTeam, teamA) && teamMatches(opponentTeam, teamB)) ||
+                                           (teamMatches(currentTeam, teamB) && teamMatches(opponentTeam, teamA));
+                                });
+                            });
+
+                            if (remainingOpponents.length === 0) {
+                                all_okay = false;
+                                break;
+                            }
+
+                            // Assign opponent
+                            const opponentIndex = remainingOpponents[Math.floor(Math.random() * remainingOpponents.length)];
+                            assignment_matrix[opponentIndex][round] = room_list[roomIndex] + "O";
+
+                            // Update room matrix
+                            room_matrix[roomIndex][round * 2] = team_list[school_j];      // Presenter
+                            room_matrix[roomIndex][round * 2 + 1] = team_list[opponentIndex]; // Opponent
+
+                            // Update school matrix
+                            const presenterIndex = school_j;
+                            const opponentSchool = team_list[opponentIndex];
+
+                            // Record matchup in school matrix
+                            if (school_matrix[presenterIndex][opponentIndex] || currentTeam.slice(0, -1) === opponentSchool.slice(0, -1)) {
+                                all_okay = false;
+                                break;
+                            } else {
+                                school_matrix[presenterIndex][opponentIndex] = room_list[roomIndex] + (round + 1);
+                                school_matrix[opponentIndex][presenterIndex] = ' ';
+                            }
+
+                            roomIndex++;
+                        }
+
+                        if (!all_okay) break;
+                    }
+                } catch (e) {
+                    all_okay = false;
+                }
+
+                // Check if each team presents exactly twice
+                if (all_okay) {
+                    for (let idx = 0; idx < team_list.length; idx++) {
+                        const presentationCount = assignment_matrix[idx].filter(val => val && val.includes('P')).length;
+                        if (presentationCount !== 2) {
+                            all_okay = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (all_okay) {
+                    proceed = true;
+                } else {
+                    attempts++;
+                }
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (proceed) {
+                assignment_matrix_global = assignment_matrix; // Save for download
+                room_matrix_global = room_matrix; // Save for room matrix download
+
+                // Generate transposed room matrix
+                const transposed_room_matrix = [];
+                for (let col = 0; col < 8; col++) {
+                    const row = [];
+                    for (let rowIdx = 0; rowIdx < room_matrix.length; rowIdx++) {
+                        row.push(room_matrix[rowIdx][col]);
+                    }
+                    transposed_room_matrix.push(row);
+                }
+                transposed_room_matrix_global = transposed_room_matrix; // Save for download
+
+                school_matrix_global = school_matrix; // Save for download
+
+                // Display the download buttons
+                const downloadButtonsDiv = document.createElement('div');
+                downloadButtonsDiv.className = 'download-buttons';
+
+                const downloadButton = document.createElement('button');
+                downloadButton.id = 'downloadButton';
+                downloadButton.textContent = 'Download Assignment Matrix CSV';
+                downloadButton.onclick = downloadCSV;
+                downloadButtonsDiv.appendChild(downloadButton);
+
+                const downloadRoomMatrixButton = document.createElement('button');
+                downloadRoomMatrixButton.id = 'downloadRoomMatrixButton';
+                downloadRoomMatrixButton.textContent = 'Download Room Matrix CSV';
+                downloadRoomMatrixButton.onclick = downloadRoomMatrixCSV;
+                downloadButtonsDiv.appendChild(downloadRoomMatrixButton);
+
+                const downloadTransposedRoomMatrixButton = document.createElement('button');
+                downloadTransposedRoomMatrixButton.id = 'downloadTransposedRoomMatrixButton';
+                downloadTransposedRoomMatrixButton.textContent = 'Download Transposed Room Matrix CSV';
+                downloadTransposedRoomMatrixButton.onclick = downloadTransposedRoomMatrixCSV;
+                downloadButtonsDiv.appendChild(downloadTransposedRoomMatrixButton);
+
+                const downloadSchoolMatrixButton = document.createElement('button');
+                downloadSchoolMatrixButton.id = 'downloadSchoolMatrixButton';
+                downloadSchoolMatrixButton.textContent = 'Download School Matrix CSV';
+                downloadSchoolMatrixButton.onclick = downloadSchoolMatrixCSV;
+                downloadButtonsDiv.appendChild(downloadSchoolMatrixButton);
+
+                const downloadAllButton = document.createElement('button');
+                downloadAllButton.id = 'downloadAllButton';
+                downloadAllButton.textContent = 'Download All CSVs as ZIP';
+                downloadAllButton.onclick = downloadAllCSVsAsZip;
+                downloadButtonsDiv.appendChild(downloadAllButton);
+
+                resultsDiv.appendChild(downloadButtonsDiv);
+
+                // Display the assignment matrix
+                const assignmentTitle = document.createElement('h2');
+                assignmentTitle.className = 'section-title';
+                assignmentTitle.textContent = 'Assignment Matrix';
+                resultsDiv.appendChild(assignmentTitle);
+
+                const assignmentTable = document.createElement('table');
+                const headerRow = document.createElement('tr');
+                const headers = ['Team', 'Round 1', 'Round 2', 'Round 3', 'Round 4'];
+                headers.forEach(text => {
+                    const th = document.createElement('th');
+                    th.textContent = text;
+                    headerRow.appendChild(th);
+                });
+                assignmentTable.appendChild(headerRow);
+
+                for (let idx = 0; idx < team_list.length; idx++) {
+                    const row = document.createElement('tr');
+                    const teamCell = document.createElement('td');
+                    teamCell.textContent = team_list[idx];
+                    row.appendChild(teamCell);
+
+                    for (let round = 0; round < 4; round++) {
+                        const cell = document.createElement('td');
+                        cell.textContent = assignment_matrix[idx][round] || '';
+                        row.appendChild(cell);
+                    }
+                    assignmentTable.appendChild(row);
+                }
+
+                resultsDiv.appendChild(assignmentTable);
+
+                // Display attempts
+                const attemptsPara = document.createElement('p');
+                attemptsPara.className = 'attempts';
+                attemptsPara.textContent = `Number of attempts needed: ${attempts}`;
+                resultsDiv.appendChild(attemptsPara);
+
+                // Display room matrix
+                const roomMatrixTitle = document.createElement('h2');
+                roomMatrixTitle.className = 'section-title';
+                roomMatrixTitle.textContent = 'Room Matrix';
+                resultsDiv.appendChild(roomMatrixTitle);
+
+                displayRoomMatrix(room_list, room_matrix);
+
+                // Display transposed room matrix
+                const transposedRoomMatrixTitle = document.createElement('h2');
+                transposedRoomMatrixTitle.className = 'section-title';
+                transposedRoomMatrixTitle.textContent = 'Transposed Room Matrix';
+                resultsDiv.appendChild(transposedRoomMatrixTitle);
+
+                displayTransposedRoomMatrix(room_list, transposed_room_matrix);
+
+                // Display school matrix
+                const schoolMatrixTitle = document.createElement('h2');
+                schoolMatrixTitle.className = 'section-title';
+                schoolMatrixTitle.textContent = 'School Matrix';
+                resultsDiv.appendChild(schoolMatrixTitle);
+
+                displaySchoolMatrix(team_list, school_matrix);
+
+            } else {
+                const failurePara = document.createElement('p');
+                failurePara.textContent = `Failed after ${attempts} attempts. Please try adjusting the matchup restrictions or team list.`;
+                resultsDiv.appendChild(failurePara);
+            }
+        }
+
+        // Helper function to match team names with possible prefixes
+        function teamMatches(teamName, restrictionName) {
+            const endsWithNumber = /\d$/.test(restrictionName);
+            if (endsWithNumber) {
+                return teamName === restrictionName;
+            } else {
+                return teamName.startsWith(restrictionName);
+            }
+        }
+
+        function downloadCSV() {
+            if (!assignment_matrix_global || !team_list_global) {
+                alert('No data available to download.');
+                return;
+            }
+
+            let csvContent = 'Team,Round 1,Round 2,Round 3,Round 4\n';
+            for (let idx = 0; idx < team_list_global.length; idx++) {
+                const team = team_list_global[idx];
+                const assignments = assignment_matrix_global[idx].map(val => val || '').join(',');
+                csvContent += `${team},${assignments}\n`;
+            }
+
+            downloadFile(csvContent, 'Assignment matrix.csv');
+        }
+
+        function downloadRoomMatrixCSV() {
+            if (!room_matrix_global || !team_list_global) {
+                alert('No room matrix data available to download.');
+                return;
+            }
+
+            const room_list = document.getElementById('room_list').value.split(',').map(s => s.trim());
+            let csvContent = 'Room,0,1,2,3,4,5,6,7\n';
+
+            for (let i = 0; i < room_list.length; i++) {
+                let row = room_list[i];
+                for (let j = 0; j < 8; j++) {
+                    const value = room_matrix_global[i][j] || '';
+                    row += `,${value}`;
+                }
+                csvContent += row + '\n';
+            }
+
+            downloadFile(csvContent, 'Room matrix.csv');
+        }
+
+        function downloadTransposedRoomMatrixCSV() {
+            if (!transposed_room_matrix_global) {
+                alert('No transposed room matrix data available to download.');
+                return;
+            }
+
+            const room_list = document.getElementById('room_list').value.split(',').map(s => s.trim());
+            let csvContent = ',';
+            csvContent += room_list.join(',') + '\n';
+
+            for (let i = 0; i < transposed_room_matrix_global.length; i++) {
+                let row = i.toString();
+                for (let j = 0; j < transposed_room_matrix_global[i].length; j++) {
+                    const value = transposed_room_matrix_global[i][j] || '';
+                    row += `,${value}`;
+                }
+                csvContent += row + '\n';
+            }
+
+            downloadFile(csvContent, 'Room matrix_transposed.csv');
+        }
+
+        function downloadSchoolMatrixCSV() {
+            if (!school_matrix_global || !team_list_global) {
+                alert('No school matrix data available to download.');
+                return;
+            }
+
+            let csvContent = ',';
+            csvContent += team_list_global.join(',') + '\n';
+
+            for (let i = 0; i < team_list_global.length; i++) {
+                let row = team_list_global[i];
+                for (let j = 0; j < team_list_global.length; j++) {
+                    const value = school_matrix_global[i][j] || '';
+                    row += `,${value}`;
+                }
+                csvContent += row + '\n';
+            }
+
+            downloadFile(csvContent, 'School matrix.csv');
+        }
+
+        function downloadAllCSVsAsZip() {
+            const zip = new JSZip();
+
+            // Assignment Matrix CSV
+            if (assignment_matrix_global && team_list_global) {
+                let csvContent = 'Team,Round 1,Round 2,Round 3,Round 4\n';
+                for (let idx = 0; idx < team_list_global.length; idx++) {
+                    const team = team_list_global[idx];
+                    const assignments = assignment_matrix_global[idx].map(val => val || '').join(',');
+                    csvContent += `${team},${assignments}\n`;
+                }
+                zip.file('Assignment matrix.csv', csvContent);
+            }
+
+            // Room Matrix CSV
+            if (room_matrix_global && team_list_global) {
+                const room_list = document.getElementById('room_list').value.split(',').map(s => s.trim());
+                let csvContent = 'Room,0,1,2,3,4,5,6,7\n';
+
+                for (let i = 0; i < room_list.length; i++) {
+                    let row = room_list[i];
+                    for (let j = 0; j < 8; j++) {
+                        const value = room_matrix_global[i][j] || '';
+                        row += `,${value}`;
+                    }
+                    csvContent += row + '\n';
+                }
+                zip.file('Room matrix.csv', csvContent);
+            }
+
+            // Transposed Room Matrix CSV
+            if (transposed_room_matrix_global) {
+                const room_list = document.getElementById('room_list').value.split(',').map(s => s.trim());
+                let csvContent = ',';
+                csvContent += room_list.join(',') + '\n';
+
+                for (let i = 0; i < transposed_room_matrix_global.length; i++) {
+                    let row = i.toString();
+                    for (let j = 0; j < transposed_room_matrix_global[i].length; j++) {
+                        const value = transposed_room_matrix_global[i][j] || '';
+                        row += `,${value}`;
+                    }
+                    csvContent += row + '\n';
+                }
+                zip.file('Room matrix_transposed.csv', csvContent);
+            }
+
+            // School Matrix CSV
+            if (school_matrix_global && team_list_global) {
+                let csvContent = ',';
+                csvContent += team_list_global.join(',') + '\n';
+
+                for (let i = 0; i < team_list_global.length; i++) {
+                    let row = team_list_global[i];
+                    for (let j = 0; j < team_list_global.length; j++) {
+                        const value = school_matrix_global[i][j] || '';
+                        row += `,${value}`;
+                    }
+                    csvContent += row + '\n';
+                }
+                zip.file('School matrix.csv', csvContent);
+            }
+
+            // Generate and download the zip file
+            zip.generateAsync({ type: 'blob' }).then(function(content) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = 'SYPT_matrices.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.setAttribute('href', URL.createObjectURL(blob));
+            link.setAttribute('download', filename);
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function displayRoomMatrix(room_list, room_matrix) {
+            const resultsDiv = document.getElementById('results');
+
+            const roomTable = document.createElement('table');
+            const headerRow = document.createElement('tr');
+            const headers = ['Room'];
+            for (let i = 0; i < 8; i++) {
+                headers.push(i.toString());
+            }
+            headers.forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            roomTable.appendChild(headerRow);
+
+            for (let i = 0; i < room_list.length; i++) {
+                const row = document.createElement('tr');
+                const roomCell = document.createElement('td');
+                roomCell.textContent = room_list[i];
+                row.appendChild(roomCell);
+
+                for (let j = 0; j < 8; j++) {
+                    const cell = document.createElement('td');
+                    cell.textContent = room_matrix[i][j] || '';
+                    row.appendChild(cell);
+                }
+                roomTable.appendChild(row);
+            }
+
+            resultsDiv.appendChild(roomTable);
+        }
+
+        function displayTransposedRoomMatrix(room_list, transposed_room_matrix) {
+            const resultsDiv = document.getElementById('results');
+
+            const transposedTable = document.createElement('table');
+            const headerRow = document.createElement('tr');
+            const headers = [''];
+            headers.push(...room_list);
+            headers.forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            transposedTable.appendChild(headerRow);
+
+            for (let i = 0; i < transposed_room_matrix.length; i++) {
+                const row = document.createElement('tr');
+                const indexCell = document.createElement('td');
+                indexCell.textContent = i.toString();
+                row.appendChild(indexCell);
+
+                for (let j = 0; j < transposed_room_matrix[i].length; j++) {
+                    const cell = document.createElement('td');
+                    cell.textContent = transposed_room_matrix[i][j] || '';
+                    row.appendChild(cell);
+                }
+                transposedTable.appendChild(row);
+            }
+
+            resultsDiv.appendChild(transposedTable);
+        }
+
+        function displaySchoolMatrix(team_list, school_matrix) {
+            const resultsDiv = document.getElementById('results');
+
+            const schoolTable = document.createElement('table');
+            const headerRow = document.createElement('tr');
+            const headers = [''];
+            headers.push(...team_list);
+            headers.forEach(text => {
+                const th = document.createElement('th');
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+            schoolTable.appendChild(headerRow);
+
+            for (let i = 0; i < team_list.length; i++) {
+                const row = document.createElement('tr');
+                const teamCell = document.createElement('td');
+                teamCell.textContent = team_list[i];
+                row.appendChild(teamCell);
+
+                for (let j = 0; j < team_list.length; j++) {
+                    const cell = document.createElement('td');
+                    cell.textContent = school_matrix[i][j] || '';
+                    row.appendChild(cell);
+                }
+                schoolTable.appendChild(row);
+            }
+
+            resultsDiv.appendChild(schoolTable);
+        }
+    </script>
+</body>
+</html>

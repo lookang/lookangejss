@@ -1,0 +1,1131 @@
+/**
+ * Inject xAPI scripts and optional instrumentation into HTML
+ * Uses regex-based approach for Node.js compatibility
+ */
+
+export function injectScriptsIntoHtml(htmlContent, options = {}) {
+  const { mode = 'minimal', keepAnalytics = false, aiScript = null } = options;
+
+  try {
+    let html = htmlContent;
+
+    // If a user uploads an already-integrated ZIP (or re-integrates the same file),
+    // remove previously injected tracking blocks so we can safely re-inject the
+    // latest version (prevents duplicated scripts and ensures bugfixes apply).
+    html = stripPreviouslyInjectedBlocks(html);
+
+    // Remove CSP-blocked scripts unless keepAnalytics is true
+    if (!keepAnalytics) {
+      html = removeBlockedScripts(html);
+    }
+
+    // Inject xAPI libraries
+    html = injectXapiLibs(html);
+
+    // Inject base-mode instrumentation first
+    switch (mode) {
+      case 'timeline':
+        // Unified mode: timeline is the single entry point.
+        // We include both generic timeline logging and quiz/score semantics.
+        html = injectTimelineTracking(html);
+        html = injectQuizTracking(html);
+        break;
+      case 'quiz':
+        // Deprecated: keep for backwards compatibility but treat as timeline.
+        html = injectTimelineTracking(html);
+        html = injectQuizTracking(html);
+        break;
+      case 'minimal':
+      default:
+        // Just xAPI libs, no tracking
+        break;
+    }
+
+    return html;
+  } catch (error) {
+    console.error('Error injecting scripts:', error);
+    return htmlContent;
+  }
+}
+
+function stripPreviouslyInjectedBlocks(html) {
+  try {
+    let out = String(html || '');
+    const blocks = [
+      '<!-- xAPI Timeline Tracking -->',
+      '<!-- xAPI Quiz Tracking -->',
+      '<!-- xAPI AI Agent - Auto-generated tracking script -->'
+    ];
+
+    blocks.forEach(marker => {
+      // Remove the marker plus the following <script>...</script> block.
+      // Non-greedy so we only remove one injected block per marker occurrence.
+      const re = new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s\\S]*?<\\/script>\\s*', 'gi');
+      out = out.replace(re, '');
+    });
+    return out;
+  } catch {
+    return html;
+  }
+}
+
+export function injectAIAgentScriptIntoHtml(htmlContent, aiScript) {
+  if (!aiScript) {
+    return htmlContent;
+  }
+  return injectAIAgentScript(htmlContent, aiScript);
+}
+
+function removeBlockedScripts(html) {
+  const patterns = [
+    /<script[^>]*src=['"](.*?google-analytics.*?)['"][^>]*><\/script>/gi,
+    /<script[^>]*src=['"](.*?ga\.js.*?)['"][^>]*><\/script>/gi,
+    /<script[^>]*src=['"](.*?analytics\.js.*?)['"][^>]*><\/script>/gi,
+    /<script[^>]*src=['"](.*?pagead.*?)['"][^>]*><\/script>/gi,
+    /<script[^>]*src=['"](.*?doubleclick.*?)['"][^>]*><\/script>/gi
+  ];
+
+  let result = html;
+  patterns.forEach(pattern => {
+    result = result.replace(pattern, '');
+  });
+
+  return result;
+}
+
+function injectXapiLibs(html) {
+  if (html.includes('xapiwrapper') && html.includes('xAPI.js')) {
+    return html;
+  }
+
+  const xapiLibsScript = `
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>`;
+
+  if (html.includes('</head>')) {
+    return html.replace('</head>', xapiLibsScript + '\n  </head>');
+  }
+
+  return html + xapiLibsScript;
+}
+
+function injectTimelineTracking(html) {
+  const script = `
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const directScore =
+        readDomNumberById('score') ??
+        readDomNumberById('points') ??
+        readDomNumberById('correctCount') ??
+        readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ??
+        readDomNumberById('correctAnswersCount');
+
+      const directMax =
+        readDomNumberById('max') ??
+        readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ??
+        readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ??
+        readDomNumberById('attempts') ??
+        readDomNumberById('totalAttempts');
+
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="correct" i]', '[class*="correct" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const scoreRegex = new RegExp('(\\d+)\\s*\\/\\s*(\\d+)');
+        const m = text.match(scoreRegex);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function summarizeFormValue(t) {
+    try {
+      if (!t) return null;
+      const tag = t.tagName ? String(t.tagName).toLowerCase() : '';
+      const type = (t.type || '').toLowerCase();
+      if (tag === 'select') {
+        const opt = t.selectedOptions && t.selectedOptions[0] ? t.selectedOptions[0] : null;
+        if (opt) return String(opt.text || opt.value || '').trim().substring(0, 120);
+      }
+      if (tag === 'input' && (type === 'checkbox' || type === 'radio')) {
+        return t.checked ? (t.value != null ? String(t.value).substring(0, 120) : 'checked') : 'unchecked';
+      }
+      return t.value != null ? String(t.value).substring(0, 120) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getDashboardSignature() {
+    try {
+      const scoreInfo = extractScoreFromDom();
+      const dashboard = captureDashboardSnapshot();
+      return [
+        scoreInfo && scoreInfo.score != null ? scoreInfo.score : '',
+        scoreInfo && scoreInfo.max != null ? scoreInfo.max : '',
+        dashboard && dashboard.selector ? dashboard.selector : '',
+        dashboard && dashboard.text ? String(dashboard.text).substring(0, 240) : ''
+      ].join('|');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const dashboard = captureDashboardSnapshot();
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      dashboard,
+      details: {
+        summary,
+        actionLog,
+        dashboard
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      const dashboard = p && p.dashboard ? p.dashboard : null;
+      return [
+        p && p.actions ? p.actions.length : 0,
+        last ? last.t : 0,
+        p && p.score != null ? p.score : '',
+        p && p.max != null ? p.max : '',
+        dashboard && dashboard.selector ? dashboard.selector : '',
+        dashboard && dashboard.text ? String(dashboard.text).substring(0, 240) : ''
+      ].join('|');
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const valueEl = entry.querySelector ? entry.querySelector('.log-value') : null;
+
+      const timeText = timeEl ? timeEl.textContent : (entry.textContent || '');
+      const actionText = actionEl ? actionEl.textContent : null;
+      const valueText = valueEl ? valueEl.textContent : null;
+
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+
+      const label = [actionText, valueText].filter(Boolean).join(' ').trim();
+      return {
+        timeSec: Number.isFinite(timeSec) ? timeSec : null,
+        action: actionText ? actionText.trim() : null,
+        details: valueText ? valueText.trim() : null,
+        label: label || null
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) {
+          const keep = Array.from(seen).slice(-200);
+          seen.clear();
+          keep.forEach(k => seen.add(k));
+        }
+
+        const ts = parsed.timeSec != null
+          ? (xapiState.startTime + Math.round(parsed.timeSec * 1000))
+          : Date.now();
+
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) {
+                recordEntry(node);
+              } else {
+                node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry);
+              }
+            });
+          });
+        });
+
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('logContainer') || document.querySelector('.analytics-content #logContainer');
+        if (container) {
+          attachToContainer(container);
+          return true;
+        }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) {
+          attachToContainer(entry.parentElement);
+          return true;
+        }
+        return false;
+      }
+
+      if (tryAttach()) return;
+
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts += 1;
+        if (tryAttach() || attempts > 20) {
+          clearInterval(timer);
+        }
+      }, 500);
+    } catch (e) {}
+  }
+
+  // Keyboard tracking for text-based inputs and textareas
+  // This logs each keystroke as a lightweight "key" action so it
+  // appears in the same timeline analytics as clicks.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+
+    // Limit to typical text input fields to avoid flooding from
+    // every key on the whole page.
+    const isTextField = (
+      tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')
+    ) || tag === 'textarea';
+
+    if (!isTextField) return;
+
+    logAction('key', {
+      tag,
+      id: t.id || null,
+      name: t.name || null,
+      value: t.value != null ? String(t.value).substring(0, 120) : null,
+      text: null,
+      key: String(e.key).substring(0, 40),
+      code: String(e.code || '').substring(0, 40)
+    });
+
+    // Group keystrokes slightly to avoid sending on every single key.
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    // In quiz contexts, we avoid sending "pause" events when switching tabs,
+    // because SLS learners commonly return to the parent tab.
+    try {
+      if (document.hidden && window.__xapiDisablePauseFlush === true) return;
+    } catch (e) {}
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+    const trackChange =
+      tag === 'select' ||
+      tag === 'textarea' ||
+      (tag === 'input' && ['range', 'number', 'date', 'time', 'color'].includes(type));
+
+    if (!trackChange) return;
+
+    logAction('change', {
+      tag,
+      type: type || null,
+      id: t.id || null,
+      name: t.name || null,
+      value: summarizeFormValue(t),
+      text: tag === 'select' && t.selectedOptions && t.selectedOptions[0]
+        ? String(t.selectedOptions[0].text || '').trim().substring(0, 80)
+        : null
+    });
+    scheduleFlush('auto-change', 300);
+  }, true);
+
+  const releaseEvent = window.PointerEvent ? 'pointerup' : 'mouseup';
+  document.addEventListener(releaseEvent, (e) => {
+    const target = e.target && e.target.closest ? e.target.closest('canvas,svg') : null;
+    if (!target) return;
+
+    logAction('pointerup', {
+      tag: target.tagName ? String(target.tagName).toLowerCase() : null,
+      id: target.id || null,
+      name: target.name || null,
+      text: target.getAttribute ? (target.getAttribute('aria-label') || target.getAttribute('title') || null) : null
+    });
+    scheduleFlush('auto-canvas', 250);
+  }, true);
+
+  function startTimelineAutoSave() {
+    if (window.__xapiTimelineAutoSaveStarted) return;
+    window.__xapiTimelineAutoSaveStarted = true;
+
+    let lastDashboardSig = getDashboardSignature();
+
+    setInterval(() => {
+      const sig = getDashboardSignature();
+      if (!sig || sig === lastDashboardSig) return;
+      lastDashboardSig = sig;
+      if (xapiState.actions.length > 0) {
+        scheduleFlush('dashboard-change', 250);
+      }
+    }, 2000);
+
+    setInterval(() => {
+      if (xapiState.actions.length > 0) {
+        flush('heartbeat');
+      }
+    }, 15000);
+  }
+
+  function addSaveBtn() {
+    return;
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      hookLearningAnalyticsLog();
+      startTimelineAutoSave();
+    });
+  } else {
+    hookLearningAnalyticsLog();
+    startTimelineAutoSave();
+  }
+})();
+    </script>`;
+  
+  if (html.includes('</head>')) {
+    return html.replace('</head>', script + '\n  </head>');
+  }
+  return html + script;
+}
+
+function injectQuizTracking(html) {
+  const script = `
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  // Unified tracking: quiz instrumentation is always present.
+  // We DO NOT force statement sending here. The vendor glue (lib/xAPI.js)
+  // will still send state reliably; statements are best-effort depending on CORS.
+
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+  const answerDedup = { lastSig: '', lastAt: 0 };
+  const metricsState = { lastKey: '', timer: null };
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function toNumber(val) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function readDomNumber(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      return toNumber(text);
+    } catch {
+      return null;
+    }
+  }
+
+  function getQuestionText() {
+    try {
+      const el = document.getElementById('question');
+      if (el && el.textContent) return el.textContent.trim().substring(0, 160);
+    } catch {}
+    return null;
+  }
+
+  function getGameState() {
+    try { return window.gameState || null; } catch { return null; }
+  }
+
+  function getMetricsFromGameState() {
+    const gs = getGameState();
+    if (!gs) return null;
+    const attempted = toNumber(gs.totalAttempts != null ? gs.totalAttempts : null);
+    const correct = toNumber(gs.correctCount != null ? gs.correctCount : null);
+    const points = toNumber(gs.score != null ? gs.score : null);
+    const max = toNumber(gs.questionsToAdvance != null ? gs.questionsToAdvance : null);
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetricsFromDom() {
+    const attempted = readDomNumber('totalAttempts');
+    const correct = readDomNumber('correctCount');
+    const points = readDomNumber('score');
+    const max = readDomNumber('totalQuestions');
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetrics() {
+    return getMetricsFromGameState() || getMetricsFromDom() || null;
+  }
+
+  function syncFromMetrics() {
+    const m = getMetrics();
+    if (!m) return;
+    if (m.attempted != null) qs.attempted = m.attempted;
+    if (m.correct != null) quizMeta.correct = m.correct;
+    if (m.max != null) quizMeta.max = m.max;
+  }
+
+  function startMetricsWatcher() {
+    if (metricsState.timer) return;
+    metricsState.timer = setInterval(() => {
+      const m = getMetrics();
+      if (!m) return;
+      const key = [m.attempted, m.correct, m.points, m.max].join('|');
+      if (key === metricsState.lastKey) return;
+      metricsState.lastKey = key;
+      syncFromMetrics();
+      scheduleFlush('auto-metrics');
+      maybeComputeAndSendScore();
+    }, 1200);
+  }
+
+  function recordAnswer(evt) {
+    try {
+      const sig = [evt.q, evt.value, evt.correct, evt.expected].join('|');
+      const now = Date.now();
+      if (sig === answerDedup.lastSig && now - answerDedup.lastAt < 800) return;
+      answerDedup.lastSig = sig;
+      answerDedup.lastAt = now;
+      pushHistory(evt);
+
+      const gs = getGameState();
+      const hasCounts = gs && (gs.totalAttempts != null || gs.correctCount != null);
+      if (!hasCounts) {
+        qs.attempted++;
+        if (evt.correct === true) quizMeta.correct++;
+      }
+    } catch (e) {}
+  }
+
+  // Build per-question breakdown for SLS and LRS analytics.
+  // Groups answer-like events by question id/text and derives:
+  // - question id/text
+  // - last user selection
+  // - inferred correct option (when available)
+  // - simple marks (1 for correct, 0 for not-certain/incorrect)
+  // This is emitted as quiz.items[] and also mirrored under
+  // hiddenMarks so vendor/xAPI.js can push it into result.extensions.
+  function buildQuizBreakdown() {
+    const byQ = new Map();
+
+    history.forEach(evt => {
+      if (!evt) return;
+      const type = (evt.type || '').toString();
+      if (!/answer/.test(type)) return; // focus on answer-like events
+
+      const keyRaw = evt.q != null ? String(evt.q) : '';
+      const key = keyRaw || (evt.name != null ? String(evt.name) : '');
+      if (!key) return;
+
+      let rec = byQ.get(key);
+      if (!rec) {
+        rec = {
+          id: key,
+          question: keyRaw || key,
+          correctOption: null,
+          lastEvent: null
+        };
+        byQ.set(key, rec);
+      }
+
+      rec.lastEvent = evt;
+      if (evt.expected != null && rec.correctOption == null) {
+        rec.correctOption = String(evt.expected).substring(0, 160);
+      }
+    });
+
+    const items = [];
+    let totalMarks = 0;
+    let maxMarks = 0;
+    let idx = 0;
+
+    byQ.forEach((rec, key) => {
+      const ev = rec.lastEvent || {};
+      const isCorrect = ev.correct === true;
+      const marks = isCorrect ? 1 : 0;
+      const max = 1;
+
+      items.push({
+        id: key || ('q' + (idx + 1)),
+        question: rec.question || null,
+        correctOption: rec.correctOption || (ev.expected != null ? String(ev.expected).substring(0, 160) : null),
+        userSelection: ev.value != null ? String(ev.value).substring(0, 160) : null,
+        marks,
+        maxMarks: max
+      });
+
+      totalMarks += marks;
+      maxMarks += max;
+      idx++;
+    });
+
+    return { items, totalMarks, maxMarks };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    syncFromMetrics();
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const m = getMetrics();
+    const breakdown = buildQuizBreakdown();
+    const hasBreakdown = breakdown && breakdown.maxMarks > 0;
+    const finalScore = hasBreakdown ? breakdown.totalMarks : raw;
+    const finalMax = hasBreakdown ? breakdown.maxMarks : max;
+
+    const payload = {
+      score: finalScore,
+      max: finalMax,
+      feedback: 'Quiz ' + reason + ': ' + raw + '/' + max + ' (correct ' + quizMeta.correct + '/' + max + ')',
+      reason,
+      quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max, points: m && m.points != null ? m.points : null },
+      history: history.slice(-80)
+    };
+
+    // Attach per-question breakdown when available so that vendor/xAPI.js
+    // can expose it via result.extensions.hiddenMarks and result.extensions.quizSummary.
+    if (hasBreakdown && breakdown.items.length) {
+      payload.quiz.items = breakdown.items;
+      payload.hiddenMarks = {
+        totalMarks: breakdown.totalMarks,
+        maxMarks: breakdown.maxMarks,
+        items: breakdown.items
+      };
+    }
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /\bcorrect\b/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        const breakdown = buildQuizBreakdown();
+        const hasBreakdown = breakdown && breakdown.maxMarks > 0;
+
+        const state = {
+          score: scoreRaw,
+          max: max,
+          feedback: feedback || '',
+          quiz: { attempted: qs.attempted, correct: quizMeta.correct, total: max },
+          history: history.slice(-80)
+        };
+
+        if (hasBreakdown && breakdown.items.length) {
+          state.quiz.items = breakdown.items;
+          state.hiddenMarks = {
+            totalMarks: breakdown.totalMarks,
+            maxMarks: breakdown.maxMarks,
+            items: breakdown.items
+          };
+        }
+
+        window.storeState(state);
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    // If we know quizMeta.max, send a score on each change.
+    // Debounced by lastScoreSent.
+    syncFromMetrics();
+    const max = quizMeta.max || quizMeta.total || qs.questions.length || 0;
+    const raw = (quizMeta.correct != null && quizMeta.correct > 0) ? quizMeta.correct : qs.attempted;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Score: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = qs.questions.length;
+    quizMeta.max = quizMeta.total;
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          recordAnswer({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Button-based answers (common in Claude-generated interactives)
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('button,[role="button"],.answer-btn') : null;
+      if (!btn) return;
+      const inGrid = btn.closest && btn.closest('#answerGrid');
+      const looksLikeAnswer = inGrid || btn.classList.contains('answer-btn') || btn.dataset.answer != null;
+      if (!looksLikeAnswer) return;
+
+      const valueRaw = btn.dataset.answer != null ? btn.dataset.answer : (btn.textContent || '');
+      const value = String(valueRaw).trim().substring(0, 120);
+      const gs = getGameState();
+      const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+      const correct = expected != null ? (String(value) === String(expected)) : null;
+
+      recordAnswer({
+        type: 'answer_click',
+        q: getQuestionText(),
+        value,
+        correct,
+        expected
+      });
+
+      scheduleFlush('answer_click');
+      maybeComputeAndSendScore();
+    }, true);
+
+    startMetricsWatcher();
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        recordAnswer({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  function hookCheckAnswer() {
+    try {
+      if (window.__xapiCheckAnswerHooked) return;
+      if (typeof window.checkAnswer !== 'function') return;
+      const original = window.checkAnswer;
+      window.checkAnswer = function(selectedAnswer, btn) {
+        try {
+          const gs = getGameState();
+          const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+          const value = selectedAnswer != null ? String(selectedAnswer).substring(0, 120) : null;
+          const correct = expected != null && value != null ? (String(value) === String(expected)) : null;
+          recordAnswer({
+            type: 'answer_check',
+            q: getQuestionText(),
+            value,
+            correct,
+            expected
+          });
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } catch (e) {}
+        return original.apply(this, arguments);
+      };
+      window.__xapiCheckAnswerHooked = true;
+    } catch (e) {}
+  }
+
+  function startCheckAnswerWatcher() {
+    if (window.__xapiCheckAnswerWatch) return;
+    window.__xapiCheckAnswerWatch = true;
+    const timer = setInterval(() => {
+      hookCheckAnswer();
+      if (window.__xapiCheckAnswerHooked) clearInterval(timer);
+    }, 600);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+      startCheckAnswerWatcher();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+    startCheckAnswerWatcher();
+  }
+})();
+    </script>`;
+  
+  if (html.includes('</head>')) {
+    return html.replace('</head>', script + '\n  </head>');
+  }
+  return html + script;
+}
+
+function injectAIAgentScript(html, aiScript) {
+  if (html.includes('</head>')) {
+    return html.replace('</head>', '\n  ' + aiScript + '\n  </head>');
+  }
+  return html + '\n' + aiScript;
+}
+
+export function serializeDocument(html) {
+  return html;
+}

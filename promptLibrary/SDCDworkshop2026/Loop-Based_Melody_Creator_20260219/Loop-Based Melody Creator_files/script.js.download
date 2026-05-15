@@ -1,0 +1,605 @@
+// ============================================
+// LOOP-BASED MELODY CREATOR
+// Educational music composition tool for Secondary 3 students
+// ============================================
+
+// ============================================
+// AUDIO CONTEXT AND SYNTHESIS
+// Web Audio API setup for sound generation
+// ============================================
+
+let audioContext;
+let masterGain;
+
+// Initialize audio context (must be done after user interaction)
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.3;
+        masterGain.connect(audioContext.destination);
+    }
+}
+
+// Note frequency mapping (A4 = 440Hz standard)
+const noteFrequencies = {
+    'C4': 261.63,
+    'C#4': 277.18,
+    'D4': 293.66,
+    'D#4': 311.13,
+    'E4': 329.63,
+    'F4': 349.23,
+    'F#4': 369.99,
+    'G4': 392.00,
+    'G#4': 415.30,
+    'A4': 440.00,
+    'A#4': 466.16,
+    'B4': 493.88,
+    'C5': 523.25
+};
+
+// Play a single note with ADSR envelope for natural sound
+function playNote(frequency, duration = 0.3) {
+    initAudio();
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine'; // Smooth, pleasant tone
+    oscillator.frequency.value = frequency;
+    
+    // ADSR envelope for natural sound decay
+    const now = audioContext.currentTime;
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01); // Attack
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration); // Decay/Release
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(masterGain);
+    
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+}
+
+// ============================================
+// STATE MANAGEMENT
+// Core application state variables
+// ============================================
+
+let isRecording = false;
+let isPlaying = false;
+let loopLength = 16; // Default loop length in beats
+let bpm = 120; // Default tempo
+let recordedNotes = []; // Array to store recorded notes with timing
+let currentBeat = 0;
+let playbackInterval = null;
+let recordingStartTime = 0;
+let loopStartTime = 0;
+
+// ============================================
+// DOM ELEMENT REFERENCES
+// Cache frequently accessed elements
+// ============================================
+
+const recordBtn = document.getElementById('recordBtn');
+const playBtn = document.getElementById('playBtn');
+const stopBtn = document.getElementById('stopBtn');
+const clearBtn = document.getElementById('clearBtn');
+const bpmInput = document.getElementById('bpmInput');
+const bpmUp = document.getElementById('bpmUp');
+const bpmDown = document.getElementById('bpmDown');
+const loopBtns = document.querySelectorAll('.loop-btn');
+const progressBar = document.getElementById('progressBar');
+const currentBeatSpan = document.getElementById('currentBeat');
+const totalBeatsSpan = document.getElementById('totalBeats');
+const keyboard = document.getElementById('keyboard');
+const keys = document.querySelectorAll('.key');
+const noteCanvas = document.getElementById('noteCanvas');
+const ctx = noteCanvas.getContext('2d');
+const saveBtn = document.getElementById('saveBtn');
+const loadBtn = document.getElementById('loadBtn');
+const fileInput = document.getElementById('fileInput');
+
+// ============================================
+// CANVAS SETUP
+// Configure canvas for note visualization
+// ============================================
+
+function resizeCanvas() {
+    const container = noteCanvas.parentElement;
+    noteCanvas.width = container.clientWidth - 24;
+    noteCanvas.height = container.clientHeight - 16;
+    drawNotes();
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ============================================
+// TRANSPORT CONTROL FUNCTIONS
+// Record, Play, Stop functionality
+// ============================================
+
+// Start recording mode
+function startRecording() {
+    initAudio();
+    isRecording = true;
+    isPlaying = false;
+    recordedNotes = [];
+    currentBeat = 0;
+    recordingStartTime = audioContext.currentTime;
+    
+    recordBtn.classList.add('recording');
+    playBtn.classList.remove('playing');
+    
+    updateDisplay();
+    drawNotes();
+    
+    // Start metronome for recording
+    startMetronome();
+}
+
+// Start playback of recorded loop
+function startPlayback() {
+    if (recordedNotes.length === 0) return;
+    
+    initAudio();
+    isPlaying = true;
+    isRecording = false;
+    currentBeat = 0;
+    loopStartTime = audioContext.currentTime;
+    
+    recordBtn.classList.remove('recording');
+    playBtn.classList.add('playing');
+    
+    stopMetronome();
+    playLoop();
+}
+
+// Stop all playback and recording
+function stopAll() {
+    isRecording = false;
+    isPlaying = false;
+    currentBeat = 0;
+    
+    recordBtn.classList.remove('recording');
+    playBtn.classList.remove('playing');
+    
+    stopMetronome();
+    if (playbackInterval) {
+        clearInterval(playbackInterval);
+        playbackInterval = null;
+    }
+    
+    updateDisplay();
+}
+
+// Clear all recorded notes
+function clearNotes() {
+    stopAll();
+    recordedNotes = [];
+    drawNotes();
+}
+
+// ============================================
+// LOOP PLAYBACK ENGINE
+// Handles continuous loop playback with timing
+// ============================================
+
+function playLoop() {
+    const beatDuration = 60 / bpm; // Duration of one beat in seconds
+    const loopDuration = beatDuration * loopLength;
+    
+    // Schedule all notes in the loop
+    function scheduleNotes() {
+        const now = audioContext.currentTime;
+        const loopTime = (now - loopStartTime) % loopDuration;
+        
+        recordedNotes.forEach(note => {
+            const noteBeatTime = (note.beat % loopLength) * beatDuration;
+            const playTime = now + (noteBeatTime - loopTime);
+            
+            if (playTime >= now && playTime < now + loopDuration) {
+                scheduleNoteAtTime(note.note, playTime);
+            }
+        });
+    }
+    
+    scheduleNotes();
+    
+    // Update progress indicator
+    playbackInterval = setInterval(() => {
+        if (!isPlaying) return;
+        
+        const now = audioContext.currentTime;
+        const elapsed = (now - loopStartTime) % loopDuration;
+        currentBeat = Math.floor(elapsed / beatDuration);
+        
+        updateDisplay();
+        
+        // Reschedule notes for seamless looping
+        if (currentBeat === 0) {
+            loopStartTime = now;
+            scheduleNotes();
+        }
+    }, 50);
+}
+
+// Schedule a note to play at specific time
+function scheduleNoteAtTime(noteName, time) {
+    const frequency = noteFrequencies[noteName];
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(0.3, time + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(masterGain);
+    
+    oscillator.start(time);
+    oscillator.stop(time + 0.3);
+}
+
+// ============================================
+// METRONOME
+// Provides timing reference during recording
+// ============================================
+
+let metronomeInterval = null;
+
+function startMetronome() {
+    stopMetronome();
+    const beatDuration = (60 / bpm) * 1000; // Convert to milliseconds
+    
+    metronomeInterval = setInterval(() => {
+        if (!isRecording) return;
+        
+        // Play metronome click (higher pitch on beat 1)
+        const frequency = (currentBeat % loopLength === 0) ? 1000 : 800;
+        playNote(frequency, 0.05);
+        
+        currentBeat++;
+        if (currentBeat >= loopLength) {
+            currentBeat = 0;
+        }
+        
+        updateDisplay();
+    }, beatDuration);
+}
+
+function stopMetronome() {
+    if (metronomeInterval) {
+        clearInterval(metronomeInterval);
+        metronomeInterval = null;
+    }
+}
+
+// ============================================
+// NOTE RECORDING
+// Capture notes during recording mode
+// ============================================
+
+function recordNote(noteName) {
+    if (!isRecording) return;
+    
+    const now = audioContext.currentTime;
+    const elapsed = now - recordingStartTime;
+    const beatDuration = 60 / bpm;
+    const beat = elapsed / beatDuration;
+    
+    // Quantize to nearest 1/4 beat for cleaner loops
+    const quantizedBeat = Math.round(beat * 4) / 4;
+    
+    // Only record if within loop length
+    if (quantizedBeat < loopLength) {
+        recordedNotes.push({
+            note: noteName,
+            beat: quantizedBeat
+        });
+        
+        drawNotes();
+    }
+}
+
+// ============================================
+// VISUAL NOTE DISPLAY
+// Draw recorded notes on canvas
+// ============================================
+
+function drawNotes() {
+    ctx.clearRect(0, 0, noteCanvas.width, noteCanvas.height);
+    
+    if (recordedNotes.length === 0) {
+        // Display helpful message when empty
+        ctx.fillStyle = '#95a5a6';
+        ctx.font = '14px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText('Record notes to see them visualized here', noteCanvas.width / 2, noteCanvas.height / 2);
+        return;
+    }
+    
+    // Draw grid lines for beats
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    const beatWidth = noteCanvas.width / loopLength;
+    
+    for (let i = 0; i <= loopLength; i++) {
+        const x = i * beatWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, noteCanvas.height);
+        ctx.stroke();
+    }
+    
+    // Draw notes
+    const noteNames = Object.keys(noteFrequencies);
+    const noteHeight = noteCanvas.height / noteNames.length;
+    
+    recordedNotes.forEach(note => {
+        const noteIndex = noteNames.indexOf(note.note);
+        const x = (note.beat / loopLength) * noteCanvas.width;
+        const y = noteCanvas.height - (noteIndex + 1) * noteHeight;
+        
+        // Draw note as colored circle
+        ctx.fillStyle = '#3498db';
+        ctx.beginPath();
+        ctx.arc(x, y + noteHeight / 2, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add glow effect
+        ctx.strokeStyle = 'rgba(52, 152, 219, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    });
+    
+    // Draw playback position indicator
+    if (isPlaying) {
+        const x = (currentBeat / loopLength) * noteCanvas.width;
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, noteCanvas.height);
+        ctx.stroke();
+    }
+}
+
+// ============================================
+// UI UPDATE FUNCTIONS
+// Update progress bar and beat counter
+// ============================================
+
+function updateDisplay() {
+    currentBeatSpan.textContent = currentBeat;
+    totalBeatsSpan.textContent = loopLength;
+    
+    const progress = (currentBeat / loopLength) * 100;
+    progressBar.style.width = progress + '%';
+    
+    if (isPlaying) {
+        drawNotes();
+    }
+}
+
+// ============================================
+// KEYBOARD INTERACTION
+// Handle mouse and keyboard input for playing notes
+// ============================================
+
+// Mouse/touch interaction with piano keys
+keys.forEach(key => {
+    const noteName = key.dataset.note;
+    
+    // Mouse down - play note
+    key.addEventListener('mousedown', () => {
+        playNote(noteFrequencies[noteName]);
+        key.classList.add('active');
+        
+        if (isRecording) {
+            recordNote(noteName);
+        }
+    });
+    
+    // Mouse up - stop visual feedback
+    key.addEventListener('mouseup', () => {
+        key.classList.remove('active');
+    });
+    
+    key.addEventListener('mouseleave', () => {
+        key.classList.remove('active');
+    });
+    
+    // Touch support for mobile devices
+    key.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        playNote(noteFrequencies[noteName]);
+        key.classList.add('active');
+        
+        if (isRecording) {
+            recordNote(noteName);
+        }
+    });
+    
+    key.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        key.classList.remove('active');
+    });
+});
+
+// Computer keyboard mapping for musical typing
+const keyMap = {};
+keys.forEach(key => {
+    const keyboardKey = key.dataset.key;
+    const noteName = key.dataset.note;
+    keyMap[keyboardKey] = { noteName, element: key };
+});
+
+document.addEventListener('keydown', (e) => {
+    const key = e.key.toUpperCase();
+    
+    // Handle transport controls
+    if (key === 'R' && !isRecording) {
+        startRecording();
+        return;
+    }
+    if (key === ' ') {
+        e.preventDefault();
+        if (isPlaying) {
+            stopAll();
+        } else {
+            startPlayback();
+        }
+        return;
+    }
+    if (key === 'S') {
+        stopAll();
+        return;
+    }
+    
+    // Handle musical typing
+    if (keyMap[key] && !keyMap[key].element.classList.contains('active')) {
+        playNote(noteFrequencies[keyMap[key].noteName]);
+        keyMap[key].element.classList.add('active');
+        
+        if (isRecording) {
+            recordNote(keyMap[key].noteName);
+        }
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    const key = e.key.toUpperCase();
+    if (keyMap[key]) {
+        keyMap[key].element.classList.remove('active');
+    }
+});
+
+// ============================================
+// CONTROL PANEL EVENT LISTENERS
+// Wire up all buttons and controls
+// ============================================
+
+recordBtn.addEventListener('click', startRecording);
+playBtn.addEventListener('click', () => {
+    if (isPlaying) {
+        stopAll();
+    } else {
+        startPlayback();
+    }
+});
+stopBtn.addEventListener('click', stopAll);
+clearBtn.addEventListener('click', clearNotes);
+
+// BPM controls
+bpmUp.addEventListener('click', () => {
+    bpm = Math.min(240, parseInt(bpmInput.value) + 5);
+    bpmInput.value = bpm;
+});
+
+bpmDown.addEventListener('click', () => {
+    bpm = Math.max(40, parseInt(bpmInput.value) - 5);
+    bpmInput.value = bpm;
+});
+
+bpmInput.addEventListener('change', () => {
+    bpm = Math.max(40, Math.min(240, parseInt(bpmInput.value)));
+    bpmInput.value = bpm;
+});
+
+// Loop length selection
+loopBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (isRecording || isPlaying) return; // Prevent changing during playback
+        
+        loopBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        loopLength = parseInt(btn.dataset.length);
+        currentBeat = 0;
+        updateDisplay();
+        drawNotes();
+    });
+});
+
+// ============================================
+// SAVE/LOAD FUNCTIONALITY
+// Preserve student compositions
+// ============================================
+
+saveBtn.addEventListener('click', () => {
+    const composition = {
+        notes: recordedNotes,
+        loopLength: loopLength,
+        bpm: bpm,
+        timestamp: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(composition, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `melody_${Date.now()}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+});
+
+loadBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const composition = JSON.parse(event.target.result);
+            
+            stopAll();
+            recordedNotes = composition.notes || [];
+            loopLength = composition.loopLength || 16;
+            bpm = composition.bpm || 120;
+            
+            bpmInput.value = bpm;
+            
+            // Update loop length button
+            loopBtns.forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.length) === loopLength) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            updateDisplay();
+            drawNotes();
+            
+        } catch (error) {
+            alert('Error loading composition. Please check the file format.');
+        }
+    };
+    
+    reader.readAsText(file);
+    fileInput.value = ''; // Reset for next load
+});
+
+// ============================================
+// INITIALIZATION
+// Set up initial state
+// ============================================
+
+updateDisplay();
+drawNotes();
+
+// Detect if running in iframe for responsive height adjustment
+if (window.self !== window.top) {
+    document.body.classList.add('iframe-mode');
+}

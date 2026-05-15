@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Shadow Simulation - Final Cleanup</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #simulation-area {
+            width: 95%;
+            max-width: 700px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #scene-container {
+            width: 100%;
+            height: 450px;
+            background-color: #e8e8f0;
+            border: 1px solid #888;
+            position: relative;
+        }
+
+        #controls-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 750px;
+            gap: 20px;
+        }
+
+        #shape-controls, #rotation-controls {
+            text-align: center;
+        }
+
+        #shape-buttons {
+             display: flex;
+             flex-wrap: wrap;
+             justify-content: center;
+             gap: 5px;
+        }
+
+        #shape-controls button, #rotation-controls button {
+            padding: 8px 12px;
+            font-size: 14px;
+            margin: 3px;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid #aaa;
+            background-color: #e0e0e0;
+            min-width: 70px;
+        }
+         #shape-controls button:hover, #rotation-controls button:hover {
+            background-color: #d0d0d0;
+         }
+         #shape-controls button.active {
+            background-color: #a0c0ff;
+            font-weight: bold;
+         }
+
+        #rotation-controls .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* 3 columns */
+            /* grid-template-rows: auto auto; Removed explicit rows, let grid handle it */
+            gap: 5px;
+            justify-items: center; /* Center items horizontally */
+            align-items: center; /* Center items vertically */
+            max-width: 300px; /* Adjust max-width if needed */
+            margin: auto;
+        }
+         #rotation-controls p {
+             grid-column: 1 / -1; /* Make title span all columns */
+             margin-bottom: 5px;
+             text-align: center;
+             font-weight: bold;
+         }
+
+
+        #instructions {
+            margin-top: 5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #333;
+            text-align: center;
+        }
+        h1 {
+             margin-bottom: 5px;
+        }
+    </style>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+</head>
+<body>
+
+    <h1>Shadow Shape Explorer</h1>
+    <div id="instructions">Click the rotation buttons to turn the shape. Watch how its shadow changes on the screen! (Hint: Try 'Rotate Up/Down' for the cylinder's circle shadow)</div>
+
+    <div id="simulation-area">
+        <div id="scene-container"></div>
+    </div>
+
+    <div id="controls-container">
+        <div id="shape-controls">
+            <p>Choose a shape:</p>
+            <div id="shape-buttons">
+                <button id="btn-cylinder" data-shape="cylinder">Cylinder</button>
+                <button id="btn-cube" data-shape="cube">Cube</button>
+                <button id="btn-cup" data-shape="cup">Cup</button>
+                <button id="btn-pyramid" data-shape="pyramid">Pyramid</button>
+                <button id="btn-torus" data-shape="torus">Donut</button>
+                <button id="btn-plus" data-shape="plus">Plus Sign</button>
+                <button id="btn-sphere" data-shape="sphere">Sphere</button>
+            </div>
+        </div>
+
+        <div id="rotation-controls">
+             <div class="grid">
+                 <p>Rotate the shape:</p>
+                <button id="btn-rotate-up">Rotate Up</button>
+                <button id="btn-rotate-down">Rotate Down</button>
+                <button id="btn-roll-left">Roll Left</button>
+                <button id="btn-rotate-left">Rotate Left</button>
+                <button id="btn-rotate-right">Rotate Right</button>
+                <button id="btn-roll-right">Roll Right</button>
+             </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script> 
+
+    <script>
+        // --- JAVASCRIPT ---
+        let scene, camera, renderer;
+        let currentObject = null;
+        let light, lightMarker, screenPlane;
+        const container = document.getElementById('scene-container');
+        const shapeButtons = document.querySelectorAll('#shape-buttons button');
+        const rotationButtons = {
+            up: document.getElementById('btn-rotate-up'),
+            down: document.getElementById('btn-rotate-down'),
+            left: document.getElementById('btn-rotate-left'),
+            right: document.getElementById('btn-rotate-right'),
+            rollL: document.getElementById('btn-roll-left'),
+            rollR: document.getElementById('btn-roll-right')
+        };
+        let activeShape = 'cylinder';
+
+        const targetRotation = new THREE.Euler(0, 0, 0);
+        const rotationSpeed = 0.15;
+
+        const LIGHT_POS_X = -6;
+        const LIGHT_POS_Y = 0.2;
+        const SCREEN_POS_X = 6;
+        const PLANE_SIZE_W = 5;
+        const PLANE_SIZE_H = 5;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xe8e8f0);
+
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 100);
+            camera.position.set(0, 3, 12);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            light = new THREE.PointLight(0xffffff, 1.0, 50);
+            light.position.set(LIGHT_POS_X, LIGHT_POS_Y, 0);
+            light.castShadow = true;
+            light.shadow.mapSize.width = 1024;
+            light.shadow.mapSize.height = 1024;
+            light.shadow.camera.near = 0.5;
+            light.shadow.camera.far = 20;
+            light.shadow.bias = -0.005;
+            scene.add(light);
+
+            const lightMarkerGeo = new THREE.SphereGeometry(0.2, 16, 8);
+            const lightMarkerMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            lightMarker = new THREE.Mesh(lightMarkerGeo, lightMarkerMat);
+            lightMarker.position.copy(light.position);
+            scene.add(lightMarker);
+
+            const screenGeometry = new THREE.PlaneGeometry(PLANE_SIZE_W, PLANE_SIZE_H);
+            const screenMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, side: THREE.DoubleSide });
+            screenPlane = new THREE.Mesh(screenGeometry, screenMaterial);
+            screenPlane.position.set(SCREEN_POS_X, 0, 0);
+            screenPlane.rotation.y = -Math.PI / 2;
+            screenPlane.receiveShadow = true;
+            scene.add(screenPlane);
+
+            const groundGeo = new THREE.PlaneGeometry(20, 20);
+            const groundMat = new THREE.MeshStandardMaterial({color: 0xaaaaaa, side: THREE.DoubleSide});
+            const groundPlane = new THREE.Mesh(groundGeo, groundMat);
+            groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.position.y = -2;
+            groundPlane.receiveShadow = true; // Ground can receive shadows too
+            scene.add(groundPlane);
+
+            window.addEventListener('resize', onWindowResize);
+            shapeButtons.forEach(button => { button.addEventListener('click', handleShapeButtonClick); });
+
+            rotationButtons.up.addEventListener('click', () => rotateObject('x', 1));
+            rotationButtons.down.addEventListener('click', () => rotateObject('x', -1));
+            rotationButtons.left.addEventListener('click', () => rotateObject('y', 1));
+            rotationButtons.right.addEventListener('click', () => rotateObject('y', -1));
+            rotationButtons.rollL.addEventListener('click', () => rotateObject('z', 1));
+            rotationButtons.rollR.addEventListener('click', () => rotateObject('z', -1));
+
+            setObject(activeShape); // Start with the default shape
+            updateButtonStates();
+            animate();
+        }
+
+        function createObject(type) {
+             const material = new THREE.MeshStandardMaterial({ color: 0x0077ff, roughness: 0.6, metalness: 0.1, });
+             const materialRed = new THREE.MeshStandardMaterial({ color: 0xff4400, roughness: 0.6, metalness: 0.1, });
+             const materialGreen = new THREE.MeshStandardMaterial({ color: 0x00cc44, roughness: 0.6, metalness: 0.1, });
+             const materialPurple = new THREE.MeshStandardMaterial({ color: 0x9900ff, roughness: 0.6, metalness: 0.1, });
+
+
+            let geometry;
+            let objectGroup = new THREE.Group();
+            objectGroup.position.set(0, 0, 0); // Center the group
+
+            switch (type) {
+                case 'cylinder':
+                    geometry = new THREE.CylinderGeometry(0.5, 0.5, 1.5, 32);
+                    objectGroup.add(new THREE.Mesh(geometry, material));
+                    break;
+                case 'cube':
+                    geometry = new THREE.BoxGeometry(1, 1, 1);
+                    objectGroup.add(new THREE.Mesh(geometry, material));
+                    break;
+                case 'cup': { // Use block scope for constants
+                    const cupHeight = 1.2;
+                    const cupRadiusTop = 0.5; // Make top slightly wider or equal
+                    const cupRadiusBottom = 0.45; // Make bottom slightly narrower
+                    const cupBodyGeo = new THREE.CylinderGeometry(cupRadiusTop, cupRadiusBottom, cupHeight, 32);
+                    const cupBody = new THREE.Mesh(cupBodyGeo, material);
+                    // cupBody is centered at (0,0,0) by default relative to the group
+
+                    const handleRadius = 0.3; // Radius of the handle loop
+                    const handleTubeRadius = 0.07; // Thickness of the handle
+                    const handleSegments = 16;
+                    const handleTubeSegments = 32;
+                    const handleGeo = new THREE.TorusGeometry(handleRadius, handleTubeRadius, handleSegments, handleTubeSegments);
+                    const handle = new THREE.Mesh(handleGeo, material);
+
+                    // Position the handle:
+                    // X: Place the center of the torus slightly outside the cup's average radius
+                    const averageRadius = (cupRadiusTop + cupRadiusBottom) / 2;
+                    handle.position.x = averageRadius + handleRadius * 0.4; // Adjust 0.4 multiplier as needed
+                    // Y: Center it vertically relative to the cup body
+                    handle.position.y = 0;
+                    // Z: Keep at 0
+
+                    // Rotate the handle to stand upright
+                    // A default Torus lies flat on XY plane. Rotate 90deg around X to make it vertical.
+                    handle.rotation.x = Math.PI / 2;
+
+
+                    objectGroup.add(cupBody);
+                    objectGroup.add(handle);
+                    break;
+                } // End block scope for cup
+
+                case 'pyramid':
+                    const pyramidRadius = 0.8; const pyramidHeight = 1.2;
+                    geometry = new THREE.ConeGeometry(pyramidRadius, pyramidHeight, 4); // 4 sides for pyramid base
+                    const pyramidMesh = new THREE.Mesh(geometry, materialGreen);
+                    // ConeGeometry base is at y=0, so shift up by half height to center vertically
+                    pyramidMesh.position.y = pyramidHeight / 2;
+                    objectGroup.add(pyramidMesh);
+                    break;
+                case 'torus':
+                    geometry = new THREE.TorusGeometry(0.7, 0.25, 16, 100);
+                    const torusMesh = new THREE.Mesh(geometry, materialRed);
+                    // Rotate it to stand up initially, like a wheel
+                    torusMesh.rotation.x = Math.PI / 2;
+                    objectGroup.add(torusMesh);
+                    break;
+                 case 'plus':
+                    const barLength = 1.5; const barWidth = 0.4; const barDepth = 0.4; // Make depth same as width
+                    const bar1Geo = new THREE.BoxGeometry(barLength, barWidth, barDepth);
+                    const bar1Mesh = new THREE.Mesh(bar1Geo, materialGreen);
+                    const bar2Geo = new THREE.BoxGeometry(barWidth, barLength, barDepth);
+                    const bar2Mesh = new THREE.Mesh(bar2Geo, materialGreen);
+                    objectGroup.add(bar1Mesh); objectGroup.add(bar2Mesh);
+                    break;
+
+                 case 'sphere':
+                    geometry = new THREE.SphereGeometry(0.8, 32, 16);
+                    objectGroup.add(new THREE.Mesh(geometry, materialPurple));
+                    break;
+
+                default:
+                    console.warn("Unknown shape type in createObject:", type);
+                    geometry = new THREE.BoxGeometry(1, 1, 1); // Fallback to cube
+                    objectGroup.add(new THREE.Mesh(geometry, material));
+            }
+
+            // Ensure all meshes within the group cast shadows
+            objectGroup.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = false; // The object itself shouldn't receive its own shadow usually
+                }
+            });
+
+            objectGroup.rotation.copy(targetRotation); // Apply initial rotation if any (usually none needed here)
+            return objectGroup;
+        }
+
+        function setObject(type) {
+            if (currentObject) {
+                scene.remove(currentObject);
+                 // Optional: Dispose geometry/material if memory becomes an issue with many shape changes
+                 // currentObject.traverse(child => {
+                 //    if (child.isMesh) {
+                 //        child.geometry.dispose();
+                 //        child.material.dispose();
+                 //    }
+                 // });
+            }
+            activeShape = type;
+            targetRotation.set(0, 0, 0); // Reset target rotation for new shape
+            currentObject = createObject(type);
+            if (currentObject) {
+                scene.add(currentObject);
+                // Position is handled within createObject or defaults to group's (0,0,0)
+                // currentObject.position.set(0, 0, 0); // Already set in createObject
+                currentObject.rotation.copy(targetRotation); // Set initial rotation
+            } else {
+                 console.error("Fallback: Failed to create object of type:", type);
+                 // Maybe create a default cube if creation failed?
+                 currentObject = createObject('cube');
+                 scene.add(currentObject);
+                 currentObject.rotation.copy(targetRotation);
+            }
+            updateButtonStates();
+        }
+
+         function handleShapeButtonClick(event) {
+            const shape = event.target.dataset.shape;
+            if (shape && shape !== activeShape) {
+                setObject(shape);
+            }
+        }
+
+        function rotateObject(axis, direction) {
+            if (!currentObject) return;
+            const angle = (Math.PI / 2) * direction; // 90 degree rotation increment
+            if (axis === 'x') { targetRotation.x += angle; }
+            else if (axis === 'y') { targetRotation.y += angle; }
+            else if (axis === 'z') { targetRotation.z += angle; }
+            // No need to directly set currentObject.rotation here, animation loop handles it
+        }
+
+        function updateButtonStates() {
+             shapeButtons.forEach(button => {
+                button.classList.toggle('active', button.dataset.shape === activeShape);
+             });
+        }
+
+        function onWindowResize() {
+            if (!camera || !renderer) return; // Check if initialized
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Smoothly interpolate rotation
+            if (currentObject) {
+                // Lerp towards target rotation
+                currentObject.rotation.x += (targetRotation.x - currentObject.rotation.x) * rotationSpeed;
+                currentObject.rotation.y += (targetRotation.y - currentObject.rotation.y) * rotationSpeed;
+                currentObject.rotation.z += (targetRotation.z - currentObject.rotation.z) * rotationSpeed;
+
+                // Snap to target if very close to prevent infinite small adjustments
+                const threshold = 0.01;
+                if (Math.abs(targetRotation.x - currentObject.rotation.x) < threshold) currentObject.rotation.x = targetRotation.x;
+                if (Math.abs(targetRotation.y - currentObject.rotation.y) < threshold) currentObject.rotation.y = targetRotation.y;
+                if (Math.abs(targetRotation.z - currentObject.rotation.z) < threshold) currentObject.rotation.z = targetRotation.z;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Initialization ---
+        try {
+            init();
+        } catch (error) {
+            console.error("Failed to initialize simulation:", error);
+            container.innerHTML = `<p style="color: red; padding: 20px;">Sorry, couldn't load the simulation. Ensure your browser supports WebGL.</p>`;
+        }
+
+    </script>
+    <p style="text-align: center; font-size: 12px; color: #555; margin-top: 20px;">
+        Credit: made by Zhi Hao using Gemini 2.5 Pro<br>
+        For more resources, visit: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light" target="_blank">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light</a>
+    </p>
+</body>
+</html>

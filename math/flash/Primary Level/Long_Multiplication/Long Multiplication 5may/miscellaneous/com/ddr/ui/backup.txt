@@ -1,0 +1,41 @@
+//THIS METHOD IS TO BE PLACED IN THE ResultBAR.as class
+function highlightCellGroup(startingCellIndex:Number, groupWidth:Number, noOfCells:Number):Void
+{
+	var groupHeight:Number = (noOfCells % groupWidth == 0) ? (noOfCells / groupWidth) : (Math.floor(noOfCells / groupWidth) + 1);
+	if(!cellGroupContainer) cellGroupContainer = createEmptyMovieClip("cgc", getNextHighestDepth());
+	trace(startingCellIndex);
+	cellGroupContainer.swapDepths(getNextHighestDepth());
+	
+	cellGroupContainer.lineStyle(3, 0xFF0000, 100);
+	
+	var startCellX:Number = startingCellIndex % noOfColumns;
+	var startCellY:Number = Math.floor(startingCellIndex / noOfColumns);
+	cellGroupContainer.moveTo(discs[startCellY][startCellX]._x, discs[startCellY][startCellX]._y);
+	cellGroupContainer.beginFill(0xFFFFFF, 50);
+	cellGroupContainer.lineTo(discs[startCellY][startCellX]._x, discs[startCellY + groupHeight - 1][startCellX]._y + Disc.HEIGHT);
+	if(noOfCells % groupWidth > 0)
+	{
+		cellGroupContainer.lineTo(discs[startCellY + groupHeight - 1][startCellX + (noOfCells % groupWidth) - 1]._x + Disc.WIDTH, discs[startCellY + groupHeight - 1][startCellX]._y + Disc.HEIGHT);
+		cellGroupContainer.lineTo(discs[startCellY + groupHeight - 1][startCellX + (noOfCells % groupWidth) - 1]._x + Disc.WIDTH, discs[startCellY + groupHeight - 1][startCellX]._y);
+		cellGroupContainer.lineTo(discs[startCellY][startCellX + groupWidth - 1]._x + Disc.WIDTH, discs[startCellY + groupHeight - 1][startCellX]._y);
+	}
+	else
+		cellGroupContainer.lineTo(discs[startCellY][startCellX + groupWidth - 1]._x + Disc.WIDTH, discs[startCellY + groupHeight - 1][startCellX]._y + Disc.HEIGHT);
+	
+	cellGroupContainer.lineTo(discs[startCellY][startCellX + groupWidth - 1]._x + Disc.WIDTH, discs[startCellY][startCellX]._y);
+	cellGroupContainer.lineTo(discs[startCellY][startCellX]._x, discs[startCellY][startCellX]._y);
+	cellGroupContainer.endFill();
+}
+
+//THIS METHOD IS TO BE PLACED IN THE ResultBAR.as class
+function removeHighlightFromCellGroups():Void
+{
+	cellGroupContainer.clear();
+}
+
+//THIS CODE SNIPPET IS TO BE PLACED IN THE carryOverBtn_onRollOver() METHOD OF SideNote.as class
+var startingCellIndex:Number = ((__num1 % 10 == 0 ? __num1 / 10 : Math.floor(__num1 / 10) + 1) * numBarB.discs.length) - ((Math.floor(__num2 / 10) > 0) ? numBarB.discs.length : __num2);
+resultBar.highlightCellGroup(startingCellIndex, Math.floor(__num2 / 10) > 0 ? Math.floor(numBarB.number / 10) : numBarB.number % 10, 10);
+
+//THIS LINE IS TO BE PLACED IN THE carryOverBtn_onRollOut() METHOD OF SideNote.as class
+resultBar.removeHighlightFromCellGroups();

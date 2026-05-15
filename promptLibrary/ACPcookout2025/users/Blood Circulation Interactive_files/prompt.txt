@@ -1,0 +1,120 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Blood Circulation Interactive”** that animates blood flow through the circulatory system and guides students with simple captions and highlights, focusing on the path of oxygenated and deoxygenated blood.
+
+TARGET AUDIENCE:
+- Upper Primary / Lower Secondary Science (introductory circulatory system)
+
+INTERACTIVE REQUIREMENTS:
+- A **central SVG diagram** representing:
+  - **Lungs** at the top (oval with “LUNGS” label and small alveoli dots).
+  - **Heart** in the centre, with left (oxygenated) and right (deoxygenated) sides drawn separately.
+  - **Body organs** at the bottom (oval labelled “BODY ORGANS” with tissue dots).
+  - Four main **vessel paths**:
+    - Right heart → lungs (pulmonary artery, deoxygenated, blue).
+    - Lungs → left heart (pulmonary vein, oxygenated, red).
+    - Left heart → body (aorta, oxygenated, red).
+    - Body → right heart (vena cava, deoxygenated, blue).
+- Animated **blood cells** (small circles) moving along the hidden path definitions to visually show the continuous circulation loop.
+- A **legend** showing colour coding:
+  - Oxygenated Blood (red).
+  - Deoxygenated Blood (blue).
+- A top **control panel** with:
+  - **Start Animation / Pause / Resume** (single toggle button).
+  - **Reset** button.
+- A **caption area** below the diagram that displays step-by-step text explaining what is happening.
+- Tooltip behaviour for key parts (using hover) explaining what each part does.
+- Self-contained HTML, CSS, JavaScript, no external libraries.
+
+SPECIFIC REQUIREMENTS:
+
+Circulation diagram
+- Layout the circulatory system in a simplified double-circulation diagram:
+  - Lungs at top, heart centre, body at bottom.
+  - Right heart shown in blue (deoxygenated) and left heart in red (oxygenated).
+- Draw vessels as thick strokes with appropriate colour and class names, e.g.:
+  - `.pulmonary-artery`, `.pulmonary-vein`, `.aorta`, `.vena-cava`.
+- Define hidden `<path>` elements (`#path-right-to-lungs`, `#path-lungs-to-left`, `#path-left-to-body`, `#path-body-to-right`) for `<animateMotion>`.
+- Group “LUNGS”, “HEART”, “BODY ORGANS” text labels and tissue dots inside respective `<g>` elements.
+
+Animated blood cells
+- Create four `<circle>` elements with class `blood-cell` and different fill colours:
+  - Deoxygenated cells (blue) moving along right-heart→lungs and body→right-heart paths.
+  - Oxygenated cells (red) moving along lungs→left-heart and left-heart→body paths.
+- Use `<animateMotion>` for each cell with a `dur` (e.g., 4s), `repeatCount="indefinite"`, and staggered `begin` times (0s, 1s, 2s, 3s) to avoid overlap.
+
+Control logic
+- Implement a `BloodCirculationAnimation` class managing:
+  - `isPlaying`, `currentStep`, `animationInterval`.
+  - References to `playBtn`, `resetBtn`, `caption`, `tooltip`, `bloodCells`, and `.heart`.
+- **Start Animation**:
+  - When clicked from idle state, set `isPlaying = true`, `currentStep = 0`.
+  - Change button text to “Pause” and add a `.playing` class for styling.
+  - Add `.beating` class to `.heart` to show pulsing heart animation.
+  - Add `.active` class to `.blood-cell` elements so CSS animations become visible.
+  - Start a caption/step sequence (see below).
+- **Pause**:
+  - Clicking play button while `isPlaying = true` pauses the step sequence:
+    - Set `isPlaying = false`, update button to “Resume”, remove `.playing` and `.beating`.
+    - Clear any step interval/timeouts.
+    - Update caption (e.g., “Animation paused – click Resume to continue”).
+- **Resume**:
+  - Clicking play button when paused resumes the step sequence from the current step:
+    - Set `isPlaying = true`, `playBtn.textContent = 'Pause'`, re-add `.playing` and `.beating`.
+    - Restart the caption/step sequence with `startStepSequence()`.
+- **Reset**:
+  - Stop any current animation, clear intervals, set `isPlaying = false`, `currentStep = 0`.
+  - Set button text back to “Start Animation”, remove `.playing` and `.beating`.
+  - Remove `.active` classes from blood cells if used for visibility.
+  - Clear highlight styling from diagram parts.
+  - Reset caption to the initial instruction.
+
+Caption & steps
+- Define an array of **circulation steps** with:
+  - `caption` text describing the stage.
+  - `duration` for how long each caption should show (e.g., 4000 ms).
+  - `highlight` class name for the SVG element to emphasise.
+- Example steps:
+  1. "Deoxygenated blood from the body enters the right side of the heart" → highlight `.right-heart`.
+  2. "Right heart pumps deoxygenated blood to the lungs through pulmonary arteries" → highlight `.pulmonary-artery`.
+  3. "In the lungs, blood picks up oxygen and releases carbon dioxide" → highlight `.lungs`.
+  4. "Oxygenated blood returns to the left side of the heart via pulmonary veins" → highlight `.pulmonary-vein`.
+  5. "Left heart pumps oxygenated blood to the body through the aorta" → highlight `.aorta`.
+  6. "Body organs use oxygen and nutrients, blood becomes deoxygenated" → highlight `.body-organs`.
+  7. "Deoxygenated blood returns to the heart through veins, completing the cycle" → highlight `.vena-cava`.
+- `startStepSequence()`:
+  - If `isPlaying` is false, do nothing.
+  - Show the current step’s caption using a fade transition on the caption element.
+  - Apply highlight style (e.g., drop-shadow + slight scale) to the target element; remove from others.
+  - Use `setTimeout` with `step.duration` to advance `currentStep`, looping back to 0 at the end.
+
+Tooltips & touch support
+- Hover tooltips:
+  - For `.lungs`, `.heart`, `.body-organs`, and each `.vessel` group, show a tooltip with a short explanation.
+  - Position tooltip near cursor; hide it on `mouseleave`.
+- Touch behaviour (mobile):
+  - On touchstart on these regions, trigger a caption update describing that part and optionally vibrate (if supported) for feedback.
+  - After a short delay (e.g., 3s), restore the previous caption if animation is not running.
+
+Keyboard & accessibility
+- Keyboard controls:
+  - Enter/Space on focussed `.control-btn` triggers click (handled globally in keydown listener).
+- Buttons are large and labelled clearly.
+- Caption text is simple and concise for learners.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Describe the **direction of blood flow** through heart, lungs, and body in order.
+  - Distinguish between oxygenated and deoxygenated blood using colour and context.
+  - Explain the roles of key vessels (pulmonary artery/vein, aorta, vena cava).
+- The interactive should support conceptual understanding through repeated cycles, simple captions, and highlights instead of dense text.
+
+INTERACTION FEATURES TO INCLUDE:
+- Start/Pause/Resume/Reset controls governing a stepwise explanatory loop.
+- Dynamic caption that updates in sync with highlighted diagram parts.
+- Continuous visual motion of blood cells to maintain the sense of flow.
+- Tooltips and touch-friendly hints to explore components on demand.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

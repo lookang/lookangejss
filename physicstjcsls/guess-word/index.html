@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hangman Game - Physics Keywords</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    #game-container {
+        text-align: center;
+    }
+    #hangman-word {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    #hangman-input {
+        margin-bottom: 10px;
+    }
+</style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Hangman Game - Physics Keywords</h1>
+        <div id="hangman-word"></div>
+        <input type="text" id="hangman-input" placeholder="Enter a letter">
+        <button onclick="guessLetter()">Guess</button>
+        <p>Score: <span id="score">0</span></p>
+    </div>
+
+    <script>
+        let words = ["IMPULSE", "MOMENTUM", "INELASTIC"];
+        let currentWord = '';
+        let score = 0;
+        let guessedLetters = new Set();
+
+        // Function to get the next word
+        function getNextWord() {
+            if (words.length > 0) {
+                currentWord = words.pop().trim().toUpperCase();
+                displayWord(currentWord);
+            } else {
+                alert('Game Over! Final Score: ' + score);
+            }
+        }
+
+        // Function to display the word with blanks for missing letters
+        function displayWord(word) {
+            let displayedWord = '';
+            for (let letter of word) {
+                if (letter === ' ') {
+                    displayedWord += ' ';
+                } else {
+                    displayedWord += '_ ';
+                }
+            }
+            document.getElementById('hangman-word').textContent = displayedWord;
+        }
+
+        // Function to handle letter guesses
+        function guessLetter() {
+            const inputElement = document.getElementById('hangman-input');
+            const letter = inputElement.value.trim().toUpperCase();
+            inputElement.value = '';
+
+            if (letter.length !== 1 || !letter.match(/[A-Z]/)) {
+                alert('Please enter a valid single letter.');
+                return;
+            }
+
+            if (guessedLetters.has(letter)) {
+                alert('You have already guessed this letter.');
+                return;
+            }
+
+            guessedLetters.add(letter);
+
+            let displayedWord = document.getElementById('hangman-word').textContent;
+            let newDisplayedWord = '';
+            let correctGuess = false;
+
+            for (let i = 0; i < currentWord.length; i++) {
+                if (currentWord[i] === letter) {
+                    newDisplayedWord += letter + ' ';
+                    correctGuess = true;
+                } else {
+                    newDisplayedWord += displayedWord[2 * i] + ' ';
+                }
+            }
+
+            if (!correctGuess) {
+                score--;
+            } else {
+                score++;
+            }
+
+            document.getElementById('hangman-word').textContent = newDisplayedWord.trim();
+
+            if (newDisplayedWord === currentWord.replace(/./g, '$& ')) {
+                celebrate();
+                getNextWord();
+            }
+            updateScore();
+        }
+
+        // Function to update the score
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+        }
+
+        // Function to celebrate completion of word
+        function celebrate() {
+            alert('Congratulations! You guessed the word correctly!');
+        }
+
+        // Call getNextWord to start the game
+        getNextWord();
+    </script>
+</body>
+</html>

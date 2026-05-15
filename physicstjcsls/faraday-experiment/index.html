@@ -1,0 +1,1068 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faraday's Experiment</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%232f4f3b'/%3E%3C/svg%3E">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background: #ffffff;
+    }
+
+    #simulation-container {
+      width: min(640px, 100%);
+      max-width: 640px;
+      height: 480px;
+      margin: 0 auto;
+      padding: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+    }
+
+    .canvas-stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      aspect-ratio: auto;
+      display: block;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: #ffffff;
+    }
+
+    .controls {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: stretch;
+      z-index: 2;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+      backdrop-filter: none;
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      align-items: center;
+      overflow-x: auto;
+    }
+
+    .controls-row-top {
+      display: none;
+    }
+
+    .controls-row-buttons {
+      justify-content: center;
+    }
+
+    .controls label {
+      color: #203228;
+      font-size: 0.95rem;
+    }
+
+    .controls button {
+      border: 1px solid #42614f;
+      background: #f0f8f3;
+      color: #23392c;
+      padding: 3px 7px;
+      font-size: 0.78rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .mode-btn.active {
+      background: #2f4f3b;
+      color: #ffffff;
+      border-color: #1a2e22;
+    }
+
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #203228;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      padding: 3px 2px;
+    }
+
+    .toggle-label input {
+      margin: 0;
+    }
+
+    .toggle-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #203228;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      padding: 2px 0;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toggle-slider {
+      position: relative;
+      width: 34px;
+      height: 18px;
+      border-radius: 999px;
+      background: #b7c8be;
+      border: 1px solid #6f8578;
+      transition: background 0.15s ease;
+      flex: 0 0 auto;
+    }
+
+    .toggle-slider::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: transform 0.15s ease;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: #2f4f3b;
+      border-color: #1a2e22;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::after {
+      transform: translateX(16px);
+    }
+
+    .output-toggle-btn {
+      min-width: 104px;
+    }
+
+    #simulation-container:fullscreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      background-color: #f4f8f6;
+    }
+
+    #simulation-container:fullscreen canvas {
+      width: min(95vw, 1200px);
+      height: auto;
+    }
+
+    @media (max-width: 900px) {
+      #simulation-container {
+        height: auto;
+        margin: 0 auto;
+        padding: 0;
+      }
+
+      .canvas-stage {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+
+      .controls {
+        position: static;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        z-index: auto;
+        margin-top: 4px;
+        width: 100%;
+      }
+
+      .controls {
+        gap: 5px;
+      }
+
+      .controls-row {
+        flex-wrap: wrap;
+        overflow-x: visible;
+        gap: 6px;
+        justify-content: center;
+      }
+
+      .controls-row-buttons {
+        justify-content: center;
+      }
+
+    }
+
+    @media (max-width: 560px) {
+      #simulation-container {
+        height: auto;
+        margin: 0 auto;
+        padding: 0;
+      }
+
+      .controls-row {
+        gap: 5px;
+      }
+
+      .controls label {
+        font-size: 0.82rem;
+      }
+
+      .controls button {
+        padding: 2px 6px;
+        font-size: 0.72rem;
+      }
+
+      .toggle-label {
+        font-size: 0.74rem;
+      }
+
+      .toggle-switch {
+        font-size: 0.74rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="simulation-container">
+    <div class="canvas-stage">
+      <canvas id="simCanvas" width="940" height="430"></canvas>
+      <div class="controls">
+        <div class="controls-row controls-row-top">
+        </div>
+        <div class="controls-row controls-row-buttons">
+          <button id="btnManual"    type="button" class="mode-btn active">Manual</button>
+          <button id="btnOscillate" type="button" class="mode-btn">Oscillate</button>
+          <button id="btnFreeFall" type="button" class="mode-btn">Free Fall</button>
+          <button id="btnPauseResume" type="button">Pause</button>
+          <button id="outputModeBtn" type="button" class="output-toggle-btn">Output: Datalogger</button>
+          <label class="toggle-switch">
+            <input type="checkbox" id="flipMagnet">
+            <span class="toggle-slider" aria-hidden="true"></span>
+            <span>Reverse poles</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const flipMagnet = document.getElementById('flipMagnet');
+    const btnPauseResume = document.getElementById('btnPauseResume');
+    const outputModeBtn = document.getElementById('outputModeBtn');
+    const container = document.getElementById('simulation-container');
+
+    const graphArea = {
+      x: 450,
+      y: 56,
+      width: 460,
+      height: 274,
+      maxAbsVoltage: 7
+    };
+
+    // dataLog stores {t, v} entries; we keep a fixed time window of 2 oscillation periods.
+    const dataLog = [];
+    const GRAPH_WINDOW = 2 * 3.0; // seconds — updated dynamically in draw()
+    let manualPosition = 95;
+    let prevPosition = manualPosition;
+    let prevTime = performance.now();
+    let smoothedVelocity = 0;
+    let isMoving = false;
+    let isDraggingMagnet = false;
+    let dragOffsetY = 0;
+
+    // Animation modes: 'manual' | 'oscillate' | 'freefall'
+    let animMode = 'manual';
+    let animStartTime = null;   // for oscillate
+    let fallVelocity = 0;       // px/s for freefall
+    let fallPosition = 40;      // current y for freefall
+    let freeFallActive = false;
+    let analyticVelocity = null; // set by oscillate mode for clean EMF calc
+    let isPaused = false;
+    let pausedAtTime = 0;
+    let pausedPosition = prevPosition;
+    let pausedOscElapsed = 0;
+    let outputMode = 'datalogger';
+
+    const MAGNET_HALF_HEIGHT = 42; // half of the 84px total magnet height
+    const SLIDER_MIN = 40;
+    const SLIDER_MAX = 320;
+    const COIL_CENTER = 210;
+    const COIL_X = 210;
+    const MAGNET_X = 186;
+    const COIL_TOP_Y = 156;
+    const COIL_LOOPS = 7;
+    const COIL_PITCH = 18;
+    const COIL_RADIUS_X = 38;
+    const COIL_RADIUS_Y = 7;
+    const COIL_FRONT_ROTATION = 0.10;
+    const COIL_FRONT_START_ANGLE = 0.02 * Math.PI;
+    const COIL_BACK_ROTATION = -COIL_FRONT_ROTATION;
+    const COIL_BACK_END_ANGLE = 2.02 * Math.PI;
+    const OSC_AMPLITUDE = 90;   // px — passes well through the coil
+    const OSC_PERIOD = 5.0;     // seconds per full oscillation
+    const VOLTS_PER_PIXEL_PER_SECOND = 0.024;
+    const PHYSICS_EMF_GAIN = 3.1;
+    const GRAVITY = 260;        // px/s²
+    const DROP_BUTTON = { x: 18, y: 46, w: 84, h: 34 };
+    const LED_THRESHOLD_VOLTAGE = 0.85;
+
+    function setMode(mode) {
+      animMode = mode;
+      animStartTime = null;
+      fallVelocity = 0;
+      fallPosition = SLIDER_MIN;
+      freeFallActive = false;
+      isPaused = false;
+      isDraggingMagnet = false;
+      btnPauseResume.textContent = 'Pause';
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      const map = { manual: 'btnManual', oscillate: 'btnOscillate', freefall: 'btnFreeFall' };
+      document.getElementById(map[mode]).classList.add('active');
+    }
+
+    document.getElementById('btnManual').addEventListener('click',    () => setMode('manual'));
+    document.getElementById('btnOscillate').addEventListener('click', () => setMode('oscillate'));
+    document.getElementById('btnFreeFall').addEventListener('click',  () => setMode('freefall'));
+
+    outputModeBtn.addEventListener('click', () => {
+      outputMode = outputMode === 'datalogger' ? 'leds' : 'datalogger';
+      outputModeBtn.textContent = outputMode === 'datalogger' ? 'Output: Datalogger' : 'Output: LEDs';
+    });
+
+    btnPauseResume.addEventListener('click', () => {
+      if (!isPaused) {
+        isPaused = true;
+        pausedAtTime = performance.now();
+        pausedPosition = prevPosition;
+        if (animMode === 'oscillate' && animStartTime !== null) {
+          pausedOscElapsed = (performance.now() - animStartTime) / 1000;
+        }
+        btnPauseResume.textContent = 'Resume';
+        return;
+      }
+
+      const now = performance.now();
+      const pauseDurationSec = (now - pausedAtTime) / 1000;
+      for (const point of dataLog) {
+        point.t += pauseDurationSec;
+      }
+      if (animMode === 'oscillate') {
+        animStartTime = now - pausedOscElapsed * 1000;
+      }
+      prevPosition = pausedPosition;
+      prevTime = now;
+      isPaused = false;
+      btnPauseResume.textContent = 'Pause';
+    });
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function getCanvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+      };
+    }
+
+    function isPointInMagnet(x, y) {
+      return x >= MAGNET_X
+        && x <= MAGNET_X + 48
+        && y >= manualPosition
+        && y <= manualPosition + MAGNET_HALF_HEIGHT * 2;
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      if (animMode !== 'manual' || isPaused) return;
+
+      const point = getCanvasPoint(event);
+      if (!isPointInMagnet(point.x, point.y)) return;
+
+      isDraggingMagnet = true;
+      dragOffsetY = point.y - manualPosition;
+      isMoving = true;
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', (event) => {
+      if (!isDraggingMagnet || animMode !== 'manual' || isPaused) return;
+
+      const point = getCanvasPoint(event);
+      manualPosition = clamp(Math.round(point.y - dragOffsetY), SLIDER_MIN, SLIDER_MAX);
+      isMoving = true;
+    });
+
+    function stopMagnetDrag(event) {
+      if (!isDraggingMagnet) return;
+
+      isDraggingMagnet = false;
+      isMoving = false;
+      if (event && canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    canvas.addEventListener('pointerup', stopMagnetDrag);
+    canvas.addEventListener('pointercancel', stopMagnetDrag);
+
+    function drawDropButton() {
+      if (animMode !== 'freefall' || freeFallActive) return;
+
+      ctx.save();
+      ctx.fillStyle = '#2f4f3b';
+      ctx.strokeStyle = '#1b2f22';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(DROP_BUTTON.x, DROP_BUTTON.y, DROP_BUTTON.w, DROP_BUTTON.h, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      fillTextStretched('Drop', DROP_BUTTON.x + DROP_BUTTON.w / 2, DROP_BUTTON.y + DROP_BUTTON.h / 2);
+      ctx.restore();
+    }
+
+    canvas.addEventListener('click', (event) => {
+      if (animMode !== 'freefall' || freeFallActive || isPaused) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+
+      const inside = x >= DROP_BUTTON.x && x <= DROP_BUTTON.x + DROP_BUTTON.w
+        && y >= DROP_BUTTON.y && y <= DROP_BUTTON.y + DROP_BUTTON.h;
+
+      if (inside) {
+        freeFallActive = true;
+        fallPosition = SLIDER_MIN;
+        fallVelocity = 0;
+        prevPosition = SLIDER_MIN;
+      }
+    });
+
+    function getTextStretchX() {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return 1;
+
+      const intrinsicAspect = canvas.width / canvas.height;
+      const displayedAspect = rect.width / rect.height;
+      return intrinsicAspect / displayedAspect;
+    }
+
+    function fillTextStretched(text, x, y) {
+      const stretchX = getTextStretchX();
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(stretchX, 1);
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    }
+
+    function drawMagnet(y, flipped) {
+      const x = MAGNET_X;
+      const magnetWidth = 48;
+      const sectionHeight = 42;
+      const centerX = x + magnetWidth / 2;
+
+      ctx.font = 'bold 20px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (!flipped) {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(x, y, magnetWidth, sectionHeight);
+        ctx.fillStyle = 'white';
+        fillTextStretched('S', centerX, y + sectionHeight / 2);
+
+        ctx.fillStyle = 'red';
+        ctx.fillRect(x, y + sectionHeight, magnetWidth, sectionHeight);
+        ctx.fillStyle = 'white';
+        fillTextStretched('N', centerX, y + sectionHeight + sectionHeight / 2);
+      } else {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(x, y, magnetWidth, sectionHeight);
+        ctx.fillStyle = 'white';
+        fillTextStretched('N', centerX, y + sectionHeight / 2);
+
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(x, y + sectionHeight, magnetWidth, sectionHeight);
+        ctx.fillStyle = 'white';
+        fillTextStretched('S', centerX, y + sectionHeight + sectionHeight / 2);
+      }
+
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+
+    }
+
+    function drawOutputWires(currentSign = 0, showArrows = false) {
+      const terminalX = graphArea.x - 10;
+      const terminalTopY = graphArea.y + 92;
+      const terminalBottomY = graphArea.y + graphArea.height - 92;
+
+      function ellipsePoint(cx, cy, rx, ry, theta, rot) {
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
+        return {
+          x: cx + rx * cosT * cosR - ry * sinT * sinR,
+          y: cy + rx * cosT * sinR + ry * sinT * cosR
+        };
+      }
+
+      const frontYOffset = COIL_PITCH / 2;
+      const topFrontLoopY = COIL_TOP_Y + frontYOffset;
+      const bottomFrontLoopY = COIL_TOP_Y + (COIL_LOOPS - 1) * COIL_PITCH + frontYOffset;
+      const topStart = ellipsePoint(
+        COIL_X,
+        topFrontLoopY,
+        COIL_RADIUS_X,
+        COIL_RADIUS_Y,
+        COIL_BACK_END_ANGLE,
+        COIL_BACK_ROTATION
+      );
+      topStart.y -= 10;
+      const bottomStart = ellipsePoint(
+        COIL_X,
+        bottomFrontLoopY,
+        COIL_RADIUS_X,
+        COIL_RADIUS_Y,
+        COIL_FRONT_START_ANGLE,
+        COIL_FRONT_ROTATION
+      );
+
+      const topC1 = { x: topStart.x + 54, y: topStart.y - 10 };
+      const topC2 = { x: terminalX - 42, y: terminalTopY - 10 };
+      const topEnd = { x: terminalX, y: terminalTopY };
+      const bottomC1 = { x: bottomStart.x + 54, y: bottomStart.y + 10 };
+      const bottomC2 = { x: terminalX - 42, y: terminalBottomY + 10 };
+      const bottomEnd = { x: terminalX, y: terminalBottomY };
+
+      // Wires from solenoid to datalogger terminal pair.
+      ctx.strokeStyle = '#2f3d36';
+      ctx.lineWidth = 3.8;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(topStart.x, topStart.y);
+      ctx.bezierCurveTo(topC1.x, topC1.y, topC2.x, topC2.y, topEnd.x, topEnd.y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(bottomStart.x, bottomStart.y);
+      ctx.bezierCurveTo(bottomC1.x, bottomC1.y, bottomC2.x, bottomC2.y, bottomEnd.x, bottomEnd.y);
+      ctx.stroke();
+
+      function cubicPoint(p0, p1, p2, p3, t) {
+        const u = 1 - t;
+        const tt = t * t;
+        const uu = u * u;
+        const uuu = uu * u;
+        const ttt = tt * t;
+        return {
+          x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+          y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y
+        };
+      }
+
+      function cubicTangent(p0, p1, p2, p3, t) {
+        const u = 1 - t;
+        return {
+          x: 3 * u * u * (p1.x - p0.x) + 6 * u * t * (p2.x - p1.x) + 3 * t * t * (p3.x - p2.x),
+          y: 3 * u * u * (p1.y - p0.y) + 6 * u * t * (p2.y - p1.y) + 3 * t * t * (p3.y - p2.y)
+        };
+      }
+
+      function drawArrowOnBezier(p0, p1, p2, p3, t, reverse) {
+        const p = cubicPoint(p0, p1, p2, p3, t);
+        const tan = cubicTangent(p0, p1, p2, p3, t);
+        let angle = Math.atan2(tan.y, tan.x);
+        if (reverse) angle += Math.PI;
+
+        const len = 17;
+        const wing = 7.2;
+        ctx.strokeStyle = '#183227';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p.x - len * Math.cos(angle), p.y - len * Math.sin(angle));
+        ctx.lineTo(p.x, p.y);
+        ctx.lineTo(
+          p.x - wing * Math.cos(angle - Math.PI / 4),
+          p.y - wing * Math.sin(angle - Math.PI / 4)
+        );
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(
+          p.x - wing * Math.cos(angle + Math.PI / 4),
+          p.y - wing * Math.sin(angle + Math.PI / 4)
+        );
+        ctx.stroke();
+      }
+
+      if (showArrows && Math.abs(currentSign) > 1e-5) {
+        const positive = currentSign > 0;
+        // Positive current: top wire coil -> logger, bottom wire logger -> coil.
+        drawArrowOnBezier(topStart, topC1, topC2, topEnd, 0.56, !positive);
+        drawArrowOnBezier(bottomStart, bottomC1, bottomC2, bottomEnd, 0.56, positive);
+      }
+
+      return { terminalX, terminalTopY, terminalBottomY };
+    }
+
+    function drawDataloggerConnections() {
+      const { terminalX, terminalTopY, terminalBottomY } = drawOutputWires(0, false);
+      const stretchX = getTextStretchX();
+
+      // Simulated datalogger terminals.
+      ctx.fillStyle = '#dce9e1';
+      ctx.strokeStyle = '#2f4f3b';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.ellipse(terminalX, terminalTopY, 7 * stretchX, 7, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(terminalX, terminalBottomY, 7 * stretchX, 7, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#1f3025';
+      ctx.font = 'bold 13px Trebuchet MS';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      fillTextStretched('+', terminalX, terminalTopY + 0.5);
+      fillTextStretched('-', terminalX, terminalBottomY + 0.5);
+
+      // Reset text alignment so other labels render as expected.
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    function drawLedSymbol(centerX, centerY, color, reverse, lit) {
+      const lead = 24;
+      const triHalf = 11;
+      const triLength = 17;
+      const lineStart = centerX - lead;
+      const lineEnd = centerX + lead;
+      const tipX = reverse ? centerX - triLength / 2 : centerX + triLength / 2;
+      const baseX = reverse ? centerX + triLength / 2 : centerX - triLength / 2;
+      const barX = reverse ? centerX - triLength / 2 - 5 : centerX + triLength / 2 + 5;
+
+      ctx.save();
+      ctx.strokeStyle = lit ? color : '#5c6d64';
+      ctx.fillStyle = lit ? color : '#d9e3dd';
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(lineStart, centerY);
+      ctx.lineTo(baseX, centerY);
+      ctx.moveTo(barX, centerY);
+      ctx.lineTo(lineEnd, centerY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      if (reverse) {
+        ctx.moveTo(baseX, centerY - triHalf);
+        ctx.lineTo(baseX, centerY + triHalf);
+        ctx.lineTo(tipX, centerY);
+      } else {
+        ctx.moveTo(baseX, centerY - triHalf);
+        ctx.lineTo(tipX, centerY);
+        ctx.lineTo(baseX, centerY + triHalf);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(barX, centerY - triHalf - 2);
+      ctx.lineTo(barX, centerY + triHalf + 2);
+      ctx.stroke();
+
+      if (lit) {
+        const arrowBaseX = reverse ? centerX - 3 : centerX + 3;
+        const arrowBaseY = centerY - 18;
+        for (let i = 0; i < 2; i++) {
+          const dir = reverse ? -1 : 1;
+          const offsetX = i * 7;
+          const startX = arrowBaseX + dir * offsetX;
+          ctx.beginPath();
+          ctx.moveTo(startX, arrowBaseY);
+          ctx.lineTo(startX + dir * 10, arrowBaseY - 10);
+          ctx.lineTo(startX + dir * 6, arrowBaseY - 10);
+          ctx.moveTo(startX + dir * 10, arrowBaseY - 10);
+          ctx.lineTo(startX + dir * 10, arrowBaseY - 6);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.18;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 24, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawLedOutput(voltage) {
+      const { terminalX, terminalTopY, terminalBottomY } = drawOutputWires(voltage, true);
+      const panelX = graphArea.x;
+      const panelY = graphArea.y;
+      const panelWidth = graphArea.width;
+      const panelHeight = graphArea.height;
+      const centerX = panelX + panelWidth / 2;
+      const centerY = panelY + panelHeight / 2;
+      const leftNodeX = centerX - 88;
+      const rightNodeX = centerX + 88;
+      const topBranchY = centerY - 34;
+      const bottomBranchY = centerY + 34;
+      const redOn = voltage >= LED_THRESHOLD_VOLTAGE;
+      const greenOn = voltage <= -LED_THRESHOLD_VOLTAGE;
+
+      ctx.fillStyle = '#fbfdfb';
+      ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+      ctx.strokeStyle = '#2f4f3b';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+
+      ctx.fillStyle = '#1f3025';
+      ctx.font = '14px Trebuchet MS';
+      fillTextStretched('LED Indicator Pair', panelX + 10, panelY + panelHeight + 24);
+
+      ctx.strokeStyle = '#4d6157';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(terminalX, terminalTopY);
+      ctx.lineTo(leftNodeX, terminalTopY);
+      ctx.lineTo(leftNodeX, centerY);
+      ctx.lineTo(leftNodeX, topBranchY);
+      ctx.moveTo(leftNodeX, centerY);
+      ctx.lineTo(leftNodeX, bottomBranchY);
+      ctx.moveTo(rightNodeX, topBranchY);
+      ctx.lineTo(rightNodeX, centerY);
+      ctx.lineTo(rightNodeX, terminalBottomY);
+      ctx.lineTo(terminalX, terminalBottomY);
+      ctx.moveTo(rightNodeX, centerY);
+      ctx.lineTo(rightNodeX, bottomBranchY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(leftNodeX, topBranchY);
+      ctx.lineTo(rightNodeX, topBranchY);
+      ctx.moveTo(leftNodeX, bottomBranchY);
+      ctx.lineTo(rightNodeX, bottomBranchY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#4d6157';
+      const stretchX = getTextStretchX();
+      ctx.beginPath();
+      ctx.ellipse(leftNodeX, centerY, 4.5 * stretchX, 4.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(rightNodeX, centerY, 4.5 * stretchX, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      drawLedSymbol(centerX, topBranchY, '#d63c35', false, redOn);
+      drawLedSymbol(centerX, bottomBranchY, '#2f9e44', true, greenOn);
+
+      ctx.fillStyle = '#31453b';
+      ctx.font = '14px Trebuchet MS';
+      fillTextStretched('Red LED: + current', panelX + 18, panelY + panelHeight - 44);
+      fillTextStretched('Green LED: - current', panelX + 18, panelY + panelHeight - 20);
+    }
+
+    function drawCoilLayer(frontLayer) {
+      const centerX = COIL_X;
+      const topY = COIL_TOP_Y;
+      const loops = COIL_LOOPS;
+      const pitch = COIL_PITCH;
+      const radiusX = COIL_RADIUS_X;
+      const radiusY = COIL_RADIUS_Y;
+      const rotation = frontLayer ? COIL_FRONT_ROTATION : COIL_BACK_ROTATION;
+      const startAngle = frontLayer ? COIL_FRONT_START_ANGLE : 1.02 * Math.PI;
+      const endAngle = frontLayer ? 1.02 * Math.PI : 2.02 * Math.PI;
+
+      function ellipsePoint(cx, cy, rx, ry, theta, rot) {
+        const cosT = Math.cos(theta);
+        const sinT = Math.sin(theta);
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
+        return {
+          x: cx + rx * cosT * cosR - ry * sinT * sinR,
+          y: cy + rx * cosT * sinR + ry * sinT * cosR
+        };
+      }
+
+      // Front arcs are offset by half a pitch so they sit between the back arcs,
+      // making the two half-ellipses join into one continuous helical spiral.
+      const yOffset = frontLayer ? pitch / 2 : 0;
+      for (let i = 0; i < loops; i++) {
+        const loopY = topY + i * pitch + yOffset;
+
+        ctx.strokeStyle = frontLayer ? '#4f5f57' : '#9fa9a3';
+        ctx.lineWidth = frontLayer ? 4 : 3;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.ellipse(centerX, loopY, radiusX, radiusY, rotation, startAngle, endAngle);
+        ctx.stroke();
+
+        if (frontLayer) {
+          ctx.strokeStyle = '#b9c8c0';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.ellipse(centerX - 1, loopY - 0.6, radiusX - 1, radiusY - 0.8, rotation, startAngle, endAngle);
+          ctx.stroke();
+        }
+
+
+      }
+
+      const bottomY = topY + (loops - 1) * pitch + yOffset;
+
+      if (frontLayer) {
+        ctx.fillStyle = '#25352b';
+        ctx.font = '16px Trebuchet MS';
+        fillTextStretched('Solenoid', centerX + radiusX + 12, topY + 10);
+      }
+    }
+
+    function drawGraphBackground() {
+      ctx.fillStyle = '#f4fff8';
+      ctx.fillRect(graphArea.x, graphArea.y, graphArea.width, graphArea.height);
+
+      ctx.strokeStyle = '#2f4f3b';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(graphArea.x, graphArea.y, graphArea.width, graphArea.height);
+
+      ctx.fillStyle = '#1f3025';
+      ctx.font = '14px Trebuchet MS';
+      fillTextStretched('Data Logger: EMF (V)', graphArea.x + 10, graphArea.y + graphArea.height + 24);
+
+      const rows = 6;
+      ctx.strokeStyle = '#b9d1c2';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < rows; i++) {
+        const y = graphArea.y + (graphArea.height / rows) * i;
+        ctx.beginPath();
+        ctx.moveTo(graphArea.x, y);
+        ctx.lineTo(graphArea.x + graphArea.width, y);
+        ctx.stroke();
+      }
+
+      const zeroY = graphArea.y + graphArea.height / 2;
+      ctx.strokeStyle = '#4a6757';
+      ctx.beginPath();
+      ctx.moveTo(graphArea.x, zeroY);
+      ctx.lineTo(graphArea.x + graphArea.width, zeroY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#2f4f3b';
+      ctx.font = '14px Trebuchet MS';
+      fillTextStretched('+V', graphArea.x + 8, graphArea.y + 14);
+      fillTextStretched('-V', graphArea.x + 8, graphArea.y + graphArea.height - 6);
+    }
+
+    function drawGraphTrace() {
+      if (dataLog.length < 2) return;
+
+      // Use 2 cycles for oscillate, 10 s window otherwise
+      const window = (animMode === 'oscillate') ? 2 * OSC_PERIOD : 10;
+      const tNow = dataLog[dataLog.length - 1].t;
+      const tMin = tNow - window;
+
+      // Filter to entries within the window
+      const visible = dataLog.filter(d => d.t >= tMin);
+      if (visible.length < 2) return;
+
+      ctx.strokeStyle = '#136f3a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      for (let i = 0; i < visible.length; i++) {
+        const x = graphArea.x + ((visible[i].t - tMin) / window) * graphArea.width;
+        const normalized = Math.max(Math.min(visible[i].v / graphArea.maxAbsVoltage, 1), -1);
+        const y = graphArea.y + graphArea.height / 2 - normalized * (graphArea.height * 0.45);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      const latest = dataLog[dataLog.length - 1].v;
+      ctx.fillStyle = '#183827';
+      ctx.font = '15px Trebuchet MS';
+      ctx.textAlign = 'right';
+      fillTextStretched(`Reading: ${latest.toFixed(2)} V`, graphArea.x + graphArea.width - 10, graphArea.y + graphArea.height + 24);
+      ctx.textAlign = 'start';
+    }
+
+    function drawAppLabel() {
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#dbe9e1';
+      ctx.fillStyle = '#1d3528';
+      ctx.font = 'bold 20px Trebuchet MS';
+      fillTextStretched('Electromagnetic Induction Experiment', canvas.width / 2, 10);
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const currentTime = performance.now();
+      const dt = Math.min((currentTime - prevTime) / 1000, 0.05); // cap dt to avoid jumps
+
+      if (isPaused) {
+        drawCoilLayer(false);
+        drawMagnet(pausedPosition, flipMagnet.checked);
+        drawCoilLayer(true);
+        drawAppLabel();
+        const lastVoltage = dataLog.length ? dataLog[dataLog.length - 1].v : 0;
+        if (outputMode === 'datalogger') {
+          drawDataloggerConnections();
+        } else {
+          drawLedOutput(lastVoltage);
+        }
+        drawDropButton();
+        if (outputMode === 'datalogger') {
+          drawGraphBackground();
+          drawGraphTrace();
+        }
+        requestAnimationFrame(draw);
+        return;
+      }
+
+      let position;
+
+      if (animMode === 'oscillate') {
+        if (animStartTime === null) animStartTime = currentTime;
+        const t = (currentTime - animStartTime) / 1000;
+        const omega = 2 * Math.PI / OSC_PERIOD;
+        position = Math.round((COIL_CENTER - MAGNET_HALF_HEIGHT) + OSC_AMPLITUDE * Math.sin(omega * t));
+        analyticVelocity = OSC_AMPLITUDE * omega * Math.cos(omega * t);
+        isMoving = true;
+      } else if (animMode === 'freefall') {
+        if (!freeFallActive) {
+          position = SLIDER_MIN;
+          analyticVelocity = 0;
+          isMoving = false;
+        } else {
+          if (animStartTime === null) animStartTime = currentTime;
+          fallVelocity += GRAVITY * dt;
+          fallPosition += fallVelocity * dt;
+          if (fallPosition > SLIDER_MAX + 100) {
+            freeFallActive = false;
+            fallPosition = SLIDER_MIN;
+            fallVelocity = 0;
+            animStartTime = currentTime;
+            position = SLIDER_MIN;
+            analyticVelocity = 0;
+            isMoving = false;
+          } else {
+            position = Math.round(fallPosition);
+            analyticVelocity = null;
+            isMoving = true;
+          }
+        }
+      } else {
+        position = manualPosition;
+        analyticVelocity = null;
+      }
+
+      drawCoilLayer(false);
+      drawMagnet(position, flipMagnet.checked);
+      drawCoilLayer(true);
+      drawAppLabel();
+      drawDropButton();
+
+      const rawVelocity = dt > 0 ? (position - prevPosition) / dt : 0;
+      const adjustedVelocity = flipMagnet.checked ? -rawVelocity : rawVelocity;
+
+      const alpha = 0.2;
+      smoothedVelocity = alpha * adjustedVelocity + (1 - alpha) * smoothedVelocity;
+
+      // Use analytic velocity for oscillate mode; smoothed frame-diff otherwise
+      const effectiveVelocity = analyticVelocity !== null
+        ? (flipMagnet.checked ? -analyticVelocity : analyticVelocity)
+        : smoothedVelocity;
+
+      // Use a single physics-based EMF model for all motion modes.
+      const sigma = 70;
+      const distance = (position + MAGNET_HALF_HEIGHT) - COIL_CENTER;
+      const flux = Math.exp(-(distance * distance) / (2 * sigma * sigma));
+      const voltage = PHYSICS_EMF_GAIN * (effectiveVelocity / 80) * (distance / sigma) * flux;
+      if (outputMode === 'datalogger') {
+        drawDataloggerConnections();
+      } else {
+        drawLedOutput(voltage);
+      }
+
+      dataLog.push({ t: currentTime / 1000, v: voltage });
+      // Keep only the last 20 seconds of data to limit memory
+      const cutoff = currentTime / 1000 - 20;
+      while (dataLog.length > 1 && dataLog[0].t < cutoff) dataLog.shift();
+
+      if (!isMoving) {
+        smoothedVelocity *= 0.9;
+        if (Math.abs(smoothedVelocity) < 0.01) smoothedVelocity = 0;
+      }
+      if (outputMode === 'datalogger') {
+        drawGraphBackground();
+        drawGraphTrace();
+      }
+
+      prevPosition = position;
+      prevTime = currentTime;
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>

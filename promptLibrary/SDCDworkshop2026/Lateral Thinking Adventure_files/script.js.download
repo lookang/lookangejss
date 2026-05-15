@@ -1,0 +1,777 @@
+// ============================================
+// LATERAL THINKING ADVENTURE - MAIN SCRIPT
+// ============================================
+// This script manages the interactive lateral thinking learning experience
+// including drag-and-drop, matching, sorting, and choice-based activities
+
+// ============================================
+// GLOBAL STATE MANAGEMENT
+// ============================================
+let gameState = {
+    currentStage: 0,
+    score: 0,
+    soundEnabled: true,
+    stage1Matches: {},
+    stage2Sorts: {},
+    stage3Choice: null,
+    stage4Assumptions: {},
+    stage5Checkboxes: [],
+    stage5Answer: null
+};
+
+// ============================================
+// AUDIO SYSTEM - Web Audio API for sounds
+// ============================================
+// Creating simple tones and sounds without external files
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Function to play a tone with specific frequency and duration
+function playTone(frequency, duration, type = 'sine') {
+    if (!gameState.soundEnabled) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Sound effects for different interactions
+function playClickSound() {
+    playTone(800, 0.1, 'square');
+}
+
+function playSuccessSound() {
+    playTone(523.25, 0.15, 'sine'); // C5
+    setTimeout(() => playTone(659.25, 0.15, 'sine'), 100); // E5
+    setTimeout(() => playTone(783.99, 0.3, 'sine'), 200); // G5
+}
+
+function playErrorSound() {
+    playTone(200, 0.2, 'sawtooth');
+    setTimeout(() => playTone(150, 0.3, 'sawtooth'), 150);
+}
+
+function playDragSound() {
+    playTone(400, 0.05, 'sine');
+}
+
+function playDropSound() {
+    playTone(600, 0.1, 'sine');
+}
+
+// Background music - simple melody loop
+let musicInterval = null;
+const melodyNotes = [523.25, 587.33, 659.25, 783.99, 659.25, 587.33]; // C-D-E-G-E-D
+let noteIndex = 0;
+
+function startBackgroundMusic() {
+    if (!gameState.soundEnabled) return;
+    
+    musicInterval = setInterval(() => {
+        if (gameState.soundEnabled) {
+            playTone(melodyNotes[noteIndex], 0.3, 'triangle');
+            noteIndex = (noteIndex + 1) % melodyNotes.length;
+        }
+    }, 800);
+}
+
+function stopBackgroundMusic() {
+    if (musicInterval) {
+        clearInterval(musicInterval);
+        musicInterval = null;
+    }
+}
+
+// ============================================
+// SOUND TOGGLE FUNCTIONALITY
+// ============================================
+function toggleSound() {
+    gameState.soundEnabled = !gameState.soundEnabled;
+    const soundIcon = document.getElementById('soundIcon');
+    soundIcon.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+    playClickSound();
+    
+    if (gameState.soundEnabled) {
+        startBackgroundMusic();
+    } else {
+        stopBackgroundMusic();
+    }
+}
+
+// ============================================
+// TOOLTIP SYSTEM
+// ============================================
+// Show/hide header tooltip on info icon hover
+const infoIcon = document.getElementById('infoIcon');
+const headerTooltip = document.getElementById('headerTooltip');
+
+infoIcon.addEventListener('mouseenter', () => {
+    headerTooltip.classList.remove('hidden');
+});
+
+infoIcon.addEventListener('mouseleave', () => {
+    headerTooltip.classList.add('hidden');
+});
+
+// Central tooltip for detailed information
+function showCentralTooltip(message) {
+    const tooltip = document.getElementById('centralTooltip');
+    tooltip.textContent = message;
+    tooltip.classList.remove('hidden');
+    
+    setTimeout(() => {
+        tooltip.classList.add('hidden');
+    }, 3000);
+}
+
+// ============================================
+// SCREEN NAVIGATION
+// ============================================
+function showScreen(screenId) {
+    // Hide all screens
+    const screens = document.querySelectorAll('.screen');
+    screens.forEach(screen => screen.classList.remove('active'));
+    
+    // Show target screen
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+        playClickSound();
+    }
+}
+
+function updateScore(points) {
+    gameState.score += points;
+    document.getElementById('scoreValue').textContent = gameState.score;
+    
+    // Animate score change
+    const scoreElement = document.getElementById('scoreValue');
+    scoreElement.style.transform = 'scale(1.3)';
+    setTimeout(() => {
+        scoreElement.style.transform = 'scale(1)';
+    }, 300);
+}
+
+function updateStage(stage) {
+    gameState.currentStage = stage;
+    document.getElementById('stageValue').textContent = `${stage}/5`;
+}
+
+// ============================================
+// GAME START
+// ============================================
+function startAdventure() {
+    playSuccessSound();
+    startBackgroundMusic();
+    updateStage(1);
+    showScreen('stage1');
+    initializeStage1();
+}
+
+// ============================================
+// STAGE 1: PATTERN BREAKING - MATCHING
+// ============================================
+let draggedElement = null;
+
+function initializeStage1() {
+    const puzzles = document.querySelectorAll('#puzzleColumn .match-item');
+    const answers = document.querySelectorAll('#answerColumn .match-item');
+    
+    // Add drag event listeners to puzzles
+    puzzles.forEach(puzzle => {
+        puzzle.addEventListener('dragstart', handleDragStart);
+        puzzle.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Add drop event listeners to answers
+    answers.forEach(answer => {
+        answer.addEventListener('dragover', handleDragOver);
+        answer.addEventListener('drop', handleDrop);
+        answer.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+function handleDragStart(e) {
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    playDragSound();
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    if (draggedElement) {
+        const puzzleId = draggedElement.getAttribute('data-id');
+        const answerId = e.currentTarget.getAttribute('data-id');
+        
+        // Store the match
+        gameState.stage1Matches[puzzleId] = answerId;
+        
+        // Visual feedback
+        e.currentTarget.innerHTML = draggedElement.innerHTML;
+        e.currentTarget.classList.add('matched');
+        draggedElement.style.opacity = '0.3';
+        draggedElement.draggable = false;
+        
+        playDropSound();
+    }
+}
+
+function checkStage1() {
+    const feedback = document.getElementById('stage1Feedback');
+    let correct = 0;
+    let total = 3;
+    
+    // Check if all matches are correct (puzzle ID should match answer ID)
+    for (let puzzleId in gameState.stage1Matches) {
+        if (gameState.stage1Matches[puzzleId] === puzzleId) {
+            correct++;
+        }
+    }
+    
+    if (correct === total) {
+        feedback.className = 'feedback-area success';
+        feedback.innerHTML = '🎉 <strong>Excellent!</strong> You\'ve mastered Pattern Breaking! These puzzles require you to break free from conventional thinking patterns. The key is to question your initial assumptions and look for unexpected connections. <strong>+100 points!</strong>';
+        updateScore(100);
+        playSuccessSound();
+        
+        // Move to next stage after delay
+        setTimeout(() => {
+            updateStage(2);
+            showScreen('stage2');
+            initializeStage2();
+        }, 3000);
+    } else {
+        feedback.className = 'feedback-area error';
+        feedback.innerHTML = `❌ You matched ${correct} out of ${total} correctly. Think about the unexpected twists in each puzzle. Try dragging the puzzles to different answers!`;
+        playErrorSound();
+    }
+}
+
+// ============================================
+// STAGE 2: PERSPECTIVE SHIFTING - SORTING
+// ============================================
+function initializeStage2() {
+    const sortItems = document.querySelectorAll('.sort-item');
+    const categories = document.querySelectorAll('.sort-category');
+    
+    // Add drag event listeners to sort items
+    sortItems.forEach(item => {
+        item.addEventListener('dragstart', handleSortDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Add drop event listeners to categories
+    categories.forEach(category => {
+        category.addEventListener('dragover', handleDragOver);
+        category.addEventListener('drop', handleSortDrop);
+        category.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+function handleSortDragStart(e) {
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    playDragSound();
+}
+
+function handleSortDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    if (draggedElement) {
+        const itemType = draggedElement.getAttribute('data-type');
+        const categoryType = e.currentTarget.getAttribute('data-type');
+        
+        // Store the sort
+        gameState.stage2Sorts[itemType] = categoryType;
+        
+        // Move item to category
+        e.currentTarget.appendChild(draggedElement);
+        draggedElement.style.cursor = 'default';
+        draggedElement.draggable = false;
+        
+        playDropSound();
+    }
+}
+
+function checkStage2() {
+    const feedback = document.getElementById('stage2Feedback');
+    let correct = 0;
+    let total = 3;
+    
+    // Check if all sorts are correct
+    for (let itemType in gameState.stage2Sorts) {
+        if (gameState.stage2Sorts[itemType] === itemType) {
+            correct++;
+            // Visual feedback for correct category
+            const category = document.querySelector(`.sort-category[data-type="${itemType}"]`);
+            category.classList.add('correct');
+        }
+    }
+    
+    if (correct === total) {
+        feedback.className = 'feedback-area success';
+        feedback.innerHTML = '🎭 <strong>Brilliant!</strong> You understand Perspective Shifting! <ul style="margin-top:10px; padding-left:20px;"><li><strong>Spatial:</strong> The house is at the North Pole (white bear)</li><li><strong>Temporal:</strong> She fell from the bottom rung</li><li><strong>Role:</strong> The surgeon is the boy\'s mother</li></ul><strong>+100 points!</strong>';
+        updateScore(100);
+        playSuccessSound();
+        
+        setTimeout(() => {
+            updateStage(3);
+            showScreen('stage3');
+        }, 4000);
+    } else {
+        feedback.className = 'feedback-area error';
+        feedback.innerHTML = `❌ You sorted ${correct} out of ${total} correctly. Think about what perspective each puzzle challenges: location, time, or identity assumptions.`;
+        playErrorSound();
+    }
+}
+
+// ============================================
+// STAGE 3: CREATIVE CONNECTIONS - CHOICES
+// ============================================
+function selectChoice(choiceNum, stage) {
+    playClickSound();
+    
+    // Remove previous selections
+    const cards = document.querySelectorAll(`#${stage} .choice-card`);
+    cards.forEach(card => {
+        card.classList.remove('selected', 'correct', 'incorrect');
+    });
+    
+    // Mark selected card
+    const selectedCard = cards[choiceNum - 1];
+    selectedCard.classList.add('selected');
+    
+    gameState.stage3Choice = choiceNum;
+    
+    // Provide immediate feedback
+    const feedback = document.getElementById('stage3Feedback');
+    
+    if (choiceNum === 2) {
+        selectedCard.classList.add('correct');
+        feedback.className = 'feedback-area success';
+        feedback.innerHTML = '🔗 <strong>Perfect!</strong> This demonstrates Creative Connections! You combined three unrelated objects in an innovative way. The paperclip becomes a hook, the straw extends your reach, and the rubber band holds them together. This is lateral thinking at its best! <strong>+100 points!</strong>';
+        updateScore(100);
+        playSuccessSound();
+        
+        setTimeout(() => {
+            updateStage(4);
+            showScreen('stage4');
+            initializeStage4();
+        }, 3500);
+    } else {
+        selectedCard.classList.add('incorrect');
+        feedback.className = 'feedback-area error';
+        feedback.innerHTML = '❌ Not quite! Think about how you can <strong>combine</strong> all three items to create a tool that\'s longer than any single item. Try again!';
+        playErrorSound();
+        
+        // Allow retry
+        setTimeout(() => {
+            selectedCard.classList.remove('selected', 'incorrect');
+            gameState.stage3Choice = null;
+        }, 2000);
+    }
+}
+
+// ============================================
+// STAGE 4: ASSUMPTION CHALLENGING
+// ============================================
+function initializeStage4() {
+    const assumptionCards = document.querySelectorAll('.assumption-card');
+    const puzzleBoxes = document.querySelectorAll('.puzzle-box');
+    
+    // Add drag event listeners to assumption cards
+    assumptionCards.forEach(card => {
+        card.addEventListener('dragstart', handleAssumptionDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+    });
+    
+    // Add drop event listeners to puzzle boxes
+    puzzleBoxes.forEach(box => {
+        const slot = box.querySelector('.assumption-slot');
+        slot.addEventListener('dragover', handleDragOver);
+        slot.addEventListener('drop', handleAssumptionDrop);
+        slot.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+function handleAssumptionDragStart(e) {
+    draggedElement = e.target;
+    e.target.classList.add('dragging');
+    playDragSound();
+}
+
+function handleAssumptionDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    if (draggedElement) {
+        const assumptionType = draggedElement.getAttribute('data-assumption');
+        const puzzleBox = e.currentTarget.closest('.puzzle-box');
+        const puzzleAssumption = puzzleBox.getAttribute('data-assumption');
+        
+        // Store the assumption match
+        gameState.stage4Assumptions[puzzleAssumption] = assumptionType;
+        
+        // Move card to slot
+        e.currentTarget.innerHTML = '';
+        e.currentTarget.appendChild(draggedElement.cloneNode(true));
+        draggedElement.style.opacity = '0.3';
+        draggedElement.draggable = false;
+        
+        playDropSound();
+    }
+}
+
+function checkStage4() {
+    const feedback = document.getElementById('stage4Feedback');
+    let correct = 0;
+    let total = 3;
+    
+    // Check if all assumptions are correctly matched
+    for (let puzzleType in gameState.stage4Assumptions) {
+        if (gameState.stage4Assumptions[puzzleType] === puzzleType) {
+            correct++;
+            // Visual feedback
+            const puzzleBox = document.querySelector(`.puzzle-box[data-assumption="${puzzleType}"]`);
+            puzzleBox.classList.add('correct');
+        }
+    }
+    
+    if (correct === total) {
+        feedback.className = 'feedback-area success';
+        feedback.innerHTML = '💡 <strong>Outstanding!</strong> You\'ve mastered Assumption Challenging! <ul style="margin-top:10px; padding-left:20px;"><li><strong>Direction:</strong> He was walking (not driving)</li><li><strong>State:</strong> He\'s a priest who marries people</li><li><strong>Quantity:</strong> Fill 5L, pour into 3L, leaving 2L. Empty 3L, pour 2L in. Fill 5L again, top up 3L (using 1L), leaving 4L!</li></ul><strong>+100 points!</strong>';
+        updateScore(100);
+        playSuccessSound();
+        
+        setTimeout(() => {
+            updateStage(5);
+            showScreen('stage5');
+        }, 5000);
+    } else {
+        feedback.className = 'feedback-area error';
+        feedback.innerHTML = `❌ You matched ${correct} out of ${total} correctly. Think about what hidden assumption each puzzle plays with. Try different combinations!`;
+        playErrorSound();
+    }
+}
+
+// ============================================
+// STAGE 5: FINAL CHALLENGE
+// ============================================
+function selectFinalAnswer(answerNum) {
+    playClickSound();
+    
+    // Remove previous selections
+    const cards = document.querySelectorAll('#stage5 .choice-card');
+    cards.forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Mark selected card
+    cards[answerNum - 1].classList.add('selected');
+    gameState.stage5Answer = answerNum;
+}
+
+function checkStage5() {
+    const feedback = document.getElementById('stage5Feedback');
+    const checkboxes = document.querySelectorAll('.thinking-checkbox:checked');
+    const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Check if assumption checkbox is selected (correct thinking type)
+    const hasAssumption = selectedValues.includes('assumption');
+    
+    // Check if answer B is selected (correct answer)
+    const correctAnswer = gameState.stage5Answer === 2;
+    
+    if (hasAssumption && correctAnswer) {
+        feedback.className = 'feedback-area success';
+        feedback.innerHTML = '🏆 <strong>Masterful!</strong> You identified that this puzzle challenges our <strong>assumption</strong> about the man\'s physical capabilities. We assume he can reach any button, but he\'s too short to reach the 15th floor button (though he can reach the ground floor button and the 7th floor button). This is a classic lateral thinking puzzle! <strong>+150 points!</strong>';
+        updateScore(150);
+        playSuccessSound();
+        
+        setTimeout(() => {
+            showCompletionScreen();
+        }, 4000);
+    } else if (!correctAnswer) {
+        feedback.className = 'feedback-area error';
+        feedback.innerHTML = '❌ The answer isn\'t quite right. Think about what physical limitation might affect which buttons he can reach in the elevator.';
+        playErrorSound();
+    } else if (!hasAssumption) {
+        feedback.className = 'feedback-area info';
+        feedback.innerHTML = '🤔 Your answer is correct, but think about which type of lateral thinking is primarily used here. What assumption are we making about the man?';
+        playClickSound();
+    }
+}
+
+// ============================================
+// COMPLETION SCREEN
+// ============================================
+function showCompletionScreen() {
+    showScreen('completionScreen');
+    document.getElementById('finalScore').textContent = gameState.score;
+    
+    // Determine rank based on score
+    const rankDisplay = document.getElementById('rankDisplay');
+    let rank = '';
+    
+    if (gameState.score >= 500) {
+        rank = '🌟 Master Detective - Perfect Score!';
+    } else if (gameState.score >= 400) {
+        rank = '🎖️ Expert Detective - Excellent Work!';
+    } else if (gameState.score >= 300) {
+        rank = '🏅 Senior Detective - Great Job!';
+    } else {
+        rank = '🎯 Junior Detective - Keep Practicing!';
+    }
+    
+    rankDisplay.textContent = rank;
+    
+    // Play completion fanfare
+    setTimeout(() => playTone(523.25, 0.2), 0);
+    setTimeout(() => playTone(659.25, 0.2), 200);
+    setTimeout(() => playTone(783.99, 0.2), 400);
+    setTimeout(() => playTone(1046.50, 0.5), 600);
+}
+
+// ============================================
+// RESTART FUNCTIONALITY
+// ============================================
+function restartAdventure() {
+    playClickSound();
+    
+    // Reset game state
+    gameState = {
+        currentStage: 0,
+        score: 0,
+        soundEnabled: gameState.soundEnabled,
+        stage1Matches: {},
+        stage2Sorts: {},
+        stage3Choice: null,
+        stage4Assumptions: {},
+        stage5Checkboxes: [],
+        stage5Answer: null
+    };
+    
+    // Reset UI
+    document.getElementById('scoreValue').textContent = '0';
+    document.getElementById('stageValue').textContent = '1/5';
+    
+    // Reset all interactive elements
+    resetStage1();
+    resetStage2();
+    resetStage3();
+    resetStage4();
+    resetStage5();
+    
+    // Show intro screen
+    showScreen('introScreen');
+}
+
+function resetStage1() {
+    const puzzles = document.querySelectorAll('#puzzleColumn .match-item');
+    const answers = document.querySelectorAll('#answerColumn .match-item');
+    
+    puzzles.forEach(puzzle => {
+        puzzle.style.opacity = '1';
+        puzzle.draggable = true;
+    });
+    
+    answers.forEach(answer => {
+        answer.classList.remove('matched');
+        const id = answer.getAttribute('data-id');
+        // Restore original answer text based on ID
+        if (id === '1') answer.textContent = 'He had hiccups; the fright cured them';
+        if (id === '2') answer.textContent = '6 children (all daughters share 1 brother)';
+        if (id === '3') answer.textContent = 'A stamp';
+    });
+    
+    document.getElementById('stage1Feedback').className = 'feedback-area';
+    document.getElementById('stage1Feedback').innerHTML = '';
+}
+
+function resetStage2() {
+    const sortItems = document.querySelectorAll('.sort-item');
+    const sortSource = document.querySelector('.sort-source');
+    const categories = document.querySelectorAll('.sort-category');
+    
+    // Move all items back to source
+    sortItems.forEach(item => {
+        item.style.cursor = 'move';
+        item.draggable = true;
+        sortSource.appendChild(item);
+    });
+    
+    categories.forEach(category => {
+        category.classList.remove('correct');
+    });
+    
+    document.getElementById('stage2Feedback').className = 'feedback-area';
+    document.getElementById('stage2Feedback').innerHTML = '';
+}
+
+function resetStage3() {
+    const cards = document.querySelectorAll('#stage3 .choice-card');
+    cards.forEach(card => {
+        card.classList.remove('selected', 'correct', 'incorrect');
+    });
+    
+    document.getElementById('stage3Feedback').className = 'feedback-area';
+    document.getElementById('stage3Feedback').innerHTML = '';
+}
+
+function resetStage4() {
+    const assumptionCards = document.querySelectorAll('.assumption-card');
+    const puzzleBoxes = document.querySelectorAll('.puzzle-box');
+    const assumptionCardsContainer = document.querySelector('.assumption-cards');
+    
+    // Move all cards back to original container
+    assumptionCards.forEach(card => {
+        card.style.opacity = '1';
+        card.draggable = true;
+        if (card.parentElement.classList.contains('assumption-slot')) {
+            assumptionCardsContainer.appendChild(card);
+        }
+    });
+    
+    // Clear slots
+    const slots = document.querySelectorAll('.assumption-slot');
+    slots.forEach(slot => {
+        slot.innerHTML = 'Drop assumption here';
+    });
+    
+    puzzleBoxes.forEach(box => {
+        box.classList.remove('correct');
+    });
+    
+    document.getElementById('stage4Feedback').className = 'feedback-area';
+    document.getElementById('stage4Feedback').innerHTML = '';
+}
+
+function resetStage5() {
+    const checkboxes = document.querySelectorAll('.thinking-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    
+    const cards = document.querySelectorAll('#stage5 .choice-card');
+    cards.forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    document.getElementById('stage5Feedback').className = 'feedback-area';
+    document.getElementById('stage5Feedback').innerHTML = '';
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+// Detect if running in iframe and adjust height
+function detectIframe() {
+    if (window.self !== window.top) {
+        // Running in iframe - use 450px height
+        document.documentElement.setAttribute('data-iframe', 'true');
+    } else {
+        // Running standalone - use 90vh
+        document.documentElement.removeAttribute('data-iframe');
+    }
+}
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', () => {
+    detectIframe();
+    
+    // Start with intro screen
+    showScreen('introScreen');
+    
+    // Add touch support for mobile devices
+    addTouchSupport();
+});
+
+// ============================================
+// TOUCH SUPPORT FOR MOBILE
+// ============================================
+function addTouchSupport() {
+    // Convert drag events to touch events for mobile compatibility
+    const draggableElements = document.querySelectorAll('[draggable="true"]');
+    
+    draggableElements.forEach(element => {
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd, { passive: false });
+    });
+}
+
+let touchStartX, touchStartY, touchElement;
+
+function handleTouchStart(e) {
+    touchElement = e.target;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    
+    touchElement.classList.add('dragging');
+    playDragSound();
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    
+    // Visual feedback - move element with touch
+    if (touchElement) {
+        touchElement.style.position = 'fixed';
+        touchElement.style.left = touch.clientX + 'px';
+        touchElement.style.top = touch.clientY + 'px';
+        touchElement.style.zIndex = '1000';
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!touchElement) return;
+    
+    const touch = e.changedTouches[0];
+    const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    // Reset element position
+    touchElement.style.position = '';
+    touchElement.style.left = '';
+    touchElement.style.top = '';
+    touchElement.style.zIndex = '';
+    touchElement.classList.remove('dragging');
+    
+    // Simulate drop event
+    if (dropTarget && dropTarget.classList.contains('drop-zone')) {
+        const dropEvent = new DragEvent('drop', {
+            bubbles: true,
+            cancelable: true
+        });
+        
+        draggedElement = touchElement;
+        dropTarget.dispatchEvent(dropEvent);
+    }
+    
+    touchElement = null;
+}

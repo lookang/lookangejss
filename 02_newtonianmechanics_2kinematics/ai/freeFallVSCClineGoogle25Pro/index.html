@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Fall Simulation</title>
+    <style>
+        /* Basic Styling - will be expanded later */
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 90vh; /* Approx 90% for iframe */
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            background-color: #f0f0f0;
+        }
+        .controls, .variables-display {
+            padding: 10px;
+            background-color: #ddd;
+            border-bottom: 1px solid #bbb;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .simulation-area {
+            flex-grow: 1; /* Takes remaining space */
+            position: relative;
+            background-color: #e0f2ff; /* Light blue background */
+            overflow: hidden;
+        }
+        canvas {
+            display: block; /* Removes extra space below canvas */
+            background-color: transparent; /* Canvas is transparent over the background */
+        }
+        label {
+            margin-right: 5px;
+        }
+        input[type="range"] {
+            vertical-align: middle;
+        }
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .variables-display span {
+            margin-right: 15px;
+            font-family: monospace; /* Good for numbers */
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #eee;
+        }
+        .graphs-container {
+            display: flex;
+            height: 200px; /* Fixed height for graph area */
+            background-color: #f8f8f8;
+            border-top: 1px solid #bbb;
+        }
+        .graph-canvas {
+            flex: 1; /* Each graph takes half the space */
+            border-left: 1px solid #ccc;
+            position: relative; /* For positioning labels */
+        }
+        .graph-canvas:first-child {
+            border-left: none;
+        }
+        .graph-title {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 12px;
+            color: #555;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        .footer-credit {
+            position: fixed; /* Keep it at the bottom */
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(200, 200, 200, 0.7); /* Semi-transparent grey */
+            padding: 3px 0;
+            text-align: center;
+            font-size: 10px;
+            color: #333;
+            z-index: 10; /* Ensure it's above canvas if overlaps */
+            box-sizing: border-box; /* Include padding in width */
+        }
+         .footer-credit a {
+            color: #0056b3; /* Link color */
+            text-decoration: none;
+        }
+        .footer-credit a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <!-- Google Analytics -->
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <!-- Google AdSense -->
+    <!-- <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script> -->
+</head>
+<body>
+
+    <div class="controls">
+        <div class="control-group">
+            <button id="playPauseBtn" aria-label="Play/Pause Simulation">► Play</button>
+            <button id="stepBtn" aria-label="Step Simulation Forward">►| Step</button>
+            <button id="resetBtn" aria-label="Reset Simulation">↻ Reset</button>
+        </div>
+        <div class="control-group">
+            <label for="initialHeight">y₀ (m):</label>
+            <input type="range" id="initialHeight" min="0" max="50" value="30" step="1" aria-label="Initial Height">
+            <span id="initialHeightValue">30</span> m
+        </div>
+        <div class="control-group">
+            <label for="initialVelocity">v₀ (m/s):</label>
+            <input type="range" id="initialVelocity" min="-20" max="20" value="0" step="1" aria-label="Initial Velocity">
+            <span id="initialVelocityValue">0</span> m/s
+        </div>
+        <div class="control-group">
+            <label for="gravity">g (m/s²):</label>
+            <select id="gravity" aria-label="Gravitational Acceleration">
+                <option value="9.81" selected>Earth (9.81)</option>
+                <option value="1.62">Moon (1.62)</option>
+                <option value="24.79">Jupiter (24.79)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="simulation-area">
+        <canvas id="simulationCanvas"></canvas>
+        <!-- Variable display overlay -->
+        <div id="liveVariables" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.7); padding: 5px; border-radius: 3px;">
+            <span>Time: <span id="timeDisplay">0.00</span> s</span><br>
+            <span>Height: <span id="heightDisplay">0.00</span> m</span><br>
+            <span>Velocity: <span id="velocityDisplay">0.00</span> m/s</span><br>
+            <span>Accel: <span id="accelerationDisplay">0.00</span> m/s²</span>
+        </div>
+    </div>
+
+    <!-- Container for Graphs -->
+    <div class="graphs-container">
+        <canvas id="graphCanvasYT" class="graph-canvas"></canvas>
+        <canvas id="graphCanvasVT" class="graph-canvas"></canvas>
+    </div>
+
+    <script>
+        // JavaScript logic will go here
+        // - Get references to DOM elements
+        // - Setup canvas and drawing context
+        // - Initialize simulation state
+        // - Implement physics calculations
+        // - Animation loop (requestAnimationFrame)
+        // - Event listeners for controls
+
+        // --- DOM References ---
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const initialHeightSlider = document.getElementById('initialHeight');
+        const initialHeightValueSpan = document.getElementById('initialHeightValue');
+        const initialVelocitySlider = document.getElementById('initialVelocity');
+        const initialVelocityValueSpan = document.getElementById('initialVelocityValue');
+        const gravitySelect = document.getElementById('gravity');
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const heightDisplay = document.getElementById('heightDisplay');
+        const velocityDisplay = document.getElementById('velocityDisplay');
+        const accelerationDisplay = document.getElementById('accelerationDisplay');
+        const liveVariablesDiv = document.getElementById('liveVariables');
+        const graphCanvasYT = document.getElementById('graphCanvasYT');
+        const ctxYT = graphCanvasYT.getContext('2d');
+        const graphCanvasVT = document.getElementById('graphCanvasVT');
+        const ctxVT = graphCanvasVT.getContext('2d');
+
+
+        // --- Simulation State ---
+        let isPlaying = false;
+        let time = 0;
+        let y = 0; // Current height
+        let v = 0; // Current velocity
+        let a = 0; // Current acceleration
+        let y0 = 0; // Initial height
+        let v0 = 0; // Initial velocity
+        let g = 9.81; // Gravitational acceleration
+        let dt = 0.02; // Time step for simulation (adjust for balance)
+        let animationFrameId = null;
+        let timeData = [];
+        let heightData = [];
+        let velocityData = [];
+        let maxTimePlotted = 5; // Initial guess for graph time scale
+        let maxYValue = 50; // Initial guess for y-axis scale
+        let maxVelValue = 20; // Initial guess for v-axis scale
+        let minVelValue = -20;
+
+        // --- Canvas Setup ---
+        function resizeCanvas() {
+            // Resize main simulation canvas
+            const simArea = document.querySelector('.simulation-area');
+            canvas.width = simArea.clientWidth || 300; // Provide fallback width
+            canvas.height = simArea.clientHeight || 200; // Provide fallback height
+
+            // Resize graph canvases
+            const graphsContainer = document.querySelector('.graphs-container');
+            const graphWidth = (graphsContainer.clientWidth / 2) - 1; // Account for border
+            const graphHeight = graphsContainer.clientHeight;
+            graphCanvasYT.width = graphWidth || 150;
+            graphCanvasYT.height = graphHeight || 150;
+            graphCanvasVT.width = graphWidth || 150;
+            graphCanvasVT.height = graphHeight || 150;
+
+            // Redraw everything after resize if paused
+            if (!isPlaying) {
+                 draw();
+                 drawYTGraph();
+                 drawVTGraph();
+            }
+        }
+
+        // --- Initialization ---
+        function initializeSimulation() {
+            isPlaying = false;
+            playPauseBtn.textContent = '► Play';
+            cancelAnimationFrame(animationFrameId); // Stop any previous loop
+            animationFrameId = null;
+
+            time = 0;
+            y0 = parseFloat(initialHeightSlider.value);
+            v0 = parseFloat(initialVelocitySlider.value);
+            g = parseFloat(gravitySelect.value);
+
+            y = y0;
+            v = v0;
+            a = -g; // Acceleration is downward
+
+            // Reset graph data
+            timeData = [0];
+            heightData = [y0];
+            velocityData = [v0];
+            maxTimePlotted = 5; // Reset time scale guess
+            maxYValue = Math.max(50, y0); // Adjust based on initial height
+            maxVelValue = Math.max(20, Math.abs(v0)); // Adjust based on initial velocity
+            minVelValue = Math.min(-20, v0);
+
+            updateDisplays();
+            draw(); // Initial draw of simulation
+            drawYTGraph(); // Initial draw of graphs
+            drawVTGraph();
+        }
+
+        // --- Update Displays ---
+        function updateDisplays() {
+            // Update slider readouts
+            initialHeightValueSpan.textContent = initialHeightSlider.value;
+            initialVelocityValueSpan.textContent = initialVelocitySlider.value;
+
+            // Update live variables
+            timeDisplay.textContent = time.toFixed(2);
+            heightDisplay.textContent = y.toFixed(2);
+            velocityDisplay.textContent = v.toFixed(2);
+            accelerationDisplay.textContent = a.toFixed(2);
+        }
+
+        // --- Physics Update ---
+        function updatePhysics() {
+            // Simple Euler integration
+            v = v + a * dt;
+            y = y + v * dt + 0.5 * a * dt * dt; // More accurate than y = y + v*dt
+            time += dt;
+
+            // Store data for graphs
+            timeData.push(time);
+            heightData.push(y);
+            velocityData.push(v);
+
+            // Auto-adjust graph scales if needed (simple version)
+            if (time > maxTimePlotted) maxTimePlotted = time * 1.2;
+            if (y > maxYValue) maxYValue = y * 1.2;
+            if (v > maxVelValue) maxVelValue = v * 1.2;
+            if (v < minVelValue) minVelValue = v * 1.2;
+
+
+            // Stop if it hits the ground (y <= 0) - basic collision
+            if (y <= 0 && v < 0) { // Check velocity to prevent stopping on upward bounce through 0
+                y = 0; // Place it exactly at ground level
+                // Keep storing data point at y=0
+                timeData.push(time);
+                heightData.push(y);
+                velocityData.push(0); // Set final velocity to 0 for graph
+                v = 0; // Stop velocity
+                pauseSimulation();
+            }
+        }
+
+        // --- Drawing ---
+        function draw() {
+            // Clear main simulation canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // --- Scaling ---
+            const groundLevelY = canvas.height * 0.9; // 90% down
+            const skyLevelY = canvas.height * 0.1; // 10% down
+            const drawingHeight = groundLevelY - skyLevelY;
+            const metersToPixelsScale = drawingHeight / 50; // Scale based on max initial height
+
+            // --- Draw Ground ---
+            ctx.fillStyle = '#2e7d32'; // Green
+            ctx.fillRect(0, groundLevelY, canvas.width, canvas.height - groundLevelY);
+
+            // --- Draw Ball ---
+            // Calculate pixel position: y=0 is groundLevelY, positive y goes up
+            const ballPixelY = groundLevelY - (y * metersToPixelsScale);
+            const ballPixelX = canvas.width / 2;
+            const ballRadius = 10; // Fixed pixel radius for now
+
+            // Ensure ball doesn't go below ground visually
+            const finalBallPixelY = Math.min(ballPixelY, groundLevelY - ballRadius);
+
+            ctx.fillStyle = '#d32f2f'; // Red ball
+            ctx.beginPath();
+            ctx.arc(ballPixelX, finalBallPixelY, ballRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // --- Draw Scale (Optional but helpful) ---
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 1;
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'right';
+            for (let h = 0; h <= 50; h += 10) {
+                const lineY = groundLevelY - (h * metersToPixelsScale);
+                ctx.beginPath();
+                ctx.moveTo(ballPixelX - 50, lineY);
+                ctx.lineTo(ballPixelX + 50, lineY);
+                ctx.stroke();
+                ctx.fillText(h + ' m', ballPixelX - 55, lineY + 3);
+            }
+
+            // --- Draw Vectors (Placeholder) ---
+            // Velocity Vector
+            const velVectorScale = 5; // pixels per m/s
+            const velVectorEndY = finalBallPixelY - (v * velVectorScale);
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ballPixelX + ballRadius + 5, finalBallPixelY);
+            ctx.lineTo(ballPixelX + ballRadius + 5, velVectorEndY);
+            ctx.stroke();
+            // Arrowhead for velocity
+            drawArrowhead(ctx, ballPixelX + ballRadius + 5, finalBallPixelY, ballPixelX + ballRadius + 5, velVectorEndY, 5, 'blue');
+            // Label for velocity vector
+            ctx.fillStyle = 'blue';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('v', ballPixelX + ballRadius + 8, velVectorEndY + (v > 0 ? -3 : 10)); // Adjust label position based on direction
+
+
+            // Acceleration Vector (Constant downward)
+            const accVectorLength = g * 2; // Adjust scale as needed
+            const accVectorStartY = finalBallPixelY;
+            const accVectorEndY = finalBallPixelY + accVectorLength;
+             ctx.strokeStyle = 'purple';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ballPixelX - ballRadius - 5, accVectorStartY);
+            ctx.lineTo(ballPixelX - ballRadius - 5, accVectorEndY);
+            ctx.stroke();
+            // Arrowhead for acceleration
+            drawArrowhead(ctx, ballPixelX - ballRadius - 5, accVectorStartY, ballPixelX - ballRadius - 5, accVectorEndY, 5, 'purple');
+             // Label for acceleration vector
+            ctx.fillStyle = 'purple';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText('a', ballPixelX - ballRadius - 8, accVectorEndY + 10);
+
+
+            // Update displayed values
+            updateDisplays();
+
+            // Draw graphs
+            drawYTGraph();
+            drawVTGraph();
+        }
+
+
+        // --- Graph Drawing Functions ---
+
+        function drawAxes(ctxGraph, width, height, xLabel, yLabel, xMin, xMax, yMin, yMax) {
+            const padding = 30; // Padding for labels
+            ctxGraph.clearRect(0, 0, width, height);
+            ctxGraph.strokeStyle = '#aaa';
+            ctxGraph.lineWidth = 1;
+            ctxGraph.font = '10px sans-serif';
+            ctxGraph.fillStyle = '#333';
+
+            // Y Axis
+            ctxGraph.beginPath();
+            ctxGraph.moveTo(padding, padding / 2);
+            ctxGraph.lineTo(padding, height - padding);
+            ctxGraph.stroke();
+            ctxGraph.save();
+            ctxGraph.translate(padding / 2, height / 2);
+            ctxGraph.rotate(-Math.PI / 2);
+            ctxGraph.textAlign = 'center';
+            ctxGraph.fillText(yLabel, 0, 0);
+            ctxGraph.restore();
+
+            // X Axis
+            ctxGraph.beginPath();
+            ctxGraph.moveTo(padding, height - padding);
+            ctxGraph.lineTo(width - padding / 2, height - padding);
+            ctxGraph.stroke();
+            ctxGraph.textAlign = 'center';
+            ctxGraph.fillText(xLabel, width / 2, height - padding / 3);
+
+            // Y Axis Labels/Ticks
+            const yTickCount = 5;
+            for (let i = 0; i <= yTickCount; i++) {
+                const val = yMin + (yMax - yMin) * (i / yTickCount);
+                const yPos = height - padding - ((val - yMin) / (yMax - yMin)) * (height - padding * 1.5);
+                ctxGraph.beginPath();
+                ctxGraph.moveTo(padding - 5, yPos);
+                ctxGraph.lineTo(padding, yPos);
+                ctxGraph.stroke();
+                ctxGraph.textAlign = 'right';
+                ctxGraph.fillText(val.toFixed(1), padding - 8, yPos + 3);
+            }
+
+             // X Axis Labels/Ticks
+            const xTickCount = 5;
+            for (let i = 0; i <= xTickCount; i++) {
+                const val = xMin + (xMax - xMin) * (i / xTickCount);
+                const xPos = padding + ((val - xMin) / (xMax - xMin)) * (width - padding * 1.5);
+                ctxGraph.beginPath();
+                ctxGraph.moveTo(xPos, height - padding);
+                ctxGraph.lineTo(xPos, height - padding + 5);
+                ctxGraph.stroke();
+                ctxGraph.textAlign = 'center';
+                ctxGraph.fillText(val.toFixed(1), xPos, height - padding + 15);
+            }
+        }
+
+
+        function drawYTGraph() {
+            const width = graphCanvasYT.width;
+            const height = graphCanvasYT.height;
+            const padding = 30;
+            const plotWidth = width - padding * 1.5;
+            const plotHeight = height - padding * 1.5;
+
+            drawAxes(ctxYT, width, height, 'Time (s)', 'Height (m)', 0, maxTimePlotted, 0, maxYValue);
+
+            // Add Title
+            ctxYT.fillStyle = '#555';
+            ctxYT.font = 'bold 12px sans-serif';
+            ctxYT.textAlign = 'left';
+            ctxYT.fillText('Height vs. Time', padding, padding / 1.5);
+
+
+            // Plot Data
+            ctxYT.strokeStyle = 'red';
+            ctxYT.lineWidth = 2;
+            ctxYT.beginPath();
+            for (let i = 0; i < timeData.length; i++) {
+                const xPos = padding + (timeData[i] / maxTimePlotted) * plotWidth;
+                const yPos = height - padding - (heightData[i] / maxYValue) * plotHeight;
+
+                if (i === 0) {
+                    ctxYT.moveTo(xPos, yPos);
+                } else {
+                    ctxYT.lineTo(xPos, yPos);
+                }
+            }
+            ctxYT.stroke();
+        }
+
+        function drawVTGraph() {
+            const width = graphCanvasVT.width;
+            const height = graphCanvasVT.height;
+            const padding = 30;
+            const plotWidth = width - padding * 1.5;
+            const plotHeight = height - padding * 1.5;
+            const velRange = maxVelValue - minVelValue;
+
+            drawAxes(ctxVT, width, height, 'Time (s)', 'Velocity (m/s)', 0, maxTimePlotted, minVelValue, maxVelValue);
+
+             // Add Title
+            ctxVT.fillStyle = '#555';
+            ctxVT.font = 'bold 12px sans-serif';
+            ctxVT.textAlign = 'left';
+            ctxVT.fillText('Velocity vs. Time', padding, padding / 1.5);
+
+            // Plot Data
+            ctxVT.strokeStyle = 'blue';
+            ctxVT.lineWidth = 2;
+            ctxVT.beginPath();
+             for (let i = 0; i < timeData.length; i++) {
+                const xPos = padding + (timeData[i] / maxTimePlotted) * plotWidth;
+                // Adjust yPos calculation for potentially negative velocities
+                const yPos = height - padding - ((velocityData[i] - minVelValue) / velRange) * plotHeight;
+
+                if (i === 0) {
+                    ctxVT.moveTo(xPos, yPos);
+                } else {
+                    ctxVT.lineTo(xPos, yPos);
+                }
+            }
+            ctxVT.stroke();
+        }
+
+
+        // Helper to draw arrowheads
+        function drawArrowhead(context, fromX, fromY, toX, toY, headLength, color) {
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const angle = Math.atan2(dy, dx);
+            context.fillStyle = color;
+            context.beginPath();
+            context.moveTo(toX, toY);
+            context.lineTo(toX - headLength * Math.cos(angle - Math.PI / 6), toY - headLength * Math.sin(angle - Math.PI / 6));
+            context.lineTo(toX - headLength * Math.cos(angle + Math.PI / 6), toY - headLength * Math.sin(angle + Math.PI / 6));
+            context.closePath();
+            context.fill();
+        }
+
+
+        // --- Simulation Loop ---
+        function simulationLoop() {
+            if (!isPlaying) return;
+
+            updatePhysics();
+            draw();
+
+            animationFrameId = requestAnimationFrame(simulationLoop);
+        }
+
+        // --- Control Functions ---
+        function playSimulation() {
+            if (!isPlaying) {
+                isPlaying = true;
+                playPauseBtn.textContent = '|| Pause';
+                // Ensure acceleration matches dropdown in case it changed while paused
+                g = parseFloat(gravitySelect.value);
+                a = -g;
+                simulationLoop();
+            }
+        }
+
+        function pauseSimulation() {
+            if (isPlaying) {
+                isPlaying = false;
+                playPauseBtn.textContent = '► Play';
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        function stepSimulation() {
+            if (!isPlaying) {
+                 // Ensure acceleration matches dropdown
+                g = parseFloat(gravitySelect.value);
+                a = -g;
+                updatePhysics();
+                draw();
+            }
+        }
+
+        // --- Event Listeners ---
+        playPauseBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                pauseSimulation();
+            } else {
+                playSimulation();
+            }
+        });
+
+        stepBtn.addEventListener('click', stepSimulation);
+
+        resetBtn.addEventListener('click', initializeSimulation);
+
+        initialHeightSlider.addEventListener('input', () => {
+            initialHeightValueSpan.textContent = initialHeightSlider.value;
+            if (!isPlaying) { // Only reset position if paused
+                y0 = parseFloat(initialHeightSlider.value);
+                y = y0;
+                updateDisplays();
+                draw();
+            }
+        });
+
+        initialVelocitySlider.addEventListener('input', () => {
+            initialVelocityValueSpan.textContent = initialVelocitySlider.value;
+             if (!isPlaying) { // Only reset velocity if paused
+                v0 = parseFloat(initialVelocitySlider.value);
+                v = v0;
+                updateDisplays();
+                draw();
+            }
+        });
+
+        gravitySelect.addEventListener('change', () => {
+             g = parseFloat(gravitySelect.value);
+             a = -g; // Update acceleration immediately
+             if (!isPlaying) { // If paused, update display and redraw
+                 updateDisplays();
+                 draw();
+             }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            resizeCanvas(); // Set initial canvas size
+            initializeSimulation(); // Set initial state
+        });
+
+    </script>
+
+    <div class="footer-credit">
+        credit: weelookang@gmail.com using Gemini 2.5 Pro on Visual Code Studio Cline Extension |
+        for more resources URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/01-foundations-of-physics/motion-forces/01-kinematics" target="_blank">iwant2study.org</a>
+    </div>
+</body>
+</html>

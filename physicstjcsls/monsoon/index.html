@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monsoon Simulator: African Climate Data</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { background-color: #020617; color: #f8fafc; font-family: system-ui, sans-serif; overflow: hidden; margin: 0; }
+        
+        /* Ensure the map container is explicitly sized and positioned */
+        #map { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 1; 
+            background: #0f172a; 
+        }
+        
+        /* Canvas is transparent and sits on top of the map */
+        canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 10; 
+            pointer-events: none; 
+            background: transparent;
+        }
+        
+        /* UI on top of everything */
+        .ui-overlay { 
+            position: relative; 
+            z-index: 100; 
+            pointer-events: none; 
+            height: 100vh; 
+            width: 100vw; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .interactive { pointer-events: auto; }
+
+        .glass-panel { 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+        }
+        
+        /* Subtle darkening of tiles for contrast without making them pitch black */
+        .leaflet-tile-pane { filter: brightness(0.7) saturate(0.8); }
+    </style>
+</head>
+<body class="bg-slate-950">
+
+    <div id="map"></div>
+    <canvas id="simulation-canvas"></canvas>
+
+    <div class="ui-overlay">
+        <header class="p-4 glass-panel flex justify-between items-center interactive">
+            <div>
+                <h1 class="text-xl font-bold text-cyan-400">African Climate Explorer</h1>
+                <p class="text-[10px] uppercase tracking-widest text-slate-400">Atmospheric Dynamics & Heatmaps</p>
+            </div>
+        </header>
+
+        <main class="flex-1 relative">
+            <div class="absolute top-6 left-6 w-80 flex flex-col gap-4">
+                <div class="glass-panel p-5 rounded-2xl interactive">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-3 text-slate-400">Atmospheric Phase</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btn-JJA" onclick="setSeason('JJA')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-cyan-600 ring-2 ring-cyan-400/50">
+                            Jun-Aug
+                        </button>
+                        <button id="btn-DJF" onclick="setSeason('DJF')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-300">
+                            Dec-Feb
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl interactive">
+                    <label class="block text-xs font-bold uppercase tracking-widest mb-3 text-slate-400">Visualization Layer</label>
+                    <select id="data-var" class="w-full bg-slate-900 text-sm border border-slate-700 rounded-xl p-3 outline-none mb-3" onchange="updateHeatmap()">
+                        <option value="pr">Precipitation (Rainfall)</option>
+                        <option value="tas">Temperature (Mean)</option>
+                    </select>
+                    <select id="map-style" class="w-full bg-slate-900 text-sm border border-slate-700 rounded-xl p-3 outline-none" onchange="updateHeatmap()">
+                        <option value="choropleth">Regional Blocks</option>
+                        <option value="heatmap">Smooth Heatmap</option>
+                    </select>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-emerald-500">
+                    <h4 class="text-xs font-bold text-emerald-400 mb-2 uppercase tracking-wide">Climate Dynamics</h4>
+                    <p id="description-text" class="text-[11px] text-slate-300 leading-relaxed italic">
+                        Loading atmospheric data...
+                    </p>
+                </div>
+
+                <div id="country-info" class="glass-panel p-5 rounded-2xl border-l-4 border-l-cyan-500 hidden interactive">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 id="country-name" class="text-sm font-bold text-cyan-400 uppercase tracking-wide">Country</h4>
+                        <button onclick="closeCountryInfo()" class="text-slate-500 hover:text-white px-1">✕</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase">Monthly Rain</p>
+                            <p id="country-pr" class="text-lg font-bold text-white">--</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase">Avg Temp</p>
+                            <p id="country-tas" class="text-lg font-bold text-white">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="legend" class="absolute bottom-10 right-10 glass-panel p-4 rounded-2xl min-w-[160px] interactive">
+                <div class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3" id="legend-title">Rainfall</div>
+                <div id="legend-content" class="space-y-2"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        const canvas = document.getElementById('simulation-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let map, width, height, geoJsonLayer, heatLayer;
+        let particles = [];
+        let currentSeason = 'JJA'; 
+        let africaGeo = null;
+        let selectedCountryProps = null;
+
+        const PRESSURE_CENTERS = {
+            'JJA': { high: [-25, -10], low: [18, 15], color: '#22d3ee' },
+            'DJF': { high: [25, 12], low: [-15, 20], color: '#fbbf24' }
+        };
+
+        const COUNTRY_COORDS = {
+            'NGA': [9.0820, 8.6753], 'MLI': [17.5707, -3.9962], 'ETH': [9.1450, 40.4897],
+            'COD': [-4.0383, 21.7587], 'DZA': [28.0339, 1.6596], 'ZAF': [-30.5595, 22.9375],
+            'SEN': [14.4974, -14.4524], 'MRT': [21.0079, -10.9408], 'SDN': [12.8628, 30.2176],
+            'TCD': [15.4542, 18.7322], 'GHA': [7.9465, -1.0232], 'KEN': [-0.0236, 37.9062],
+            'TZA': [-6.3690, 34.8888], 'AGO': [-11.2027, 17.8739], 'MAR': [31.7917, -7.0926],
+            'LBY': [26.3351, 17.2283], 'EGY': [26.8206, 30.8025], 'NAM': [-22.9576, 18.4904],
+            'NER': [17.6078, 8.0817], 'SOM': [5.1521, 46.1996], 'MDG': [-18.7669, 46.8691],
+            'BFA': [12.2383, -1.5616], 'CMR': [7.3697, 12.3547], 'CIV': [7.5400, -5.5471],
+            'MOZ': [-18.6657, 35.5296], 'ZMB': [-13.1339, 27.8493], 'UGA': [1.3733, 32.2903],
+            'NER': [17.6078, 8.0817], 'TGO': [8.6195, 0.8248], 'BEN': [9.3077, 2.3158],
+            'GIN': [9.9456, -9.6966], 'LBR': [6.4281, -9.4295], 'SLE': [8.4606, -11.7799],
+            'BWA': [-22.3285, 24.6849], 'NAM': [-22.9576, 18.4904], 'ZWE': [-19.0154, 29.1549]
+        };
+
+        const CLIMATE_DATA = {
+            'pr': {
+                'JJA': { 'NGA': 250, 'MLI': 45, 'ETH': 180, 'COD': 140, 'DZA': 2, 'ZAF': 15, 'SEN': 160, 'MRT': 12, 'SDN': 80, 'TCD': 70, 'GHA': 150, 'KEN': 40, 'TZA': 20, 'AGO': 5, 'MDG': 60, 'MAR': 10, 'CIV': 220, 'CMR': 300, 'GIN': 250, 'LBR': 240, 'SLE': 280, 'UGA': 120, 'BFA': 140, 'NER': 50 },
+                'DJF': { 'NGA': 10, 'MLI': 1, 'ETH': 25, 'COD': 190, 'DZA': 15, 'ZAF': 110, 'SEN': 2, 'MRT': 1, 'SDN': 2, 'TCD': 1, 'GHA': 15, 'KEN': 100, 'TZA': 150, 'AGO': 120, 'MDG': 250, 'MAR': 50, 'CIV': 20, 'CMR': 15, 'UGA': 150, 'ZMB': 180, 'MOZ': 200, 'ZWE': 160, 'BWA': 100, 'NAM': 80 }
+            },
+            'tas': {
+                'JJA': { 'NGA': 26, 'MLI': 34, 'ETH': 21, 'COD': 24, 'DZA': 37, 'ZAF': 12, 'SEN': 29, 'MRT': 33, 'SDN': 32, 'TCD': 31, 'GHA': 27, 'KEN': 22, 'TZA': 20, 'AGO': 19, 'MDG': 18, 'MAR': 25, 'EGY': 35, 'LBY': 33, 'NER': 33, 'BFA': 30, 'SDN': 34 },
+                'DJF': { 'NGA': 29, 'MLI': 24, 'ETH': 19, 'COD': 25, 'DZA': 12, 'ZAF': 25, 'SEN': 25, 'MRT': 21, 'SDN': 24, 'TCD': 23, 'GHA': 29, 'KEN': 25, 'TZA': 26, 'AGO': 24, 'MDG': 27, 'MAR': 14, 'EGY': 18, 'LBY': 16, 'ZAF': 26, 'NAM': 28, 'BWA': 30 }
+            }
+        };
+
+        const CLIMATE_DESCRIPTIONS = {
+            'JJA': 'Northern Summer: The Saharan Heat Low draws moist air from the South Atlantic High (St. Helena) across the equator. Coriolis deflection turns these into South-Westerly winds, bringing the heavy Monsoon rains to West and Central Africa.',
+            'DJF': 'Northern Winter: High pressure builds over the Saharan desert while a low forms over Southern Africa. Dry continental winds (Harmattan) blow southwards, while the moisture is pulled into the Southern Hemisphere, shifting the rain belt south.'
+        };
+
+        async function init() {
+            initMap();
+            initSimulation();
+            animate();
+            
+            try {
+                // Fetching boundaries for Africa
+                const res = await fetch('https://raw.githubusercontent.com/datasets/geo-boundaries-world-110m/master/countries.geojson');
+                const data = await res.json();
+                
+                // Flexible property checking for different GeoJSON sources
+                africaGeo = { 
+                    type: "FeatureCollection",
+                    features: data.features.filter(f => {
+                        const props = f.properties;
+                        const continent = props.CONTINENT || props.continent || "";
+                        const iso = props.ISO_A3 || props.iso_a3 || props.ISO_A3_EH;
+                        return continent === 'Africa' || ['MAR','DZA','TUN','LBY','EGY','NGA','MLI','ETH','COD','ZAF','SEN','MRT','SDN','TCD','GHA','KEN','TZA','AGO'].includes(iso);
+                    })
+                };
+                console.log(`Loaded ${africaGeo.features.length} African features`);
+                document.getElementById('description-text').innerText = CLIMATE_DESCRIPTIONS[currentSeason];
+                updateHeatmap();
+            } catch (e) {
+                console.error("Map loading error:", e);
+            }
+        }
+
+        function initMap() {
+            // Re-initializing Leaflet on the simplified div
+            map = L.map('map', { 
+                center: [8, 18], 
+                zoom: 3, 
+                zoomControl: false,
+                attributionControl: false
+            });
+            
+            // CartoDB Voyager is high-performance and stays visible
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+            
+            map.on('move', () => { updateCanvasSize(); });
+            map.on('zoom', () => { updateCanvasSize(); });
+        }
+
+        function updateCanvasSize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        function getColor(val, variable) {
+            if (variable === 'pr') { 
+                return val > 200 ? '#083344' : val > 100 ? '#0e7490' : val > 50 ? '#06b6d4' : val > 10 ? '#a5f3fc' : '#451a03';
+            } else { 
+                return val > 30 ? '#991b1b' : val > 25 ? '#ef4444' : val > 20 ? '#f97316' : val > 15 ? '#fbbf24' : '#3b82f6';
+            }
+        }
+
+        function updateHeatmap() {
+            const variable = document.getElementById('data-var').value;
+            const style = document.getElementById('map-style').value;
+            
+            if (geoJsonLayer) map.removeLayer(geoJsonLayer);
+            if (heatLayer) map.removeLayer(heatLayer);
+            if (!africaGeo) return;
+
+            // Always add the GeoJSON layer for interactivity (clicks)
+            geoJsonLayer = L.geoJson(africaGeo, {
+                style: (f) => {
+                    const props = f.properties;
+                    const iso = props.ISO_A3 || props.iso_a3 || props.ISO_A3_EH;
+                    const val = CLIMATE_DATA[variable][currentSeason][iso] || (variable === 'pr' ? 10 : 25);
+                    
+                    if (style === 'choropleth') {
+                        return { 
+                            fillColor: getColor(val, variable), 
+                            weight: 1.5, 
+                            opacity: 1, 
+                            color: 'rgba(255,255,255,0.4)', 
+                            fillOpacity: 0.65 
+                        };
+                    } else {
+                        // Invisible but clickable for heatmap mode
+                        return { 
+                            fillColor: 'transparent', 
+                            weight: 1, 
+                            opacity: 0.2, 
+                            color: 'rgba(255,255,255,0.1)', 
+                            fillOpacity: 0.01 
+                        };
+                    }
+                },
+                onEachFeature: (feature, layer) => {
+                    layer.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        showCountryInfo(feature.properties);
+                    });
+                }
+            }).addTo(map);
+
+            if (style === 'heatmap') {
+                const points = [];
+                const data = CLIMATE_DATA[variable][currentSeason];
+                for (const iso in data) {
+                    if (COUNTRY_COORDS[iso]) {
+                        const val = data[iso];
+                        // Normalize intensity for heatmap
+                        const intensity = variable === 'pr' ? Math.min(val / 200, 1.0) : Math.max(0, (val - 10) / 30);
+                        points.push([...COUNTRY_COORDS[iso], intensity]);
+                    }
+                }
+                
+                const gradient = variable === 'pr' ? 
+                    { 0.2: '#a5f3fc', 0.4: '#06b6d4', 0.7: '#0e7490', 1.0: '#083344' } :
+                    { 0.2: '#3b82f6', 0.5: '#fbbf24', 0.8: '#ef4444', 1.0: '#991b1b' };
+
+                heatLayer = L.heatLayer(points, {
+                    radius: 70,
+                    blur: 40,
+                    maxZoom: 4,
+                    gradient: gradient
+                }).addTo(map);
+            }
+
+            updateLegend(variable);
+        }
+
+        function updateLegend(variable) {
+            const content = document.getElementById('legend-content');
+            const title = document.getElementById('legend-title');
+            content.innerHTML = '';
+            
+            const steps = variable === 'pr' ? 
+                [{v: 201, l: '250mm+'}, {v: 101, l: '100mm+'}, {v: 51, l: '50mm+'}, {v: 5, l: 'Arid'}] : 
+                [{v: 31, l: '30°C+'}, {v: 26, l: '25°C+'}, {v: 21, l: '20°C+'}, {v: 10, l: 'Cool'}];
+
+            title.innerText = variable === 'pr' ? 'Rainfall' : 'Temperature';
+            steps.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-3 text-[11px] font-bold text-slate-300';
+                div.innerHTML = `<div class="w-4 h-4 rounded-sm" style="background:${getColor(s.v, variable)}"></div><span>${s.l}</span>`;
+                content.appendChild(div);
+            });
+        }
+
+        function setSeason(s) {
+            currentSeason = s;
+            document.getElementById('btn-JJA').className = s === 'JJA' ? 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-cyan-600 ring-2 ring-cyan-400/50' : 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400';
+            document.getElementById('btn-DJF').className = s === 'DJF' ? 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-cyan-600 ring-2 ring-cyan-400/50' : 'py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400';
+            document.getElementById('description-text').innerText = CLIMATE_DESCRIPTIONS[s];
+            
+            // Refresh country info for the new season if a country is selected
+            if (selectedCountryProps) {
+                showCountryInfo(selectedCountryProps);
+            }
+            
+            updateHeatmap();
+        }
+
+        function showCountryInfo(props) {
+            selectedCountryProps = props;
+            const iso = props.ISO_A3 || props.iso_a3 || props.ISO_A3_EH;
+            const name = props.NAME || props.name || props.ADMIN || "Unknown";
+            
+            const pr = CLIMATE_DATA['pr'][currentSeason][iso];
+            const tas = CLIMATE_DATA['tas'][currentSeason][iso];
+
+            document.getElementById('country-name').innerText = name;
+            document.getElementById('country-pr').innerText = pr ? `${pr}mm` : 'N/A';
+            document.getElementById('country-tas').innerText = tas ? `${tas}°C` : 'N/A';
+            document.getElementById('country-info').classList.remove('hidden');
+        }
+
+        function closeCountryInfo() {
+            selectedCountryProps = null;
+            document.getElementById('country-info').classList.add('hidden');
+        }
+
+        const AFRICA_BOUNDS = { n: 42, s: -42, w: -25, e: 65 };
+
+        class Particle {
+            constructor() { this.reset(); this.history = []; }
+            reset() {
+                const lat = AFRICA_BOUNDS.s + Math.random() * (AFRICA_BOUNDS.n - AFRICA_BOUNDS.s);
+                const lng = AFRICA_BOUNDS.w + Math.random() * (AFRICA_BOUNDS.e - AFRICA_BOUNDS.w);
+                const p = map.latLngToContainerPoint([lat, lng]);
+                
+                this.x = p.x; 
+                this.y = p.y;
+                this.vx = (Math.random() - 0.5) * 0.2; 
+                this.vy = (Math.random() - 0.5) * 0.2;
+                this.life = Math.random() * 100 + 100;
+                this.history = [];
+            }
+            update() {
+                this.history.push({x: this.x, y: this.y});
+                if (this.history.length > 12) this.history.shift();
+
+                const centers = PRESSURE_CENTERS[currentSeason];
+                const highPx = map.latLngToContainerPoint(centers.high);
+                const lowPx = map.latLngToContainerPoint(centers.low);
+                const eqY = map.latLngToContainerPoint([0,0]).y;
+
+                const nw = map.latLngToContainerPoint([AFRICA_BOUNDS.n, AFRICA_BOUNDS.w]);
+                const se = map.latLngToContainerPoint([AFRICA_BOUNDS.s, AFRICA_BOUNDS.e]);
+
+                let dx = lowPx.x - this.x, dy = lowPx.y - this.y;
+                let dHighX = this.x - highPx.x, dHighY = this.y - highPx.y;
+                
+                let forceX = (dx / 1500) + (dHighX / 2000);
+                let forceY = (dy / 1500) + (dHighY / 2000);
+
+                // Correct Coriolis: Deflect Right in NH, Left in SH
+                const latFactor = Math.sin((eqY - this.y) / (height / 2) * (Math.PI / 2));
+                const corX = -this.vy * 0.15 * latFactor;
+                const corY = this.vx * 0.15 * latFactor;
+
+                this.vx = (this.vx + forceX + corX) * 0.98;
+                this.vy = (this.vy + forceY + corY) * 0.98;
+                
+                this.x += this.vx; this.y += this.vy;
+                this.life--;
+
+                const isOutOfBounds = this.x < nw.x || this.x > se.x || this.y < nw.y || this.y > se.y;
+                if (this.life < 0 || isOutOfBounds) this.reset();
+            }
+            draw() {
+                if (this.history.length < 2) return;
+                const color = PRESSURE_CENTERS[currentSeason].color;
+                
+                ctx.beginPath();
+                ctx.moveTo(this.history[0].x, this.history[0].y);
+                for(let point of this.history) {
+                    ctx.lineTo(point.x, point.y);
+                }
+                ctx.strokeStyle = color + '66'; // Subtle transparency
+                ctx.lineWidth = 2.2;
+                ctx.stroke();
+            }
+        }
+
+        function initSimulation() {
+            updateCanvasSize();
+            particles = Array.from({length: 150}, () => new Particle());
+        }
+
+        function animate() {
+            // Clear canvas fully to keep map visible below
+            ctx.clearRect(0, 0, width, height);
+            
+            const centers = PRESSURE_CENTERS[currentSeason];
+            const highPx = map.latLngToContainerPoint(centers.high);
+            const lowPx = map.latLngToContainerPoint(centers.low);
+            
+            ctx.font = 'bold 20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Marker shadows
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.beginPath(); ctx.arc(highPx.x, highPx.y, 16, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(lowPx.x, lowPx.y, 16, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = '#38bdf8'; ctx.fillText('H', highPx.x, highPx.y);
+            ctx.fillStyle = '#f87171'; ctx.fillText('L', lowPx.x, lowPx.y);
+
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        window.onresize = initSimulation;
+        window.onload = init;
+    </script>
+</body>
+</html>

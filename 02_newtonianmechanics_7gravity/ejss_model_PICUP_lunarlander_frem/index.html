@@ -1,0 +1,1553 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <title>Lunar Lander Simulation</title>
+<meta name="description" content="Simulate lunar descent and landing by controlling thrust and managing fuel in this interactive gravitation physics model." />
+<meta name="keywords" content="lunar lander simulation, gravitation physics, interactive physics simulation, space landing game, thrust control, fuel management, orbital mechanics, physics education, PICUP simulations, real-time physics modeling, secondary physics, space exploration learning" />
+    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function PICUP_lunarlander_frem(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var Fthrust; // EjsS Model.Variables.Arrays.Fthrust
+  var landerv; // EjsS Model.Variables.Arrays.landerv
+  var g; // EjsS Model.Variables.Arrays.g
+  var landerpos; // EjsS Model.Variables.Arrays.landerpos
+  var fireRpos; // EjsS Model.Variables.Arrays.fireRpos
+  var fireLpos; // EjsS Model.Variables.Arrays.fireLpos
+  var fireUpos; // EjsS Model.Variables.Arrays.fireUpos
+  var Fnet; // EjsS Model.Variables.Arrays.Fnet
+  var targetpos; // EjsS Model.Variables.Arrays.targetpos
+
+  var mfuel; // EjsS Model.Variables.Constants.mfuel
+  var thrust; // EjsS Model.Variables.Constants.thrust
+  var L; // EjsS Model.Variables.Constants.L
+  var m_i; // EjsS Model.Variables.Constants.m_i
+  var landerm; // EjsS Model.Variables.Constants.landerm
+  var mdot; // EjsS Model.Variables.Constants.mdot
+  var t; // EjsS Model.Variables.Constants.t
+  var dt; // EjsS Model.Variables.Constants.dt
+
+  var font; // EjsS Model.Variables.Display and Graph.font
+  var fonta; // EjsS Model.Variables.Display and Graph.fonta
+  var fontb; // EjsS Model.Variables.Display and Graph.fontb
+  var fireUvisible; // EjsS Model.Variables.Display and Graph.fireUvisible
+  var FarrowUvisible; // EjsS Model.Variables.Display and Graph.FarrowUvisible
+  var fireLvisible; // EjsS Model.Variables.Display and Graph.fireLvisible
+  var FarrowLvisible; // EjsS Model.Variables.Display and Graph.FarrowLvisible
+  var fireRvisible; // EjsS Model.Variables.Display and Graph.fireRvisible
+  var FarrowRvisible; // EjsS Model.Variables.Display and Graph.FarrowRvisible
+  var scale; // EjsS Model.Variables.Display and Graph.scale
+  var sw; // EjsS Model.Variables.Display and Graph.sw
+  var vstr; // EjsS Model.Variables.Display and Graph.vstr
+  var mfuelstr; // EjsS Model.Variables.Display and Graph.mfuelstr
+
+  var landerposx; // EjsS Model.Variables.ODElookang.landerposx
+  var landerposz; // EjsS Model.Variables.ODElookang.landerposz
+  var landerposy; // EjsS Model.Variables.ODElookang.landerposy
+  var landervx; // EjsS Model.Variables.ODElookang.landervx
+  var landervz; // EjsS Model.Variables.ODElookang.landervz
+  var landervy; // EjsS Model.Variables.ODElookang.landervy
+  var Fnetx; // EjsS Model.Variables.ODElookang.Fnetx
+  var Fnetz; // EjsS Model.Variables.ODElookang.Fnetz
+  var Fnety; // EjsS Model.Variables.ODElookang.Fnety
+
+  var moonviewshow; // EjsS Model.Variables.view.moonviewshow
+  var azvtviewshow; // EjsS Model.Variables.view.azvtviewshow
+  var Fzvtviewshow; // EjsS Model.Variables.view.Fzvtviewshow
+  var vzvtviewshow; // EjsS Model.Variables.view.vzvtviewshow
+  var Width1; // EjsS Model.Variables.view.Width1
+  var Width2; // EjsS Model.Variables.view.Width2
+  var Width3; // EjsS Model.Variables.view.Width3
+  var Width4; // EjsS Model.Variables.view.Width4
+
+  var _privateOdesList;
+  var _ODEi_evolution1;
+  var userEvents1=[];
+
+  _model.getOdes = function() { return [_ODEi_evolution1]; };
+
+  _model.removeEvents = function(){
+    userEvents1=[];
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      Fthrust : Fthrust,
+      landerv : landerv,
+      g : g,
+      landerpos : landerpos,
+      fireRpos : fireRpos,
+      fireLpos : fireLpos,
+      fireUpos : fireUpos,
+      Fnet : Fnet,
+      targetpos : targetpos,
+      mfuel : mfuel,
+      thrust : thrust,
+      L : L,
+      m_i : m_i,
+      landerm : landerm,
+      mdot : mdot,
+      t : t,
+      dt : dt,
+      font : font,
+      fonta : fonta,
+      fontb : fontb,
+      fireUvisible : fireUvisible,
+      FarrowUvisible : FarrowUvisible,
+      fireLvisible : fireLvisible,
+      FarrowLvisible : FarrowLvisible,
+      fireRvisible : fireRvisible,
+      FarrowRvisible : FarrowRvisible,
+      scale : scale,
+      sw : sw,
+      vstr : vstr,
+      mfuelstr : mfuelstr,
+      landerposx : landerposx,
+      landerposz : landerposz,
+      landerposy : landerposy,
+      landervx : landervx,
+      landervz : landervz,
+      landervy : landervy,
+      Fnetx : Fnetx,
+      Fnetz : Fnetz,
+      Fnety : Fnety,
+      moonviewshow : moonviewshow,
+      azvtviewshow : azvtviewshow,
+      Fzvtviewshow : Fzvtviewshow,
+      vzvtviewshow : vzvtviewshow,
+      Width1 : Width1,
+      Width2 : Width2,
+      Width3 : Width3,
+      Width4 : Width4
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.Fthrust != "undefined") Fthrust = json.Fthrust;
+    if(typeof json.landerv != "undefined") landerv = json.landerv;
+    if(typeof json.g != "undefined") g = json.g;
+    if(typeof json.landerpos != "undefined") landerpos = json.landerpos;
+    if(typeof json.fireRpos != "undefined") fireRpos = json.fireRpos;
+    if(typeof json.fireLpos != "undefined") fireLpos = json.fireLpos;
+    if(typeof json.fireUpos != "undefined") fireUpos = json.fireUpos;
+    if(typeof json.Fnet != "undefined") Fnet = json.Fnet;
+    if(typeof json.targetpos != "undefined") targetpos = json.targetpos;
+    if(typeof json.mfuel != "undefined") mfuel = json.mfuel;
+    if(typeof json.thrust != "undefined") thrust = json.thrust;
+    if(typeof json.L != "undefined") L = json.L;
+    if(typeof json.m_i != "undefined") m_i = json.m_i;
+    if(typeof json.landerm != "undefined") landerm = json.landerm;
+    if(typeof json.mdot != "undefined") mdot = json.mdot;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.fonta != "undefined") fonta = json.fonta;
+    if(typeof json.fontb != "undefined") fontb = json.fontb;
+    if(typeof json.fireUvisible != "undefined") fireUvisible = json.fireUvisible;
+    if(typeof json.FarrowUvisible != "undefined") FarrowUvisible = json.FarrowUvisible;
+    if(typeof json.fireLvisible != "undefined") fireLvisible = json.fireLvisible;
+    if(typeof json.FarrowLvisible != "undefined") FarrowLvisible = json.FarrowLvisible;
+    if(typeof json.fireRvisible != "undefined") fireRvisible = json.fireRvisible;
+    if(typeof json.FarrowRvisible != "undefined") FarrowRvisible = json.FarrowRvisible;
+    if(typeof json.scale != "undefined") scale = json.scale;
+    if(typeof json.sw != "undefined") sw = json.sw;
+    if(typeof json.vstr != "undefined") vstr = json.vstr;
+    if(typeof json.mfuelstr != "undefined") mfuelstr = json.mfuelstr;
+    if(typeof json.landerposx != "undefined") landerposx = json.landerposx;
+    if(typeof json.landerposz != "undefined") landerposz = json.landerposz;
+    if(typeof json.landerposy != "undefined") landerposy = json.landerposy;
+    if(typeof json.landervx != "undefined") landervx = json.landervx;
+    if(typeof json.landervz != "undefined") landervz = json.landervz;
+    if(typeof json.landervy != "undefined") landervy = json.landervy;
+    if(typeof json.Fnetx != "undefined") Fnetx = json.Fnetx;
+    if(typeof json.Fnetz != "undefined") Fnetz = json.Fnetz;
+    if(typeof json.Fnety != "undefined") Fnety = json.Fnety;
+    if(typeof json.moonviewshow != "undefined") moonviewshow = json.moonviewshow;
+    if(typeof json.azvtviewshow != "undefined") azvtviewshow = json.azvtviewshow;
+    if(typeof json.Fzvtviewshow != "undefined") Fzvtviewshow = json.Fzvtviewshow;
+    if(typeof json.vzvtviewshow != "undefined") vzvtviewshow = json.vzvtviewshow;
+    if(typeof json.Width1 != "undefined") Width1 = json.Width1;
+    if(typeof json.Width2 != "undefined") Width2 = json.Width2;
+    if(typeof json.Width3 != "undefined") Width3 = json.Width3;
+    if(typeof json.Width4 != "undefined") Width4 = json.Width4;
+  };
+
+  _model._inputAndPublicParameters = ["Fthrust",  "landerv",  "g",  "landerpos",  "fireRpos",  "fireLpos",  "fireUpos",  "Fnet",  "targetpos",  "mfuel",  "thrust",  "L",  "m_i",  "landerm",  "mdot",  "t",  "dt",  "font",  "fonta",  "fontb",  "fireUvisible",  "FarrowUvisible",  "fireLvisible",  "FarrowLvisible",  "fireRvisible",  "FarrowRvisible",  "scale",  "sw",  "vstr",  "mfuelstr",  "landerposx",  "landerposz",  "landerposy",  "landervx",  "landervz",  "landervy",  "Fnetx",  "Fnetz",  "Fnety",  "moonviewshow",  "azvtviewshow",  "Fzvtviewshow",  "vzvtviewshow",  "Width1",  "Width2",  "Width3",  "Width4"]; 
+
+  _model._outputAndPublicParameters = ["Fthrust",  "landerv",  "g",  "landerpos",  "fireRpos",  "fireLpos",  "fireUpos",  "Fnet",  "targetpos",  "mfuel",  "thrust",  "L",  "m_i",  "landerm",  "mdot",  "t",  "dt",  "font",  "fonta",  "fontb",  "fireUvisible",  "FarrowUvisible",  "fireLvisible",  "FarrowLvisible",  "fireRvisible",  "FarrowRvisible",  "scale",  "sw",  "vstr",  "mfuelstr",  "landerposx",  "landerposz",  "landerposy",  "landervx",  "landervz",  "landervy",  "Fnetx",  "Fnetz",  "Fnety",  "moonviewshow",  "azvtviewshow",  "Fzvtviewshow",  "vzvtviewshow",  "Width1",  "Width2",  "Width3",  "Width4"];
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["undefined"] = true;
+    __pagesEnabled["Init Page"] = true;
+    __pagesEnabled["Evol Page"] = false;
+    __pagesEnabled["Evol Page 3"] = false;
+    __pagesEnabled["ODElookang"] = true;
+    __pagesEnabled["FixRel Page"] = true;
+    __pagesEnabled["ODEpassbacktoOriginalvariables"] = true;
+  });
+
+  _model.addToReset(function() {
+    Fthrust = [0,0,0]; // EjsS Model.Variables.Arrays.Fthrust
+    landerv = [0,0,0]; // EjsS Model.Variables.Arrays.landerv
+    g = [0,-1.6,0]; // EjsS Model.Variables.Arrays.g
+    landerpos = [-10,50,0]; // EjsS Model.Variables.Arrays.landerpos
+    fireRpos = [0,0,0]; // EjsS Model.Variables.Arrays.fireRpos
+    fireLpos = [0,0,0]; // EjsS Model.Variables.Arrays.fireLpos
+    fireUpos = [0,0,0]; // EjsS Model.Variables.Arrays.fireUpos
+    Fnet = new Array(3); // EjsS Model.Variables.Arrays.Fnet
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<3; _i0+=1) {  // EjsS Model.Variables.Arrays.Fnet
+        Fnet[_i0] = 0;  // EjsS Model.Variables.Arrays.Fnet
+      }
+    }());
+    targetpos = [10,0,0]; // EjsS Model.Variables.Arrays.targetpos
+  });
+
+  _model.addToReset(function() {
+    mfuel = 8e3; // EjsS Model.Variables.Constants.mfuel
+    thrust = 0; // EjsS Model.Variables.Constants.thrust
+    L = 3; // EjsS Model.Variables.Constants.L
+    m_i = 1e4; // EjsS Model.Variables.Constants.m_i
+    landerm = m_i; // EjsS Model.Variables.Constants.landerm
+    mdot = -500; // EjsS Model.Variables.Constants.mdot
+    t = 0; // EjsS Model.Variables.Constants.t
+    dt = 0.01; // EjsS Model.Variables.Constants.dt
+  });
+
+  _model.addToReset(function() {
+    font = "normal normal 2vw"; // EjsS Model.Variables.Display and Graph.font
+    fonta = "normal normal 1vw"; // EjsS Model.Variables.Display and Graph.fonta
+    fontb = "normal bold 2vw"; // EjsS Model.Variables.Display and Graph.fontb
+    fireUvisible = false; // EjsS Model.Variables.Display and Graph.fireUvisible
+    FarrowUvisible = false; // EjsS Model.Variables.Display and Graph.FarrowUvisible
+    fireLvisible = false; // EjsS Model.Variables.Display and Graph.fireLvisible
+    FarrowLvisible = false; // EjsS Model.Variables.Display and Graph.FarrowLvisible
+    fireRvisible = false; // EjsS Model.Variables.Display and Graph.fireRvisible
+    FarrowRvisible = false; // EjsS Model.Variables.Display and Graph.FarrowRvisible
+    scale = 0; // EjsS Model.Variables.Display and Graph.scale
+    sw = 0.5; // EjsS Model.Variables.Display and Graph.sw
+    vstr = ""; // EjsS Model.Variables.Display and Graph.vstr
+    mfuelstr = ""; // EjsS Model.Variables.Display and Graph.mfuelstr
+  });
+
+  _model.addToReset(function() {
+    landerposx = landerpos[0]; // EjsS Model.Variables.ODElookang.landerposx
+    landerposz = landerpos[1]; // EjsS Model.Variables.ODElookang.landerposz
+    landerposy = landerpos[2]; // EjsS Model.Variables.ODElookang.landerposy
+    landervx = landerv[0]; // EjsS Model.Variables.ODElookang.landervx
+    landervz = landerv[1]; // EjsS Model.Variables.ODElookang.landervz
+    landervy = landerv[2]; // EjsS Model.Variables.ODElookang.landervy
+    Fnetx = Fnet[0]; // EjsS Model.Variables.ODElookang.Fnetx
+    Fnetz = Fnet[1]; // EjsS Model.Variables.ODElookang.Fnetz
+    Fnety = Fnet[2]; // EjsS Model.Variables.ODElookang.Fnety
+  });
+
+  _model.addToReset(function() {
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _privateOdesList=[];
+    _ODEi_evolution1 = _ODE_evolution1();
+    _privateOdesList.push(_ODEi_evolution1);
+  });
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(100);
+    _model.setStepsPerDisplay(1);
+  });
+
+  //Exercise 2  // > CustomCode.Keyboard Control:1
+  document.addEventListener('keydown', function(event) {  // > CustomCode.Keyboard Control:2
+    //alert('key was pressed');  // > CustomCode.Keyboard Control:3
+    //https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_event_key_keycode2  // > CustomCode.Keyboard Control:4
+      // > CustomCode.Keyboard Control:5
+    if((event.keyCode == 37||event.keyCode == 65) && mfuel>0){ //37 is left arrow and 65 is for a  // > CustomCode.Keyboard Control:6
+           //alert('Right Arrow was pressed');  // > CustomCode.Keyboard Control:7
+      //right arrow turns on the right thruster  // > CustomCode.Keyboard Control:8
+      Fthrust=[thrust*-1,thrust*0,thrust*0];  // > CustomCode.Keyboard Control:9
+      fireRvisible=true;  // > CustomCode.Keyboard Control:10
+      FarrowRvisible=true;  // > CustomCode.Keyboard Control:11
+    }  // > CustomCode.Keyboard Control:12
+    if((event.keyCode == 39||event.keyCode == 83)&& mfuel>0){ //39 is right arrow key, 83 is s  // > CustomCode.Keyboard Control:13
+      //left arrow turns on the vertical thruster  // > CustomCode.Keyboard Control:14
+      Fthrust=[thrust*1,thrust*0,thrust*0];  // > CustomCode.Keyboard Control:15
+      fireLvisible=true;  // > CustomCode.Keyboard Control:16
+      FarrowLvisible=true;  // > CustomCode.Keyboard Control:17
+      //alert('Left Arrow was pressed');     // > CustomCode.Keyboard Control:18
+    }  // > CustomCode.Keyboard Control:19
+    if((event.keyCode == 38||event.keyCode == 87)&& mfuel>0){ //38 is up arrow key and 87 is w  // > CustomCode.Keyboard Control:20
+      //up arrow turns on the vertical thruster  // > CustomCode.Keyboard Control:21
+      Fthrust=[thrust*0,thrust*1,thrust*0];  // > CustomCode.Keyboard Control:22
+      fireUvisible=true;  // > CustomCode.Keyboard Control:23
+      FarrowUvisible=true;  // > CustomCode.Keyboard Control:24
+      //alert('Up Arrow was pressed');  // > CustomCode.Keyboard Control:25
+    }  // > CustomCode.Keyboard Control:26
+    if(event.keyCode == 40){ // 40 is down arrow key do nothing  // > CustomCode.Keyboard Control:27
+      //alert('Down Arrow was pressed');  // > CustomCode.Keyboard Control:28
+    }  // > CustomCode.Keyboard Control:29
+    }  // > CustomCode.Keyboard Control:30
+     // > CustomCode.Keyboard Control:31
+  )  // > CustomCode.Keyboard Control:32
+  document.addEventListener('keyup', function() {  // > CustomCode.Keyboard Control:33
+      //alert('key was released');  // > CustomCode.Keyboard Control:34
+      //releasing the key turns off the thruster  // > CustomCode.Keyboard Control:35
+          Fthrust=[0,0,0];  // > CustomCode.Keyboard Control:36
+          fireRvisible=false;  // > CustomCode.Keyboard Control:37
+          FarrowRvisible=false;  // > CustomCode.Keyboard Control:38
+          fireLvisible=false;  // > CustomCode.Keyboard Control:39
+          FarrowLvisible=false;  // > CustomCode.Keyboard Control:40
+          fireUvisible=false;  // > CustomCode.Keyboard Control:41
+          FarrowUvisible=false;  // > CustomCode.Keyboard Control:42
+      }  // > CustomCode.Keyboard Control:43
+  )  // > CustomCode.Keyboard Control:44
+
+  function mag (number) {  // > CustomCode.mag:1
+    return Math.sqrt(number[0]**2+number[1]**2+number[2]**2)  // > CustomCode.mag:2
+  }  // > CustomCode.mag:3
+
+  //Sets Full Screen  // > CustomCode.fullscreen:1
+  //https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Using_full_screen_mode  // > CustomCode.fullscreen:2
+  // does not work for iOS   // > CustomCode.fullscreen:3
+  /*jslint browser:true */  // > CustomCode.fullscreen:4
+  function toggleFullScreen() {  // > CustomCode.fullscreen:5
+    if (!document.fullscreenElement &&    // alternative standard method  // > CustomCode.fullscreen:6
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods  // > CustomCode.fullscreen:7
+      if (document.documentElement.requestFullscreen) {  // > CustomCode.fullscreen:8
+        document.documentElement.requestFullscreen();  // > CustomCode.fullscreen:9
+      } else if (document.documentElement.msRequestFullscreen) {  // > CustomCode.fullscreen:10
+        document.documentElement.msRequestFullscreen();  // > CustomCode.fullscreen:11
+      } else if (document.documentElement.mozRequestFullScreen) {  // > CustomCode.fullscreen:12
+        document.documentElement.mozRequestFullScreen();  // > CustomCode.fullscreen:13
+      } else if (document.documentElement.webkitRequestFullscreen) {  // > CustomCode.fullscreen:14
+        document.documentElement.webkitRequestFullscreen();  // > CustomCode.fullscreen:15
+      }  // > CustomCode.fullscreen:16
+    } else {  // > CustomCode.fullscreen:17
+      if (document.exitFullscreen) {  // > CustomCode.fullscreen:18
+        document.exitFullscreen();  // > CustomCode.fullscreen:19
+      } else if (document.msExitFullscreen) {  // > CustomCode.fullscreen:20
+        document.msExitFullscreen();  // > CustomCode.fullscreen:21
+      } else if (document.mozCancelFullScreen) {  // > CustomCode.fullscreen:22
+        document.mozCancelFullScreen();  // > CustomCode.fullscreen:23
+      } else if (document.webkitExitFullscreen) {  // > CustomCode.fullscreen:24
+        document.webkitExitFullscreen();  // > CustomCode.fullscreen:25
+      }  // > CustomCode.fullscreen:26
+    }  // > CustomCode.fullscreen:27
+  }  // > CustomCode.fullscreen:28
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["undefined"]) return;
+    if (moonviewshow==undefined)moonviewshow=true;  // > Initialization.undefined:1
+    if (azvtviewshow==undefined)azvtviewshow=true;  // > Initialization.undefined:2
+    if (Fzvtviewshow==undefined)Fzvtviewshow=true;  // > Initialization.undefined:3
+    if (vzvtviewshow==undefined)vzvtviewshow=true;  // > Initialization.undefined:4
+    if (Width1==undefined)Width1="100%";  // > Initialization.undefined:5
+    if (Width2==undefined)Width2="50%";  // > Initialization.undefined:6
+    if (Width3==undefined)Width3="50%";  // > Initialization.undefined:7
+    if (Width4==undefined)Width4="50%";  // > Initialization.undefined:8
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    Fthrust=[0,0,0];  // > Initialization.Init Page:1
+    thrust=3*m_i*mag(g);  // > Initialization.Init Page:2
+    scale=2*L/m_i/mag(g);  // > Initialization.Init Page:3
+    landerpos=[-10,50,0];  // > Initialization.Init Page:4
+    dt=0.01;  // > Initialization.Init Page:5
+    t=0;  // > Initialization.Init Page:6
+  });
+
+  _model.addToInitialization(function() {
+    _initializeSolvers();
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Evol Page"]) return;
+    t=t+dt;  // > Evolution.Evol Page:1
+    var Fgrav =[];  // > Evolution.Evol Page:2
+    if (mag(Fthrust)>0){  // > Evolution.Evol Page:3
+      var dm=mdot*dt;  // > Evolution.Evol Page:4
+      mfuel=mfuel+dm;  // > Evolution.Evol Page:5
+      landerm=landerm+dm;  // > Evolution.Evol Page:6
+      }  // > Evolution.Evol Page:7
+    Fgrav[0]=landerm*g[0];  // > Evolution.Evol Page:8
+    Fgrav[1]=landerm*g[1];  // > Evolution.Evol Page:9
+    Fgrav[2]=landerm*g[2];  // > Evolution.Evol Page:10
+    Fnet[0]=Fgrav[0]+Fthrust[0];  // > Evolution.Evol Page:11
+    Fnet[1]=Fgrav[1]+Fthrust[1];  // > Evolution.Evol Page:12
+    Fnet[2]=Fgrav[2]+Fthrust[2];  // > Evolution.Evol Page:13
+    landerv[0] = landerv[0]+Fnet[0]/landerm*dt;  // > Evolution.Evol Page:14
+    landerv[1] = landerv[1]+Fnet[1]/landerm*dt;  // > Evolution.Evol Page:15
+    landerv[2] = landerv[2]+Fnet[2]/landerm*dt;  // > Evolution.Evol Page:16
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Evol Page 3"]) return;
+    if (landerpos[1]-L/2<-1.1+2/2){  // > Evolution.Evol Page 3:1
+      _pause();  // > Evolution.Evol Page 3:2
+      var posdif = [];  // > Evolution.Evol Page 3:3
+      posdif[0] = landerpos[0]-0-targetpos[0];  // > Evolution.Evol Page 3:4
+      posdif[1] = landerpos[1]-L/2-targetpos[1];  // > Evolution.Evol Page 3:5
+      posdif[2] = landerpos[2]-0-targetpos[2];  // > Evolution.Evol Page 3:6
+      if(mag(posdif)<1){  // > Evolution.Evol Page 3:7
+        alert("You landed on the target within the allowed landing zone (+- 1 m).")  // > Evolution.Evol Page 3:8
+        }  // > Evolution.Evol Page 3:9
+      else{  // > Evolution.Evol Page 3:10
+        posdif[0]=landerpos[0]-targetpos[0];  // > Evolution.Evol Page 3:11
+        posdif[1]=landerpos[1]-targetpos[1];  // > Evolution.Evol Page 3:12
+        posdif[2]=landerpos[2]-targetpos[2];  // > Evolution.Evol Page 3:13
+        alert("You did not land within the allowed landing zone (+- 1 m). You are "+(mag(posdif)).toFixed(1)+" from the target.")  // > Evolution.Evol Page 3:14
+        }  // > Evolution.Evol Page 3:15
+       if(mag(landerv)<1){  // > Evolution.Evol Page 3:16
+        alert("You landed on the target within the allowed landing speed (+- 1 m/s).")}  // > Evolution.Evol Page 3:17
+        else{  // > Evolution.Evol Page 3:18
+        alert("You landed too fast.")}  // > Evolution.Evol Page 3:19
+      }  // > Evolution.Evol Page 3:20
+    else{  // > Evolution.Evol Page 3:21
+    landerpos[0]=landerpos[0]+landerv[0]*dt;  // > Evolution.Evol Page 3:22
+    landerpos[1]=landerpos[1]+landerv[1]*dt;  // > Evolution.Evol Page 3:23
+    landerpos[2]=landerpos[2]+landerv[2]*dt;}  // > Evolution.Evol Page 3:24
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["ODElookang"]) return;
+    _ODEi_evolution1.step();
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["FixRel Page"]) return;
+    vstr="Speed= "+mag(landerv).toFixed(2);  // > FixedRelations.FixRel Page:1
+    mfuelstr="Mass of Fuel= "+mfuel.toFixed(1);  // > FixedRelations.FixRel Page:2
+    fireRpos=[landerpos[0]-L/2,landerpos[1]-0,landerpos[2]-0];  // > FixedRelations.FixRel Page:3
+    fireLpos=[landerpos[0]+L/2,landerpos[1]-0,landerpos[2]-0];  // > FixedRelations.FixRel Page:4
+    fireUpos=[landerpos[0]+0,landerpos[1]-L/2,landerpos[2]-0];  // > FixedRelations.FixRel Page:5
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["ODEpassbacktoOriginalvariables"]) return;
+    //assign xyz inplace of 012, as ODE page did not pass the page correctly using 012  // > FixedRelations.ODEpassbacktoOriginalvariables:1
+    landerpos[0]=landerposx;  // > FixedRelations.ODEpassbacktoOriginalvariables:2
+    landerpos[1]= landerposz;  // > FixedRelations.ODEpassbacktoOriginalvariables:3
+    landerpos[2]= landerposy;  // > FixedRelations.ODEpassbacktoOriginalvariables:4
+    landerv[0] =landervx;  // > FixedRelations.ODEpassbacktoOriginalvariables:5
+    landerv[1]= landervz;  // > FixedRelations.ODEpassbacktoOriginalvariables:6
+    landerv[2]= landervy;  // > FixedRelations.ODEpassbacktoOriginalvariables:7
+    Fnet[0]= Fnetx ;  // > FixedRelations.ODEpassbacktoOriginalvariables:8
+    Fnet[1]= Fnetz ;  // > FixedRelations.ODEpassbacktoOriginalvariables:9
+    Fnet[2]= Fnety ;  // > FixedRelations.ODEpassbacktoOriginalvariables:10
+    // landing conditions check  // > FixedRelations.ODEpassbacktoOriginalvariables:11
+    if (landerpos[1]-L/2<-1.1+2/2){  // > FixedRelations.ODEpassbacktoOriginalvariables:12
+      _pause();  // > FixedRelations.ODEpassbacktoOriginalvariables:13
+      var posdif = [];  // > FixedRelations.ODEpassbacktoOriginalvariables:14
+      posdif[0] = landerpos[0]-0-targetpos[0];  // > FixedRelations.ODEpassbacktoOriginalvariables:15
+      posdif[1] = landerpos[1]-L/2-targetpos[1];  // > FixedRelations.ODEpassbacktoOriginalvariables:16
+      posdif[2] = landerpos[2]-0-targetpos[2];  // > FixedRelations.ODEpassbacktoOriginalvariables:17
+      if(mag(posdif)<1){  // > FixedRelations.ODEpassbacktoOriginalvariables:18
+        //alert was giving duplicates, so change to   // > FixedRelations.ODEpassbacktoOriginalvariables:19
+       // alert("You landed on the target within the allowed landing zone (+- 1 m).")  // > FixedRelations.ODEpassbacktoOriginalvariables:20
+       _tools.showOkDialog("You landed on the target within the allowed landing zone (+- 1 m).");  // > FixedRelations.ODEpassbacktoOriginalvariables:21
+       }  // > FixedRelations.ODEpassbacktoOriginalvariables:22
+      else{  // > FixedRelations.ODEpassbacktoOriginalvariables:23
+        posdif[0]=landerpos[0]-targetpos[0];  // > FixedRelations.ODEpassbacktoOriginalvariables:24
+        posdif[1]=landerpos[1]-targetpos[1];  // > FixedRelations.ODEpassbacktoOriginalvariables:25
+        posdif[2]=landerpos[2]-targetpos[2];  // > FixedRelations.ODEpassbacktoOriginalvariables:26
+       // alert("You did not land within the allowed landing zone (+- 1 m). You are "+(mag(posdif)).toFixed(1)+" from the target.")  // > FixedRelations.ODEpassbacktoOriginalvariables:27
+        _tools.showOkDialog("You did not land within the allowed landing zone (+- 1 m). You are "+(mag(posdif)).toFixed(1)+" from the target.");  // > FixedRelations.ODEpassbacktoOriginalvariables:28
+        }  // > FixedRelations.ODEpassbacktoOriginalvariables:29
+       if(mag(landerv)<1){  // > FixedRelations.ODEpassbacktoOriginalvariables:30
+        //alert("You landed on the target within the allowed landing speed (+- 1 m/s).")  // > FixedRelations.ODEpassbacktoOriginalvariables:31
+            _tools.showOkDialog("You landed on the target within the allowed landing speed (+- 1 m/s).");  // > FixedRelations.ODEpassbacktoOriginalvariables:32
+        }  // > FixedRelations.ODEpassbacktoOriginalvariables:33
+        else{  // > FixedRelations.ODEpassbacktoOriginalvariables:34
+        //alert("You landed too fast.");  // > FixedRelations.ODEpassbacktoOriginalvariables:35
+        _tools.showOkDialog("You landed too fast.");  // > FixedRelations.ODEpassbacktoOriginalvariables:36
+        }  // > FixedRelations.ODEpassbacktoOriginalvariables:37
+      }  // > FixedRelations.ODEpassbacktoOriginalvariables:38
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  function _initializeSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].initializeSolver();
+  }
+
+  function _automaticResetSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].automaticResetSolver();
+  }
+
+  _model.resetSolvers = function() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].resetSolver();
+  };
+
+  _getODE = function (_odeName) {
+    if (_odeName=="ODElookang") return _ODEi_evolution1;
+    return null;
+  }
+
+  function _getEventSolver(_odeName) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return null;
+    return ode.getEventSolver();
+  }
+
+  function _setSolverClass(_odeName, _engine) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return;
+    if (!_engine.setODE) {
+      var classname = _engine.toLowerCase();
+      if      (classname.indexOf("boga")>=0)   _engine = EJSS_ODE_SOLVERS.bogackiShampine23;
+      else if (classname.indexOf("cash")>=0)   _engine = EJSS_ODE_SOLVERS.cashKarp45;
+      else if (classname.indexOf("dopri5")>=0) _engine = EJSS_ODE_SOLVERS.dopri5;
+      else if (classname.indexOf("dopri8")>=0) _engine = EJSS_ODE_SOLVERS.dopri853;
+      else if (classname.indexOf("richa")>=0)  _engine = EJSS_ODE_SOLVERS.eulerRichardson;
+      else if (classname.indexOf("euler")>=0)  _engine = EJSS_ODE_SOLVERS.euler;
+      else if (classname.indexOf("fehlberg87")>=0) _engine = EJSS_ODE_SOLVERS.fehlberg87;
+      else if (classname.indexOf("fehlberg8")>=0)  _engine = EJSS_ODE_SOLVERS.fehlberg8;
+      else if (classname.indexOf("radau")>=0)   _engine = EJSS_ODE_SOLVERS.radau5;
+      else if (classname.indexOf("runge")>=0)  _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("rk4")>=0)    _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("verlet")>=0) _engine = EJSS_ODE_SOLVERS.velocityVerlet;
+    }
+    if (_engine) ode.setSolverClass(_engine);
+  }
+
+  function _ODE_evolution1() {
+    var __odeSelf = {};
+    var __eventSolver;
+    var __solverClass = EJSS_ODE_SOLVERS.eulerRichardson;
+    var __state=[];
+    var __ignoreErrors=false;
+    var __mustInitialize=true;
+    var __isEnabled=true;
+    var __mustUserReinitialize=false;
+    var __mustReinitialize=true;
+
+
+    __odeSelf._getOdeVars = function (){ return["landerposx","landervx","landerposy","landervy","landerposz","landervz","mfuel","landerm","t"]};
+
+    __odeSelf.setSolverClass = function(__aSolverClass) {
+      __solverClass = __aSolverClass;
+      __instantiateSolver();
+    };
+
+    function __instantiateSolver() {
+      __state=[];
+      __pushState();
+      __eventSolver = EJSS_ODE_SOLVERS.interpolatorEventSolver(__solverClass(),__odeSelf);
+      __mustInitialize = true;
+    }
+
+    __odeSelf.setEnabled = function(_enabled) { __isEnabled = _enabled; };
+
+    __odeSelf.getIndependentVariableValue = function() { return __eventSolver.getIndependentVariableValue(); };
+
+    __odeSelf.getInternalStepSize = function() { return __eventSolver.getInternalStepSize(); };
+
+    __odeSelf.isAccelerationIndependentOfVelocity = function() { return false; };
+
+    __odeSelf.initializeSolver = function() {
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); return; }
+      __pushState();
+      __eventSolver.initialize(dt);
+      __eventSolver.setBestInterpolation(false);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.removeAllEvents();
+      for(k in userEvents1){__eventSolver.addEvent(userEvents1[k]);}
+      __eventSolver.setEstimateFirstStep(false);
+      __eventSolver.setEnableExceptions(false);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __mustReinitialize = true;
+      __mustInitialize = false;
+    };
+
+    function __pushState() {
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        if (__state[__cIn]!=landerposx) __mustReinitialize = true;
+        __state[__cIn++] = landerposx;
+        if (__state[__cIn]!=landervx) __mustReinitialize = true;
+        __state[__cIn++] = landervx;
+        if (__state[__cIn]!=landerposy) __mustReinitialize = true;
+        __state[__cIn++] = landerposy;
+        if (__state[__cIn]!=landervy) __mustReinitialize = true;
+        __state[__cIn++] = landervy;
+        if (__state[__cIn]!=landerposz) __mustReinitialize = true;
+        __state[__cIn++] = landerposz;
+        if (__state[__cIn]!=landervz) __mustReinitialize = true;
+        __state[__cIn++] = landervz;
+        if (__state[__cIn]!=mfuel) __mustReinitialize = true;
+        __state[__cIn++] = mfuel;
+        if (__state[__cIn]!=landerm) __mustReinitialize = true;
+        __state[__cIn++] = landerm;
+        if (__state[__cIn]!=t) __mustReinitialize = true;
+        __state[__cIn++] = t;
+    }
+
+    function __arraysChanged () {
+      return false;
+    }
+
+    __odeSelf.getEventSolver = function() {
+      return __eventSolver;
+    };
+
+    __odeSelf.resetSolver = function() {
+      __mustUserReinitialize = true;
+    };
+
+    __odeSelf.automaticResetSolver = function() {
+      __mustReinitialize = true;
+    };
+
+    function __errorAction () {
+      if (__ignoreErrors) return;
+      console.log (__eventSolver.getErrorMessage());
+      _pause();
+      // Make sure the solver is reinitialized;
+      __mustReinitialize = true;
+    }
+
+    __odeSelf.step = function() { return __privateStep(false); };
+
+    __odeSelf.solverStep = function() { return __privateStep(true); };
+
+    function __privateStep(__takeMaximumStep) {
+      if (!__isEnabled) return 0;
+      if (dt===0) return 0;
+      if (__mustInitialize) __odeSelf.initializeSolver();
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); }
+      __eventSolver.setStepSize(dt);
+      __eventSolver.setInternalStepSize(dt);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __pushState();
+      if (__mustUserReinitialize) { 
+        __eventSolver.userReinitialize();
+        __mustUserReinitialize = false;
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      else if (__mustReinitialize) { 
+        __eventSolver.reinitialize();
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      var __stepTaken = __takeMaximumStep ? __eventSolver.maxStep() : __eventSolver.step();
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        landerposx = __state[__cOut++];
+        landervx = __state[__cOut++];
+        landerposy = __state[__cOut++];
+        landervy = __state[__cOut++];
+        landerposz = __state[__cOut++];
+        landervz = __state[__cOut++];
+        mfuel = __state[__cOut++];
+        landerm = __state[__cOut++];
+        t = __state[__cOut++];
+      // Check for error
+      if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      return __stepTaken;
+    }
+
+    __odeSelf.getState = function() { return __state; };
+
+    __odeSelf.getRate = function(_aState,_aRate) {
+      _aRate[_aRate.length-1] = 0.0; // In case the prelim code returns
+      var __index=-1; // so that it can be used in preliminary code
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var landerposx = _aState[__cOut++];
+        var landervx = _aState[__cOut++];
+        var landerposy = _aState[__cOut++];
+        var landervy = _aState[__cOut++];
+        var landerposz = _aState[__cOut++];
+        var landervz = _aState[__cOut++];
+        var mfuel = _aState[__cOut++];
+        var landerm = _aState[__cOut++];
+        var t = _aState[__cOut++];
+      // Preliminary code: Code to be executed before rate equations are evaluated
+        // Exercise 3  // > Preliminary code for ODE.ODElookang:1
+        var Fgrav =[];  // > Preliminary code for ODE.ODElookang:2
+        Fgrav[0]=landerm*g[0]; //x  // > Preliminary code for ODE.ODElookang:3
+        Fgrav[1]=landerm*g[1]; // z  // > Preliminary code for ODE.ODElookang:4
+        Fgrav[2]=landerm*g[2]; //y  // > Preliminary code for ODE.ODElookang:5
+        Fnet[0]=Fgrav[0]+Fthrust[0];  // > Preliminary code for ODE.ODElookang:6
+        Fnet[1]=Fgrav[1]+Fthrust[1];  // > Preliminary code for ODE.ODElookang:7
+        Fnet[2]=Fgrav[2]+Fthrust[2];  // > Preliminary code for ODE.ODElookang:8
+        //assign xyz inplace of 012, as ODE page did not pass the page correctly using 012  // > Preliminary code for ODE.ODElookang:9
+        landerposx=landerpos[0];  // > Preliminary code for ODE.ODElookang:10
+         landerposz=landerpos[1];  // > Preliminary code for ODE.ODElookang:11
+         landerposy=landerpos[2];  // > Preliminary code for ODE.ODElookang:12
+         landervx=landerv[0];  // > Preliminary code for ODE.ODElookang:13
+         landervz=landerv[1];  // > Preliminary code for ODE.ODElookang:14
+         landervy=landerv[2];  // > Preliminary code for ODE.ODElookang:15
+         Fnetx =Fnet[0];  // > Preliminary code for ODE.ODElookang:16
+         Fnetz =Fnet[1];  // > Preliminary code for ODE.ODElookang:17
+         Fnety =Fnet[2];  // > Preliminary code for ODE.ODElookang:18
+      // Compute the rate
+        var __cRate=0;
+        _aRate[__cRate++] = landervx; // Rate for ODE: ODElookang:landerposx
+        _aRate[__cRate++] = Fnetx/landerm; // Rate for ODE: ODElookang:landervx
+        _aRate[__cRate++] = landervy; // Rate for ODE: ODElookang:landerposy
+        _aRate[__cRate++] = Fnety/landerm; // Rate for ODE: ODElookang:landervy
+        _aRate[__cRate++] = landervz; // Rate for ODE: ODElookang:landerposz
+        _aRate[__cRate++] = Fnetz/landerm; // Rate for ODE: ODElookang:landervz
+        _aRate[__cRate++] = mag(Fthrust)>0?mdot:0; // Rate for ODE: ODElookang:mfuel
+        _aRate[__cRate++] = mag(Fthrust)>0?mdot:0; // Rate for ODE: ODElookang:landerm
+        _aRate[__cRate++] = 1; // independent variable
+        return _aRate;
+    }; //end of getRate
+
+    __odeSelf._addEvent = function(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent){
+    var User_Event = function (userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent) {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return eventType; };
+
+      _eventSelf.getRootFindingMethod = function() { return eventMethod; };
+
+      _eventSelf.getMaxIterations = function() { return maxIter; };
+
+      _eventSelf.getTolerance = function() { return eventTolerance; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var landerposx = _aState[__cOut++];
+        var landervx = _aState[__cOut++];
+        var landerposy = _aState[__cOut++];
+        var landervy = _aState[__cOut++];
+        var landerposz = _aState[__cOut++];
+        var landervz = _aState[__cOut++];
+        var mfuel = _aState[__cOut++];
+        var landerm = _aState[__cOut++];
+        var t = _aState[__cOut++];
+      return eval(userCondition);
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        landerposx = __state[__cOut++];
+        landervx = __state[__cOut++];
+        landerposy = __state[__cOut++];
+        landervy = __state[__cOut++];
+        landerposz = __state[__cOut++];
+        landervz = __state[__cOut++];
+        mfuel = __state[__cOut++];
+        landerm = __state[__cOut++];
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = landerposx;
+        __state[__cIn++] = landervx;
+        __state[__cIn++] = landerposy;
+        __state[__cIn++] = landervy;
+        __state[__cIn++] = landerposz;
+        __state[__cIn++] = landervz;
+        __state[__cIn++] = mfuel;
+        __state[__cIn++] = landerm;
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        if (undefined != functions) eval(functions.toString());
+        eval(userAction);
+        return endAtEvent;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+   userEvents1.push(User_Event(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent));
+   }
+
+    __instantiateSolver();
+
+    return __odeSelf;
+  }
+
+  function _historic_landerposx(__time) {
+    var __index = 0;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_landervx(__time) {
+    var __index = 0 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_landerposy(__time) {
+    var __index = 0 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_landervy(__time) {
+    var __index = 0 + 1 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_landerposz(__time) {
+    var __index = 0 + 1 + 1 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_landervz(__time) {
+    var __index = 0 + 1 + 1 + 1 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_mfuel(__time) {
+    var __index = 0 + 1 + 1 + 1 + 1 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_landerm(__time) {
+    var __index = 0 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new PICUP_lunarlander_frem_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.executionPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'executionPanel'
+          _view.comboBox.linkProperty("Options",  function() { return ["","Moon view","Moon and az v t","Moon and Fz v t","Moon and vz v t","az v t hide","Fz v t hide","vz v t hide","","vz=-20,Tz=48000","land safely"]; } ); // HtmlView Page linking property 'Options' for element 'comboBox'
+          _view.comboBox.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBox.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  //_initialize();
+  if (  option=="vz=-20,Tz=48000"){
+    landerposx=10;
+    landerpos[0]=landerposx;
+    landervz=-20;
+    landerv[1]=landervz;
+    
+    //
+    //up arrow turns on the vertical thruster
+      Fthrust=[thrust*0,thrust*1,thrust*0];
+      fireUvisible=true;
+      FarrowUvisible=true;
+      //alert('Up Arrow was pressed');
+      
+    }
+  else if (  option=="user defined"){
+    
+    }
+    else if (  option=="land safely"){
+    landerposx=10;
+    landerpos[0]=landerposx;
+    landervz=-18.84;
+    landerv[1]=landervz;
+    
+    //
+    //up arrow turns on the vertical thruster
+      Fthrust=[thrust*0,thrust*1,thrust*0];
+      fireUvisible=true;
+      FarrowUvisible=true;
+      //alert('Up Arrow was pressed');
+      
+    }
+    
+  else if (  option=="Moon view"){
+    moonviewshow=true;
+    azvtviewshow=false;
+    Fzvtviewshow=false;
+    vzvtviewshow=false;
+    Width1="100%";
+    
+    }
+    
+    else if (  option=="Moon and az v t"){
+     moonviewshow=true;
+    azvtviewshow=true;
+    Fzvtviewshow=false;
+    vzvtviewshow=false;
+     Width1="50%";
+      Width2="50%";
+    }
+    else if (  option=="Moon and Fz v t"){
+     moonviewshow=true;
+    azvtviewshow=false;
+    Fzvtviewshow=true;
+    vzvtviewshow=false;
+     Width1="50%";
+      Width3="50%";
+    }
+    else if (  option=="Moon and vz v t"){
+     moonviewshow=true;
+    azvtviewshow=false;
+    Fzvtviewshow=false;
+    vzvtviewshow=true;
+     Width1="50%";
+      Width4="50%";
+    }
+    else if (  option=="az v t hide"){
+    azvtviewshow=false;
+    }
+    else if (  option=="Fz v t hide"){
+    Fzvtviewshow=false;
+    }
+    else if (  option=="vz v t hide"){
+    vzvtviewshow=false;
+    }
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBox'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBox'
+          _view.x.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'x'
+          _view.x2.linkProperty("Value",  function() { return landerposx; }, function(_v) { landerposx = _v; } ); // HtmlView Page linking property 'Value' for element 'x2'
+          _view.x2.setAction("OnChange", function(_data,_info) {
+  landerpos[0]=landerposx;
+
+}); // HtmlView Page setting action 'OnChange' for element 'x2'
+          _view.x2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'x2'
+          _view.vz.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'vz'
+          _view.vz2.linkProperty("Value",  function() { return landervz; }, function(_v) { landervz = _v; } ); // HtmlView Page linking property 'Value' for element 'vz2'
+          _view.vz2.setAction("OnChange", function(_data,_info) {
+  landerv[1]=landervz;
+
+}); // HtmlView Page setting action 'OnChange' for element 'vz2'
+          _view.vz2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'vz2'
+          _view.Left2.setAction("OnRelease", function(_data,_info) {
+  //alert('key was released');
+      //releasing the key turns off the thruster
+          Fthrust=[0,0,0];
+          fireRvisible=false;
+          FarrowRvisible=false;
+          fireLvisible=false;
+          FarrowLvisible=false;
+          fireUvisible=false;
+          FarrowUvisible=false;
+
+}); // HtmlView Page setting action 'OnRelease' for element 'Left2'
+          _view.Left2.setAction("OnPress", function(_data,_info) {
+  if (mfuel>0){
+    //alert('Right Arrow was pressed');
+      //right arrow turns on the right thruster
+      Fthrust=[thrust*-1,thrust*0,thrust*0];
+      fireRvisible=true;
+      FarrowRvisible=true;    
+    }
+
+}); // HtmlView Page setting action 'OnPress' for element 'Left2'
+          _view.up.setAction("OnRelease", function(_data,_info) {
+  //alert('key was released');
+      //releasing the key turns off the thruster
+          Fthrust=[0,0,0];
+          fireRvisible=false;
+          FarrowRvisible=false;
+          fireLvisible=false;
+          FarrowLvisible=false;
+          fireUvisible=false;
+          FarrowUvisible=false;
+
+}); // HtmlView Page setting action 'OnRelease' for element 'up'
+          _view.up.setAction("OnPress", function(_data,_info) {
+  if (mfuel>0){
+    //up arrow turns on the vertical thruster
+      Fthrust=[thrust*0,thrust*1,thrust*0];
+      fireUvisible=true;
+      FarrowUvisible=true;
+      //alert('Up Arrow was pressed');
+    }
+
+}); // HtmlView Page setting action 'OnPress' for element 'up'
+          _view.Right.setAction("OnRelease", function(_data,_info) {
+  //alert('key was released');
+      //releasing the key turns off the thruster
+          Fthrust=[0,0,0];
+          fireRvisible=false;
+          FarrowRvisible=false;
+          fireLvisible=false;
+          FarrowLvisible=false;
+          fireUvisible=false;
+          FarrowUvisible=false;
+
+}); // HtmlView Page setting action 'OnRelease' for element 'Right'
+          _view.Right.setAction("OnPress", function(_data,_info) {
+  if (mfuel>0){
+    Fthrust=[thrust*1,thrust*0,thrust*0];
+      fireLvisible=true;
+      FarrowLvisible=true;
+      //alert('Left Arrow was pressed');    
+    }
+
+}); // HtmlView Page setting action 'OnPress' for element 'Right'
+          _view.resetButton.setAction("OnClick", _reset); // HtmlView Page setting action 'OnClick' for element 'resetButton'
+          _view.resetButton.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'resetButton'
+          _view.drawingPanel3D.linkProperty("Width",  function() { return Width1; }, function(_v) { Width1 = _v; } ); // HtmlView Page linking property 'Width' for element 'drawingPanel3D'
+          _view.drawingPanel3D.setAction("OnPress", function(_data,_info) {
+  if (landerpos[1]-L/2<-1.1+2/2){
+    alert('The lander has landed!');
+    }
+  else{_play();}
+
+}); // HtmlView Page setting action 'OnPress' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("Display",  function() { return moonviewshow?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'drawingPanel3D'
+          _view.lander.linkProperty("SizeX",  function() { return L; }, function(_v) { L = _v; } ); // HtmlView Page linking property 'SizeX' for element 'lander'
+          _view.lander.linkProperty("Position",  function() { return landerpos; }, function(_v) { landerpos = _v; } ); // HtmlView Page linking property 'Position' for element 'lander'
+          _view.lander.linkProperty("SizeZ",  function() { return L; }, function(_v) { L = _v; } ); // HtmlView Page linking property 'SizeZ' for element 'lander'
+          _view.lander.linkProperty("SizeY",  function() { return L; }, function(_v) { L = _v; } ); // HtmlView Page linking property 'SizeY' for element 'lander'
+          _view.target.linkProperty("BottomRadius",  function() { return L/2+1; } ); // HtmlView Page linking property 'BottomRadius' for element 'target'
+          _view.target.linkProperty("TopRadius",  function() { return L/2+1; } ); // HtmlView Page linking property 'TopRadius' for element 'target'
+          _view.target.linkProperty("Position",  function() { return targetpos; }, function(_v) { targetpos = _v; } ); // HtmlView Page linking property 'Position' for element 'target'
+          _view.fireR.linkProperty("BottomRadius",  function() { return L/4; } ); // HtmlView Page linking property 'BottomRadius' for element 'fireR'
+          _view.fireR.linkProperty("SizeX",  function() { return -L/2; } ); // HtmlView Page linking property 'SizeX' for element 'fireR'
+          _view.fireR.linkProperty("X",  function() { return fireRpos[0]; } ); // HtmlView Page linking property 'X' for element 'fireR'
+          _view.fireR.linkProperty("Y",  function() { return fireRpos[1]; } ); // HtmlView Page linking property 'Y' for element 'fireR'
+          _view.fireR.linkProperty("Z",  function() { return fireRpos[2]; } ); // HtmlView Page linking property 'Z' for element 'fireR'
+          _view.fireR.linkProperty("Visibility",  function() { return fireRvisible; }, function(_v) { fireRvisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'fireR'
+          _view.FarrowR.linkProperty("SizeX",  function() { return scale*thrust*-1; } ); // HtmlView Page linking property 'SizeX' for element 'FarrowR'
+          _view.FarrowR.linkProperty("Position",  function() { return landerpos; }, function(_v) { landerpos = _v; } ); // HtmlView Page linking property 'Position' for element 'FarrowR'
+          _view.FarrowR.linkProperty("Visibility",  function() { return FarrowRvisible; }, function(_v) { FarrowRvisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'FarrowR'
+          _view.fireL.linkProperty("BottomRadius",  function() { return L/4; } ); // HtmlView Page linking property 'BottomRadius' for element 'fireL'
+          _view.fireL.linkProperty("SizeX",  function() { return L/2*1; } ); // HtmlView Page linking property 'SizeX' for element 'fireL'
+          _view.fireL.linkProperty("Position",  function() { return fireLpos; }, function(_v) { fireLpos = _v; } ); // HtmlView Page linking property 'Position' for element 'fireL'
+          _view.fireL.linkProperty("Visibility",  function() { return fireLvisible; }, function(_v) { fireLvisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'fireL'
+          _view.FarrowL.linkProperty("SizeX",  function() { return scale*thrust*1; } ); // HtmlView Page linking property 'SizeX' for element 'FarrowL'
+          _view.FarrowL.linkProperty("Position",  function() { return landerpos; }, function(_v) { landerpos = _v; } ); // HtmlView Page linking property 'Position' for element 'FarrowL'
+          _view.FarrowL.linkProperty("Visibility",  function() { return FarrowLvisible; }, function(_v) { FarrowLvisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'FarrowL'
+          _view.fireU.linkProperty("BottomRadius",  function() { return L/4; } ); // HtmlView Page linking property 'BottomRadius' for element 'fireU'
+          _view.fireU.linkProperty("Position",  function() { return fireUpos; }, function(_v) { fireUpos = _v; } ); // HtmlView Page linking property 'Position' for element 'fireU'
+          _view.fireU.linkProperty("Visibility",  function() { return fireUvisible; }, function(_v) { fireUvisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'fireU'
+          _view.fireU.linkProperty("SizeY",  function() { return -L/2; } ); // HtmlView Page linking property 'SizeY' for element 'fireU'
+          _view.FarrowU.linkProperty("Position",  function() { return landerpos; }, function(_v) { landerpos = _v; } ); // HtmlView Page linking property 'Position' for element 'FarrowU'
+          _view.FarrowU.linkProperty("Visibility",  function() { return FarrowUvisible; }, function(_v) { FarrowUvisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'FarrowU'
+          _view.FarrowU.linkProperty("SizeY",  function() { return scale*thrust*1; } ); // HtmlView Page linking property 'SizeY' for element 'FarrowU'
+          _view.Farrowgrav.linkProperty("Position",  function() { return landerpos; }, function(_v) { landerpos = _v; } ); // HtmlView Page linking property 'Position' for element 'Farrowgrav'
+          _view.Farrowgrav.linkProperty("SizeY",  function() { return scale*landerm*-1.6; } ); // HtmlView Page linking property 'SizeY' for element 'Farrowgrav'
+          _view.rotationZ3D.linkProperty("Angle",  function() { return Math.PI/2; } ); // HtmlView Page linking property 'Angle' for element 'rotationZ3D'
+          _view.rotationX3D.linkProperty("Angle",  function() { return Math.PI/2; } ); // HtmlView Page linking property 'Angle' for element 'rotationX3D'
+          _view.plottingPanel.linkProperty("Width",  function() { return Width2; }, function(_v) { Width2 = _v; } ); // HtmlView Page linking property 'Width' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("AxisYFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'AxisYFont' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TRMessage",  function() { return "a_z= "+Fnet[1]/landerm+" m/s²"; } ); // HtmlView Page linking property 'TRMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("XTickStep",  function() { return t<5?1:5; } ); // HtmlView Page linking property 'XTickStep' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TLMessage",  function() { return "🌕"+"landing"; } ); // HtmlView Page linking property 'TLMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleYFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'TitleYFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleXFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'TitleXFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("AxisXFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'AxisXFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("BRMessage",  function() { return "Fthruster="+Fthrust; } ); // HtmlView Page linking property 'BRMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("Display",  function() { return azvtviewshow?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'plottingPanel'
+          _view.azPlot.linkProperty("InputX",  function() { return t; }, function(_v) { t = _v; } ); // HtmlView Page linking property 'InputX' for element 'azPlot'
+          _view.azPlot.linkProperty("InputY",  function() { return Fnet[1]/landerm; } ); // HtmlView Page linking property 'InputY' for element 'azPlot'
+          _view.plottingPanel2.linkProperty("Width",  function() { return Width3; }, function(_v) { Width3 = _v; } ); // HtmlView Page linking property 'Width' for element 'plottingPanel2'
+          _view.plottingPanel2.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("TRMessage",  function() { return "Fgrav_z="+landerm*g[1].toFixed(1)+ " N"; } ); // HtmlView Page linking property 'TRMessage' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("XTickStep",  function() { return t<5?1:5; } ); // HtmlView Page linking property 'XTickStep' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("TLMessage",  function() { return "🌕"+"landing"; } ); // HtmlView Page linking property 'TLMessage' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("TitleYFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'TitleYFont' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("TitleXFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'TitleXFont' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("AxisXFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'AxisXFont' for element 'plottingPanel2'
+          _view.plottingPanel2.linkProperty("Display",  function() { return Fzvtviewshow?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'plottingPanel2'
+          _view.Fgrav2.linkProperty("InputX",  function() { return t; }, function(_v) { t = _v; } ); // HtmlView Page linking property 'InputX' for element 'Fgrav2'
+          _view.Fgrav2.linkProperty("InputY",  function() { return landerm*g[1]; } ); // HtmlView Page linking property 'InputY' for element 'Fgrav2'
+          _view.plottingPanel3.linkProperty("Width",  function() { return Width4; }, function(_v) { Width4 = _v; } ); // HtmlView Page linking property 'Width' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("AxisYFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'AxisYFont' for element 'plottingPanel3'
+          _view.plottingPanel3.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("TRMessage",  function() { return "a_z= "+Fnet[1]/landerm+" m/s²"; } ); // HtmlView Page linking property 'TRMessage' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("XTickStep",  function() { return t<5?1:5; } ); // HtmlView Page linking property 'XTickStep' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("TLMessage",  function() { return "🌕"+"landing"; } ); // HtmlView Page linking property 'TLMessage' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("TitleYFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'TitleYFont' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("TitleXFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'TitleXFont' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("AxisXFont",  function() { return fonta; }, function(_v) { fonta = _v; } ); // HtmlView Page linking property 'AxisXFont' for element 'plottingPanel3'
+          _view.plottingPanel3.linkProperty("Display",  function() { return vzvtviewshow?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'plottingPanel3'
+          _view.vzPlot2.linkProperty("InputX",  function() { return t; }, function(_v) { t = _v; } ); // HtmlView Page linking property 'InputX' for element 'vzPlot2'
+          _view.vzPlot2.linkProperty("InputY",  function() { return landerv[1]; } ); // HtmlView Page linking property 'InputY' for element 'vzPlot2'
+          _view.executionPanel2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'executionPanel2'
+          _view.vlabel2.linkProperty("Text",  function() { return "🚀"+vstr; } ); // HtmlView Page linking property 'Text' for element 'vlabel2'
+          _view.mfuellabel2.linkProperty("Text",  function() { return mfuelstr; }, function(_v) { mfuelstr = _v; } ); // HtmlView Page linking property 'Text' for element 'mfuellabel2'
+          _view.timeLabel2.linkProperty("Text",  function() { return "Time: "+t.toFixed(2); } ); // HtmlView Page linking property 'Text' for element 'timeLabel2'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(100);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function PICUP_lunarlander_frem_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = PICUP_lunarlander_frem_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+  _view._addDescriptionPage('Intro Page','./introduction.html');
+  _view._addDescriptionPage('instructorguide','./instructorguide.html');
+  _view._addDescriptionPage('theory','./theory.html');
+  _view._addDescriptionPage('exercises','./exercises.html');
+  _view._addDescriptionPage('Exercise 1','./PICUP_lunarlander_frem_Intro_5.html');
+  _view._addDescriptionPage('Exercise 2','./PICUP_lunarlander_frem_Intro_6.html');
+  _view._addDescriptionPage('Exercise 3','./PICUP_lunarlander_frem_Intro_7.html');
+  _view._addDescriptionPage('Exercise 4','./PICUP_lunarlander_frem_Intro_8.html');
+  _view._addDescriptionPage('Exercise 5','./PICUP_lunarlander_frem_Intro_9.html');
+  _view._addDescriptionPage('lunarlander_Glowscript_completed','./PICUP_lunarlander_frem_Intro_10.html');
+  _view._addDescriptionPage('solutions','./solutions.html');
+  _view._addDescriptionPage('references','./references.html');
+
+  return _view;
+} // end of main function
+
+function PICUP_lunarlander_frem_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"executionPanel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'executionPanel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'executionPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"x", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'x'
+      .setProperty("Text","x=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'x'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"x2", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'x2'
+      .setProperty("Width","7vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'x2'
+      .setProperty("Format","0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'x2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"vz", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'vz'
+      .setProperty("Text","vz=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'vz'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"vz2", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'vz2'
+      .setProperty("Width","7vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'vz2'
+      .setProperty("Format","0.00") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'vz2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"Left2", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'Left2'
+      .setProperty("Text","Left") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'Left2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"up", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'up'
+      .setProperty("Text","Up") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'up'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"Right", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'Right'
+      .setProperty("Text","Right") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'Right'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'panel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'panel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.drawingPanel,"drawingPanel3D", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'drawingPanel3D'
+      .setProperty("Height",window.innerHeight*0.8) // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'drawingPanel3D'
+      .setProperty("Draggable","AZIMUTH") // EJsS HtmlView.HtmlView Page: setting property 'Draggable' for element 'drawingPanel3D'
+      .setProperty("Background","black") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'drawingPanel3D'
+      .setProperty("CameraX",100) // EJsS HtmlView.HtmlView Page: setting property 'CameraX' for element 'drawingPanel3D'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'drawingPanel3D'
+      .setProperty("DecorationType","CENTERED_AXES") // EJsS HtmlView.HtmlView Page: setting property 'DecorationType' for element 'drawingPanel3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"group3D", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'group3D'
+      .setProperty("Y",-20) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'group3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.box,"ground", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'ground'
+      .setProperty("FillColor","white") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'ground'
+      .setProperty("SizeX",50) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'ground'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'ground'
+      .setProperty("Y",-1.1) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'ground'
+      .setProperty("Z",0) // EJsS HtmlView.HtmlView Page: setting property 'Z' for element 'ground'
+      .setProperty("SizeZ",50) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'ground'
+      .setProperty("SizeY",2) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'ground'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.box,"lander", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'lander'
+      .setProperty("FillColor","yellow") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'lander'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.cylinder,"target", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'target'
+      .setProperty("FillColor","red") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'target'
+      .setProperty("SizeX",1) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'target'
+      .setProperty("SizeZ",1) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'target'
+      .setProperty("SizeY",1) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'target'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.cone,"fireR", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'fireR'
+      .setProperty("FillColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'fireR'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'fireR'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'fireR'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrow,"FarrowR", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'FarrowR'
+      .setProperty("FillColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'FarrowR'
+      .setProperty("LineColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'FarrowR'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'FarrowR'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'FarrowR'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.cone,"fireL", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'fireL'
+      .setProperty("FillColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'fireL'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'fireL'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'fireL'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrow,"FarrowL", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'FarrowL'
+      .setProperty("FillColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'FarrowL'
+      .setProperty("LineColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'FarrowL'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'FarrowL'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'FarrowL'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.cone,"fireU", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'fireU'
+      .setProperty("FillColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'fireU'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'fireU'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'fireU'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrow,"FarrowU", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'FarrowU'
+      .setProperty("FillColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'FarrowU'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'FarrowU'
+      .setProperty("LineColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'FarrowU'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'FarrowU'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrow,"Farrowgrav", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'Farrowgrav'
+      .setProperty("FillColor","white") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'Farrowgrav'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'Farrowgrav'
+      .setProperty("LineColor","white") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'Farrowgrav'
+      .setProperty("SizeZ",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'Farrowgrav'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.rotationZ,"rotationZ3D", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'rotationZ3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.rotationX,"rotationX3D", _view.group3D) // EJsS HtmlView.HtmlView Page: declaration of element 'rotationX3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel'
+      .setProperty("Height",window.innerHeight*0.8) // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'plottingPanel'
+      .setProperty("Gutters",[50,0,0,50]) // EJsS HtmlView.HtmlView Page: setting property 'Gutters' for element 'plottingPanel'
+      .setProperty("YScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'YScalePrecision' for element 'plottingPanel'
+      .setProperty("XFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'XFixedTick' for element 'plottingPanel'
+      .setProperty("YFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'YFixedTick' for element 'plottingPanel'
+      .setProperty("YTickStep",1) // EJsS HtmlView.HtmlView Page: setting property 'YTickStep' for element 'plottingPanel'
+      .setProperty("XAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'XAutoTicks' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'YAutoTicks' for element 'plottingPanel'
+      .setProperty("TitleY","a_z (m/s²)") // EJsS HtmlView.HtmlView Page: setting property 'TitleY' for element 'plottingPanel'
+      .setProperty("AutoScaleY",true) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleY' for element 'plottingPanel'
+      .setProperty("TitleX","t (s)") // EJsS HtmlView.HtmlView Page: setting property 'TitleX' for element 'plottingPanel'
+      .setProperty("AutoScaleX",true) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleX' for element 'plottingPanel'
+      .setProperty("MarginX",10) // EJsS HtmlView.HtmlView Page: setting property 'MarginX' for element 'plottingPanel'
+      .setProperty("MarginY",10) // EJsS HtmlView.HtmlView Page: setting property 'MarginY' for element 'plottingPanel'
+      .setProperty("XScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'XScalePrecision' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.trace,"azPlot", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'azPlot'
+      .setProperty("LineColor","Red") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'azPlot'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.HtmlView Page: setting property 'NoRepeat' for element 'azPlot'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'azPlot'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel2", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel2'
+      .setProperty("Height",window.innerHeight*0.8) // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'plottingPanel2'
+      .setProperty("Gutters",[50,0,0,50]) // EJsS HtmlView.HtmlView Page: setting property 'Gutters' for element 'plottingPanel2'
+      .setProperty("YScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'YScalePrecision' for element 'plottingPanel2'
+      .setProperty("XFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'XFixedTick' for element 'plottingPanel2'
+      .setProperty("YFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'YFixedTick' for element 'plottingPanel2'
+      .setProperty("YTickStep",1000) // EJsS HtmlView.HtmlView Page: setting property 'YTickStep' for element 'plottingPanel2'
+      .setProperty("XAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'XAutoTicks' for element 'plottingPanel2'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel2'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'YAutoTicks' for element 'plottingPanel2'
+      .setProperty("TitleY","F_z (N)") // EJsS HtmlView.HtmlView Page: setting property 'TitleY' for element 'plottingPanel2'
+      .setProperty("AutoScaleY",true) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleY' for element 'plottingPanel2'
+      .setProperty("TitleX","t (s)") // EJsS HtmlView.HtmlView Page: setting property 'TitleX' for element 'plottingPanel2'
+      .setProperty("AutoScaleX",true) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleX' for element 'plottingPanel2'
+      .setProperty("MarginX",10) // EJsS HtmlView.HtmlView Page: setting property 'MarginX' for element 'plottingPanel2'
+      .setProperty("MarginY",10) // EJsS HtmlView.HtmlView Page: setting property 'MarginY' for element 'plottingPanel2'
+      .setProperty("XScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'XScalePrecision' for element 'plottingPanel2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.trail,"Fgrav2", _view.plottingPanel2) // EJsS HtmlView.HtmlView Page: declaration of element 'Fgrav2'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'Fgrav2'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.HtmlView Page: setting property 'NoRepeat' for element 'Fgrav2'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'Fgrav2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel3", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel3'
+      .setProperty("Height",window.innerHeight*0.8) // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'plottingPanel3'
+      .setProperty("Gutters",[50,0,0,50]) // EJsS HtmlView.HtmlView Page: setting property 'Gutters' for element 'plottingPanel3'
+      .setProperty("YScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'YScalePrecision' for element 'plottingPanel3'
+      .setProperty("XFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'XFixedTick' for element 'plottingPanel3'
+      .setProperty("YFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'YFixedTick' for element 'plottingPanel3'
+      .setProperty("YTickStep",5) // EJsS HtmlView.HtmlView Page: setting property 'YTickStep' for element 'plottingPanel3'
+      .setProperty("XAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'XAutoTicks' for element 'plottingPanel3'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel3'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'YAutoTicks' for element 'plottingPanel3'
+      .setProperty("MinimumX",0) // EJsS HtmlView.HtmlView Page: setting property 'MinimumX' for element 'plottingPanel3'
+      .setProperty("TitleY","v_z (m/s)") // EJsS HtmlView.HtmlView Page: setting property 'TitleY' for element 'plottingPanel3'
+      .setProperty("AutoScaleY",true) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleY' for element 'plottingPanel3'
+      .setProperty("TitleX","t (s)") // EJsS HtmlView.HtmlView Page: setting property 'TitleX' for element 'plottingPanel3'
+      .setProperty("AutoScaleX",true) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleX' for element 'plottingPanel3'
+      .setProperty("MarginX",10) // EJsS HtmlView.HtmlView Page: setting property 'MarginX' for element 'plottingPanel3'
+      .setProperty("MarginY",10) // EJsS HtmlView.HtmlView Page: setting property 'MarginY' for element 'plottingPanel3'
+      .setProperty("XScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'XScalePrecision' for element 'plottingPanel3'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.trace,"vzPlot2", _view.plottingPanel3) // EJsS HtmlView.HtmlView Page: declaration of element 'vzPlot2'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vzPlot2'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.HtmlView Page: setting property 'NoRepeat' for element 'vzPlot2'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'vzPlot2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"analyticCurve", _view.plottingPanel3) // EJsS HtmlView.HtmlView Page: declaration of element 'analyticCurve'
+      .setProperty("FunctionY","-20+48000/500*log(10000/(10000-500*t))-1.6*t") // EJsS HtmlView.HtmlView Page: setting property 'FunctionY' for element 'analyticCurve'
+      .setProperty("FunctionX","t") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'analyticCurve'
+      .setProperty("Minimum",0.0001) // EJsS HtmlView.HtmlView Page: setting property 'Minimum' for element 'analyticCurve'
+      .setProperty("Maximum",5) // EJsS HtmlView.HtmlView Page: setting property 'Maximum' for element 'analyticCurve'
+      .setProperty("Variable","t") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'analyticCurve'
+      .setProperty("LineColor","Green") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'analyticCurve'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'analyticCurve'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"executionPanel2", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'executionPanel2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'executionPanel2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"vlabel2", _view.executionPanel2) // EJsS HtmlView.HtmlView Page: declaration of element 'vlabel2'
+      .setProperty("Background","orange") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'vlabel2'
+      .setProperty("Foreground","white") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'vlabel2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"mfuellabel2", _view.executionPanel2) // EJsS HtmlView.HtmlView Page: declaration of element 'mfuellabel2'
+      .setProperty("Background","Green") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'mfuellabel2'
+      .setProperty("Foreground","white") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'mfuellabel2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"timeLabel2", _view.executionPanel2) // EJsS HtmlView.HtmlView Page: declaration of element 'timeLabel2'
+      .setProperty("Background","black") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'timeLabel2'
+      .setProperty("Tooltip","Time") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'timeLabel2'
+      .setProperty("Foreground","white") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'timeLabel2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"singleDrawingPanel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'singleDrawingPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"narrativePanel2", _view.singleDrawingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'narrativePanel2'
+      .setProperty("Html","<h2>Instructions</h2> <p>1. Click the scene to begin. </p> <p>2. Hold down the up arrow or right arrow or left arrow to turn the corresponding thruster.</p> <p>3. Land on the red target. To succeed, the lander's speed must be less than 1 m/s, and it must land within 1 m of the center of the target.</p>") // EJsS HtmlView.HtmlView Page: setting property 'Html' for element 'narrativePanel2'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+      
+    <div style="max-width:700px; margin:0 auto; padding:8px 16px; font-family:sans-serif; font-size:14px; text-align:left; color:#333;">
+      <h2 style="font-size:18px;">About this Simulation</h2>
+<p>This interactive simulation models a lunar lander's descent and landing on the Moon's surface. Learners control thrust output and fuel consumption to safely land the spacecraft while observing gravitational forces, velocity changes, and position dynamics in real-time.</p>
+<p><strong>Learning objectives:</strong> Understand how gravitational force affects spacecraft motion | Apply thrust control to manage descent velocity and trajectory | Analyze the relationship between fuel expenditure, net force, and landing success</p>
+    </div>
+    <!-- AdSense: Below Simulation -->
+    <div style="text-align:center; margin:8px 0;">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-0121577198857509"
+           data-ad-slot="7142112786"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Lunar Lander Simulation<br />
+     <img alt="Logo" src="PICUP_lunarlander/Screen Shot 2018-06-13 at 3.18.00 PM (2).png" />
+      </p>
+      <p>
+      <img alt="author image" src="01authorlookang50x50.png" />
+      <img alt="author image" src="01authorarrontitus.png" />
+ Fremont Teng; Loo Kang Wee; based on glowscript by A.Titus
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2018, Fremont Teng; Loo Kang Wee; based on glowscript by A.Titus.</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new PICUP_lunarlander_frem("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+    <!-- AdSense: Footer -->
+    <div style="text-align:center; margin:8px 0;">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-0121577198857509"
+           data-ad-slot="6479767804"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </body>
+</html>

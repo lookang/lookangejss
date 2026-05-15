@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Magnetic Bar Field Simulation</title>
+  
+  <!-- Responsive on mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Google Analytics -->
+  <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+
+  <!-- AdSense -->
+  <script data-ad-client="ca-pub-0121577198857509" async="true"
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js">
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
+    /* Top control panel */
+    #topPanel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #444;
+      padding: 6px 8px;
+    }
+    #topPanel > * {
+      margin-right: 8px;
+      margin-bottom: 4px;
+    }
+    label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  cursor: pointer;
+  width: 20%; /* Set width to 20% of the parent container */
+}
+    button {
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: #666;
+  border: 1px solid #999;
+  border-radius: 4px;
+  color: #fff;
+  padding: 6px 10px; /* Adjust padding if needed */
+  width: 20%; /* Set a fixed width for all buttons */
+}
+
+button:hover {
+  background: #777;
+}
+    input[type="checkbox"] {
+      transform: scale(1.2);
+    }
+
+    /* Canvas container */
+    #canvasContainer {
+      width: 100%;
+      height: calc(100vh - 50px); 
+      background: #000;
+      position: relative;
+      overflow: hidden;
+    }
+    #simulation {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Description and authors info after the canvas */
+    #description {
+      padding: 12px 16px;
+      background: #fafafa;
+      line-height: 1.5;
+    }
+    #description h2 {
+      margin-top: 0;
+    }
+    footer {
+      text-align: center;
+      padding: 8px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top control panel -->
+<div id="topPanel">
+    <!-- Label -->
+    <label>
+         Bar Magnet Computer Model
+</label>
+  <!-- Intensity checkbox -->
+  <label>
+    
+    <input type="checkbox" id="intensityCheck" />
+    Intensity
+  </label>
+  <!-- Hide Field button -->
+  <button id="hideFieldBtn">Hide Field</button>
+  <!-- Reset button -->
+  <button id="resetBtn">Reset</button>
+</div>
+
+<!-- Canvas container -->
+<div id="canvasContainer">
+  <canvas id="simulation"></canvas>
+</div>
+
+<!-- Simulation description and teaching tips -->
+<div id="description">
+  <h2>Magnetic Bar Field Simulation</h2>
+  <p>
+    This simulation shows a bar magnet with a uniform field inside the magnet 
+    pointing from the south (blue) side to the north (red) side. Outside, the field 
+    is approximated by summing multiple dipoles. You can:
+    <ul>
+      <li><strong>Drag the magnet</strong> by clicking its body.</li>
+      <li><strong>Drag the compass</strong> by clicking anywhere on the circular compass.</li>
+      <li>Check <em>“Intensity”</em> to adjust arrow brightness.</li>
+      <li>Press <em>“Hide Field”</em> to hide field arrows and labels on the magnet (N &rarr; ?).</li>
+      <li>Use <em>“Reset”</em> to return to the initial state.</li>
+    </ul>
+  </p>
+  <p>
+    <strong>Teaching/Learning Tips:</strong>
+    <ul>
+      <li>Inside the magnet, the field is shown as a constant vector from S to N, 
+          illustrating its internal magnetization.</li>
+      <li>The compass aligns with the local field, so students can explore field 
+          directions in different regions.</li>
+      <li>Encourage learners to predict field strengths/orientations, then test 
+          by dragging the compass.</li>
+    </ul>
+  </p>
+</div>
+
+<!-- Footer with authors -->
+<footer>
+  written by weelookang@gmail.com, Wolfgang Christian, Francisco Esquembre, and Anne Cox
+</footer>
+
+<script>
+// ---------------------------------------------------------------------------
+//  1) Canvas resizing for responsiveness
+// ---------------------------------------------------------------------------
+function resizeCanvas() {
+  const canvas = document.getElementById("simulation");
+  const container = document.getElementById("canvasContainer");
+  const rect = container.getBoundingClientRect();
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(rect.width  * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+}
+
+// ---------------------------------------------------------------------------
+//  2) Model variables
+// ---------------------------------------------------------------------------
+let intensityScale = false; 
+let hideVectors = false;    // toggles the field arrows and magnet labels
+const nd = 20;             // number of dipoles for the "outside" field approximation
+let dipoles = [];
+let m = 0.05;
+
+const magnetWidth = 1.08, magnetHeight = 0.22;
+const halfW = magnetWidth/2, halfH = magnetHeight/2;
+
+let xMagnet = 0, yMagnet = -0.2;
+let xmax = 1.5, ymax = 1;
+let nx = 20, ny = 20;
+let xField = [], yField = [], magField = [];
+let fieldValue = "0";
+
+// Compass
+let xCompass = 0.4, yCompass = 0.4;
+let theta=0, omega=0;
+let t=0, dt=0.1;
+const kSpring=1.0, bDamp=0.2;
+let equilibriumTheta=0;
+
+// ---------------------------------------------------------------------------
+//  3) Initialization
+// ---------------------------------------------------------------------------
+function initSimulation(){
+  // Build dipoles along the bar
+  dipoles = new Array(nd);
+  const dx = 1/(nd-1);
+  for(let i=0; i<nd; i+=2) {
+    dipoles[i]   = [-0.5 + i*dx, -0.04];
+    dipoles[i+1] = [-0.5 + i*dx,  0.04];
+  }
+  // Build field arrays
+  xField = new Array(nx);
+  yField = new Array(nx);
+  magField = new Array(nx);
+  for(let i=0; i<nx; i++){
+    xField[i] = new Array(ny).fill(0);
+    yField[i] = new Array(ny).fill(0);
+    magField[i] = new Array(ny).fill(0);
+  }
+  computeField();
+}
+
+// ---------------------------------------------------------------------------
+//  4) Compute B-field on the nx-by-ny grid
+// ---------------------------------------------------------------------------
+function computeField(){
+  for(let i=0; i<nx; i++){
+    let x = indexToX(i);
+    for(let j=0; j<ny; j++){
+      let y = indexToY(j);
+      let B = getB(x,y);
+      xField[i][j]  = B[0];
+      yField[i][j]  = B[1];
+      magField[i][j]= B[2];
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+//  5) getB(x, y):
+//     Inside the magnet => constant field from left->right (S->N).
+//     Outside => sum of dipoles
+// ---------------------------------------------------------------------------
+function getB(x, y){
+  if( x>= (xMagnet - halfW) && x<= (xMagnet + halfW) &&
+      y>= (yMagnet - halfH) && y<= (yMagnet + halfH) ){
+    // inside magnet
+    const Bx = 1.5;
+    const By = 0;
+    const mag = Math.sqrt(Bx*Bx + By*By);
+    const angle = Math.atan2(By, Bx);
+    return [Bx, By, mag, angle];
+  }
+  else {
+    // outside magnet
+    let bx=0, by=0;
+    for(let i=0; i<nd; i++){
+      let dx = x - (dipoles[i][0] + xMagnet);
+      let dy = y - (dipoles[i][1] + yMagnet);
+      let r2 = dx*dx + dy*dy;
+      if(r2===0) continue;
+      let r = Math.sqrt(r2);
+      let r3 = r2*r;
+      let cos = dx/r, sin = dy/r;
+      bx += m*(3*cos*cos -1)/r3;
+      by += m*(3*sin*cos)/r3;
+    }
+    let bmag = Math.sqrt(bx*bx + by*by);
+    let angle = Math.atan2(by, bx);
+    return [bx, by, bmag, angle];
+  }
+}
+
+function indexToX(i){
+  return -xmax + (2*xmax)*(i/(nx-1));
+}
+function indexToY(j){
+  return -ymax + (2*ymax)*(j/(ny-1));
+}
+
+// ---------------------------------------------------------------------------
+//  6) Compass ODE
+// ---------------------------------------------------------------------------
+function updateCompass(){
+  let B = getB(xCompass, yCompass);
+  equilibriumTheta = B[3];
+  fieldValue = "|B|=" + B[2].toFixed(2);
+
+  let delta= theta - equilibriumTheta;
+  let domega= -kSpring*Math.sin(delta) - bDamp*omega;
+  omega+= dt*domega;
+  theta+= dt*omega;
+
+  if(omega>0) omega= Math.min(omega, Math.PI);
+  else        omega= Math.max(omega, -Math.PI);
+
+  t+=dt;
+}
+
+// ---------------------------------------------------------------------------
+//  7) Draw all
+// ---------------------------------------------------------------------------
+function drawScene(){
+  const canvas = document.getElementById("simulation");
+  const ctx = canvas.getContext("2d");
+
+  const dpr = window.devicePixelRatio || 1;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const w = canvas.width/dpr, h= canvas.height/dpr;
+  ctx.save();
+  ctx.translate(w/2, h/2);
+  let scale= Math.min(w/(2*xmax), h/(2*ymax));
+  ctx.scale(scale, -scale);
+
+  if(!hideVectors){
+    drawVectorField(ctx);
+  }
+  drawMagnet(ctx, xMagnet, yMagnet);
+  drawCompass(ctx);
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+//  8) Vector field
+// ---------------------------------------------------------------------------
+function drawVectorField(ctx){
+  const arrowLen= 0.15;
+  for(let i=0; i<nx; i++){
+    let x= indexToX(i);
+    for(let j=0; j<ny; j++){
+      let y= indexToY(j);
+      let bx= xField[i][j];
+      let by= yField[i][j];
+      let mag= Math.sqrt(bx*bx + by*by);
+      let angle= Math.atan2(by, bx);
+      let frac= Math.min(mag/2.0, 1.0);
+      let alpha= intensityScale? (0.2+0.8*frac) : 1.0;
+
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(angle);
+      let grad= ctx.createLinearGradient(0,0,arrowLen,0);
+      grad.addColorStop(0, `rgba(0,0,255,${alpha})`);
+      grad.addColorStop(1, `rgba(255,0,0,${alpha})`);
+      ctx.strokeStyle= grad;
+      ctx.lineWidth=0.01;
+
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(arrowLen,0);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(arrowLen,0);
+      ctx.lineTo(arrowLen-0.05,0.03);
+      ctx.moveTo(arrowLen,0);
+      ctx.lineTo(arrowLen-0.05,-0.03);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+//  9) Bar magnet
+//     If hideVectors=true, replace "N" & "S" with "?"
+// ---------------------------------------------------------------------------
+function drawMagnet(ctx, xm, ym){
+  ctx.save();
+  ctx.translate(xm, ym);
+  // left half (blue = S)
+  ctx.beginPath();
+  ctx.rect(-halfW, -halfH, halfW, magnetHeight);
+  ctx.fillStyle="blue";
+  ctx.fill();
+  // right half (red = N)
+  ctx.beginPath();
+  ctx.rect(0, -halfH, halfW, magnetHeight);
+  ctx.fillStyle="red";
+  ctx.fill();
+
+  ctx.lineWidth=0.02;
+  ctx.strokeStyle="#888";
+  ctx.stroke();
+
+  ctx.scale(1,-1);
+  ctx.fillStyle="yellow";
+  ctx.font="0.15px Arial";
+
+  // If we have hideVectors on, show "?" instead of "S" or "N"
+  const labelS = hideVectors ? "?" : "S";
+  const labelN = hideVectors ? "?" : "N";
+
+  ctx.fillText(labelS, -0.30*magnetWidth, 0.05);
+  ctx.fillText(labelN,  0.18*magnetWidth, 0.05);
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// 10) Compass
+// ---------------------------------------------------------------------------
+function drawCompass(ctx){
+  ctx.save();
+  ctx.translate(xCompass, yCompass);
+
+  // circle
+  ctx.beginPath();
+  ctx.arc(0,0,0.20,0,2*Math.PI);
+  ctx.fillStyle="#ccc";
+  ctx.fill();
+  ctx.strokeStyle="#333";
+  ctx.lineWidth=0.01;
+  ctx.stroke();
+
+  // needle
+  ctx.save();
+  ctx.rotate(theta);
+  let needleLen=0.15;
+  // red tip
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.lineTo(needleLen,0);
+  ctx.strokeStyle="red";
+  ctx.lineWidth=0.01;
+  ctx.stroke();
+
+  // tip arrow
+  ctx.beginPath();
+  ctx.moveTo(needleLen,0);
+  ctx.lineTo(needleLen-0.03,  0.02);
+  ctx.moveTo(needleLen,0);
+  ctx.lineTo(needleLen-0.03, -0.02);
+  ctx.stroke();
+
+  // blue tail
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.lineTo(-needleLen,0);
+  ctx.strokeStyle="blue";
+  ctx.stroke();
+  // tail arrow
+  ctx.beginPath();
+  ctx.moveTo(-needleLen,0);
+  ctx.lineTo(-needleLen+0.03,  0.02);
+  ctx.moveTo(-needleLen,0);
+  ctx.lineTo(-needleLen+0.03, -0.02);
+  ctx.stroke();
+  ctx.restore();
+
+  // pivot
+  ctx.beginPath();
+  ctx.arc(0,0,0.015,0,2*Math.PI);
+  ctx.fillStyle="#000";
+  ctx.fill();
+
+  // field readout
+  ctx.save();
+  ctx.translate(0,-0.22);
+  ctx.fillStyle="yellow";
+  ctx.fillRect(-0.12,-0.03,0.24,0.06);
+  ctx.scale(1,-1);
+  ctx.fillStyle="#000";
+  ctx.font="0.04px Arial";
+  ctx.fillText(fieldValue, -0.11,0.015);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// 11) Drag logic: entire magnet bounding box or entire compass circle
+// ---------------------------------------------------------------------------
+let dragging=false;
+let dragTarget=null;
+let offsetX=0, offsetY=0;
+
+function pointerDown(e){
+  let [mx,my] = eventToModel(e);
+
+  // bar magnet bounding box
+  if( Math.abs(mx - xMagnet)< halfW && Math.abs(my - yMagnet)< halfH ){
+    dragging=true;
+    dragTarget="magnet";
+    offsetX= mx - xMagnet;
+    offsetY= my - yMagnet;
+    return;
+  }
+  // compass circle radius=0.20
+  let dxC = mx-xCompass, dyC=my-yCompass;
+  if(Math.sqrt(dxC*dxC+dyC*dyC)< 0.20){
+    dragging=true;
+    dragTarget="compass";
+    offsetX= dxC;
+    offsetY= dyC;
+    return;
+  }
+}
+function pointerMove(e){
+  if(!dragging) return;
+  let [mx,my] = eventToModel(e);
+  if(dragTarget==="magnet"){
+    xMagnet= mx-offsetX;
+    yMagnet= my-offsetY;
+    computeField();
+  } else if(dragTarget==="compass"){
+    xCompass= mx-offsetX;
+    yCompass= my-offsetY;
+  }
+}
+function pointerUp(e){
+  dragging=false;
+  dragTarget=null;
+}
+
+function eventToModel(e){
+  const canvas = document.getElementById("simulation");
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  const sx= e.clientX- rect.left, sy= e.clientY- rect.top;
+  const w= canvas.width/dpr, h= canvas.height/dpr;
+  let scale= Math.min(w/(2*xmax), h/(2*ymax));
+  let mx= (sx - w/2)/scale;
+  let my= -(sy - h/2)/scale;
+  return [mx,my];
+}
+
+// ---------------------------------------------------------------------------
+// 12) Controls
+// ---------------------------------------------------------------------------
+document.getElementById("intensityCheck").addEventListener("change", (e)=>{
+  intensityScale = e.target.checked;
+});
+document.getElementById("hideFieldBtn").addEventListener("click", ()=>{
+  hideVectors = !hideVectors;
+  document.getElementById("hideFieldBtn").textContent = hideVectors 
+    ? "Show Field" 
+    : "Hide Field";
+});
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  intensityScale = false;
+  document.getElementById("intensityCheck").checked=false;
+  hideVectors = false;
+  document.getElementById("hideFieldBtn").textContent="Hide Field";
+
+  xMagnet=0;  yMagnet=-0.2;
+  xCompass=0.4; yCompass=0.4;
+  theta=0; omega=0; t=0;
+  
+  computeField();
+});
+
+// ---------------------------------------------------------------------------
+// 13) Main animation
+// ---------------------------------------------------------------------------
+function mainLoop(){
+  updateCompass();
+  drawScene();
+  requestAnimationFrame(mainLoop);
+}
+
+// ---------------------------------------------------------------------------
+// 14) Startup
+// ---------------------------------------------------------------------------
+window.addEventListener("load", ()=>{
+  resizeCanvas();
+  initSimulation();
+  mainLoop();
+});
+window.addEventListener("resize", ()=>{
+  resizeCanvas();
+  drawScene();
+});
+
+const canvas = document.getElementById("simulation");
+canvas.addEventListener("mousedown", pointerDown);
+canvas.addEventListener("mousemove", pointerMove);
+canvas.addEventListener("mouseup", pointerUp);
+canvas.addEventListener("mouseleave", pointerUp);
+</script>
+</body>
+</html>

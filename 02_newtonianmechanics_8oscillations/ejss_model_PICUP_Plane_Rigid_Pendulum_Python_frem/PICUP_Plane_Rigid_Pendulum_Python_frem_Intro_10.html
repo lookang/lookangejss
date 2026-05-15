@@ -1,0 +1,213 @@
+<html>
+  <head>
+    <title> Plane_Rigid_Pendulum_Python.py</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      # Written by:
+    </p>
+    <p style="margin-top: 0">
+      # Kelly Roos
+    </p>
+    <p style="margin-top: 0">
+      # Engineering Physics
+    </p>
+    <p style="margin-top: 0">
+      # Bradley University
+    </p>
+    <p style="margin-top: 0">
+      # rooster@bradley.edu | 309.677.2997
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      import numpy as np
+    </p>
+    <p style="margin-top: 0">
+      import matplotlib.pyplot as plt
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Input parameters for model
+    </p>
+    <p style="margin-top: 0">
+      g=9.8 # accel due to gravity (m/s^2)
+    </p>
+    <p style="margin-top: 0">
+      m=1 # mass of pendulum in kg
+    </p>
+    <p style="margin-top: 0">
+      l=1 # length of pendulum in meters
+    </p>
+    <p style="margin-top: 0">
+      b=0.2 # damping strength (kg m^2/s)
+    </p>
+    <p style="margin-top: 0">
+      omega=3 # driving frequency in rad/sec
+    </p>
+    <p style="margin-top: 0">
+      tau_d=1 # driving torque in Nm
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      dt=0.01 # time step (s)
+    </p>
+    <p style="margin-top: 0">
+      t_steps=100000 # total number of iterations
+    </p>
+    <p style="margin-top: 0">
+      theta_i=120*3.14159/180 # convert to radians
+    </p>
+    <p style="margin-top: 0">
+      theta_dot_i=0
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Defines the 1D arrays to be used in the computation and
+    </p>
+    <p style="margin-top: 0">
+      # sets all values in the arrays to zero
+    </p>
+    <p style="margin-top: 0">
+      time = np.zeros(t_steps)
+    </p>
+    <p style="margin-top: 0">
+      theta = np.zeros(t_steps)
+    </p>
+    <p style="margin-top: 0">
+      theta_dot = np.zeros(t_steps)
+    </p>
+    <p style="margin-top: 0">
+      alpha = np.zeros(t_steps)
+    </p>
+    <p style="margin-top: 0">
+      theta_sa = np.zeros(t_steps)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Initial conditions
+    </p>
+    <p style="margin-top: 0">
+      time[1] = 0
+    </p>
+    <p style="margin-top: 0">
+      theta[1] = theta_i
+    </p>
+    <p style="margin-top: 0">
+      theta_dot[1] = theta_dot_i
+    </p>
+    <p style="margin-top: 0">
+      theta_sa[1] = theta_i*np.cos(np.sqrt(2*g/l)*time[1])
+    </p>
+    <p style="margin-top: 0">
+      alpha[1] = 
+      -2*g*np.sin(theta[1])/l-4*b*theta_dot[1]/(m*l*l)+4*tau_d*np.cos(omega*time[1])/(m*l*l)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Main loop: Euler algorithm, euler-Cromer, and evaluation of exact 
+      solutions for v and y
+    </p>
+    <p style="margin-top: 0">
+      for i in range(2, t_steps):
+    </p>
+    <p style="margin-top: 0">
+      time[i] = time[i-1] + dt
+    </p>
+    <p style="margin-top: 0">
+      # Euler-Cromer
+    </p>
+    <p style="margin-top: 0">
+      theta_dot[i]=theta_dot[i-1]+alpha[i-1]*dt
+    </p>
+    <p style="margin-top: 0">
+      theta[i]=theta[i-1]+theta_dot[i]*dt
+    </p>
+    <p style="margin-top: 0">
+      alpha[i]=-2*g*np.sin(theta[i])/l-4*b*theta_dot[i]/(m*l*l)+4*tau_d*np.cos(omega*time[i])/(m*l*l)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # small angle approximation
+    </p>
+    <p style="margin-top: 0">
+      theta_sa[i]=theta_i*np.cos(np.sqrt(2*g/l)*time[i])
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # constrain theta between -pi and +pi
+    </p>
+    <p style="margin-top: 0">
+      if theta[i] &gt; 3.14159265:
+    </p>
+    <p style="margin-top: 0">
+      theta[i]=theta[i]-2*3.14159265
+    </p>
+    <p style="margin-top: 0">
+      elif theta[i] &lt; -3.14159265:
+    </p>
+    <p style="margin-top: 0">
+      theta[i]=theta[i]+2*3.14159265
+    </p>
+    <p style="margin-top: 0">
+      else:
+    </p>
+    <p style="margin-top: 0">
+      theta[i]=theta[i]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plotting Results
+    </p>
+    <p style="margin-top: 0">
+      #plt.plot(theta,theta_dot)
+    </p>
+    <p style="margin-top: 0">
+      plt.plot(time,theta,time,theta_sa)
+    </p>
+    <p style="margin-top: 0">
+      plt.ylim((-3, 3))
+    </p>
+    <p style="margin-top: 0">
+      plt.xlim((0, 20))
+    </p>
+    <p style="margin-top: 0">
+      plt.xlabel('time (s)')
+    </p>
+    <p style="margin-top: 0">
+      plt.ylabel('ang. position (rad)')
+    </p>
+    <p style="margin-top: 0">
+      plt.title('ang. position vs. time')
+    </p>
+    <p style="margin-top: 0">
+      plt.show()
+    </p>
+  
+  </body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML5 Interactive with xAPI Debug</title>
+  <script src="xapiwrapper.min.js"></script>
+  <script src="index.js" defer></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      overflow: hidden;
+    }
+    .container {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      width: 590px;
+      height: 470px;
+      overflow: auto;
+    }
+    .center {
+      text-align: center;
+    }
+    input, select, button {
+      margin: 5px;
+      padding: 6px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .criteria-group {
+      margin: 5px 0;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    .criteria-group button {
+      background-color: #dc3545;
+    }
+    .criteria-group button:hover {
+      background-color: #c82333;
+    }
+    .output-container {
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+      overflow: auto;
+      max-height: 200px;
+    }
+    pre {
+      background-color: #e9ecef;
+      padding: 5px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0;
+      overflow-x: auto;
+    }
+    
+    /* Debug Panel Styles */
+    .debug-panel {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 400px;
+      max-height: 80vh;
+      background: #1a1a1a;
+      color: #00ff00;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .debug-header {
+      background: #333;
+      color: #fff;
+      padding: 8px;
+      margin: -10px -10px 10px -10px;
+      border-radius: 6px 6px 0 0;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .debug-toggle {
+      background: #ff4444;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    .debug-section {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+    }
+    .debug-title {
+      color: #ffff00;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .debug-item {
+      margin: 5px 0;
+      padding: 5px;
+      background: #2a2a2a;
+      border-radius: 4px;
+    }
+    .debug-timestamp {
+      color: #888;
+      font-size: 10px;
+    }
+    .debug-success {
+      color: #00ff00;
+    }
+    .debug-error {
+      color: #ff4444;
+    }
+    .debug-warning {
+      color: #ffaa00;
+    }
+    .debug-clear {
+      background: #666;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Debug Panel -->
+  <div id="debug-panel" class="debug-panel">
+    <div class="debug-header">
+      <span>🔍 xAPI Debug Console</span>
+      <div>
+        <button id="debug-clear" class="debug-clear">Clear</button>
+        <button id="debug-toggle" class="debug-toggle">Hide</button>
+      </div>
+    </div>
+    <div id="debug-content">
+      <div class="debug-section">
+        <div class="debug-title">📊 Session Info</div>
+        <div id="debug-session"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">📤 xAPI Statements Sent</div>
+        <div id="debug-statements"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">💾 State Updates</div>
+        <div id="debug-states"></div>
+      </div>
+      <div class="debug-section">
+        <div class="debug-title">⚠️ Errors & Warnings</div>
+        <div id="debug-errors"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <p class="center"><strong>HTML5 Interactive with xAPI Debug</strong></p>
+    
+    <div class="center">
+      <label for="score-input">Score:</label>
+      <input type="text" id="score-input">
+      
+      <label for="feedback-input">Feedback:</label>
+      <input type="text" id="feedback-input" placeholder="Enter feedback">
+    </div>
+
+    <div id="criteria-container" class="center">
+      <!-- Criteria groups will be populated here -->
+    </div>
+
+    <div class="center">
+      <button id="add-criteria-button">Add Rubric Criteria</button>
+    </div>
+
+    <div id="scenario-options">
+      <span>Scenario:</span>
+      <br>
+      <label><input type="radio" name="scenario-option" value="all">All</label><br>
+      <label><input type="radio" name="scenario-option" value="score">Send score only</label><br>
+      <label><input type="radio" name="scenario-option" value="score-with-feedback">Send score with feedback</label><br>
+      <label><input type="radio" name="scenario-option" value="score-with-rubric">Send score with grading rubric</label><br>
+      <label><input type="radio" name="scenario-option" value="rubric">Send grading rubric only</label><br>
+      <label><input type="radio" name="scenario-option" value="save-input">Save input value only</label>
+    </div>
+
+    <div class="center">
+      <button id="save-store">Send/Save</button>
+      <button id="clear-inputs">Clear</button>
+    </div>
+    
+    <div class="output-container">
+      <pre id="result"></pre>
+      <hr class="separator">
+      <pre id="getState"></pre>
+      <hr class="separator">
+      <pre id="questionId"></pre>
+      <pre id="userId"></pre>
+      <pre id="cookieId"></pre>
+    </div>
+  </div>
+
+  <script>
+    // Debug Console Implementation
+    class XAPIDebugger {
+      constructor() {
+        this.statements = [];
+        this.states = [];
+        this.errors = [];
+        this.sessionInfo = {};
+        this.init();
+      }
+
+      init() {
+        // Initialize debug panel
+        this.updateSessionInfo();
+        this.setupEventListeners();
+        
+        // Override console methods to capture xAPI logs
+        this.interceptConsole();
+        
+        // Override xAPI methods to capture data
+        this.interceptXAPI();
+      }
+
+      setupEventListeners() {
+        document.getElementById('debug-toggle').addEventListener('click', () => {
+          const content = document.getElementById('debug-content');
+          const button = document.getElementById('debug-toggle');
+          if (content.style.display === 'none') {
+            content.style.display = 'block';
+            button.textContent = 'Hide';
+          } else {
+            content.style.display = 'none';
+            button.textContent = 'Show';
+          }
+        });
+
+        document.getElementById('debug-clear').addEventListener('click', () => {
+          this.clearAll();
+        });
+      }
+
+      updateSessionInfo() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.sessionInfo = {
+          endpoint: urlParams.get('endpoint') || 'Not provided',
+          activityId: urlParams.get('activityId') || 'Not provided',
+          stateId: urlParams.get('stateId') || 'Not provided',
+          timestamp: new Date().toISOString()
+        };
+
+        const sessionDiv = document.getElementById('debug-session');
+        sessionDiv.innerHTML = `
+          <div class="debug-item">
+            <div><strong>Endpoint:</strong> ${this.sessionInfo.endpoint}</div>
+            <div><strong>Activity ID:</strong> ${this.sessionInfo.activityId}</div>
+            <div><strong>State ID:</strong> ${this.sessionInfo.stateId}</div>
+            <div><strong>Session Start:</strong> ${this.sessionInfo.timestamp}</div>
+          </div>
+        `;
+      }
+
+      interceptConsole() {
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        console.log = (...args) => {
+          originalLog.apply(console, args);
+          if (args[0] && args[0].includes && args[0].includes('xAPI')) {
+            this.logDebug('info', args.join(' '));
+          }
+        };
+
+        console.error = (...args) => {
+          originalError.apply(console, args);
+          this.logError(args.join(' '));
+        };
+
+        console.warn = (...args) => {
+          originalWarn.apply(console, args);
+          this.logWarning(args.join(' '));
+        };
+      }
+
+      interceptXAPI() {
+        // Store original functions
+        const originalStoreState = window.storeState;
+        const originalGetState = window.getState;
+
+        // Override storeState to capture data
+        window.storeState = (stateValue) => {
+          this.logState('Store State', stateValue);
+          
+          // Send proper xAPI statement for scoring
+          this.sendScoringStatement(stateValue);
+          
+          // Call original function
+          if (originalStoreState) {
+            return originalStoreState(stateValue);
+          }
+        };
+
+        // Override getState to capture data
+        window.getState = () => {
+          const result = originalGetState ? originalGetState() : null;
+          this.logState('Get State', result);
+          return result;
+        };
+      }
+
+      sendScoringStatement(stateValue) {
+        try {
+          // Create proper xAPI statement for scoring
+          if (stateValue && (stateValue.score !== undefined || stateValue.feedback)) {
+            const statement = this.createScoringStatement(stateValue);
+            this.logStatement('Scoring Statement', statement);
+            
+            // Send via ADL.XAPIWrapper if available
+            if (window.ADL && window.ADL.XAPIWrapper) {
+              window.ADL.XAPIWrapper.sendStatement(statement, (err, result) => {
+                if (err) {
+                  this.logError(`Failed to send scoring statement: ${err}`);
+                } else {
+                  this.logDebug('success', `Scoring statement sent successfully: ${result?.id || 'No ID'}`);
+                }
+              });
+            }
+          }
+
+          // Create interaction statement for detailed tracking
+          const interactionStatement = this.createInteractionStatement(stateValue);
+          this.logStatement('Interaction Statement', interactionStatement);
+          
+          if (window.ADL && window.ADL.XAPIWrapper) {
+            window.ADL.XAPIWrapper.sendStatement(interactionStatement, (err, result) => {
+              if (err) {
+                this.logError(`Failed to send interaction statement: ${err}`);
+              } else {
+                this.logDebug('success', `Interaction statement sent successfully: ${result?.id || 'No ID'}`);
+              }
+            });
+          }
+
+        } catch (error) {
+          this.logError(`Error creating xAPI statements: ${error.message}`);
+        }
+      }
+
+      createScoringStatement(stateValue) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activityId = urlParams.get('activityId') || 'http://example.com/activity';
+        
+        const statement = {
+          actor: this.getActor(),
+          verb: {
+            id: "http://adlnet.gov/expapi/verbs/scored",
+            display: { "en-US": "scored" }
+          },
+          object: {
+            id: activityId,
+            definition: {
+              name: { "en-US": "Interactive Assessment" },
+              description: { "en-US": "Student scored on interactive content" }
+            }
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        // Add result with score and feedback
+        if (stateValue.score !== undefined || stateValue.feedback) {
+          statement.result = {};
+          
+          if (stateValue.score !== undefined) {
+            statement.result.score = {
+              raw: parseFloat(stateValue.score) || 0,
+              min: 0,
+              max: 100,
+              scaled: (parseFloat(stateValue.score) || 0) / 100
+            };
+          }
+          
+          if (stateValue.feedback) {
+            statement.result.response = stateValue.feedback;
+          }
+          
+          statement.result.completion = true;
+          statement.result.success = (parseFloat(stateValue.score) || 0) >= 50; // Assuming 50% is passing
+        }
+
+        return statement;
+      }
+
+      createInteractionStatement(stateValue) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activityId = urlParams.get('activityId') || 'http://example.com/activity';
+        
+        return {
+          actor: this.getActor(),
+          verb: {
+            id: "http://adlnet.gov/expapi/verbs/interacted",
+            display: { "en-US": "interacted" }
+          },
+          object: {
+            id: activityId + '/interaction',
+            definition: {
+              name: { "en-US": "Interactive Content Interaction" },
+              description: { "en-US": "Student interacted with content" },
+              type: "http://adlnet.gov/expapi/activities/cmi.interaction"
+            }
+          },
+          result: {
+            response: JSON.stringify(stateValue),
+            extensions: {
+              "http://example.com/xapi/extensions/interaction-data": stateValue
+            }
+          },
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      getActor() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const agent = urlParams.get('agent');
+        
+        if (agent) {
+          try {
+            return JSON.parse(agent);
+          } catch (e) {
+            this.logWarning('Failed to parse agent from URL parameters');
+          }
+        }
+        
+        // Fallback actor
+        return {
+          name: "Student",
+          mbox: "mailto:student@example.com"
+        };
+      }
+
+      logStatement(type, statement) {
+        this.statements.push({
+          type,
+          statement,
+          timestamp: new Date().toISOString()
+        });
+        this.updateStatementsDisplay();
+      }
+
+      logState(type, state) {
+        this.states.push({
+          type,
+          state,
+          timestamp: new Date().toISOString()
+        });
+        this.updateStatesDisplay();
+      }
+
+      logError(message) {
+        this.errors.push({
+          type: 'error',
+          message,
+          timestamp: new Date().toISOString()
+        });
+        this.updateErrorsDisplay();
+      }
+
+      logWarning(message) {
+        this.errors.push({
+          type: 'warning',
+          message,
+          timestamp: new Date().toISOString()
+        });
+        this.updateErrorsDisplay();
+      }
+
+      logDebug(type, message) {
+        this.errors.push({
+          type,
+          message,
+          timestamp: new Date().toISOString()
+        });
+        this.updateErrorsDisplay();
+      }
+
+      updateStatementsDisplay() {
+        const div = document.getElementById('debug-statements');
+        div.innerHTML = this.statements.slice(-5).map(item => `
+          <div class="debug-item">
+            <div class="debug-success"><strong>${item.type}</strong></div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+            <pre>${JSON.stringify(item.statement, null, 2)}</pre>
+          </div>
+        `).join('');
+      }
+
+      updateStatesDisplay() {
+        const div = document.getElementById('debug-states');
+        div.innerHTML = this.states.slice(-5).map(item => `
+          <div class="debug-item">
+            <div class="debug-success"><strong>${item.type}</strong></div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+            <pre>${JSON.stringify(item.state, null, 2)}</pre>
+          </div>
+        `).join('');
+      }
+
+      updateErrorsDisplay() {
+        const div = document.getElementById('debug-errors');
+        div.innerHTML = this.errors.slice(-10).map(item => `
+          <div class="debug-item">
+            <div class="debug-${item.type}"><strong>${item.type.toUpperCase()}</strong></div>
+            <div class="debug-timestamp">${item.timestamp}</div>
+            <div>${item.message}</div>
+          </div>
+        `).join('');
+      }
+
+      clearAll() {
+        this.statements = [];
+        this.states = [];
+        this.errors = [];
+        this.updateStatementsDisplay();
+        this.updateStatesDisplay();
+        this.updateErrorsDisplay();
+      }
+    }
+
+    // Initialize debugger
+    let xapiDebugger;
+    window.addEventListener('load', function() {
+      xapiDebugger = new XAPIDebugger();
+    });
+
+    // Original functionality
+    function populateData(data) {
+      document.getElementById('score-input').value = data?.score || '';
+      document.getElementById('feedback-input').value = data?.feedback || '';
+
+      const criteriaContainer = document.getElementById('criteria-container');
+      criteriaContainer.innerHTML = '';
+
+      for (const [criteriaId, criteriaData] of Object.entries(data?.rubric || {})) {
+        const criteriaGroup = document.createElement('div');
+        criteriaGroup.classList.add('criteria-group');
+        criteriaGroup.innerHTML = `
+          <label>Rubric Criteria:</label>
+          <select class="criteria-id">
+            <option value="">Select Criteria</option>
+            <option value="1" ${criteriaId === 'criteria-1' ? 'selected' : ''}>1</option>
+            <option value="2" ${criteriaId === 'criteria-2' ? 'selected' : ''}>2</option>
+            <option value="3" ${criteriaId === 'criteria-3' ? 'selected' : ''}>3</option>
+            <option value="4" ${criteriaId === 'criteria-4' ? 'selected' : ''}>4</option>
+            <option value="5" ${criteriaId === 'criteria-5' ? 'selected' : ''}>5</option>
+            <option value="6" ${criteriaId === 'criteria-6' ? 'selected' : ''}>6</option>
+            <option value="7" ${criteriaId === 'criteria-7' ? 'selected' : ''}>7</option>
+            <option value="8" ${criteriaId === 'criteria-8' ? 'selected' : ''}>8</option>
+          </select>
+          <input type="number" class="criteria-score" value="${criteriaData?.score || 0}" min="0">
+          <input type="text" class="criteria-feedback" value="${criteriaData?.feedback || ''}">
+          <button class="remove-criteria-button">Remove Criteria</button>
+        `;
+        criteriaContainer.appendChild(criteriaGroup);
+
+        criteriaGroup.querySelector('.remove-criteria-button').addEventListener('click', function() {
+          criteriaGroup.remove();
+        });
+      }
+    }
+
+    function updateStore() {
+      const score = formatValue(document.getElementById('score-input').value);
+      const feedback = document.getElementById('feedback-input').value || undefined;
+
+      const criteriaElements = document.querySelectorAll('.criteria-group');
+      const rubric = {};
+      criteriaElements.forEach(element => {
+        const criteriaId = element.querySelector('.criteria-id').value;
+        const criteriaScore = element.querySelector('.criteria-score').value;
+        const criteriaFeedback = element.querySelector('.criteria-feedback').value.trim();
+
+        const formattedCriteriaId = criteriaId ? `criteria-${criteriaId}` : '';
+
+        if (formattedCriteriaId) {
+          rubric[formattedCriteriaId] = {
+            score: formatValue(criteriaScore),
+            feedback: criteriaFeedback || undefined
+          };
+        }
+      });
+
+      let state;
+
+      switch (document.querySelector('input[name="scenario-option"]:checked')?.value) {
+        case "score":
+          state = { score: score };
+          break;
+        case "score-with-feedback":
+          state = { score: score, feedback: feedback };
+          break;
+        case "score-with-rubric":
+          state = { score: score, feedback: feedback, rubric: Object.keys(rubric).length > 0 ? rubric : undefined };
+          break;
+        case "rubric":
+          state = { rubric: rubric };
+          break;
+        case "save-input":
+          state = { data: { score: score, feedback: feedback, rubric: rubric } };
+          break;
+        default:
+          state = {
+            score: score,
+            feedback: feedback,
+            rubric: Object.keys(rubric).length > 0 ? rubric : undefined,
+            data: { score: score, feedback: feedback, rubric: rubric }
+          };
+          break;
+      }
+
+      storeState(state);
+    }
+
+    function isNumber(value) {
+      return !isNaN(parseFloat(value)) && isFinite(value);
+    }
+
+    function formatValue(value) {
+      return isNumber(value) ? parseFloat(value) : value;
+    }
+
+    window.addEventListener('load', function() {
+      const store = getState();
+      if (store?.data) {
+        populateData(store.data);
+      }
+    });
+
+    document.getElementById('add-criteria-button').addEventListener('click', function() {
+      const criteriaContainer = document.getElementById('criteria-container');
+      const criteriaGroup = document.createElement('div');
+      criteriaGroup.classList.add('criteria-group');
+      criteriaGroup.innerHTML = `
+        <label>Rubric Criteria:</label>
+        <select class="criteria-id">
+          <option value="">Select Criteria</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+        <input type="number" class="criteria-score" placeholder="Score" min="0">
+        <input type="text" class="criteria-feedback" placeholder="Feedback">
+        <button class="remove-criteria-button">Remove Criteria</button>
+      `;
+      criteriaContainer.appendChild(criteriaGroup);
+
+      criteriaGroup.querySelector('.remove-criteria-button').addEventListener('click', function() {
+        criteriaGroup.remove();
+      });
+    });
+
+    document.getElementById('save-store').addEventListener('click', function() {
+      updateStore();
+    });
+
+    document.getElementById('clear-inputs').addEventListener('click', function() {
+      document.getElementById('score-input').value = '';
+      document.getElementById('feedback-input').value = '';
+      const criteriaContainer = document.getElementById('criteria-container');
+      criteriaContainer.innerHTML = '';
+      updateStore();
+    });
+  </script>
+</body>
+</html>

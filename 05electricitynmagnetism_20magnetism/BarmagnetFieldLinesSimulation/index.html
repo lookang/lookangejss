@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bar Magnet Simulation (Group Rotate)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Analytics (optional) -->
+  <script 
+    async="true"
+    src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ">
+  </script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+
+  <!-- Google AdSense (optional) -->
+  <script 
+    data-ad-client="ca-pub-0121577198857509" 
+    async="true"
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js">
+  </script>
+
+  <style>
+    /* Basic Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom right, #f0f9ff, #cbebff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    h3 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+      color: #333;
+    }
+
+    #container {
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    #numFieldLinesLabel {
+      font-weight: bold;
+    }
+
+    #sliderContainer {
+      display: inline-block;
+      width: 150px;
+      margin: 0 10px;
+    }
+
+    #fieldLineSlider,
+    #rotationSlider {
+      width: 100%;
+    }
+
+    button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Canvas styling for mobile responsiveness */
+    canvas {
+      width: 100%;
+      height: auto;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      border-radius: 4px;
+    }
+
+    p, h4, ul, ol {
+      margin-top: 20px;
+      margin-bottom: 20px;
+      line-height: 1.4;
+      text-align: left;
+    }
+
+    ul, ol {
+      margin-left: 40px;
+    }
+
+    a {
+      color: #0056b3;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive layout adjustments */
+    @media screen and (max-width: 768px) {
+      h3 {
+        font-size: 1.25rem;
+      }
+      button, 
+      #numFieldLinesLabel, 
+      #numFieldLinesDisplay,
+      #rotationLabel, 
+      #rotationValue {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="container">
+    <h3>Bar Magnet Simulation </h3>
+    <div id="controls">
+      <label id="numFieldLinesLabel" for="fieldLineSlider">
+        Field lines:
+      </label>
+      <span id="numFieldLinesDisplay">20</span>
+      <div id="sliderContainer">
+        <input 
+          type="range" 
+          id="fieldLineSlider" 
+          min="3" 
+          max="100" 
+          value="20" 
+        />
+      </div>
+
+      <!-- Slider for rotating the entire scene -->
+      <label id="rotationLabel" for="rotationSlider">Rotation:</label>
+      <span id="rotationValue">0°</span>
+      <div id="sliderContainer">
+        <input 
+          type="range" 
+          id="rotationSlider" 
+          min="0" 
+          max="360" 
+          value="0" 
+        />
+      </div>
+
+      <!-- Buttons for animation -->
+      <button id="playButton">Play</button>
+      <button id="pauseButton">Pause</button>
+      <button id="resetButton">Reset</button>
+
+      
+    </div>
+
+    <canvas id="magnetCanvas"></canvas>
+  </div>
+
+  <p>
+    Created by <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a>
+  </p>
+
+  <h4>Interesting Facts:</h4>
+  <ul>
+    <li>The magnetic field lines always flow from the north pole to the south pole (outside the magnet).</li>
+    <li>Inside the magnet, field lines flow from the south pole to the north pole.</li>
+    <li>The field is strongest at the magnet’s poles.</li>
+  </ul>
+
+  <h4>Activities for Learning:</h4>
+  <ol>
+    <li>Rotate the entire scene using the “Scene rotation” slider. Notice how the field lines remain the same pattern in the canvas coordinate system, but you see them turning visually.</li>
+    <li>Drag the compass in the rotated view and observe how it aligns with the magnetic field.</li>
+    <li>Adjust the number of field lines using the slider and see how it affects the visual representation of the field.</li>
+    <li>Press “Play” to see the compass move (if outside the magnet, it moves opposite to the field direction).</li>
+    <li>Place the compass inside the magnet and observe the reversed needle direction.</li>
+  </ol>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      /* DOM Elements */
+      const canvas = document.getElementById('magnetCanvas');
+      const ctx = canvas.getContext('2d');
+
+      const slider = document.getElementById('fieldLineSlider');
+      const numFieldLinesDisplay = document.getElementById('numFieldLinesDisplay');
+
+      const rotationSlider = document.getElementById('rotationSlider');
+      const rotationValue = document.getElementById('rotationValue');
+
+      const playButton = document.getElementById('playButton');
+      const pauseButton = document.getElementById('pauseButton');
+      const resetButton = document.getElementById('resetButton');
+
+      /* Simulation params */
+      const magnetLength = 100;
+      const magnetWidth = 40;
+      const magnetStrength = 5000;
+
+      /* We store all positions in an "unrotated" coordinate system.
+         Then we do a group rotation only when drawing. */
+      let magnetCenter = { x: 0, y: 0 }; // We'll set this after canvas is sized
+      let rotationAngleDeg = 0; // The visual rotation of the entire scene (degrees)
+      let isAnimating = false;
+      let animationId;
+
+      let numFieldLines = parseInt(slider.value);
+
+      /* Compass in unrotated coordinates */
+      const compass = {
+        x: 0,    // Will update after we know magnetCenter
+        y: 0,
+        radius: 40
+      };
+
+      let isDraggingCompass = false;
+
+      /* Canvas resizing for responsiveness */
+      function resizeCanvas() {
+        const displayWidth = canvas.clientWidth;
+        const displayHeight = (displayWidth / 3) * 2; // e.g., 3:2 ratio
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+      }
+
+      // Adjust magnet & compass positions after resizing
+      function updatePositionsAfterResize() {
+        magnetCenter.x = canvas.width / 2;
+        magnetCenter.y = canvas.height / 2;
+        // Put compass to the right of the magnet (unrotated coords)
+        compass.x = magnetCenter.x + 150;
+        compass.y = magnetCenter.y;
+      }
+
+      /* Initialize canvas and positions */
+      resizeCanvas();
+      updatePositionsAfterResize();
+
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        updatePositionsAfterResize();
+        draw();
+      });
+
+      /* Convert from screen (rotated) coords to unrotated coords.
+         This is the inverse transform of what we do in draw(). */
+      function screenToUnrotated(sx, sy) {
+        // Translate so magnetCenter is origin
+        const dx = sx - magnetCenter.x;
+        const dy = sy - magnetCenter.y;
+
+        // Rotate by -rotationAngleDeg
+        const angleRad = -rotationAngleDeg * Math.PI / 180;
+        const ux = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+        const uy = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+
+        // Then translate back by magnetCenter if needed
+        const unrotX = magnetCenter.x + ux;
+        const unrotY = magnetCenter.y + uy;
+        return { x: unrotX, y: unrotY };
+      }
+
+      /* ============== Field Calculations (Unchanged) ============== */
+
+      function isInsideMagnet(x, y) {
+        return (
+          x > magnetCenter.x - magnetLength / 2 &&
+          x < magnetCenter.x + magnetLength / 2 &&
+          y > magnetCenter.y - magnetWidth / 2 &&
+          y < magnetCenter.y + magnetWidth / 2
+        );
+      }
+
+      // Calculate the magnetic field at (x, y) in unrotated space
+      function calculateField(x, y) {
+        // North pole
+        const northPole = {
+          x: magnetCenter.x - magnetLength / 4,
+          y: magnetCenter.y
+        };
+        // South pole
+        const southPole = {
+          x: magnetCenter.x + magnetLength / 4,
+          y: magnetCenter.y
+        };
+
+        const rN = Math.sqrt((x - northPole.x) ** 2 + (y - northPole.y) ** 2);
+        const rS = Math.sqrt((x - southPole.x) ** 2 + (y - southPole.y) ** 2);
+
+        const factor = magnetStrength / (4 * Math.PI);
+        let Bx = 0, By = 0;
+
+        if (isInsideMagnet(x, y)) {
+          // Inside magnet => small constant from S to N
+          Bx = factor / 1000;
+          By = 0;
+        } else {
+          // Outside magnet
+          Bx =
+            factor *
+            (((southPole.x - x) / rS ** 3) - ((northPole.x - x) / rN ** 3));
+          By =
+            factor *
+            (((southPole.y - y) / rS ** 3) - ((northPole.y - y) / rN ** 3));
+        }
+        return { x: Bx, y: By };
+      }
+
+      /* ============== Drawing in Unrotated Coordinates ============== */
+
+      // Draw the bar magnet (unrotated geometry)
+      function drawMagnet() {
+        ctx.fillStyle = '#ccc';
+        ctx.fillRect(
+          magnetCenter.x - magnetLength / 2,
+          magnetCenter.y - magnetWidth / 2,
+          magnetLength,
+          magnetWidth
+        );
+
+        // South pole (blue)
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(
+          magnetCenter.x - magnetLength / 2,
+          magnetCenter.y - magnetWidth / 2,
+          magnetLength / 2,
+          magnetWidth
+        );
+
+        // North pole (red)
+        ctx.fillStyle = 'red';
+        ctx.fillRect(
+          magnetCenter.x,
+          magnetCenter.y - magnetWidth / 2,
+          magnetLength / 2,
+          magnetWidth
+        );
+
+        // Labels
+        ctx.fillStyle = '#000';
+        ctx.font = '20px Arial';
+        ctx.fillText('S', magnetCenter.x - magnetLength / 2 + 10, magnetCenter.y + 7);
+        ctx.fillText('N', magnetCenter.x + magnetLength / 2 - 20, magnetCenter.y + 7);
+      }
+
+      // Draw a small arrow “tick”
+      function drawArrow(x, y, dx, dy) {
+        const angle = Math.atan2(dy, dx);
+        const length = 5;
+        ctx.moveTo(x, y);
+        ctx.lineTo(
+          x + length * Math.cos(angle - Math.PI / 6),
+          y + length * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(x, y);
+        ctx.lineTo(
+          x + length * Math.cos(angle + Math.PI / 6),
+          y + length * Math.sin(angle + Math.PI / 6)
+        );
+      }
+
+      // Trace a single field line from an unrotated start point
+      function traceFieldLine(startX, startY, direction) {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+
+        let x = startX;
+        let y = startY;
+        const stepSize = 2;
+        const maxSteps = 500;
+
+        for (let i = 0; i < maxSteps; i++) {
+          const field = calculateField(x, y);
+          const mag = Math.sqrt(field.x ** 2 + field.y ** 2);
+          if (mag === 0) break;
+
+          const dx = (direction * stepSize * field.x) / mag;
+          const dy = (direction * stepSize * field.y) / mag;
+
+          x += dx;
+          y += dy;
+
+          if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) break;
+
+          ctx.lineTo(x, y);
+
+          if (i % 20 === 0) {
+            drawArrow(x, y, field.x, field.y);
+          }
+        }
+        ctx.stroke();
+      }
+
+      // Draw the field lines by starting from the edges (unrotated)
+      function drawFieldLines() {
+        ctx.strokeStyle = 'rgba(0, 0, 255, 0.4)';
+        ctx.lineWidth = 1;
+
+        const linesPerSide = Math.floor(numFieldLines / 2);
+
+        // Start points along the border
+        const startPoints = [
+          // Left edge
+          ...Array(linesPerSide)
+            .fill()
+            .map((_, i) => ({
+              x: 0,
+              y: ((i + 1) * canvas.height) / (linesPerSide + 1),
+            })),
+          // Right edge
+          ...Array(linesPerSide)
+            .fill()
+            .map((_, i) => ({
+              x: canvas.width,
+              y: ((i + 1) * canvas.height) / (linesPerSide + 1),
+            })),
+          // Top edge
+          ...Array(linesPerSide)
+            .fill()
+            .map((_, i) => ({
+              x: ((i + 1) * canvas.width) / (linesPerSide + 1),
+              y: 0,
+            })),
+          // Bottom edge
+          ...Array(linesPerSide)
+            .fill()
+            .map((_, i) => ({
+              x: ((i + 1) * canvas.width) / (linesPerSide + 1),
+              y: canvas.height,
+            })),
+        ];
+
+        // Trace lines in both directions
+        startPoints.forEach((pt) => {
+          traceFieldLine(pt.x, pt.y, 1);
+          traceFieldLine(pt.x, pt.y, -1);
+        });
+      }
+
+      // Draw the compass (unrotated)
+      function drawCompass() {
+        ctx.beginPath();
+        ctx.arc(compass.x, compass.y, compass.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
+
+        const field = calculateField(compass.x, compass.y);
+        const B = Math.sqrt(field.x ** 2 + field.y ** 2).toFixed(2);
+
+        let angleDeg = (Math.PI - Math.atan2(field.y, field.x)) * (180 / Math.PI);
+
+        if (isInsideMagnet(compass.x, compass.y)) {
+          angleDeg = (0 - Math.atan2(field.y, field.x)) * (180 / Math.PI);
+        }
+
+        ctx.fillStyle = '#000';
+        ctx.font = '14px Arial';
+        ctx.fillText(`${B} T`, compass.x - 30, compass.y - 5);
+        ctx.fillText(`${angleDeg.toFixed(2)}°`, compass.x - 30, compass.y + 15);
+
+        // Arrow direction, reversed so it points from N->S visually
+        const arrowAngle = Math.atan2(field.y, field.x) + Math.PI;
+
+        // Main arrow line
+        ctx.beginPath();
+        ctx.moveTo(compass.x, compass.y);
+
+        if (isInsideMagnet(compass.x, compass.y)) {
+          // Inside => reverse direction
+          ctx.lineTo(
+            compass.x - compass.radius * Math.cos(arrowAngle),
+            compass.y - compass.radius * Math.sin(arrowAngle)
+          );
+        } else {
+          ctx.lineTo(
+            compass.x + compass.radius * Math.cos(arrowAngle),
+            compass.y + compass.radius * Math.sin(arrowAngle)
+          );
+        }
+        ctx.strokeStyle = 'orange';
+        ctx.stroke();
+
+        // Arrowhead
+        const headLength = 10;
+        const headAngle = Math.PI / 6;
+        ctx.beginPath();
+
+        if (isInsideMagnet(compass.x, compass.y)) {
+          const endX = compass.x - compass.radius * Math.cos(arrowAngle);
+          const endY = compass.y - compass.radius * Math.sin(arrowAngle);
+          ctx.moveTo(endX, endY);
+          ctx.lineTo(
+            endX + headLength * Math.cos(arrowAngle - headAngle),
+            endY + headLength * Math.sin(arrowAngle - headAngle)
+          );
+          ctx.moveTo(endX, endY);
+          ctx.lineTo(
+            endX + headLength * Math.cos(arrowAngle + headAngle),
+            endY + headLength * Math.sin(arrowAngle + headAngle)
+          );
+        } else {
+          const endX = compass.x + compass.radius * Math.cos(arrowAngle);
+          const endY = compass.y + compass.radius * Math.sin(arrowAngle);
+          ctx.moveTo(endX, endY);
+          ctx.lineTo(
+            endX - headLength * Math.cos(arrowAngle - headAngle),
+            endY - headLength * Math.sin(arrowAngle - headAngle)
+          );
+          ctx.moveTo(endX, endY);
+          ctx.lineTo(
+            endX - headLength * Math.cos(arrowAngle + headAngle),
+            endY - headLength * Math.sin(arrowAngle + headAngle)
+          );
+        }
+        ctx.strokeStyle = 'orange';
+        ctx.stroke();
+      }
+
+      /* ============== Group Rotation for Final Display ============== */
+
+      function drawScene() {
+        // Clear the entire canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Save the default coordinate system
+        ctx.save();
+        // Translate the origin to the magnet center
+        ctx.translate(magnetCenter.x, magnetCenter.y);
+        // Rotate by rotationAngleDeg
+        ctx.rotate((rotationAngleDeg * Math.PI) / 180);
+        // Translate back
+        ctx.translate(-magnetCenter.x, -magnetCenter.y);
+
+        // === Now draw everything in "unrotated" space, but visually rotated. ===
+        drawFieldLines();
+        drawMagnet();
+        drawCompass();
+
+        // Restore default transform
+        ctx.restore();
+      }
+
+      /* Animate the compass */
+      function animateCompass() {
+        if (!isAnimating) return;
+
+        const field = calculateField(compass.x, compass.y);
+        const mag = Math.sqrt(field.x ** 2 + field.y ** 2);
+        const stepSize = 1;
+
+        if (mag !== 0) {
+          if (isInsideMagnet(compass.x, compass.y)) {
+            // Move right
+            compass.x += stepSize;
+          } else {
+            // Move opposite field direction
+            compass.x -= (stepSize * field.x) / mag;
+            compass.y -= (stepSize * field.y) / mag;
+          }
+        }
+        drawScene();
+        animationId = requestAnimationFrame(animateCompass);
+      }
+
+      function draw() {
+        drawScene();
+      }
+
+      /* Slider & Button Listeners */
+
+      // Field line slider
+      slider.addEventListener('input', (e) => {
+        numFieldLines = parseInt(e.target.value);
+        numFieldLinesDisplay.textContent = numFieldLines;
+        draw();
+      });
+
+      // Rotation slider (for group rotate)
+      rotationSlider.addEventListener('input', (e) => {
+        rotationAngleDeg = parseInt(e.target.value);
+        rotationValue.textContent = rotationAngleDeg + '°';
+        draw();
+      });
+
+      // Play
+      playButton.addEventListener('click', () => {
+        if (!isAnimating) {
+          isAnimating = true;
+          animateCompass();
+        }
+      });
+
+      // Pause
+      pauseButton.addEventListener('click', () => {
+        if (isAnimating) {
+          isAnimating = false;
+          cancelAnimationFrame(animationId);
+        }
+      });
+
+      // Reset
+      resetButton.addEventListener('click', () => {
+        isAnimating = false;
+        cancelAnimationFrame(animationId);
+        // Reset compass to default unrotated position
+        compass.x = magnetCenter.x + 150;
+        compass.y = magnetCenter.y;
+        draw();
+      });
+
+      /* MOUSE & TOUCH for dragging the compass
+         We must convert from screen coords => unrotated coords => check distance from compass.
+      */
+
+      // MOUSE
+      canvas.addEventListener('mousedown', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const sx = event.clientX - rect.left;
+        const sy = event.clientY - rect.top;
+
+        // Convert to unrotated
+        const { x: ux, y: uy } = screenToUnrotated(sx, sy);
+
+        // Check if inside compass
+        const dist = Math.sqrt((ux - compass.x) ** 2 + (uy - compass.y) ** 2);
+        if (dist < compass.radius) {
+          isDraggingCompass = true;
+        }
+      });
+
+      canvas.addEventListener('mousemove', (event) => {
+        if (!isDraggingCompass) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const sx = event.clientX - rect.left;
+        const sy = event.clientY - rect.top;
+
+        const { x: ux, y: uy } = screenToUnrotated(sx, sy);
+        // Move compass to (ux, uy)
+        compass.x = ux;
+        compass.y = uy;
+        draw();
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        isDraggingCompass = false;
+      });
+
+      // TOUCH
+      canvas.addEventListener('touchstart', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const sx = event.touches[0].clientX - rect.left;
+        const sy = event.touches[0].clientY - rect.top;
+
+        const { x: ux, y: uy } = screenToUnrotated(sx, sy);
+        const dist = Math.sqrt((ux - compass.x) ** 2 + (uy - compass.y) ** 2);
+        if (dist < compass.radius) {
+          isDraggingCompass = true;
+        }
+      });
+
+      canvas.addEventListener('touchmove', (event) => {
+        if (!isDraggingCompass) return;
+        event.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const sx = event.touches[0].clientX - rect.left;
+        const sy = event.touches[0].clientY - rect.top;
+
+        const { x: ux, y: uy } = screenToUnrotated(sx, sy);
+        compass.x = ux;
+        compass.y = uy;
+        draw();
+      });
+
+      canvas.addEventListener('touchend', () => {
+        isDraggingCompass = false;
+      });
+
+      /* Initial draw */
+      draw();
+    });
+  </script>
+
+  <h4>Suggestions for Further Exploration:</h4>
+  <ul>
+       <li><strong>Inquiry Activities:</strong> Challenge students to measure or compare how the compass behaves inside vs. outside the magnet, or at different rotations.</li>
+  </ul>
+
+</body>
+</html>

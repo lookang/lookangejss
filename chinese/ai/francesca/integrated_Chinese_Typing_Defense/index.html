@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Typing Defense</title>
+    <!-- Local fonts for Chinese characters -->
+    <link href="./lib/fonts.css" rel="stylesheet">
+    <!-- Tailwind CSS via local file -->
+    <script src="./lib/tailwind.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+<script src="./lib/xapiwrapper.min.js"></script><script src="./lib/xAPI.js"></script>  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <!-- Main Game Container -->
+    <div id="gameContainer" class="game-container">
+        
+        <!-- Top Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item" title="Current Score">
+                <span class="stat-label">SCORE</span>
+                <span id="score" class="stat-value">0</span>
+            </div>
+            <div class="stat-item" title="Highest Score Achieved">
+                <span class="stat-label">HIGH</span>
+                <span id="highScore" class="stat-value">0</span>
+            </div>
+            <div class="stat-item" title="Current Game Level">
+                <span class="stat-label">LEVEL</span>
+                <span id="level" class="stat-value">1</span>
+            </div>
+            <div class="stat-item" title="Words Destroyed">
+                <span class="stat-label">COMBO</span>
+                <span id="combo" class="stat-value">0</span>
+            </div>
+        </div>
+
+        <!-- Game View Area (where characters fall) -->
+        <div id="gameView" class="game-view">
+            <!-- Falling characters will be dynamically inserted here -->
+        </div>
+
+        <!-- Bottom Input Area -->
+        <div class="input-area">
+            <div class="instruction-text">TYPE THE PINYIN!</div>
+            <input type="text" id="pinyinInput" class="pinyin-input" placeholder="Start typing..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameOverlay" class="game-overlay hidden">
+            <div class="overlay-content">
+                <h1 class="overlay-title">GAME OVER</h1>
+                <p class="overlay-score">Final Score: <span id="finalScore">0</span></p>
+                <p class="overlay-high">High Score: <span id="finalHighScore">0</span></p>
+                <button id="restartBtn" class="restart-btn">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <!-- Start Screen Overlay -->
+        <div id="startOverlay" class="game-overlay">
+            <div class="overlay-content">
+                <h1 class="overlay-title neon-glow">汉字防御战</h1>
+                <h2 class="overlay-subtitle">CHINESE TYPING DEFENSE</h2>
+                <div class="instructions">
+                    <p>🎯 Type the Pinyin to destroy falling characters</p>
+                    <p>⚡ Speed increases as you level up</p>
+                    <p>💀 Don't let characters reach the bottom!</p>
+                </div>
+                <button id="startBtn" class="restart-btn pulse">START GAME</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+
+<script>(function(){
+  if (window.__xapiIntegrator) return;
+  window.__xapiIntegrator = true;
+
+  // Draggable helper for floating UI (panel/button)
+  function makeDraggable(el, opts) {
+    opts = opts || {};
+    const handleSelector = opts.handleSelector || null;
+    const storageKey = opts.storageKey || '';
+    let isDragging = false, started = false;
+    let startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+    // Restore saved position
+    try {
+      if (storageKey) {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+          el.style.left = saved.left + 'px';
+          el.style.top = saved.top + 'px';
+          el.style.right = 'auto';
+          el.style.bottom = 'auto';
+        }
+      }
+    } catch(e){}
+
+    function onPointerDown(e) {
+      if (handleSelector && !e.target.closest(handleSelector)) return;
+      isDragging = true; started = false;
+      startX = e.clientX; startY = e.clientY;
+      const rect = el.getBoundingClientRect();
+      origLeft = rect.left; origTop = rect.top;
+      el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    }
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!started && Math.hypot(dx, dy) < 4) return;
+      started = true;
+      let left = origLeft + dx;
+      let top = origTop + dy;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const r = el.getBoundingClientRect();
+      left = Math.max(0, Math.min(left, vw - r.width));
+      top = Math.max(0, Math.min(top, vh - r.height));
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      e.preventDefault();
+    }
+    function onPointerUp() {
+      if (!isDragging) return;
+      isDragging = false;
+      if (started) {
+        try {
+          if (storageKey) {
+            const left = parseInt(el.style.left || '0', 10) || 0;
+            const top = parseInt(el.style.top || '0', 10) || 0;
+            localStorage.setItem(storageKey, JSON.stringify({ left, top }));
+          }
+        } catch(e){}
+      }
+    }
+    function onResize() {
+      // keep element in viewport
+      const r = el.getBoundingClientRect();
+      let left = r.left, top = r.top;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      left = Math.max(0, Math.min(left, vw - r.width));
+      top = Math.max(0, Math.min(top, vh - r.height));
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+
+    el.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('resize', onResize);
+  }
+
+  const sessionStart = Date.now();
+  const actionLog = [];
+  const xapi = { score: 0, interactionCount: 0, playStart: null, totalPlayMs: 0 };
+
+  // Pending payload that always reflects the latest feedback/score (for auto-send hooks)
+  window.__xapiPending = null;
+
+  function tSeconds() { return Math.round((Date.now() - sessionStart)/1000); }
+  function flushPlayTime() {
+    if (xapi.playStart) { xapi.totalPlayMs += (Date.now() - xapi.playStart); xapi.playStart = null; }
+  }
+  function logAction(message) {
+    const t = tSeconds();
+    actionLog.push({ t, message });
+    try { console.log('[xAPI Integrator]', 't=' + t + ',', message); } catch(e){}
+    updateFeedbackPanel();
+    setPending('live');
+  }
+
+  // Live feedback builder
+  function buildFeedback() {
+    const elapsedSeconds = tSeconds();
+    const actionsHtml = actionLog.map(a => 't = ' + a.t + ', ' + a.message).join('<br>');
+    return '<div><div>'
+      + 'Interactions: ' + xapi.interactionCount + '<br>'
+      + 'Total Play Time: ' + elapsedSeconds + 's<br>'
+      + 'Score: ' + (xapi.score || 0) + '<br><br>'
+      + 'Action Log:<br>' + actionsHtml
+      + '</div></div>';
+  }
+
+  // Floating live feedback panel
+  const panel = document.createElement('div');
+  Object.assign(panel.style, {
+    position: 'fixed', right: '12px', bottom: '56px',
+    minWidth: '240px', maxWidth: '320px',
+    background: 'rgba(17,24,39,0.9)', color: '#e5e7eb',
+    border: '1px solid #374151', borderRadius: '8px',
+    padding: '8px 10px', zIndex: 999998, fontSize: '12px', lineHeight: '1.3'
+  });
+  panel.setAttribute('id', 'xapiLiveFeedback');
+  makeDraggable(panel, { handleSelector: '#xapiLiveFeedbackHeader', storageKey: 'xapiPos:livePanel' });
+  document.addEventListener('DOMContentLoaded', () => {
+    // Append panel near the end so the Save button remains on top
+    try { document.body.appendChild(panel); } catch(e){}
+    updateFeedbackPanel();
+  });
+
+  function updateFeedbackPanel() {
+    try {
+      const elapsedSeconds = tSeconds();
+      panel.innerHTML = ''
+        + '<div id="xapiLiveFeedbackHeader" style="font-weight:600;margin-bottom:6px;cursor:move;user-select:none;touch-action:none;">Live Feedback</div>'
+        + '<div>Interactions: ' + xapi.interactionCount + '</div>'
+        + '<div>Total Play Time: ' + elapsedSeconds + 's</div>'
+        + '<div>Score: ' + (xapi.score || 0) + '</div>';
+    } catch(e){}
+  }
+
+  // Keep play time ticking in panel while playing
+  setInterval(() => {
+    if (xapi.playStart) updateFeedbackPanel();
+  }, 1000);
+
+  // Keep a pending payload up to date for auto-send triggers
+  function setPending(reason) {
+    try {
+      const feedback = buildFeedback();
+      window.__xapiPending = { score: xapi.score, feedback, reason, actions: actionLog };
+    } catch(e){}
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target;
+    let label = '';
+    if (el && el.tagName === 'BUTTON') {
+      label = el.innerText.trim() || el.id || 'button';
+      logAction('click "' + label + '"');
+      xapi.interactionCount++;
+    } else if (el && el.tagName === 'INPUT') {
+      label = (el.value || el.name || el.id || 'input').toString();
+      logAction('click input "' + label + '"');
+      xapi.interactionCount++;
+    }
+  }, true);
+
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el && el.tagName === 'SELECT') {
+      const val = el.value;
+      const label = val ? (val.charAt(0).toUpperCase() + val.slice(1)) : 'Select';
+      logAction('click "' + label + '"');
+      xapi.interactionCount++;
+    }
+  }, true);
+
+  let dragStart = null;
+  document.addEventListener('mousedown', (e) => {
+    if (e.target && e.target.tagName === 'CANVAS') {
+      dragStart = { x: e.offsetX, y: e.offsetY, canvas: e.target };
+    }
+  }, true);
+  document.addEventListener('mouseup', (e) => {
+    if (dragStart && dragStart.canvas === e.target) {
+      const name = 'canvas';
+      logAction('drag ' + name + ' to position ' + Math.round(e.offsetX) + ',' + Math.round(e.offsetY) + '.');
+      xapi.interactionCount++;
+    }
+    dragStart = null;
+  }, true);
+
+  function hookById(id, message, after) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', () => {
+      logAction(message);
+      if (typeof after === 'function') after();
+    }, true);
+  }
+
+  hookById('startBtn', 'clicked "Start Game"', () => {
+    if (!xapi.playStart) xapi.playStart = Date.now();
+    logAction('game started');
+    setPending('play');
+  });
+
+  hookById('restartBtn', 'clicked "Play Again"', () => {
+    if (!xapi.playStart) xapi.playStart = Date.now();
+    logAction('game restarted');
+    setPending('play');
+  });
+
+  // Monitor score changes from game logic
+  let lastTrackedScore = 0;
+  setInterval(() => {
+    try {
+      const scoreEl = document.getElementById('score');
+      const currentScore = parseInt(scoreEl.textContent || '0', 10);
+      if (currentScore > lastTrackedScore) {
+        const scoreIncrease = currentScore - lastTrackedScore;
+        xapi.score = currentScore;
+        logAction('score increased by ' + scoreIncrease + ' to ' + currentScore);
+        xapi.interactionCount++;
+        lastTrackedScore = currentScore;
+        setPending('score');
+      }
+    } catch(e) {}
+  }, 500);
+
+  // Monitor game over and send final score
+  let lastGameOverCheck = false;
+  setInterval(() => {
+    try {
+      const gameOverlay = document.getElementById('gameOverlay');
+      const isGameOver = gameOverlay && !gameOverlay.classList.contains('hidden');
+      if (isGameOver && !lastGameOverCheck) {
+        lastGameOverCheck = true;
+        const finalScoreEl = document.getElementById('finalScore');
+        const finalScore = parseInt(finalScoreEl.textContent || '0', 10);
+        xapi.score = finalScore;
+        logAction('game over - final score: ' + finalScore);
+        sendState('game-over');
+      } else if (!isGameOver && lastGameOverCheck) {
+        lastGameOverCheck = false;
+      }
+    } catch(e) {}
+  }, 500);
+
+  // Dedup-safe sender used by auto hooks (including SLS submit via postMessage)
+  let lastSignature = null;
+  function signatureOf(p) {
+    try { return JSON.stringify({ s: p.score, a: (p.actions ? p.actions.length : 0), f: (p.feedback || '').length }); }
+    catch { return String(Date.now()); }
+  }
+  function sendState(reason) {
+    try {
+      flushPlayTime();
+      const feedback = buildFeedback();
+      const payload = { score: xapi.score, feedback, reason, actions: actionLog };
+      const sig = signatureOf(payload);
+      if (sig && sig === lastSignature) return; // avoid duplicate identical sends
+      lastSignature = sig;
+
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+        logAction('auto-save (' + reason + ')');
+      } else {
+        console.warn('storeState not available; ensure xAPI scripts are loaded and platform URL params are present.');
+      }
+      // keep pending in sync
+      setPending(reason);
+    } catch(e) {
+      console.warn('xAPI sendState failed:', e);
+    }
+  }
+
+  // Floating "Save to SLS" button (kept as required user action)
+  const btn = document.createElement('button');
+  btn.textContent = 'Save to SLS';
+  Object.assign(btn.style, {
+    position: 'fixed', right: '12px', bottom: '12px',
+    padding: '8px 12px', background: '#1976d2', color: '#fff',
+    border: 'none', borderRadius: '6px', zIndex: 999999, cursor: 'pointer'
+  });
+  makeDraggable(btn, { storageKey: 'xapiPos:timelineSaveBtn' });
+  btn.addEventListener('click', () => {
+    flushPlayTime();
+    if (typeof window.storeState === 'function') {
+      try {
+        const feedback = buildFeedback();
+        const payload = { score: xapi.score, feedback, reason: 'manual-save', actions: actionLog };
+        window.storeState(payload);
+        lastSignature = signatureOf(payload); // dedup against autos
+        logAction('manual save triggered');
+      } catch(e) { console.warn('xAPI sendState failed:', e); }
+    } else {
+      console.warn('storeState not available; ensure xAPI scripts are loaded and platform URL params are present.');
+    }
+    setPending('manual-save');
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    try { document.body.appendChild(btn); } catch(e){}
+  });
+
+  // Auto-send hooks:
+  // 1) When content is being hidden or navigated away
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sendState('visibility-hidden');
+  }, true);
+  window.addEventListener('pagehide', () => {
+    sendState('pagehide');
+  }, { capture: true });
+
+  // 2) Listen for parent window messages indicating "submit" (SLS submit button)
+  //    If SLS can postMessage({ type: 'submit' }) on submit, this will auto-send.
+  window.addEventListener('message', (event) => {
+    try {
+      const data = event.data;
+      const key = (data && (data.type || data.event || data.action || data.message)) || '';
+      if (typeof key === 'string' && /submit/i.test(key)) {
+        sendState('sls-submit');
+      }
+    } catch(e){}
+  }, false);
+
+  // Initialize pending once
+  setPending('init');
+})();</script></body></html>

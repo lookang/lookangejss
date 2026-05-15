@@ -1,0 +1,600 @@
+// ===========================
+// FIRE SAFETY ADVENTURE GAME
+// ===========================
+// This interactive learning experience teaches fire safety through exploration and matching mechanics
+// Designed for Secondary School students (age 14) with cognitive load principles and multimedia learning
+
+// ===========================
+// GAME DATA STRUCTURE
+// ===========================
+
+// Fire hazards data for different locations
+const gameData = {
+    home: {
+        title: "🏠 Home Safety Check",
+        background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+        hazards: [
+            {
+                id: 1,
+                icon: "🔌",
+                position: { top: "25%", left: "15%" },
+                name: "Overloaded Socket",
+                description: "Multiple devices plugged into a single socket can cause overheating and fire.",
+                correctSolution: "unplug",
+                solutions: [
+                    { id: "unplug", icon: "🔌", text: "Unplug unused devices" },
+                    { id: "water", icon: "💧", text: "Pour water on it" },
+                    { id: "ignore", icon: "👀", text: "Leave it as is" }
+                ]
+            },
+            {
+                id: 2,
+                icon: "🕯️",
+                position: { top: "60%", left: "70%" },
+                name: "Unattended Candle",
+                description: "Candles left burning near curtains or papers can easily start a fire.",
+                correctSolution: "extinguish",
+                solutions: [
+                    { id: "extinguish", icon: "🚫", text: "Extinguish and move away from flammables" },
+                    { id: "fan", icon: "💨", text: "Use a fan to cool it" },
+                    { id: "more", icon: "🕯️", text: "Light more candles" }
+                ]
+            },
+            {
+                id: 3,
+                icon: "🍳",
+                position: { top: "40%", left: "45%" },
+                name: "Unattended Cooking",
+                description: "Leaving cooking unattended is a leading cause of home fires.",
+                correctSolution: "supervise",
+                solutions: [
+                    { id: "supervise", icon: "👁️", text: "Stay in kitchen while cooking" },
+                    { id: "leave", icon: "🚶", text: "Leave to watch TV" },
+                    { id: "high", icon: "🔥", text: "Turn heat to maximum" }
+                ]
+            },
+            {
+                id: 4,
+                icon: "🧺",
+                position: { top: "70%", left: "25%" },
+                name: "Clothes Near Heater",
+                description: "Flammable materials near heat sources can ignite quickly.",
+                correctSolution: "remove",
+                solutions: [
+                    { id: "remove", icon: "↔️", text: "Keep 1 meter clearance from heater" },
+                    { id: "pile", icon: "📚", text: "Add more clothes" },
+                    { id: "spray", icon: "💦", text: "Spray with perfume" }
+                ]
+            },
+            {
+                id: 5,
+                icon: "🔋",
+                position: { top: "30%", left: "80%" },
+                name: "Damaged Cable",
+                description: "Frayed or damaged electrical cables can spark and cause fires.",
+                correctSolution: "replace",
+                solutions: [
+                    { id: "replace", icon: "🔧", text: "Replace damaged cable immediately" },
+                    { id: "tape", icon: "📼", text: "Cover with tape" },
+                    { id: "use", icon: "✅", text: "Continue using it" }
+                ]
+            }
+        ]
+    },
+    school: {
+        title: "🏫 School Safety Check",
+        background: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+        hazards: [
+            {
+                id: 1,
+                icon: "🚪",
+                position: { top: "35%", left: "20%" },
+                name: "Blocked Fire Exit",
+                description: "Blocked emergency exits prevent safe evacuation during fires.",
+                correctSolution: "clear",
+                solutions: [
+                    { id: "clear", icon: "✅", text: "Clear exit and keep accessible" },
+                    { id: "lock", icon: "🔒", text: "Lock the door" },
+                    { id: "stack", icon: "📦", text: "Stack more items" }
+                ]
+            },
+            {
+                id: 2,
+                icon: "🧪",
+                position: { top: "55%", left: "65%" },
+                name: "Chemicals Near Heat",
+                description: "Flammable chemicals stored near heat sources can explode or ignite.",
+                correctSolution: "relocate",
+                solutions: [
+                    { id: "relocate", icon: "🏪", text: "Store in cool, ventilated cabinet" },
+                    { id: "mix", icon: "🌀", text: "Mix them together" },
+                    { id: "open", icon: "📂", text: "Leave containers open" }
+                ]
+            },
+            {
+                id: 3,
+                icon: "🔥",
+                position: { top: "25%", left: "75%" },
+                name: "Missing Fire Extinguisher",
+                description: "Fire extinguishers must be accessible and regularly inspected.",
+                correctSolution: "install",
+                solutions: [
+                    { id: "install", icon: "🧯", text: "Install and inspect regularly" },
+                    { id: "bucket", icon: "🪣", text: "Use water bucket instead" },
+                    { id: "none", icon: "❌", text: "Not necessary" }
+                ]
+            },
+            {
+                id: 4,
+                icon: "⚡",
+                position: { top: "65%", left: "35%" },
+                name: "Exposed Wiring",
+                description: "Exposed electrical wiring in classrooms poses electrocution and fire risks.",
+                correctSolution: "repair",
+                solutions: [
+                    { id: "repair", icon: "👷", text: "Report to maintenance immediately" },
+                    { id: "touch", icon: "👆", text: "Touch to check if live" },
+                    { id: "cover", icon: "📄", text: "Cover with paper" }
+                ]
+            },
+            {
+                id: 5,
+                icon: "🗑️",
+                position: { top: "45%", left: "50%" },
+                name: "Overflowing Bin",
+                description: "Paper waste near electrical equipment can easily catch fire.",
+                correctSolution: "empty",
+                solutions: [
+                    { id: "empty", icon: "♻️", text: "Empty regularly and keep away from electronics" },
+                    { id: "compress", icon: "👊", text: "Compress to fit more" },
+                    { id: "burn", icon: "🔥", text: "Burn the contents" }
+                ]
+            }
+        ]
+    }
+};
+
+// ===========================
+// AUDIO SYSTEM
+// ===========================
+// Web Audio API for background music and sound effects
+// Reduces cognitive load by providing audio feedback for interactions
+
+class AudioSystem {
+    constructor() {
+        this.audioContext = null;
+        this.isMuted = false;
+        this.backgroundMusicNode = null;
+        this.initAudio();
+    }
+
+    // Initialize Web Audio API
+    initAudio() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkudioContext)();
+        } catch (e) {
+            console.log("Web Audio API not supported");
+        }
+    }
+
+    // Play a simple tone for interactions
+    playTone(frequency, duration, type = 'sine') {
+        if (this.isMuted || !this.audioContext) return;
+
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+
+        oscillator.start(this.audioContext.currentTime);
+        oscillator.stop(this.audioContext.currentTime + duration);
+    }
+
+    // Sound effects for different game events
+    playClick() {
+        this.playTone(800, 0.1, 'square');
+    }
+
+    playCorrect() {
+        // Ascending chord for correct answer
+        this.playTone(523.25, 0.15, 'sine'); // C
+        setTimeout(() => this.playTone(659.25, 0.15, 'sine'), 100); // E
+        setTimeout(() => this.playTone(783.99, 0.3, 'sine'), 200); // G
+    }
+
+    playIncorrect() {
+        // Descending tones for incorrect answer
+        this.playTone(400, 0.2, 'sawtooth');
+        setTimeout(() => this.playTone(300, 0.3, 'sawtooth'), 150);
+    }
+
+    playHazardFound() {
+        this.playTone(1000, 0.1, 'sine');
+    }
+
+    playComplete() {
+        // Victory fanfare
+        const notes = [523.25, 587.33, 659.25, 783.99];
+        notes.forEach((note, index) => {
+            setTimeout(() => this.playTone(note, 0.2, 'sine'), index * 150);
+        });
+    }
+
+    // Background ambient music using oscillators
+    startBackgroundMusic() {
+        if (this.isMuted || !this.audioContext || this.backgroundMusicNode) return;
+
+        const oscillator1 = this.audioContext.createOscillator();
+        const oscillator2 = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
+
+        oscillator1.type = 'sine';
+        oscillator2.type = 'sine';
+        oscillator1.frequency.value = 220; // A3
+        oscillator2.frequency.value = 330; // E4
+
+        gainNode.gain.value = 0.03; // Very quiet background
+
+        oscillator1.connect(gainNode);
+        oscillator2.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+
+        oscillator1.start();
+        oscillator2.start();
+
+        this.backgroundMusicNode = { oscillator1, oscillator2, gainNode };
+    }
+
+    stopBackgroundMusic() {
+        if (this.backgroundMusicNode) {
+            this.backgroundMusicNode.oscillator1.stop();
+            this.backgroundMusicNode.oscillator2.stop();
+            this.backgroundMusicNode = null;
+        }
+    }
+
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+        if (this.isMuted) {
+            this.stopBackgroundMusic();
+        } else {
+            this.startBackgroundMusic();
+        }
+        return this.isMuted;
+    }
+}
+
+// ===========================
+// GAME STATE MANAGEMENT
+// ===========================
+
+class FireSafetyGame {
+    constructor() {
+        this.currentLocation = null;
+        this.currentHazards = [];
+        this.foundHazards = [];
+        this.currentHazard = null;
+        this.score = 0;
+        this.timeRemaining = 60;
+        this.timerInterval = null;
+        this.attempts = 0;
+        this.correctAttempts = 0;
+        this.audioSystem = new AudioSystem();
+        
+        this.init();
+    }
+
+    // Initialize game and set up event listeners
+    init() {
+        this.setupEventListeners();
+        this.setupTooltips();
+        this.checkIfIframe();
+    }
+
+    // Detect if running in iframe for height adjustment
+    checkIfIframe() {
+        if (window.self !== window.top) {
+            document.body.classList.add('iframe-mode');
+        }
+    }
+
+    // Set up all event listeners for UI interactions
+    setupEventListeners() {
+        // Start button
+        document.getElementById('start-btn').addEventListener('click', () => {
+            this.audioSystem.playClick();
+            this.showScreen('location-screen');
+            this.audioSystem.startBackgroundMusic();
+        });
+
+        // Location selection
+        document.querySelectorAll('.location-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                this.audioSystem.playClick();
+                const location = e.currentTarget.dataset.location;
+                this.startGame(location);
+            });
+        });
+
+        // Close matching panel
+        document.getElementById('close-panel').addEventListener('click', () => {
+            this.audioSystem.playClick();
+            this.closeMatchingPanel();
+        });
+
+        // Results screen buttons
+        document.getElementById('retry-btn').addEventListener('click', () => {
+            this.audioSystem.playClick();
+            this.startGame(this.currentLocation);
+        });
+
+        document.getElementById('new-location-btn').addEventListener('click', () => {
+            this.audioSystem.playClick();
+            this.showScreen('location-screen');
+        });
+
+        // Audio toggle
+        document.getElementById('audio-toggle').addEventListener('click', () => {
+            const isMuted = this.audioSystem.toggleMute();
+            const btn = document.getElementById('audio-toggle');
+            btn.textContent = isMuted ? '🔇' : '🔊';
+        });
+    }
+
+    // Tooltip system - shows information on hover without taking vertical space
+    setupTooltips() {
+        const tooltip = document.getElementById('tooltip');
+        
+        document.querySelectorAll('[data-tooltip]').forEach(element => {
+            element.addEventListener('mouseenter', (e) => {
+                const text = e.currentTarget.dataset.tooltip;
+                tooltip.textContent = text;
+                tooltip.classList.add('show');
+            });
+
+            element.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('show');
+            });
+
+            // Touch support for mobile
+            element.addEventListener('touchstart', (e) => {
+                const text = e.currentTarget.dataset.tooltip;
+                tooltip.textContent = text;
+                tooltip.classList.add('show');
+                setTimeout(() => tooltip.classList.remove('show'), 3000);
+            });
+        });
+    }
+
+    // Screen management - switch between different game screens
+    showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // Start game with selected location
+    startGame(location) {
+        this.currentLocation = location;
+        this.currentHazards = [...gameData[location].hazards];
+        this.foundHazards = [];
+        this.score = 0;
+        this.timeRemaining = 60;
+        this.attempts = 0;
+        this.correctAttempts = 0;
+
+        this.showScreen('game-screen');
+        this.setupScene();
+        this.startTimer();
+        this.updateUI();
+    }
+
+    // Set up the scene with hazard hotspots
+    setupScene() {
+        const sceneArea = document.getElementById('scene-area');
+        const sceneTitle = document.getElementById('scene-title');
+        
+        sceneTitle.textContent = gameData[this.currentLocation].title;
+        sceneArea.style.background = gameData[this.currentLocation].background;
+        sceneArea.innerHTML = '';
+
+        // Create hotspots for each hazard
+        this.currentHazards.forEach(hazard => {
+            const hotspot = document.createElement('div');
+            hotspot.className = 'hazard-hotspot';
+            hotspot.style.top = hazard.position.top;
+            hotspot.style.left = hazard.position.left;
+            hotspot.innerHTML = hazard.icon;
+            hotspot.dataset.hazardId = hazard.id;
+
+            hotspot.addEventListener('click', () => {
+                if (!this.foundHazards.includes(hazard.id)) {
+                    this.audioSystem.playHazardFound();
+                    this.showMatchingPanel(hazard);
+                }
+            });
+
+            sceneArea.appendChild(hotspot);
+        });
+    }
+
+    // Timer system - creates time pressure for engagement
+    startTimer() {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+
+        this.timerInterval = setInterval(() => {
+            this.timeRemaining--;
+            this.updateUI();
+
+            // Warning sound when time is running low
+            if (this.timeRemaining === 10) {
+                this.audioSystem.playTone(440, 0.2, 'square');
+            }
+
+            if (this.timeRemaining <= 0) {
+                this.endGame();
+            }
+        }, 1000);
+    }
+
+    // Update UI elements (score, timer, progress)
+    updateUI() {
+        document.getElementById('timer').textContent = this.timeRemaining;
+        document.getElementById('score').textContent = this.score;
+        document.getElementById('progress').textContent = 
+            `${this.foundHazards.length}/${this.currentHazards.length}`;
+    }
+
+    // Show matching panel for hazard solution selection
+    showMatchingPanel(hazard) {
+        this.currentHazard = hazard;
+        const panel = document.getElementById('matching-panel');
+        
+        document.getElementById('hazard-title').textContent = hazard.name;
+        document.getElementById('hazard-description').textContent = hazard.description;
+
+        // Create solution cards
+        const solutionsGrid = document.getElementById('solutions-grid');
+        solutionsGrid.innerHTML = '';
+
+        // Shuffle solutions for variety
+        const shuffledSolutions = [...hazard.solutions].sort(() => Math.random() - 0.5);
+
+        shuffledSolutions.forEach(solution => {
+            const card = document.createElement('div');
+            card.className = 'solution-card';
+            card.innerHTML = `
+                <div class="solution-icon">${solution.icon}</div>
+                <div class="solution-text">${solution.text}</div>
+            `;
+
+            card.addEventListener('click', () => {
+                this.checkSolution(solution.id, card);
+            });
+
+            solutionsGrid.appendChild(card);
+        });
+
+        panel.classList.remove('hidden');
+    }
+
+    // Close matching panel
+    closeMatchingPanel() {
+        document.getElementById('matching-panel').classList.add('hidden');
+    }
+
+    // Check if selected solution is correct
+    checkSolution(solutionId, cardElement) {
+        this.attempts++;
+
+        if (solutionId === this.currentHazard.correctSolution) {
+            // Correct answer
+            this.audioSystem.playCorrect();
+            cardElement.classList.add('correct');
+            this.correctAttempts++;
+            
+            // Calculate score (bonus for speed and accuracy)
+            const baseScore = 100;
+            const timeBonus = Math.floor(this.timeRemaining / 2);
+            this.score += baseScore + timeBonus;
+
+            // Mark hazard as found
+            this.foundHazards.push(this.currentHazard.id);
+            this.markHazardFound(this.currentHazard.id);
+
+            setTimeout(() => {
+                this.closeMatchingPanel();
+                this.updateUI();
+
+                // Check if all hazards found
+                if (this.foundHazards.length === this.currentHazards.length) {
+                    this.endGame();
+                }
+            }, 1500);
+
+        } else {
+            // Incorrect answer
+            this.audioSystem.playIncorrect();
+            cardElement.classList.add('incorrect');
+            this.score = Math.max(0, this.score - 20); // Penalty for wrong answer
+
+            setTimeout(() => {
+                cardElement.classList.remove('incorrect');
+            }, 500);
+
+            this.updateUI();
+        }
+    }
+
+    // Visual feedback for found hazard
+    markHazardFound(hazardId) {
+        const hotspot = document.querySelector(`[data-hazard-id="${hazardId}"]`);
+        if (hotspot) {
+            hotspot.classList.add('found');
+        }
+    }
+
+    // End game and show results
+    endGame() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+        }
+
+        this.audioSystem.stopBackgroundMusic();
+
+        const allFound = this.foundHazards.length === this.currentHazards.length;
+        const timeBonus = allFound ? this.timeRemaining * 10 : 0;
+        const finalScore = this.score + timeBonus;
+        const accuracy = this.attempts > 0 ? 
+            Math.round((this.correctAttempts / this.attempts) * 100) : 0;
+
+        // Display results
+        document.getElementById('final-score').textContent = finalScore;
+        document.getElementById('time-bonus').textContent = timeBonus;
+        document.getElementById('accuracy').textContent = accuracy + '%';
+
+        // Feedback based on performance
+        let feedback = '';
+        let icon = '';
+
+        if (allFound && accuracy >= 80) {
+            icon = '🏆';
+            feedback = 'Outstanding! You\'re a fire safety expert! You identified all hazards quickly and accurately.';
+            this.audioSystem.playComplete();
+        } else if (allFound) {
+            icon = '⭐';
+            feedback = 'Great job! You found all hazards. Review the solutions to improve your accuracy.';
+            this.audioSystem.playComplete();
+        } else if (this.foundHazards.length >= 3) {
+            icon = '👍';
+            feedback = 'Good effort! You identified several hazards. Try again to find them all before time runs out.';
+        } else {
+            icon = '💪';
+            feedback = 'Keep practicing! Fire safety awareness takes time. Review the hazards and try again.';
+        }
+
+        document.getElementById('results-icon').textContent = icon;
+        document.getElementById('results-title').textContent = 
+            allFound ? 'Challenge Complete!' : 'Time\'s Up!';
+        document.getElementById('feedback-message').textContent = feedback;
+
+        this.showScreen('results-screen');
+    }
+}
+
+// ===========================
+// INITIALIZE GAME
+// ===========================
+
+// Wait for DOM to be fully loaded before initializing
+document.addEventListener('DOMContentLoaded', () => {
+    const game = new FireSafetyGame();
+});

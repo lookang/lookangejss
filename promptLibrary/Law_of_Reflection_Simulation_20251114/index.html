@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law of Reflection Simulation</title>
+    <link rel="stylesheet" href="styles.css">
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<style id="aiz-footer-style">
+#aiz-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2147483000;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto; /* keep links clickable */
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  color: #222;
+}
+#aiz-footer p {
+  margin: 0;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+#aiz-footer a { color: #0b69ff; text-decoration: underline; }
+</style>
+</head>
+<body>
+    <!-- Main container with responsive height -->
+    <div class="container">
+        <!-- Control Panel at top to save vertical space -->
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="angleSlider" class="control-label" title="Adjust the angle at which light hits the mirror">
+                    Angle of Incidence: <span id="angleValue">45.0°</span>
+                </label>
+                <input type="range" id="angleSlider" min="0" max="90" step="0.1" value="45" class="slider">
+            </div>
+            
+            <div class="button-group">
+                <button id="recordBtn" class="btn btn-primary" title="Record current angle values to data table">📊 Record</button>
+                <button id="plotBtn" class="btn btn-secondary" title="Generate graph from recorded data" disabled>📈 Plot Graph</button>
+                <button id="resetBtn" class="btn btn-danger" title="Clear all data and reset to default">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- Main content area with diagram and data -->
+        <div class="main-content">
+            <!-- Reflection Diagram -->
+            <div class="diagram-container">
+                <svg id="reflectionDiagram" viewBox="0 0 400 300" class="diagram">
+                    <!-- Mirror (horizontal line) -->
+                    <line x1="50" y1="250" x2="350" y2="250" stroke="#333" stroke-width="4" class="mirror"/>
+                    <text x="200" y="270" text-anchor="middle" class="label">Mirror</text>
+                    
+                    <!-- Normal line (dashed vertical) -->
+                    <line id="normalLine" x1="200" y1="100" x2="200" y2="250" stroke="#666" stroke-width="2" stroke-dasharray="5,5" class="normal"/>
+                    <text x="210" y="120" class="label">Normal</text>
+                    
+                    <!-- Incident ray -->
+                    <line id="incidentRay" x1="100" y1="150" x2="200" y2="250" stroke="#ff4444" stroke-width="3" class="ray"/>
+                    <polygon id="incidentArrow" points="195,245 200,250 190,248" fill="#ff4444" class="arrow"/>
+                    <text id="incidentLabel" x="120" y="140" class="ray-label">Incident Ray</text>
+                    
+                    <!-- Reflected ray -->
+                    <line id="reflectedRay" x1="200" y1="250" x2="300" y2="150" stroke="#4444ff" stroke-width="3" class="ray"/>
+                    <polygon id="reflectedArrow" points="295,155 300,150 305,160" fill="#4444ff" class="arrow"/>
+                    <text id="reflectedLabel" x="280" y="140" class="ray-label">Reflected Ray</text>
+                    
+                    <!-- Angle arcs and labels -->
+                    <path id="incidentArc" d="M 200,230 A 20,20 0 0,0 180,220" stroke="#ff4444" stroke-width="2" fill="none" class="angle-arc"/>
+                    <text id="incidentAngleLabel" x="170" y="235" class="angle-label">i = 45.0°</text>
+                    
+                    <path id="reflectedArc" d="M 220,220 A 20,20 0 0,0 200,230" stroke="#4444ff" stroke-width="2" fill="none" class="angle-arc"/>
+                    <text id="reflectedAngleLabel" x="225" y="235" class="angle-label">r = 45.0°</text>
+                </svg>
+            </div>
+
+            <!-- Data and Graph Container -->
+            <div class="data-container">
+                <!-- Data Table -->
+                <div class="table-container">
+                    <h3 class="section-title" title="Recorded measurements of incident and reflected angles">Data Table</h3>
+                    <table id="dataTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Angle of Incidence i (°)</th>
+                                <th>Angle of Reflection r (°)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <!-- Data rows will be added here -->
+                        </tbody>
+                    </table>
+                    <div id="noDataMessage" class="no-data">No data recorded yet. Use the Record button to add measurements.</div>
+                </div>
+
+                <!-- Graph Container -->
+                <div class="graph-container" id="graphContainer" style="display: none;">
+                    <h3 class="section-title" title="Visual representation showing i = r relationship">Graph: i vs r</h3>
+                    <canvas id="graphCanvas" width="300" height="200" class="graph"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Panel (collapsible) -->
+        <div class="analytics-panel">
+            <div class="analytics-header" id="analyticsToggle">
+                <span>📊 Learning Analytics</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="analytics-content" id="analyticsContent">
+                <div class="analytics-controls">
+                    <button id="clearLogBtn" class="btn btn-small" title="Clear all logged actions">Clear Log</button>
+                </div>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">🚀 Simulation started at t=0s</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+<footer id="aiz-footer" role="contentinfo"><p id="generated-footer-credit">Made by lookang, using Claude 4. For more resources: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light</a></p></footer>
+</body>
+</html>

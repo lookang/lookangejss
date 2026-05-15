@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun Function Machine</title>
+    <style>
+        /* --- LAYOUT --- */
+        body {
+            /* Using the font specified in the original CSS */
+            font-family: "Comic Sans MS", cursive, sans-serif;
+            background: #f3f9ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            /* Added min-height for better centering */
+            min-height: 100vh;
+            align-items: center;
+        }
+
+        #app {
+            max-width: 900px;
+            width: 95%; /* Use percentage for responsiveness */
+            padding: 20px;
+            box-sizing: border-box;
+            background: #fff; /* Added a background to the app container */
+            border-radius: 15px; /* Added rounded corners */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Added subtle shadow */
+        }
+
+        h1 {
+            text-align: center;
+            color: #ff6b00;
+            margin-top: 0;
+            margin-bottom: 20px; /* Added margin bottom */
+        }
+
+        #playArea {
+            display: flex;
+            /* Allow wrapping on smaller screens */
+            flex-wrap: wrap;
+            justify-content: space-around; /* Adjusted for better spacing */
+            align-items: center;
+            margin: 20px 0;
+            gap: 15px; /* Added gap between flex items */
+        }
+
+        .column {
+            /* Allow columns to shrink but base width around 1/3 */
+            flex: 1 1 150px;
+            text-align: center;
+            padding: 10px; /* Added padding */
+        }
+
+        .label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0277bd; /* Matched color with other elements */
+        }
+
+        /* --- NUMBER BUTTONS --- */
+        #numberBtns {
+            display: flex; /* Use flexbox for buttons */
+            flex-wrap: wrap; /* Allow buttons to wrap */
+            justify-content: center; /* Center buttons */
+            gap: 8px; /* Add gap between buttons */
+        }
+
+        .numberBtn {
+            width: 48px;
+            height: 48px;
+            /* Removed margin, using gap instead */
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            color: #fff;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; /* Added shadow transition */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Added subtle shadow */
+        }
+
+        .numberBtn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Enhanced shadow on hover */
+        }
+         .numberBtn:active { /* Added active state */
+            transform: scale(1.05);
+        }
+
+        /* --- FUNCTION MACHINE PIPE --- */
+        #machine {
+            /* Allow machine to take space but not dominate */
+            flex: 1 1 180px;
+            min-width: 180px; /* Ensure minimum width */
+            height: 120px;
+            background: #b3e5fc;
+            border: 6px solid #0288d1;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden; /* Keep overflow hidden */
+            margin: 10px; /* Added margin for spacing */
+        }
+
+        /* Pipe element isn't visually distinct, can be removed or styled if needed */
+        /* #pipe { width: 50px; height: 50px; } */
+
+        .block {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #fff;
+            position: absolute;
+            /* Start position adjusted slightly */
+            left: -60px;
+            /* Centered vertically */
+            top: calc(50% - 25px);
+            /* Ensure block is above other elements during animation */
+            z-index: 10;
+        }
+
+        /* Animation: slide through machine */
+        @keyframes travel {
+            0% {
+                left: -60px; /* Start outside on the left */
+                opacity: 1;
+            }
+            45% {
+                /* Move to center of the machine container */
+                left: calc(50% - 25px);
+                opacity: 1;
+            }
+            55% {
+                /* Pause in the center */
+                left: calc(50% - 25px);
+                opacity: 1;
+            }
+            100% {
+                /* Move far to the right, relative to the machine */
+                /* Adjust this value if output column position changes */
+                 left: calc(100% + 60px);
+                 opacity: 0; /* Fade out at the end */
+            }
+        }
+
+        /* --- OUTPUT --- */
+        #outputDisplay {
+            min-height: 50px;
+            font-size: 40px;
+            font-weight: bold;
+            color: #ff5722;
+            /* Added padding for better spacing */
+            padding: 10px;
+            background-color: #fff3e0; /* Light background for contrast */
+            border-radius: 8px; /* Rounded corners */
+            display: inline-block; /* Fit content size */
+            min-width: 60px; /* Minimum width */
+            text-align: center; /* Center text */
+        }
+
+        /* --- TABLE --- */
+        #attemptTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0; /* Increased margin */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Added shadow */
+            border-radius: 8px; /* Rounded corners for the table */
+            overflow: hidden; /* Clip content to rounded corners */
+        }
+
+        #attemptTable th, #attemptTable td {
+            border: 1px solid #b3e5fc; /* Lighter border */
+            padding: 10px 12px; /* Adjusted padding */
+            text-align: center;
+            font-size: 18px; /* Slightly smaller font */
+        }
+
+        #attemptTable th {
+            background: #4fc3f7;
+            color: #01579b; /* Darker blue for better contrast */
+            font-weight: bold; /* Ensure header is bold */
+        }
+        #attemptTable tbody tr:nth-child(even) {
+            background-color: #e1f5fe; /* Zebra striping */
+        }
+         #attemptTable tbody tr:hover {
+            background-color: #ccefff; /* Hover effect */
+        }
+
+
+        /* --- STUDENT ANSWER SECTION --- */
+        #studentAnswer {
+            background: #e1f5fe;
+            padding: 20px; /* Increased padding */
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #81d4fa; /* Added border */
+        }
+
+        #studentAnswer p {
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 15px; /* Added margin */
+            color: #0277bd;
+            font-size: 18px; /* Increased font size */
+        }
+
+        #functionGuess {
+            padding: 10px 14px; /* Increased padding */
+            font-size: 16px;
+            border: 2px solid #4fc3f7;
+            border-radius: 6px;
+            margin-right: 10px;
+            /* Make input wider */
+            width: clamp(150px, 40%, 200px);
+            box-sizing: border-box; /* Include padding in width */
+            margin-bottom: 10px; /* Add margin for smaller screens */
+        }
+
+        #checkAnswerBtn {
+            background: #ff9800;
+            border: none;
+            color: white;
+            padding: 10px 18px; /* Increased padding */
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s; /* Added transform */
+            font-weight: bold; /* Make text bold */
+             margin-bottom: 10px; /* Add margin for smaller screens */
+        }
+
+        #checkAnswerBtn:hover {
+            background: #f57c00;
+        }
+        #checkAnswerBtn:active {
+            transform: scale(0.98); /* Add press effect */
+        }
+
+        #feedbackMessage {
+            margin-top: 15px; /* Increased margin */
+            font-weight: bold;
+            min-height: 24px;
+            font-size: 16px; /* Ensure consistent size */
+            padding: 5px; /* Add padding */
+        }
+
+        #feedbackMessage.correct {
+            color: #388e3c; /* Darker green */
+            background-color: #e8f5e9; /* Light green background */
+            border-radius: 4px;
+        }
+
+        #feedbackMessage.incorrect {
+            color: #d32f2f; /* Darker red */
+             background-color: #ffebee; /* Light red background */
+             border-radius: 4px;
+        }
+
+        #scoreDisplay {
+            font-weight: bold;
+            color: #0277bd;
+            margin-top: 15px; /* Increased margin */
+            font-size: 18px;
+        }
+
+        /* --- CONTROL BUTTONS --- */
+        #controls {
+            text-align: center;
+            margin: 25px 0 15px 0; /* Adjusted margin */
+            display: flex; /* Use flexbox */
+            justify-content: center; /* Center buttons */
+            flex-wrap: wrap; /* Allow wrapping */
+            gap: 15px; /* Add gap */
+        }
+
+        #controls button {
+            background: #8bc34a;
+            border: none;
+            color: #fff;
+            padding: 12px 25px; /* Increased padding */
+            font-size: 18px;
+            /* margin: 0 10px; Removed margin, using gap */
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s; /* Added transform */
+            font-weight: bold; /* Make text bold */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Added shadow */
+        }
+
+        #controls button:hover {
+            background: #689f38;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Enhanced shadow */
+        }
+         #controls button:active {
+            transform: scale(0.98); /* Add press effect */
+        }
+
+        /* More resources section */
+        #moreResources {
+            background: #e8f5e9;
+            padding: 15px; /* Increased padding */
+            border-radius: 8px;
+            margin: 20px 0; /* Adjusted margin */
+            text-align: center;
+            border: 1px solid #a5d6a7; /* Added border */
+        }
+
+        #moreResources p {
+            margin: 0;
+            color: #2e7d32;
+            font-size: 14px; /* Adjusted font size */
+        }
+
+        #moreResources a {
+            color: #1b5e20; /* Darker green */
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        #moreResources a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        #credit {
+            text-align: center;
+            font-size: 12px;
+            color: #757575; /* Slightly darker grey */
+            margin-top: 20px; /* Added margin top */
+            margin-bottom: 5px;
+        }
+
+        #credit a {
+            color: #757575;
+            text-decoration: none;
+        }
+
+        #credit a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 24px;
+            }
+            #playArea {
+                flex-direction: column; /* Stack elements vertically */
+                align-items: stretch; /* Stretch items */
+            }
+             .column {
+                flex-basis: auto; /* Reset flex-basis */
+                margin-bottom: 15px; /* Add space between stacked columns */
+            }
+             #machine {
+                /* Ensure machine takes full width in column layout */
+                width: 90%;
+                margin-left: auto;
+                margin-right: auto;
+             }
+             /* Adjust animation end point for vertical layout */
+             @keyframes travel {
+                0% { left: -60px; opacity: 1; }
+                45% { left: calc(50% - 25px); opacity: 1; }
+                55% { left: calc(50% - 25px); opacity: 1; }
+                /* Needs careful adjustment based on where output appears */
+                /* This might need JS adjustment based on layout changes */
+                100% { left: calc(100% + 60px); opacity: 0; }
+            }
+
+            #attemptTable th, #attemptTable td {
+                font-size: 16px;
+                padding: 8px;
+            }
+            #controls {
+                flex-direction: column; /* Stack control buttons */
+                align-items: center; /* Center stacked buttons */
+            }
+            #controls button {
+                width: 80%; /* Make buttons wider */
+                max-width: 300px; /* Max width */
+                padding: 12px; /* Adjust padding */
+            }
+             #functionGuess {
+                width: 70%; /* Make input wider */
+                margin-right: 0; /* Remove right margin */
+            }
+             #checkAnswerBtn {
+                 width: 70%; /* Make button wider */
+                 max-width: 200px;
+             }
+        }
+
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <div id="app">
+        <h1>Fun Function Machine</h1>
+
+        <div id="playArea">
+            <div class="column" id="inputs">
+                <p class="label">Pick a number:</p>
+                <div id="numberBtns"></div>
+            </div>
+
+            <div id="machine">
+                </div>
+
+            <div class="column" id="outputs">
+                <p class="label">Output:</p>
+                <div id="outputDisplay">?</div>
+            </div>
+        </div>
+
+        <table id="attemptTable">
+            <thead>
+                <tr><th>Input</th><th>Output</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div id="studentAnswer">
+            <p>What do you think the function rule is?</p>
+            <input type="text" id="functionGuess" placeholder="e.g., *2 or +1 or ^2">
+            <button id="checkAnswerBtn">Check My Answer</button>
+            <div id="feedbackMessage"></div> <div id="scoreDisplay">Score: 0</div> </div>
+
+        <div id="controls">
+            <button id="revealBtn">Reveal Rule</button>
+            <button id="newRuleBtn">New Rule</button>
+        </div>
+
+        <div id="moreResources">
+            <p>For more resources visit: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics" target="_blank">sg.iwant2study.org</a></p>
+        </div>
+
+        <p id="credit">Created with ❤️ using <a href="https://moeptt.vercel.app/#menuD" target="_blank">https://moeptt.vercel.app/#menuD</a></p>
+    </div>
+
+    <script>
+        // Wait for the DOM to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // =========================
+            // Fun Function Machine code
+            // =========================
+
+            // Helper to pick bright random colour for blocks
+            function randomColor() {
+                const colours = ["#ff3d00", "#ff6d00", "#dd2c00", "#00bfa5", "#2962ff", "#d500f9", "#ff1744", "#00c853", "#fbc02d", "#f57c00", "#4caf50", "#1976d2"]; // Added more colors
+                return colours[Math.floor(Math.random() * colours.length)];
+            }
+
+            // A set of simple function rules pupils can discover
+            // Updated to include more pattern variations including ^2 for square and ^3 for cube
+            const rules = [
+                { calc: x => x + 1, text: "Add 1", patterns: ["x+1", "+1", "1+", "plus 1", "add 1"] },
+                { calc: x => x + 2, text: "Add 2", patterns: ["x+2", "+2", "2+", "plus 2", "add 2"] },
+                { calc: x => x * 2, text: "Double", patterns: ["x*2", "*2", "2*", "x×2", "×2", "2×", "double", "times 2", "multiply by 2", "2x"] },
+                { calc: x => x * 2 + 1, text: "Double then add 1", patterns: ["x*2+1", "2x+1", "double+1", "double then add 1", "times 2 plus 1", "*2+1"] },
+                { calc: x => x - 1, text: "Minus 1", patterns: ["x-1", "-1", "subtract 1", "minus 1", "take away 1"] },
+                { calc: x => x * 3, text: "Triple", patterns: ["x*3", "*3", "3*", "x×3", "×3", "3×", "triple", "times 3", "multiply by 3", "3x"] },
+                { calc: x => x * x, text: "Square", patterns: ["x*x", "x²", "x^2", "^2", "square", "x squared", "power of 2"] }, // Added ^2 as requested
+                { calc: x => x + 5, text: "Add 5", patterns: ["x+5", "+5", "5+", "plus 5", "add 5"] },
+                // Added cube function with ^3 pattern as requested
+                { calc: x => x * x * x, text: "Cube", patterns: ["x*x*x", "x³", "x^3", "^3", "cube", "x cubed", "power of 3"] }
+            ];
+
+            let currentRule; // stores the rule object in play
+            let score = 0; // track student's score
+            let blockInTransit = false; // Flag to prevent multiple blocks animating at once
+
+            // DOM elements we need
+            const numberBtnsContainer = document.getElementById("numberBtns");
+            const outputDisplay = document.getElementById("outputDisplay");
+            const attemptBody = document.querySelector("#attemptTable tbody");
+            const revealBtn = document.getElementById("revealBtn");
+            const newRuleBtn = document.getElementById("newRuleBtn");
+            const machine = document.getElementById("machine");
+
+            // New elements for student answer checking
+            const functionGuessInput = document.getElementById("functionGuess");
+            const checkAnswerBtn = document.getElementById("checkAnswerBtn");
+            const feedbackMessage = document.getElementById("feedbackMessage");
+            const scoreDisplay = document.getElementById("scoreDisplay");
+
+            // 1. Build number buttons 0-9
+            for (let i = 0; i <= 9; i++) {
+                const btn = document.createElement("button");
+                btn.className = "numberBtn";
+                btn.textContent = i;
+                // give each button its own cheerful colour
+                btn.style.background = randomColor();
+                btn.addEventListener("click", () => processInput(i));
+                numberBtnsContainer.appendChild(btn);
+            }
+
+            // 2. Select a random rule to start
+            resetRule();
+
+            function resetRule() {
+                // Ensure a new rule is selected (different from the current one if possible)
+                let newRuleIndex;
+                const currentRuleIndex = rules.indexOf(currentRule);
+                do {
+                    newRuleIndex = Math.floor(Math.random() * rules.length);
+                } while (rules.length > 1 && newRuleIndex === currentRuleIndex); // Avoid same rule if possible
+
+                currentRule = rules[newRuleIndex];
+                outputDisplay.textContent = "?";
+                attemptBody.innerHTML = ""; // Clear the table body
+                feedbackMessage.textContent = ""; // Clear feedback
+                feedbackMessage.className = ""; // Reset feedback class
+                functionGuessInput.value = ""; // Clear guess input
+                blockInTransit = false; // Reset animation flag
+                console.log("New rule selected:", currentRule.text); // For debugging
+            }
+
+            // 3. Handle an input chosen by the pupil
+            function processInput(num) {
+                // Prevent processing if a block is already moving
+                if (blockInTransit) {
+                    console.log("Animation in progress, please wait.");
+                    return;
+                }
+                blockInTransit = true; // Set the flag
+
+                // calculate output using hidden rule
+                const result = currentRule.calc(num);
+
+                // Make an animated coloured block with the input number
+                const block = document.createElement("div");
+                block.className = "block";
+                block.style.background = randomColor();
+                block.textContent = num;
+
+                // when animation ends, show output & record attempt
+                block.addEventListener("animationend", () => {
+                    // remove block from DOM after travel
+                    if (block.parentNode) {
+                        block.remove();
+                    }
+                    showOutput(result);
+                    recordAttempt(num, result);
+                    blockInTransit = false; // Reset the flag
+                });
+
+                // trigger animation via CSS keyframes
+                // The animation duration should match the CSS @keyframes duration
+                block.style.animation = "travel 1.8s forwards ease-in-out";
+                machine.appendChild(block);
+
+                // Clear output display while travelling
+                outputDisplay.textContent = "...";
+            }
+
+            // Put the output big on the right
+            function showOutput(value) {
+                outputDisplay.textContent = value;
+            }
+
+            // Add a row to the attempts table so pupils can find the pattern
+            function recordAttempt(inp, out) {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${inp}</td><td>${out}</td>`;
+                // Prepend to show latest attempt at the top (optional)
+                // attemptBody.prepend(row);
+                attemptBody.appendChild(row); // Append to show oldest first
+            }
+
+            // Reveal button shows the rule in a custom message box & on page
+            revealBtn.addEventListener("click", () => {
+                // Use the feedback area to show the rule instead of alert()
+                feedbackMessage.textContent = `The rule was: ${currentRule.text}`;
+                feedbackMessage.className = "info"; // Use a neutral class if needed, or reuse 'incorrect' styling
+                // Optional: style the .info class in CSS if you want a different look
+            });
+
+            // New rule button starts fresh
+            newRuleBtn.addEventListener("click", () => {
+                resetRule();
+            });
+
+            // Check student's answer - Updated to handle more pattern variations
+            checkAnswerBtn.addEventListener("click", () => {
+                const studentGuess = functionGuessInput.value.trim().toLowerCase()
+                                        // Replace common variations for better matching
+                                        .replace(/times/g, '*')
+                                        .replace(/multiply by/g, '*')
+                                        .replace(/plus/g, '+')
+                                        .replace(/add/g, '+')
+                                        .replace(/subtract/g, '-')
+                                        .replace(/minus/g, '-')
+                                        .replace(/take away/g, '-')
+                                        .replace(/squared/g, '^2')
+                                        .replace(/cubed/g, '^3')
+                                        .replace(/power of (\d)/g, '^\$1') // e.g., power of 2 -> ^2
+                                        .replace(/ /g, ''); // Remove spaces
+
+                // Don't allow empty submissions
+                if (!studentGuess) {
+                    feedbackMessage.textContent = "Please enter your guess first!";
+                    feedbackMessage.className = "incorrect";
+                    return;
+                }
+
+                // Normalize patterns for comparison (remove spaces, lowercase)
+                const normalizedPatterns = currentRule.patterns.map(p =>
+                    p.toLowerCase().replace(/ /g, '')
+                );
+
+                // Check if the student's normalized answer matches any of the acceptable normalized patterns
+                const isCorrect = normalizedPatterns.some(pattern => studentGuess === pattern);
+
+                if (isCorrect) {
+                    // Correct answer - award 1 mark
+                    score++;
+                    scoreDisplay.textContent = `Score: ${score}`;
+                    feedbackMessage.textContent = "Correct! Well done! +1 mark. Try the 'New Rule' button!";
+                    feedbackMessage.className = "correct";
+                } else {
+                    feedbackMessage.textContent = "Not quite right. Look at the table and try again!";
+                    feedbackMessage.className = "incorrect";
+                }
+            });
+
+            // Also allow Enter key to submit answer in the input field
+            functionGuessInput.addEventListener("keypress", (event) => {
+                // event.key === 'Enter' is the modern standard
+                if (event.key === "Enter") {
+                    // Prevent the default form submission behavior if it were in a form
+                    event.preventDefault();
+                    // Trigger the click event on the check answer button
+                    checkAnswerBtn.click();
+                }
+            });
+
+        }); // End of DOMContentLoaded
+    </script>
+</body>
+</html>

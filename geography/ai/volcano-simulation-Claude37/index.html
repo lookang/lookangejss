@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Volcano Eruption Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .controls {
+      background-color: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .control-group {
+      margin-bottom: 10px;
+      width: 48%;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+    }
+    
+    select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    
+    .btn-play {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .btn-pause {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .description {
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      border-left: 4px solid #2196F3;
+    }
+    
+    .svg-container {
+      width: 100%;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    svg {
+      width: 100%;
+      height: auto;
+      max-height: 600px;
+    }
+    
+    .characteristics {
+      margin-top: 20px;
+      background-color: #f0f0f0;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .characteristics h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .char-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .char-item {
+      background-color: white;
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .char-item p {
+      margin: 0;
+      font-size: 14px;
+    }
+    
+    @media (max-width: 768px) {
+      .control-group {
+        width: 100%;
+      }
+      
+      .char-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="controls">
+      <div class="control-group">
+        <label for="eruption-type">Select Eruption Type:</label>
+        <select id="eruption-type">
+          <option value="strombolian">Strombolian</option>
+          <option value="plinian">Plinian</option>
+          <option value="hawaiian">Hawaiian</option>
+          <option value="vulcanian">Vulcanian</option>
+        </select>
+        <div class="description" id="eruption-description">
+          Strombolian Eruption: Relatively mild eruptions with lava fountains and moderate ash clouds.
+        </div>
+      </div>
+      <div class="control-group">
+        <button id="toggle-play" class="btn-pause">Pause Animation</button>
+      </div>
+    </div>
+    
+    <div class="svg-container" id="volcano-container">
+      <!-- SVG will be inserted here by JavaScript -->
+    </div>
+    
+    <div class="characteristics">
+      <h3>Eruption Characteristics:</h3>
+      <div class="char-grid">
+        <div class="char-item">
+          <p><strong>Lava Intensity:</strong> <span id="lava-intensity">moderate</span></p>
+        </div>
+        <div class="char-item">
+          <p><strong>Ash Cloud:</strong> <span id="ash-cloud">small</span></p>
+        </div>
+        <div class="char-item">
+          <p><strong>Danger Level:</strong> <span id="danger-level">moderate</span></p>
+        </div>
+        <div class="char-item">
+          <p><strong>Magma Viscosity:</strong> <span id="magma-viscosity">medium</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+    <p>made using Claude 3.7 App</p>
+    <p>For more resources, go to <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/humanities/geography" target="_blank">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/humanities/geography</a></p>
+  </div>
+
+  <script>
+    // Eruption types data
+    const eruptions = {
+      strombolian: {
+        description: "Relatively mild eruptions with lava fountains and moderate ash clouds.",
+        lavaIntensity: "moderate",
+        ashCloud: "small",
+        danger: "moderate",
+        magmaViscosity: "medium"
+      },
+      plinian: {
+        description: "Extremely explosive eruptions with massive ash columns reaching the stratosphere.",
+        lavaIntensity: "low",
+        ashCloud: "massive",
+        danger: "extreme",
+        magmaViscosity: "high"
+      },
+      hawaiian: {
+        description: "Fluid lava flows with minimal explosivity, creating shield volcanoes.",
+        lavaIntensity: "high",
+        ashCloud: "minimal",
+        danger: "low",
+        magmaViscosity: "low"
+      },
+      vulcanian: {
+        description: "Short, violent eruptions with ash, gas, and thick lava that travels short distances.",
+        lavaIntensity: "moderate",
+        ashCloud: "moderate",
+        danger: "high",
+        magmaViscosity: "high"
+      }
+    };
+    
+    // State variables
+    let currentEruption = 'strombolian';
+    let isPlaying = true;
+    
+    // DOM elements
+    const eruptionSelect = document.getElementById('eruption-type');
+    const togglePlayButton = document.getElementById('toggle-play');
+    const eruptionDescription = document.getElementById('eruption-description');
+    const volcanoContainer = document.getElementById('volcano-container');
+    const lavaIntensityElement = document.getElementById('lava-intensity');
+    const ashCloudElement = document.getElementById('ash-cloud');
+    const dangerLevelElement = document.getElementById('danger-level');
+    const magmaViscosityElement = document.getElementById('magma-viscosity');
+    
+    // Event listeners
+    eruptionSelect.addEventListener('change', function() {
+      currentEruption = this.value;
+      updateVolcano();
+    });
+    
+    togglePlayButton.addEventListener('click', function() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        this.textContent = 'Pause Animation';
+        this.className = 'btn-pause';
+      } else {
+        this.textContent = 'Play Animation';
+        this.className = 'btn-play';
+      }
+      updateVolcano();
+    });
+    
+    // Helper functions
+    function getAshCloudSize() {
+      switch (eruptions[currentEruption].ashCloud) {
+        case 'massive': return { rx: 150, ry: 120, height: 200 };
+        case 'moderate': return { rx: 100, ry: 70, height: 150 };
+        case 'small': return { rx: 70, ry: 50, height: 100 };
+        case 'minimal': return { rx: 40, ry: 30, height: 60 };
+        default: return { rx: 70, ry: 50, height: 100 };
+      }
+    }
+    
+    function getLavaIntensity() {
+      switch (eruptions[currentEruption].lavaIntensity) {
+        case 'high': return { particleCount: 12, flowWidth: 40, flowHeight: 80 };
+        case 'moderate': return { particleCount: 8, flowWidth: 20, flowHeight: 40 };
+        case 'low': return { particleCount: 4, flowWidth: 10, flowHeight: 20 };
+        default: return { particleCount: 8, flowWidth: 20, flowHeight: 40 };
+      }
+    }
+    
+    function getMagmaViscosity() {
+      switch (eruptions[currentEruption].magmaViscosity) {
+        case 'high': return { color: '#CC3300', flowSpeed: 'slow' };
+        case 'medium': return { color: '#FF4500', flowSpeed: 'medium' };
+        case 'low': return { color: '#FF6600', flowSpeed: 'fast' };
+        default: return { color: '#FF4500', flowSpeed: 'medium' };
+      }
+    }
+    
+    function getDurationFactor() {
+      const magmaViscosity = getMagmaViscosity();
+      switch (magmaViscosity.flowSpeed) {
+        case 'slow': return 1.5;
+        case 'medium': return 1;
+        case 'fast': return 0.6;
+        default: return 1;
+      }
+    }
+    
+    function generateLavaParticles() {
+      const lavaIntensity = getLavaIntensity();
+      const count = lavaIntensity.particleCount;
+      let particles = '';
+      
+      for (let i = 0; i < count; i++) {
+        const duration = 0.8 + Math.random() * 0.8;
+        const delay = Math.random() * 0.5;
+        
+        particles += `
+          <circle 
+            cx="400" 
+            cy="200" 
+            r="${2 + Math.random() * 3}" 
+            fill="#FFCC00"
+            opacity="${isPlaying ? 1 : 0.3}"
+          >
+            ${isPlaying ? `
+              <animate 
+                attributeName="cy" 
+                values="200;${150 - i * 10};${100 - i * 15}" 
+                dur="${duration}s" 
+                repeatCount="indefinite"
+                begin="${delay}s"
+              />
+              <animate 
+                attributeName="cx" 
+                values="400;${395 + i * 5};${390 + i * 10}" 
+                dur="${duration}s" 
+                repeatCount="indefinite"
+                begin="${delay}s"
+              />
+              <animate 
+                attributeName="opacity" 
+                values="1;0.5;0" 
+                dur="${duration}s" 
+                repeatCount="indefinite"
+                begin="${delay}s"
+              />
+            ` : ''}
+          </circle>
+        `;
+      }
+      
+      return particles;
+    }
+    
+    // Main render function
+    function updateVolcano() {
+      // Update description and characteristics
+      eruptionDescription.textContent = `${currentEruption.charAt(0).toUpperCase() + currentEruption.slice(1)} Eruption: ${eruptions[currentEruption].description}`;
+      lavaIntensityElement.textContent = eruptions[currentEruption].lavaIntensity;
+      ashCloudElement.textContent = eruptions[currentEruption].ashCloud;
+      dangerLevelElement.textContent = eruptions[currentEruption].danger;
+      magmaViscosityElement.textContent = eruptions[currentEruption].magmaViscosity;
+      
+      // Get parameters for current eruption type
+      const ashCloud = getAshCloudSize();
+      const lavaIntensity = getLavaIntensity();
+      const magmaViscosity = getMagmaViscosity();
+      const durationFactor = getDurationFactor();
+      
+      // Create SVG
+      const svgContent = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+          <!-- Background -->
+          <rect width="800" height="600" fill="#87CEEB" />
+          
+          <!-- Ground -->
+          <rect width="800" height="150" y="450" fill="#8B4513" />
+          
+          <!-- Volcano base -->
+          <polygon points="100,450 700,450 550,200 250,200" fill="#A0522D" />
+          
+          <!-- Volcano crater -->
+          <path d="M250,200 L550,200 L500,250 L300,250 Z" fill="#3A1F04" />
+          
+          <!-- Magma chamber -->
+          <ellipse cx="400" cy="350" rx="60" ry="40" fill="${magmaViscosity.color}">
+            ${isPlaying ? `
+              <animate attributeName="ry" values="40;45;40" dur="${3 * durationFactor}s" repeatCount="indefinite" />
+            ` : ''}
+          </ellipse>
+          
+          <!-- Magma conduit -->
+          <rect x="${400 - lavaIntensity.flowWidth/2}" y="250" width="${lavaIntensity.flowWidth}" height="100" fill="${magmaViscosity.color}">
+            ${isPlaying ? `
+              <animate attributeName="height" values="100;95;100" dur="${2 * durationFactor}s" repeatCount="indefinite" />
+            ` : ''}
+          </rect>
+          
+          <!-- Lava flow -->
+          <path 
+            d="M${400 - lavaIntensity.flowWidth/2},250 L${400 + lavaIntensity.flowWidth/2},250 L${400 + lavaIntensity.flowWidth},${250 - lavaIntensity.flowHeight} L${400 - lavaIntensity.flowWidth},${250 - lavaIntensity.flowHeight} Z" 
+            fill="${magmaViscosity.color}"
+            opacity="${isPlaying ? 1 : 0.7}"
+          >
+            ${isPlaying ? `
+              <animate 
+                attributeName="d" 
+                values="
+                  M${400 - lavaIntensity.flowWidth/2},250 L${400 + lavaIntensity.flowWidth/2},250 L${400 + lavaIntensity.flowWidth},${250 - lavaIntensity.flowHeight} L${400 - lavaIntensity.flowWidth},${250 - lavaIntensity.flowHeight} Z;
+                  M${400 - lavaIntensity.flowWidth/2 - 5},250 L${400 + lavaIntensity.flowWidth/2 + 5},250 L${400 + lavaIntensity.flowWidth + 5},${250 - lavaIntensity.flowHeight - 10} L${400 - lavaIntensity.flowWidth - 5},${250 - lavaIntensity.flowHeight - 10} Z;
+                  M${400 - lavaIntensity.flowWidth/2},250 L${400 + lavaIntensity.flowWidth/2},250 L${400 + lavaIntensity.flowWidth},${250 - lavaIntensity.flowHeight} L${400 - lavaIntensity.flowWidth},${250 - lavaIntensity.flowHeight} Z
+                " 
+                dur="${1.5 * durationFactor}s" 
+                repeatCount="indefinite" 
+              />
+            ` : ''}
+          </path>
+          
+          <!-- Eruption smoke and ash cloud -->
+          <g opacity="${isPlaying ? 1 : 0.5}">
+            <ellipse 
+              cx="400" 
+              cy="${200 - ashCloud.height/2}" 
+              rx="${ashCloud.rx}" 
+              ry="${ashCloud.ry}" 
+              fill="#555555" 
+              opacity="0.7"
+            >
+              ${isPlaying ? `
+                <animate attributeName="cy" values="${200 - ashCloud.height/2};${190 - ashCloud.height/2};${200 - ashCloud.height/2}" dur="4s" repeatCount="indefinite" />
+                <animate attributeName="rx" values="${ashCloud.rx};${ashCloud.rx + 10};${ashCloud.rx}" dur="3s" repeatCount="indefinite" />
+              ` : ''}
+            </ellipse>
+            <ellipse 
+              cx="350" 
+              cy="${160 - ashCloud.height/2}" 
+              rx="${ashCloud.rx * 0.7}" 
+              ry="${ashCloud.ry * 0.6}" 
+              fill="#777777" 
+              opacity="0.6"
+            >
+              ${isPlaying ? `
+                <animate attributeName="cy" values="${160 - ashCloud.height/2};${155 - ashCloud.height/2};${160 - ashCloud.height/2}" dur="3.5s" repeatCount="indefinite" />
+              ` : ''}
+            </ellipse>
+            <ellipse 
+              cx="450" 
+              cy="${160 - ashCloud.height/2}" 
+              rx="${ashCloud.rx * 0.7}" 
+              ry="${ashCloud.ry * 0.6}" 
+              fill="#777777" 
+              opacity="0.6"
+            >
+              ${isPlaying ? `
+                <animate attributeName="cy" values="${160 - ashCloud.height/2};${150 - ashCloud.height/2};${160 - ashCloud.height/2}" dur="3.2s" repeatCount="indefinite" />
+              ` : ''}
+            </ellipse>
+            <ellipse 
+              cx="400" 
+              cy="${130 - ashCloud.height/2}" 
+              rx="${ashCloud.rx * 1.2}" 
+              ry="${ashCloud.ry * 0.8}" 
+              fill="#999999" 
+              opacity="0.5"
+            >
+              ${isPlaying ? `
+                <animate attributeName="rx" values="${ashCloud.rx * 1.2};${ashCloud.rx * 1.3};${ashCloud.rx * 1.2}" dur="4.5s" repeatCount="indefinite" />
+              ` : ''}
+            </ellipse>
+          </g>
+          
+          <!-- Lava particles -->
+          <g>
+            ${generateLavaParticles()}
+          </g>
+          
+          <!-- Labels -->
+          <g font-family="Arial" font-size="14" font-weight="bold">
+            <text x="400" y="${130 - ashCloud.height/2}" text-anchor="middle" fill="black">Ash Cloud</text>
+            <text x="400" y="220" text-anchor="middle" fill="white">Crater</text>
+            <text x="400" y="345" text-anchor="middle" fill="white">Magma Chamber</text>
+            <text x="435" y="290" text-anchor="start" fill="white">Magma Conduit</text>
+            <text x="600" y="350" text-anchor="middle" fill="white">Volcano Slope</text>
+            <text x="150" y="480" text-anchor="middle" fill="white">Bedrock</text>
+          </g>
+          
+          <!-- Title -->
+          <text x="400" y="40" font-family="Arial" font-size="24" font-weight="bold" text-anchor="middle" fill="black">
+            ${currentEruption.charAt(0).toUpperCase() + currentEruption.slice(1)} Volcano Eruption
+          </text>
+          
+          <!-- Legend -->
+          <g transform="translate(600, 500)">
+            <rect x="0" y="0" width="180" height="80" fill="white" opacity="0.7" rx="5" />
+            <text x="10" y="20" font-family="Arial" font-size="12" font-weight="bold">Legend:</text>
+            <rect x="10" y="30" width="15" height="15" fill="${magmaViscosity.color}" />
+            <text x="30" y="42" font-family="Arial" font-size="12">Magma/Lava</text>
+            <rect x="10" y="50" width="15" height="15" fill="#777777" opacity="0.6" />
+            <text x="30" y="62" font-family="Arial" font-size="12">Ash and Gas</text>
+          </g>
+        </svg>
+      `;
+      
+      volcanoContainer.innerHTML = svgContent;
+    }
+    
+    // Initial render
+    updateVolcano();
+  </script>
+</body>
+</html>

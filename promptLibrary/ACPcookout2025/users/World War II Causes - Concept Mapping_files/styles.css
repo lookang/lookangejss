@@ -1,0 +1,461 @@
+/* Mobile-first responsive design with cognitive load considerations */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Main container - responsive height management */
+.container {
+    width: 100%;
+    height: 450px; /* Default iframe height */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Detect if running in new tab vs iframe */
+@media (min-height: 600px) {
+    .container {
+        height: 90vh;
+    }
+}
+
+/* Instructions panel - collapsible to save space */
+.instructions-panel {
+    background: #2c3e50;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.toggle-btn {
+    width: 100%;
+    padding: 8px 16px;
+    background: #34495e;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.3s ease;
+    min-height: 44px; /* Touch-friendly target size */
+}
+
+.toggle-btn:hover {
+    background: #3b5998;
+}
+
+.instructions-content {
+    padding: 12px 16px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.instructions-content.expanded {
+    max-height: 120px;
+}
+
+.instructions-content p {
+    font-size: 13px;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+/* Updated legend with color coding for categories */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.legend-item {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+}
+
+/* Color-coded legend items to match category zones */
+.trigger-legend {
+    background: #e74c3c;
+}
+
+.contributory-legend {
+    background: #f39c12;
+}
+
+.underlying-legend {
+    background: #27ae60;
+}
+
+/* Main mapping area */
+.mapping-area {
+    flex: 1;
+    position: relative;
+    background: #f8f9fa;
+    border: 2px dashed #ddd;
+    margin: 8px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Central node - the main topic */
+.central-node {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 10;
+    max-width: 200px;
+}
+
+.central-node h3 {
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1.3;
+}
+
+/* Category zones for organizing factors - increased size and added distinct colors */
+.category-zone {
+    position: absolute;
+    width: 200px; /* Increased from 140px */
+    height: 120px; /* Increased from 80px */
+    border: 3px solid; /* Increased border width */
+    border-radius: 12px; /* Increased border radius */
+    padding: 12px; /* Increased padding */
+    transition: all 0.3s ease;
+    background: rgba(255,255,255,0.9); /* Slightly more opaque */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* Added subtle shadow */
+}
+
+.category-zone h4 {
+    font-size: 14px; /* Increased from 12px */
+    font-weight: bold;
+    margin-bottom: 6px; /* Increased spacing */
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Added text shadow for better readability */
+}
+
+.category-zone .zone-hint {
+    font-size: 11px; /* Increased from 10px */
+    color: rgba(255,255,255,0.9); /* Changed to white for better contrast */
+    line-height: 1.3; /* Improved line height */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Added text shadow */
+}
+
+/* Color-coded category zones */
+.trigger-zone {
+    top: 20px;
+    left: 20px;
+    border-color: #e74c3c;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.8), rgba(192, 57, 43, 0.8));
+}
+
+.contributory-zone {
+    top: 20px;
+    right: 20px;
+    border-color: #f39c12;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.8), rgba(211, 84, 0, 0.8));
+}
+
+.underlying-zone {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-color: #27ae60;
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.8), rgba(22, 160, 133, 0.8));
+}
+
+.category-zone.drag-over {
+    border-style: solid;
+    background: rgba(255,255,255,0.95);
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2); /* Enhanced shadow on drag over */
+}
+
+/* SVG overlay for connection lines */
+.connection-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Added styles for manual connection lines with different colors */
+.manual-connection-line {
+    stroke-width: 3;
+    fill: none;
+    opacity: 0.8;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.manual-connection-line:hover {
+    stroke-width: 4;
+    opacity: 1;
+}
+
+/* Different colored connection lines based on connection type */
+.connection-color-1 {
+    stroke: #e74c3c; /* Red */
+}
+
+.connection-color-2 {
+    stroke: #3498db; /* Blue */
+}
+
+.connection-color-3 {
+    stroke: #2ecc71; /* Green */
+}
+
+.connection-color-4 {
+    stroke: #9b59b6; /* Purple */
+}
+
+.connection-color-5 {
+    stroke: #f39c12; /* Orange */
+}
+
+.connection-color-6 {
+    stroke: #1abc9c; /* Turquoise */
+}
+
+.connection-color-7 {
+    stroke: #e67e22; /* Dark Orange */
+}
+
+.connection-color-8 {
+    stroke: #34495e; /* Dark Gray */
+}
+
+/* Temporary connection line while drawing */
+.temp-connection-line {
+    stroke: #3498db;
+    stroke-width: 2;
+    fill: none;
+    opacity: 0.6;
+    stroke-dasharray: 3,3;
+}
+
+/* Factors container */
+.factors-container {
+    background: #ecf0f1;
+    padding: 8px;
+    border-top: 1px solid #bdc3c7;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.factors-container h4 {
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #2c3e50;
+}
+
+.factors-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Factor cards - neutral styling without category-specific colors */
+.factor-card {
+    background: white;
+    border: 2px solid #bdc3c7; /* Neutral border for all factor cards */
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: grab;
+    user-select: none;
+    font-size: 11px;
+    line-height: 1.3;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-height: 44px; /* Touch-friendly */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 140px;
+    color: #2c3e50; /* Neutral text color */
+}
+
+.factor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.factor-card.dragging {
+    cursor: grabbing;
+    transform: rotate(5deg) scale(1.05);
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+.factor-card.placed {
+    position: absolute;
+    cursor: move;
+}
+
+/* Added styles for connection mode */
+.factor-card.connection-mode {
+    cursor: pointer;
+}
+
+.factor-card.selected-for-connection {
+    border-color: #e74c3c;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+    transform: scale(1.05);
+}
+
+/* Control buttons */
+.controls {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    background: #34495e;
+    justify-content: center;
+}
+
+.control-btn {
+    padding: 6px 12px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: background 0.3s ease;
+    min-height: 36px; /* Touch-friendly */
+    flex: 1;
+    max-width: 100px;
+}
+
+.control-btn:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+/* Added styles for connection mode button */
+.control-btn.connection-active {
+    background: #e74c3c;
+}
+
+.control-btn.connection-active:hover {
+    background: #c0392b;
+}
+
+/* Feedback panel */
+.feedback-panel {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(46, 204, 113, 0.95);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    max-width: 280px;
+    text-align: center;
+}
+
+.feedback-panel.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.feedback-panel.error {
+    background: rgba(231, 76, 60, 0.95);
+}
+
+/* Tooltip for detailed information */
+.tooltip {
+    position: absolute;
+    background: rgba(44, 62, 80, 0.95);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1001;
+    max-width: 200px;
+    pointer-events: none;
+}
+
+.tooltip.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 480px) {
+    .category-zone {
+        width: 160px; /* Adjusted for mobile */
+        height: 100px; /* Adjusted for mobile */
+    }
+    
+    .factor-card {
+        font-size: 10px;
+        padding: 4px 8px;
+        max-width: 120px;
+    }
+    
+    .central-node {
+        max-width: 160px;
+        padding: 10px 12px;
+    }
+    
+    .central-node h3 {
+        font-size: 12px;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus indicators for keyboard navigation */
+.factor-card:focus,
+.control-btn:focus,
+.toggle-btn:focus {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+}

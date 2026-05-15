@@ -1,0 +1,1348 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Inelastic collision</title>
+<meta name="description" content="Simulate inelastic collisions in real-time and explore momentum, energy loss, and collision dynamics with interactive controls." />
+<meta name="keywords" content="inelastic collision, collision simulation, momentum conservation, physics simulation, dynamics interactive, energy loss collision, two-body collision, kinetic energy, collision physics, secondary physics, mechanics simulation, real-time physics" />
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.max.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function inelastic(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var t; // EjsS Model.Variables.Physics.t
+  var x; // EjsS Model.Variables.Physics.x
+  var y; // EjsS Model.Variables.Physics.y
+  var vx; // EjsS Model.Variables.Physics.vx
+  var vy; // EjsS Model.Variables.Physics.vy
+  var L; // EjsS Model.Variables.Physics.L
+  var alpha; // EjsS Model.Variables.Physics.alpha
+
+  var dt; // EjsS Model.Variables.Presentation.dt
+  var tol; // EjsS Model.Variables.Presentation.tol
+  var a; // EjsS Model.Variables.Presentation.a
+  var b; // EjsS Model.Variables.Presentation.b
+  var xmax; // EjsS Model.Variables.Presentation.xmax
+  var stopcol; // EjsS Model.Variables.Presentation.stopcol
+  var ncol; // EjsS Model.Variables.Presentation.ncol
+  var computed; // EjsS Model.Variables.Presentation.computed
+  var Com; // EjsS Model.Variables.Presentation.Com
+  var boxed; // EjsS Model.Variables.Presentation.boxed
+  var massX; // EjsS Model.Variables.Presentation.massX
+  var massY; // EjsS Model.Variables.Presentation.massY
+  var partX; // EjsS Model.Variables.Presentation.partX
+  var R; // EjsS Model.Variables.Presentation.R
+  var boxX; // EjsS Model.Variables.Presentation.boxX
+  var boxSize; // EjsS Model.Variables.Presentation.boxSize
+  var showVelocities; // EjsS Model.Variables.Presentation.showVelocities
+  var showElements; // EjsS Model.Variables.Presentation.showElements
+
+  var alphaMin; // EjsS Model.Variables.Auxiliary.alphaMin
+
+  var fontb; // EjsS Model.Variables.varfrem.fontb
+  var font; // EjsS Model.Variables.varfrem.font
+  var box; // EjsS Model.Variables.varfrem.box
+
+  var _privateOdesList;
+  var _ODEi_evolution1;
+  var userEvents1=[];
+
+  _model.getOdes = function() { return [_ODEi_evolution1]; };
+
+  _model.removeEvents = function(){
+    userEvents1=[];
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      t : t,
+      x : x,
+      y : y,
+      vx : vx,
+      vy : vy,
+      L : L,
+      alpha : alpha,
+      dt : dt,
+      tol : tol,
+      a : a,
+      b : b,
+      xmax : xmax,
+      stopcol : stopcol,
+      ncol : ncol,
+      computed : computed,
+      Com : Com,
+      boxed : boxed,
+      massX : massX,
+      massY : massY,
+      partX : partX,
+      R : R,
+      boxX : boxX,
+      boxSize : boxSize,
+      showVelocities : showVelocities,
+      showElements : showElements,
+      alphaMin : alphaMin,
+      fontb : fontb,
+      font : font,
+      box : box
+    };
+  };
+
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return {
+      t : t,
+      x : x,
+      y : y,
+      vx : vx,
+      vy : vy,
+      L : L,
+      alpha : alpha,
+      dt : dt,
+      tol : tol,
+      a : a,
+      b : b,
+      xmax : xmax,
+      stopcol : stopcol,
+      ncol : ncol,
+      computed : computed,
+      Com : Com,
+      boxed : boxed,
+      massX : massX,
+      massY : massY,
+      partX : partX,
+      R : R,
+      boxX : boxX,
+      boxSize : boxSize,
+      showVelocities : showVelocities,
+      showElements : showElements,
+      alphaMin : alphaMin,
+      fontb : fontb,
+      font : font,
+      box : box
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.vx != "undefined") vx = json.vx;
+    if(typeof json.vy != "undefined") vy = json.vy;
+    if(typeof json.L != "undefined") L = json.L;
+    if(typeof json.alpha != "undefined") alpha = json.alpha;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.tol != "undefined") tol = json.tol;
+    if(typeof json.a != "undefined") a = json.a;
+    if(typeof json.b != "undefined") b = json.b;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.stopcol != "undefined") stopcol = json.stopcol;
+    if(typeof json.ncol != "undefined") ncol = json.ncol;
+    if(typeof json.computed != "undefined") computed = json.computed;
+    if(typeof json.Com != "undefined") Com = json.Com;
+    if(typeof json.boxed != "undefined") boxed = json.boxed;
+    if(typeof json.massX != "undefined") massX = json.massX;
+    if(typeof json.massY != "undefined") massY = json.massY;
+    if(typeof json.partX != "undefined") partX = json.partX;
+    if(typeof json.R != "undefined") R = json.R;
+    if(typeof json.boxX != "undefined") boxX = json.boxX;
+    if(typeof json.boxSize != "undefined") boxSize = json.boxSize;
+    if(typeof json.showVelocities != "undefined") showVelocities = json.showVelocities;
+    if(typeof json.showElements != "undefined") showElements = json.showElements;
+    if(typeof json.alphaMin != "undefined") alphaMin = json.alphaMin;
+    if(typeof json.fontb != "undefined") fontb = json.fontb;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.box != "undefined") box = json.box;
+  };
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.vx != "undefined") vx = json.vx;
+    if(typeof json.vy != "undefined") vy = json.vy;
+    if(typeof json.L != "undefined") L = json.L;
+    if(typeof json.alpha != "undefined") alpha = json.alpha;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.tol != "undefined") tol = json.tol;
+    if(typeof json.a != "undefined") a = json.a;
+    if(typeof json.b != "undefined") b = json.b;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.stopcol != "undefined") stopcol = json.stopcol;
+    if(typeof json.ncol != "undefined") ncol = json.ncol;
+    if(typeof json.computed != "undefined") computed = json.computed;
+    if(typeof json.Com != "undefined") Com = json.Com;
+    if(typeof json.boxed != "undefined") boxed = json.boxed;
+    if(typeof json.massX != "undefined") massX = json.massX;
+    if(typeof json.massY != "undefined") massY = json.massY;
+    if(typeof json.partX != "undefined") partX = json.partX;
+    if(typeof json.R != "undefined") R = json.R;
+    if(typeof json.boxX != "undefined") boxX = json.boxX;
+    if(typeof json.boxSize != "undefined") boxSize = json.boxSize;
+    if(typeof json.showVelocities != "undefined") showVelocities = json.showVelocities;
+    if(typeof json.showElements != "undefined") showElements = json.showElements;
+    if(typeof json.alphaMin != "undefined") alphaMin = json.alphaMin;
+    if(typeof json.fontb != "undefined") fontb = json.fontb;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.box != "undefined") box = json.box;
+  };
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["inital values"] = true;
+    __pagesEnabled["svg"] = true;
+    __pagesEnabled["Dynamical system"] = true;
+    __pagesEnabled["Collision"] = true;
+    __pagesEnabled["Spring"] = true;
+    __pagesEnabled["Infinity"] = true;
+    __pagesEnabled["Alpha"] = true;
+  });
+
+  _model.addToReset(function() {
+    t = 0; // EjsS Model.Variables.Physics.t
+    x = 1.0; // EjsS Model.Variables.Physics.x
+    y = 2.0; // EjsS Model.Variables.Physics.y
+    vx = 0; // EjsS Model.Variables.Physics.vx
+    vy = 0; // EjsS Model.Variables.Physics.vy
+    L = 2.; // EjsS Model.Variables.Physics.L
+    alpha = .5; // EjsS Model.Variables.Physics.alpha
+  });
+
+  _model.addToReset(function() {
+    dt = 0.1; // EjsS Model.Variables.Presentation.dt
+    tol = 1.0E-7; // EjsS Model.Variables.Presentation.tol
+    a = .75; // EjsS Model.Variables.Presentation.a
+    b = .375; // EjsS Model.Variables.Presentation.b
+    xmax = 8.0; // EjsS Model.Variables.Presentation.xmax
+    stopcol = false; // EjsS Model.Variables.Presentation.stopcol
+    ncol = 0; // EjsS Model.Variables.Presentation.ncol
+    computed = false; // EjsS Model.Variables.Presentation.computed
+    Com = true; // EjsS Model.Variables.Presentation.Com
+    boxed = true; // EjsS Model.Variables.Presentation.boxed
+    massX = x+.5*a; // EjsS Model.Variables.Presentation.massX
+    massY = y+a+.5*b; // EjsS Model.Variables.Presentation.massY
+    partX = (x+alpha*y)/(1.+alpha)+.5*(a+b); // EjsS Model.Variables.Presentation.partX
+    R = a/4; // EjsS Model.Variables.Presentation.R
+    boxX = .5*a+.5*b+.5*(x+y); // EjsS Model.Variables.Presentation.boxX
+    boxSize = a+b+y-x; // EjsS Model.Variables.Presentation.boxSize
+    showVelocities = false; // EjsS Model.Variables.Presentation.showVelocities
+    showElements = true; // EjsS Model.Variables.Presentation.showElements
+  });
+
+  _model.addToReset(function() {
+    alphaMin = 0.001; // EjsS Model.Variables.Auxiliary.alphaMin
+  });
+
+  _model.addToReset(function() {
+    fontb = "normal bold 2vw"; // EjsS Model.Variables.varfrem.fontb
+    font = "normal normal 2vw"; // EjsS Model.Variables.varfrem.font
+    box = 1; // EjsS Model.Variables.varfrem.box
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _privateOdesList=[];
+    _ODEi_evolution1 = _ODE_evolution1();
+    _privateOdesList.push(_ODEi_evolution1);
+  });
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  //https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Using_full_screen_mode  // > CustomCode.fullScreen:1
+  // does not work for iOS   // > CustomCode.fullScreen:2
+  /*jslint browser:true */  // > CustomCode.fullScreen:3
+  function toggleFullScreen() {  // > CustomCode.fullScreen:4
+    if (!document.fullscreenElement &&    // alternative standard method  // > CustomCode.fullScreen:5
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods  // > CustomCode.fullScreen:6
+      if (document.documentElement.requestFullscreen) {  // > CustomCode.fullScreen:7
+        document.documentElement.requestFullscreen();  // > CustomCode.fullScreen:8
+      } else if (document.documentElement.msRequestFullscreen) {  // > CustomCode.fullScreen:9
+        document.documentElement.msRequestFullscreen();  // > CustomCode.fullScreen:10
+      } else if (document.documentElement.mozRequestFullScreen) {  // > CustomCode.fullScreen:11
+        document.documentElement.mozRequestFullScreen();  // > CustomCode.fullScreen:12
+      } else if (document.documentElement.webkitRequestFullscreen) {  // > CustomCode.fullScreen:13
+        document.documentElement.webkitRequestFullscreen();  // > CustomCode.fullScreen:14
+      }  // > CustomCode.fullScreen:15
+    } else {  // > CustomCode.fullScreen:16
+      if (document.exitFullscreen) {  // > CustomCode.fullScreen:17
+        document.exitFullscreen();  // > CustomCode.fullScreen:18
+      } else if (document.msExitFullscreen) {  // > CustomCode.fullScreen:19
+        document.msExitFullscreen();  // > CustomCode.fullScreen:20
+      } else if (document.mozCancelFullScreen) {  // > CustomCode.fullScreen:21
+        document.mozCancelFullScreen();  // > CustomCode.fullScreen:22
+      } else if (document.webkitExitFullscreen) {  // > CustomCode.fullScreen:23
+        document.webkitExitFullscreen();  // > CustomCode.fullScreen:24
+      }  // > CustomCode.fullScreen:25
+    }  // > CustomCode.fullScreen:26
+  }  // > CustomCode.fullScreen:27
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["inital values"]) return;
+    x = 1.0;  // > Initialization.inital values:1
+    y = x+L;  // > Initialization.inital values:2
+    vx = vy = -1.;  // > Initialization.inital values:3
+    t = x/vx;  // > Initialization.inital values:4
+    ncol = 0;  // > Initialization.inital values:5
+    computed = false;  // > Initialization.inital values:6
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["svg"]) return;
+    var container = document.createElement('div');  // > Initialization.svg:1
+    var svggradient = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs>'+  // > Initialization.svg:2
+      '  <radialGradient id="mygrandient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">'+  // > Initialization.svg:3
+      '    <stop offset="0%" style="stop-color:rgb(200,220,208); stop-opacity:1" />'+  // > Initialization.svg:4
+      '    <stop offset="100%" style="stop-color:rgb(100,200,208);stop-opacity:0.5" />'+  // > Initialization.svg:5
+      '  </radialGradient>'+  // > Initialization.svg:6
+      '</defs></svg>';  // > Initialization.svg:7
+    container.innerHTML = svggradient;  // > Initialization.svg:8
+    document.body.appendChild(container);  // > Initialization.svg:9
+    //"url(#mygrandient)"  // > Initialization.svg:10
+  });
+
+  _model.addToInitialization(function() {
+    _initializeSolvers();
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Dynamical system"]) return;
+    _ODEi_evolution1.step();
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["Alpha"]) return;
+    if (alpha < alphaMin)  // > FixedRelations.Alpha:1
+      alpha = alphaMin;  // > FixedRelations.Alpha:2
+    b = alpha*a;    // > FixedRelations.Alpha:3
+    massX = x+.5*a;  // > FixedRelations.Alpha:4
+    massY = y+a+.5*b;  // > FixedRelations.Alpha:5
+    partX = (x+alpha*y)/(1.+alpha)+.5*(a+b);  // > FixedRelations.Alpha:6
+    boxX = .5*a+.5*b+.5*(x+y);  // > FixedRelations.Alpha:7
+    boxSize = a+b+y-x;  // > FixedRelations.Alpha:8
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  function _initializeSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].initializeSolver();
+  }
+
+  function _automaticResetSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].automaticResetSolver();
+  }
+
+  _model.resetSolvers = function() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].resetSolver();
+  };
+
+  _getODE = function (_odeName) {
+    if (_odeName=="Dynamical system") return _ODEi_evolution1;
+    return null;
+  }
+
+  function _getEventSolver(_odeName) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return null;
+    return ode.getEventSolver();
+  }
+
+  function _setSolverClass(_odeName, _engine) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return;
+    if (!_engine.setODE) {
+      var classname = _engine.toLowerCase();
+      if      (classname.indexOf("boga")>=0)   _engine = EJSS_ODE_SOLVERS.bogackiShampine23;
+      else if (classname.indexOf("cash")>=0)   _engine = EJSS_ODE_SOLVERS.cashKarp45;
+      else if (classname.indexOf("dopri5")>=0) _engine = EJSS_ODE_SOLVERS.dopri5;
+      else if (classname.indexOf("dopri8")>=0) _engine = EJSS_ODE_SOLVERS.dopri853;
+      else if (classname.indexOf("richa")>=0)  _engine = EJSS_ODE_SOLVERS.eulerRichardson;
+      else if (classname.indexOf("euler")>=0)  _engine = EJSS_ODE_SOLVERS.euler;
+      else if (classname.indexOf("fehlberg87")>=0) _engine = EJSS_ODE_SOLVERS.fehlberg87;
+      else if (classname.indexOf("fehlberg8")>=0)  _engine = EJSS_ODE_SOLVERS.fehlberg8;
+      else if (classname.indexOf("radau")>=0)   _engine = EJSS_ODE_SOLVERS.radau5;
+      else if (classname.indexOf("runge")>=0)  _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("rk4")>=0)    _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("verlet")>=0) _engine = EJSS_ODE_SOLVERS.velocityVerlet;
+    }
+    if (_engine) ode.setSolverClass(_engine);
+  }
+
+  function _ODE_evolution1() {
+    var __odeSelf = {};
+    var __eventSolver;
+    var __solverClass = EJSS_ODE_SOLVERS.rungeKutta4;
+    var __state=[];
+    var _ODE_evolution1_Event1;
+    var _ODE_evolution1_Event2;
+    var _ODE_evolution1_Event3;
+    var __ignoreErrors=false;
+    var __mustInitialize=true;
+    var __isEnabled=true;
+    var __mustUserReinitialize=false;
+    var __mustReinitialize=true;
+
+
+    __odeSelf._getOdeVars = function (){ return["x","y","vx","vy","t"]};
+
+    __odeSelf.setSolverClass = function(__aSolverClass) {
+      __solverClass = __aSolverClass;
+      __instantiateSolver();
+    };
+
+    function __instantiateSolver() {
+      __state=[];
+      __pushState();
+      __eventSolver = EJSS_ODE_SOLVERS.interpolatorEventSolver(__solverClass(),__odeSelf);
+      __mustInitialize = true;
+    }
+
+    __odeSelf.setEnabled = function(_enabled) { __isEnabled = _enabled; };
+
+    __odeSelf.getIndependentVariableValue = function() { return __eventSolver.getIndependentVariableValue(); };
+
+    __odeSelf.getInternalStepSize = function() { return __eventSolver.getInternalStepSize(); };
+
+    __odeSelf.isAccelerationIndependentOfVelocity = function() { return false; };
+
+    __odeSelf.initializeSolver = function() {
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); return; }
+      __pushState();
+      __eventSolver.initialize(dt);
+      __eventSolver.setBestInterpolation(false);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.removeAllEvents();
+      if (__pagesEnabled["Collision"]) __eventSolver.addEvent(_ODE_evolution1_Event1());
+      if (__pagesEnabled["Spring"]) __eventSolver.addEvent(_ODE_evolution1_Event2());
+      if (__pagesEnabled["Infinity"]) __eventSolver.addEvent(_ODE_evolution1_Event3());
+      for(k in userEvents1){__eventSolver.addEvent(userEvents1[k]);}
+      __eventSolver.setEstimateFirstStep(false);
+      __eventSolver.setEnableExceptions(false);
+      __eventSolver.setTolerances(tol,tol);
+      __mustReinitialize = true;
+      __mustInitialize = false;
+    };
+
+    function __pushState() {
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        if (__state[__cIn]!=x) __mustReinitialize = true;
+        __state[__cIn++] = x;
+        if (__state[__cIn]!=y) __mustReinitialize = true;
+        __state[__cIn++] = y;
+        if (__state[__cIn]!=vx) __mustReinitialize = true;
+        __state[__cIn++] = vx;
+        if (__state[__cIn]!=vy) __mustReinitialize = true;
+        __state[__cIn++] = vy;
+        if (__state[__cIn]!=t) __mustReinitialize = true;
+        __state[__cIn++] = t;
+    }
+
+    function __arraysChanged () {
+      return false;
+    }
+
+    __odeSelf.getEventSolver = function() {
+      return __eventSolver;
+    };
+
+    __odeSelf.resetSolver = function() {
+      __mustUserReinitialize = true;
+    };
+
+    __odeSelf.automaticResetSolver = function() {
+      __mustReinitialize = true;
+    };
+
+    function __errorAction () {
+      if (__ignoreErrors) return;
+      console.log (__eventSolver.getErrorMessage());
+      _pause();
+      // Make sure the solver is reinitialized;
+      __mustReinitialize = true;
+    }
+
+    __odeSelf.step = function() { return __privateStep(false); };
+
+    __odeSelf.solverStep = function() { return __privateStep(true); };
+
+    function __privateStep(__takeMaximumStep) {
+      if (!__isEnabled) return 0;
+      if (dt===0) return 0;
+      if (__mustInitialize) __odeSelf.initializeSolver();
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); }
+      __eventSolver.setStepSize(dt);
+      __eventSolver.setInternalStepSize(dt);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.setTolerances(tol,tol);
+      __pushState();
+      if (__mustUserReinitialize) { 
+        __eventSolver.userReinitialize();
+        __mustUserReinitialize = false;
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      else if (__mustReinitialize) { 
+        __eventSolver.reinitialize();
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      var __stepTaken = __takeMaximumStep ? __eventSolver.maxStep() : __eventSolver.step();
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        x = __state[__cOut++];
+        y = __state[__cOut++];
+        vx = __state[__cOut++];
+        vy = __state[__cOut++];
+        t = __state[__cOut++];
+      // Check for error
+      if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      return __stepTaken;
+    }
+
+    __odeSelf.getState = function() { return __state; };
+
+    __odeSelf.getRate = function(_aState,_aRate) {
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var x = _aState[__cOut++];
+        var y = _aState[__cOut++];
+        var vx = _aState[__cOut++];
+        var vy = _aState[__cOut++];
+        var t = _aState[__cOut++];
+      // Compute the rate
+        var __cRate=0;
+        _aRate[__cRate++] = vx; // Rate for ODE: Dynamical system:x
+        _aRate[__cRate++] = vy; // Rate for ODE: Dynamical system:y
+        _aRate[__cRate++] = (y-x-L); // Rate for ODE: Dynamical system:vx
+        _aRate[__cRate++] = -(y-x-L)/alpha; // Rate for ODE: Dynamical system:vy
+        _aRate[__cRate++] = 1; // independent variable
+        return _aRate;
+    }; //end of getRate
+
+    __odeSelf._addEvent = function(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent){
+    var User_Event = function (userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent) {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return eventType; };
+
+      _eventSelf.getRootFindingMethod = function() { return eventMethod; };
+
+      _eventSelf.getMaxIterations = function() { return maxIter; };
+
+      _eventSelf.getTolerance = function() { return eventTolerance; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var x = _aState[__cOut++];
+        var y = _aState[__cOut++];
+        var vx = _aState[__cOut++];
+        var vy = _aState[__cOut++];
+        var t = _aState[__cOut++];
+      return eval(userCondition);
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        x = __state[__cOut++];
+        y = __state[__cOut++];
+        vx = __state[__cOut++];
+        vy = __state[__cOut++];
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = x;
+        __state[__cIn++] = y;
+        __state[__cIn++] = vx;
+        __state[__cIn++] = vy;
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        if (undefined != functions) eval(functions.toString());
+        eval(userAction);
+        return endAtEvent;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+   userEvents1.push(User_Event(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent));
+   }
+
+    _ODE_evolution1_Event1 = function() {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return EJSS_ODE_SOLVERS.EVENT_TYPE.STATE_EVENT; };
+
+      _eventSelf.getRootFindingMethod = function() { return EJSS_ODE_SOLVERS.EVENT_METHOD.BISECTION; };
+
+      _eventSelf.getMaxIterations = function() { return 100; };
+
+      _eventSelf.getTolerance = function() { return tol; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var x = _aState[__cOut++];
+        var y = _aState[__cOut++];
+        var vx = _aState[__cOut++];
+        var vy = _aState[__cOut++];
+        var t = _aState[__cOut++];
+        return x;  // > Event zero-condition for page Dynamical system:1
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        x = __state[__cOut++];
+        y = __state[__cOut++];
+        vx = __state[__cOut++];
+        vy = __state[__cOut++];
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = x;
+        __state[__cIn++] = y;
+        __state[__cIn++] = vx;
+        __state[__cIn++] = vy;
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        vx = Math.abs(vx);  // > Event action for page Dynamical system:1
+        ncol++;  // > Event action for page Dynamical system:2
+        _resetSolvers();  // > Event action for page Dynamical system:3
+        if (stopcol) _pause();  // > Event action for page Dynamical system:4
+        computed = true;  // > Event action for page Dynamical system:5
+        return true;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+    _ODE_evolution1_Event2 = function() {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return EJSS_ODE_SOLVERS.EVENT_TYPE.STATE_EVENT; };
+
+      _eventSelf.getRootFindingMethod = function() { return EJSS_ODE_SOLVERS.EVENT_METHOD.BISECTION; };
+
+      _eventSelf.getMaxIterations = function() { return 100; };
+
+      _eventSelf.getTolerance = function() { return 0.001; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var x = _aState[__cOut++];
+        var y = _aState[__cOut++];
+        var vx = _aState[__cOut++];
+        var vy = _aState[__cOut++];
+        var t = _aState[__cOut++];
+        return y-x;  // > Event zero-condition for page Dynamical system:1
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        x = __state[__cOut++];
+        y = __state[__cOut++];
+        vx = __state[__cOut++];
+        vy = __state[__cOut++];
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = x;
+        __state[__cIn++] = y;
+        __state[__cIn++] = vx;
+        __state[__cIn++] = vy;
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        //_alert("Main","Simulation stopped","Spring too short");  // > Event action for page Dynamical system:1
+        alert("Main","Simulation stopped","Spring too short");  // > Event action for page Dynamical system:2
+        _resetSolvers();  // > Event action for page Dynamical system:3
+        _pause();  // > Event action for page Dynamical system:4
+        return true;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+    _ODE_evolution1_Event3 = function() {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return EJSS_ODE_SOLVERS.EVENT_TYPE.STATE_EVENT; };
+
+      _eventSelf.getRootFindingMethod = function() { return EJSS_ODE_SOLVERS.EVENT_METHOD.BISECTION; };
+
+      _eventSelf.getMaxIterations = function() { return 100; };
+
+      _eventSelf.getTolerance = function() { return 0.001; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var x = _aState[__cOut++];
+        var y = _aState[__cOut++];
+        var vx = _aState[__cOut++];
+        var vy = _aState[__cOut++];
+        var t = _aState[__cOut++];
+        return xmax+a-x;  // > Event zero-condition for page Dynamical system:1
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        x = __state[__cOut++];
+        y = __state[__cOut++];
+        vx = __state[__cOut++];
+        vy = __state[__cOut++];
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = x;
+        __state[__cIn++] = y;
+        __state[__cIn++] = vx;
+        __state[__cIn++] = vy;
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        _pause();  // > Event action for page Dynamical system:1
+        return true;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+    __instantiateSolver();
+
+    return __odeSelf;
+  }
+
+  function _historic_x(__time) {
+    var __index = 0;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_y(__time) {
+    var __index = 0 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_vx(__time) {
+    var __index = 0 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_vy(__time) {
+    var __index = 0 + 1 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new inelastic_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.executionPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'executionPanel'
+          _view.runPauseButton.setAction("OffClick", _pause); // HtmlView Page setting action 'OffClick' for element 'runPauseButton'
+          _view.runPauseButton.linkProperty("State",  function() { return _isPaused; } ); // HtmlView Page linking property 'State' for element 'runPauseButton'
+          _view.runPauseButton.setAction("OnClick", _play); // HtmlView Page setting action 'OnClick' for element 'runPauseButton'
+          _view.runPauseButton.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'runPauseButton'
+          _view.stepButton.setAction("OnClick", _step); // HtmlView Page setting action 'OnClick' for element 'stepButton'
+          _view.stepButton.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'stepButton'
+          _view.comboBox.linkProperty("Options",  function() { return ["Zoom","Display","a = ","L = ","δt = "]; } ); // HtmlView Page linking property 'Options' for element 'comboBox'
+          _view.comboBox.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBox.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  //["Zoom","Display","a = ","L = ","δt = "]
+  if (option == "Zoom"){box =1;}
+  else if (option == "Display"){box = 2;}
+  else if (option == "a = "){box = 3;}
+  else if (option == "L = "){box = 4;}
+  else if (option == "δt = "){box = 5;}
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBox'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBox'
+          _view.zoom.linkProperty("Value",  function() { return xmax; }, function(_v) { xmax = _v; } ); // HtmlView Page linking property 'Value' for element 'zoom'
+          _view.zoom.linkProperty("Display",  function() { return (box==1)?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'zoom'
+          _view.display.linkProperty("Display",  function() { return (box==2)?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'display'
+          _view.stopCol.linkProperty("Checked",  function() { return stopcol; }, function(_v) { stopcol = _v; } ); // HtmlView Page linking property 'Checked' for element 'stopCol'
+          _view.showCOM.linkProperty("Checked",  function() { return Com; }, function(_v) { Com = _v; } ); // HtmlView Page linking property 'Checked' for element 'showCOM'
+          _view.Veloctities.linkProperty("Checked",  function() { return showVelocities; }, function(_v) { showVelocities = _v; } ); // HtmlView Page linking property 'Checked' for element 'Veloctities'
+          _view.showBox.linkProperty("Checked",  function() { return boxed; }, function(_v) { boxed = _v; } ); // HtmlView Page linking property 'Checked' for element 'showBox'
+          _view.showEl.linkProperty("Checked",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Checked' for element 'showEl'
+          _view.alpha.linkProperty("Value",  function() { return alpha; }, function(_v) { alpha = _v; } ); // HtmlView Page linking property 'Value' for element 'alpha'
+          _view.alpha.linkProperty("Editable",  function() { return _isPaused; } ); // HtmlView Page linking property 'Editable' for element 'alpha'
+          _view.alpha.setAction("OnChange", function(_data,_info) {
+  _initialize();
+
+}); // HtmlView Page setting action 'OnChange' for element 'alpha'
+          _view.alpha.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'alpha'
+          _view.alpha.linkProperty("Display",  function() { return (box==3)?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'alpha'
+          _view.L.linkProperty("Value",  function() { return L; }, function(_v) { L = _v; } ); // HtmlView Page linking property 'Value' for element 'L'
+          _view.L.linkProperty("Editable",  function() { return _isPaused; } ); // HtmlView Page linking property 'Editable' for element 'L'
+          _view.L.setAction("OnChange", function(_data,_info) {
+  _initialize();
+
+}); // HtmlView Page setting action 'OnChange' for element 'L'
+          _view.L.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'L'
+          _view.L.linkProperty("Display",  function() { return (box==4)?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'L'
+          _view.dtValue.linkProperty("Value",  function() { return dt; }, function(_v) { dt = _v; } ); // HtmlView Page linking property 'Value' for element 'dtValue'
+          _view.dtValue.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'dtValue'
+          _view.dtValue.linkProperty("Display",  function() { return (box==5)?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'dtValue'
+          _view.resetButton.setAction("OnClick", _reset); // HtmlView Page setting action 'OnClick' for element 'resetButton'
+          _view.resetButton.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'resetButton'
+          _view.plottingPanel.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnZoom", function(_data,_info) {
+  _view.plottingPanel.setZoomLimits([1,30]);
+
+}); // HtmlView Page setting action 'OnZoom' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("BLMessage",  function() { return ncol.toFixed(0)+" collision(s)"; } ); // HtmlView Page linking property 'BLMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("BRMessage",  function() { return "e = "+((vx+alpha*vy)/(1+alpha)).toFixed(3); } ); // HtmlView Page linking property 'BRMessage' for element 'plottingPanel'
+          _view.Axis.linkProperty("Y",  function() { return -.5*a; } ); // HtmlView Page linking property 'Y' for element 'Axis'
+          _view.Axis.linkProperty("SizeY",  function() { return 2.5*a; } ); // HtmlView Page linking property 'SizeY' for element 'Axis'
+          _view.xLeft.linkProperty("SizeX",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeX' for element 'xLeft'
+          _view.xLeft.linkProperty("X",  function() { return -massX; } ); // HtmlView Page linking property 'X' for element 'xLeft'
+          _view.xLeft.linkProperty("Visibility",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Visibility' for element 'xLeft'
+          _view.xLeft.linkProperty("SizeY",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeY' for element 'xLeft'
+          _view.xRight.linkProperty("SizeX",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeX' for element 'xRight'
+          _view.xRight.linkProperty("X",  function() { return massX; }, function(_v) { massX = _v; } ); // HtmlView Page linking property 'X' for element 'xRight'
+          _view.xRight.linkProperty("Visibility",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Visibility' for element 'xRight'
+          _view.xRight.linkProperty("SizeY",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeY' for element 'xRight'
+          _view.yleft.linkProperty("SizeX",  function() { return b; }, function(_v) { b = _v; } ); // HtmlView Page linking property 'SizeX' for element 'yleft'
+          _view.yleft.linkProperty("X",  function() { return -massY; } ); // HtmlView Page linking property 'X' for element 'yleft'
+          _view.yleft.linkProperty("Visibility",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Visibility' for element 'yleft'
+          _view.yleft.linkProperty("SizeY",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeY' for element 'yleft'
+          _view.yRight.linkProperty("SizeX",  function() { return b; }, function(_v) { b = _v; } ); // HtmlView Page linking property 'SizeX' for element 'yRight'
+          _view.yRight.linkProperty("X",  function() { return massY; }, function(_v) { massY = _v; } ); // HtmlView Page linking property 'X' for element 'yRight'
+          _view.yRight.linkProperty("Visibility",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Visibility' for element 'yRight'
+          _view.yRight.linkProperty("SizeY",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeY' for element 'yRight'
+          _view.springLeft.linkProperty("SizeX",  function() { return y-x; } ); // HtmlView Page linking property 'SizeX' for element 'springLeft'
+          _view.springLeft.linkProperty("X",  function() { return -y-a; } ); // HtmlView Page linking property 'X' for element 'springLeft'
+          _view.springLeft.linkProperty("Visibility",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Visibility' for element 'springLeft'
+          _view.springRight.linkProperty("SizeX",  function() { return y-x; } ); // HtmlView Page linking property 'SizeX' for element 'springRight'
+          _view.springRight.linkProperty("X",  function() { return x+a; } ); // HtmlView Page linking property 'X' for element 'springRight'
+          _view.springRight.linkProperty("Visibility",  function() { return showElements; }, function(_v) { showElements = _v; } ); // HtmlView Page linking property 'Visibility' for element 'springRight'
+          _view.partLeft.linkProperty("SizeX",  function() { return R; }, function(_v) { R = _v; } ); // HtmlView Page linking property 'SizeX' for element 'partLeft'
+          _view.partLeft.linkProperty("X",  function() { return -partX; } ); // HtmlView Page linking property 'X' for element 'partLeft'
+          _view.partLeft.linkProperty("Visibility",  function() { return Com; }, function(_v) { Com = _v; } ); // HtmlView Page linking property 'Visibility' for element 'partLeft'
+          _view.partLeft.linkProperty("SizeY",  function() { return R; }, function(_v) { R = _v; } ); // HtmlView Page linking property 'SizeY' for element 'partLeft'
+          _view.partRight.linkProperty("SizeX",  function() { return R; }, function(_v) { R = _v; } ); // HtmlView Page linking property 'SizeX' for element 'partRight'
+          _view.partRight.linkProperty("X",  function() { return partX; }, function(_v) { partX = _v; } ); // HtmlView Page linking property 'X' for element 'partRight'
+          _view.partRight.linkProperty("Visibility",  function() { return Com; }, function(_v) { Com = _v; } ); // HtmlView Page linking property 'Visibility' for element 'partRight'
+          _view.partRight.linkProperty("SizeY",  function() { return R; }, function(_v) { R = _v; } ); // HtmlView Page linking property 'SizeY' for element 'partRight'
+          _view.Table.linkProperty("SizeX",  function() { return 4*xmax; } ); // HtmlView Page linking property 'SizeX' for element 'Table'
+          _view.Table.linkProperty("Y",  function() { return -0.75*a; } ); // HtmlView Page linking property 'Y' for element 'Table'
+          _view.Table.linkProperty("SizeY",  function() { return a/2; } ); // HtmlView Page linking property 'SizeY' for element 'Table'
+          _view.boxLeft.linkProperty("SizeX",  function() { return boxSize; }, function(_v) { boxSize = _v; } ); // HtmlView Page linking property 'SizeX' for element 'boxLeft'
+          _view.boxLeft.linkProperty("X",  function() { return -boxX; } ); // HtmlView Page linking property 'X' for element 'boxLeft'
+          _view.boxLeft.linkProperty("Visibility",  function() { return boxed; }, function(_v) { boxed = _v; } ); // HtmlView Page linking property 'Visibility' for element 'boxLeft'
+          _view.boxLeft.linkProperty("SizeY",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeY' for element 'boxLeft'
+          _view.boxRight.linkProperty("SizeX",  function() { return boxSize; }, function(_v) { boxSize = _v; } ); // HtmlView Page linking property 'SizeX' for element 'boxRight'
+          _view.boxRight.linkProperty("X",  function() { return boxX; }, function(_v) { boxX = _v; } ); // HtmlView Page linking property 'X' for element 'boxRight'
+          _view.boxRight.linkProperty("Visibility",  function() { return boxed; }, function(_v) { boxed = _v; } ); // HtmlView Page linking property 'Visibility' for element 'boxRight'
+          _view.boxRight.linkProperty("SizeY",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'SizeY' for element 'boxRight'
+          _view.v1left.linkProperty("SizeX",  function() { return -vx; } ); // HtmlView Page linking property 'SizeX' for element 'v1left'
+          _view.v1left.linkProperty("X",  function() { return -massX; } ); // HtmlView Page linking property 'X' for element 'v1left'
+          _view.v1left.linkProperty("Y",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'Y' for element 'v1left'
+          _view.v1left.linkProperty("Visibility",  function() { return showVelocities && showElements; } ); // HtmlView Page linking property 'Visibility' for element 'v1left'
+          _view.v1right.linkProperty("SizeX",  function() { return vx; }, function(_v) { vx = _v; } ); // HtmlView Page linking property 'SizeX' for element 'v1right'
+          _view.v1right.linkProperty("X",  function() { return massX; }, function(_v) { massX = _v; } ); // HtmlView Page linking property 'X' for element 'v1right'
+          _view.v1right.linkProperty("Y",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'Y' for element 'v1right'
+          _view.v1right.linkProperty("Visibility",  function() { return showVelocities && showElements; } ); // HtmlView Page linking property 'Visibility' for element 'v1right'
+          _view.v2left.linkProperty("SizeX",  function() { return -vy; } ); // HtmlView Page linking property 'SizeX' for element 'v2left'
+          _view.v2left.linkProperty("X",  function() { return -massY; } ); // HtmlView Page linking property 'X' for element 'v2left'
+          _view.v2left.linkProperty("Y",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'Y' for element 'v2left'
+          _view.v2left.linkProperty("Visibility",  function() { return showVelocities && showElements; } ); // HtmlView Page linking property 'Visibility' for element 'v2left'
+          _view.Vright.linkProperty("SizeX",  function() { return (vx+alpha*vy)/(1.+alpha); } ); // HtmlView Page linking property 'SizeX' for element 'Vright'
+          _view.Vright.linkProperty("X",  function() { return partX; }, function(_v) { partX = _v; } ); // HtmlView Page linking property 'X' for element 'Vright'
+          _view.Vright.linkProperty("Y",  function() { return 1.5*a; } ); // HtmlView Page linking property 'Y' for element 'Vright'
+          _view.Vright.linkProperty("Visibility",  function() { return showVelocities && Com; } ); // HtmlView Page linking property 'Visibility' for element 'Vright'
+          _view.Vleft.linkProperty("SizeX",  function() { return -(vx+alpha*vy)/(1.+alpha); } ); // HtmlView Page linking property 'SizeX' for element 'Vleft'
+          _view.Vleft.linkProperty("X",  function() { return -partX; } ); // HtmlView Page linking property 'X' for element 'Vleft'
+          _view.Vleft.linkProperty("Y",  function() { return 1.5*a; } ); // HtmlView Page linking property 'Y' for element 'Vleft'
+          _view.Vleft.linkProperty("Visibility",  function() { return showVelocities && Com; } ); // HtmlView Page linking property 'Visibility' for element 'Vleft'
+          _view.v2right.linkProperty("SizeX",  function() { return vy; }, function(_v) { vy = _v; } ); // HtmlView Page linking property 'SizeX' for element 'v2right'
+          _view.v2right.linkProperty("X",  function() { return massY; }, function(_v) { massY = _v; } ); // HtmlView Page linking property 'X' for element 'v2right'
+          _view.v2right.linkProperty("Y",  function() { return a; }, function(_v) { a = _v; } ); // HtmlView Page linking property 'Y' for element 'v2right'
+          _view.v2right.linkProperty("Visibility",  function() { return showVelocities && showElements; } ); // HtmlView Page linking property 'Visibility' for element 'v2right'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function inelastic_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = inelastic_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+
+  return _view;
+} // end of main function
+
+function inelastic_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'panel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"executionPanel", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'executionPanel'
+      .setProperty("Display","inline-flex") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'executionPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"runPauseButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'runPauseButton'
+      .setProperty("TextOn","▶") // EJsS HtmlView.HtmlView Page: setting property 'TextOn' for element 'runPauseButton'
+      .setProperty("Tooltip","Play/Pause") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'runPauseButton'
+      .setProperty("TextOff","❚❚") // EJsS HtmlView.HtmlView Page: setting property 'TextOff' for element 'runPauseButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"stepButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'stepButton'
+      .setProperty("Tooltip","Step") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'stepButton'
+      .setProperty("Text","❚▶") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'stepButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"zoom", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'zoom'
+      .setProperty("Minimum",0.0) // EJsS HtmlView.HtmlView Page: setting property 'Minimum' for element 'zoom'
+      .setProperty("Maximum",40.0) // EJsS HtmlView.HtmlView Page: setting property 'Maximum' for element 'zoom'
+      .setProperty("Format","0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'zoom'
+      .setProperty("Background","blue") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'zoom'
+      .setProperty("Tooltip","Zoom") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'zoom'
+      .setProperty("Step",2) // EJsS HtmlView.HtmlView Page: setting property 'Step' for element 'zoom'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"display", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'display'
+      .setProperty("Background","pink") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'display'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"stopCol", _view.display) // EJsS HtmlView.HtmlView Page: declaration of element 'stopCol'
+      .setProperty("Tooltip","Stop every time the inner masses collide?") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'stopCol'
+      .setProperty("Text","Stop on collision") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'stopCol'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"showCOM", _view.display) // EJsS HtmlView.HtmlView Page: declaration of element 'showCOM'
+      .setProperty("Background","MAGENTA") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'showCOM'
+      .setProperty("Tooltip","Show center-of-mass?") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'showCOM'
+      .setProperty("Text","Center-of-mass") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'showCOM'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"Veloctities", _view.display) // EJsS HtmlView.HtmlView Page: declaration of element 'Veloctities'
+      .setProperty("Tooltip","Show velocity vectors") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'Veloctities'
+      .setProperty("Text","Velocities") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'Veloctities'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"showBox", _view.display) // EJsS HtmlView.HtmlView Page: declaration of element 'showBox'
+      .setProperty("Background","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'showBox'
+      .setProperty("Tooltip","Show macroscopic body?") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'showBox'
+      .setProperty("Text","Body") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'showBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"showEl", _view.display) // EJsS HtmlView.HtmlView Page: declaration of element 'showEl'
+      .setProperty("Tooltip","Show microscopic components?") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'showEl'
+      .setProperty("Text","Elements") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'showEl'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"alpha", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'alpha'
+      .setProperty("Width","10vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'alpha'
+      .setProperty("Format","0.00") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'alpha'
+      .setProperty("Tooltip","Alpha parameter") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'alpha'
+      .setProperty("Foreground","rgba(0,192,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'alpha'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"L", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'L'
+      .setProperty("Width","10vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'L'
+      .setProperty("Format","0.00") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'L'
+      .setProperty("Tooltip","Natural length of springs") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'L'
+      .setProperty("Foreground","Cyan") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'L'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"dtValue", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'dtValue'
+      .setProperty("Width","10vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'dtValue'
+      .setProperty("Format","0.000") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'dtValue'
+      .setProperty("Foreground","red") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'dtValue'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'resetButton'
+      .setProperty("Tooltip","Reset") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel'
+      .setProperty("Height","88vh") // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'plottingPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'plottingPanel'
+      .setProperty("Gutters",[0,0,0,0]) // EJsS HtmlView.HtmlView Page: setting property 'Gutters' for element 'plottingPanel'
+      .setProperty("ShowCoordinates",false) // EJsS HtmlView.HtmlView Page: setting property 'ShowCoordinates' for element 'plottingPanel'
+      .setProperty("Background","url(#mygrandient)") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'plottingPanel'
+      .setProperty("EnabledZooming",true) // EJsS HtmlView.HtmlView Page: setting property 'EnabledZooming' for element 'plottingPanel'
+      .setProperty("Tooltip","Evolution") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("SquareAspect",true) // EJsS HtmlView.HtmlView Page: setting property 'SquareAspect' for element 'plottingPanel'
+      .setProperty("AxisXShow",false) // EJsS HtmlView.HtmlView Page: setting property 'AxisXShow' for element 'plottingPanel'
+      .setProperty("MaximumY",0.25) // EJsS HtmlView.HtmlView Page: setting property 'MaximumY' for element 'plottingPanel'
+      .setProperty("MaximumX",8) // EJsS HtmlView.HtmlView Page: setting property 'MaximumX' for element 'plottingPanel'
+      .setProperty("GridYShow",false) // EJsS HtmlView.HtmlView Page: setting property 'GridYShow' for element 'plottingPanel'
+      .setProperty("MinimumX",-8) // EJsS HtmlView.HtmlView Page: setting property 'MinimumX' for element 'plottingPanel'
+      .setProperty("MinimumY",-0.25) // EJsS HtmlView.HtmlView Page: setting property 'MinimumY' for element 'plottingPanel'
+      .setProperty("AxisYShow",false) // EJsS HtmlView.HtmlView Page: setting property 'AxisYShow' for element 'plottingPanel'
+      .setProperty("AutoScaleY",false) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleY' for element 'plottingPanel'
+      .setProperty("AutoScaleX",false) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleX' for element 'plottingPanel'
+      .setProperty("GridXShow",false) // EJsS HtmlView.HtmlView Page: setting property 'GridXShow' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"Axis", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'Axis'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'Axis'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'Axis'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'Axis'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"xLeft", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'xLeft'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'xLeft'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'xLeft'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"xRight", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'xRight'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'xRight'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'xRight'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"yleft", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'yleft'
+      .setProperty("FillColor","rgba(0,128,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'yleft'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'yleft'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'yleft'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"yRight", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'yRight'
+      .setProperty("FillColor","rgba(0,128,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'yRight'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'yRight'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'yRight'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.spring,"springLeft", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'springLeft'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'springLeft'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'springLeft'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'springLeft'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.spring,"springRight", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'springRight'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'springRight'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'springRight'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'springRight'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"partLeft", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'partLeft'
+      .setProperty("FillColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'partLeft'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'partLeft'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"partRight", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'partRight'
+      .setProperty("FillColor","MAGENTA") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'partRight'
+      .setProperty("LineColor","MAGENTA") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'partRight'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"Table", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'Table'
+      .setProperty("FillColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'Table'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'Table'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'Table'
+      .setProperty("LineColor","orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'Table'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"boxLeft", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'boxLeft'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'boxLeft'
+      .setProperty("LineColor","magenta") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'boxLeft'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'boxLeft'
+      .setProperty("DrawFill",false) // EJsS HtmlView.HtmlView Page: setting property 'DrawFill' for element 'boxLeft'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"boxRight", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'boxRight'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'boxRight'
+      .setProperty("LineColor","MAGENTA") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'boxRight'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'boxRight'
+      .setProperty("DrawFill",false) // EJsS HtmlView.HtmlView Page: setting property 'DrawFill' for element 'boxRight'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"v1left", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'v1left'
+      .setProperty("EnabledSize","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledSize' for element 'v1left'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'v1left'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'v1left'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'v1left'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"v1right", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'v1right'
+      .setProperty("EnabledSize","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledSize' for element 'v1right'
+      .setProperty("LineColor","BLUE") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'v1right'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'v1right'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'v1right'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"v2left", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'v2left'
+      .setProperty("EnabledSize","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledSize' for element 'v2left'
+      .setProperty("LineColor","rgba(0,128,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'v2left'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'v2left'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'v2left'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"Vright", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'Vright'
+      .setProperty("EnabledSize","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledSize' for element 'Vright'
+      .setProperty("LineColor","MAGENTA") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'Vright'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'Vright'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'Vright'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"Vleft", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'Vleft'
+      .setProperty("EnabledSize","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledSize' for element 'Vleft'
+      .setProperty("LineColor","MAGENTA") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'Vleft'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'Vleft'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'Vleft'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"v2right", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'v2right'
+      .setProperty("EnabledSize","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledSize' for element 'v2right'
+      .setProperty("LineColor","rgba(0,128,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'v2right'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'v2right'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'v2right'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+      
+    <div style="max-width:700px; margin:0 auto; padding:8px 16px; font-family:sans-serif; font-size:14px; text-align:left; color:#333;">
+      <h2 style="font-size:18px;">About this Simulation</h2>
+<p>This simulation models inelastic collisions between two objects, allowing learners to visualize how momentum is conserved while kinetic energy is lost during impact. By adjusting initial velocities, masses, and collision parameters, students can explore the relationship between collision type, energy dissipation, and post-collision motion in real-time.</p>
+<p><strong>Learning objectives:</strong> Understand conservation of momentum in inelastic collisions | Investigate the difference between elastic and inelastic collisions through energy analysis | Predict and verify post-collision velocities using momentum principles</p>
+    </div>
+    <!-- AdSense: Below Simulation -->
+    <div style="text-align:center; margin:8px 0;">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-0121577198857509"
+           data-ad-slot="7142112786"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Inelastic collision<br />
+     <img alt="Logo" src="inelastic/Screen Shot 2018-02-27 at 10.40.11 AM (2).png" />
+      </p>
+      <p>
+      <img alt="author image" src="01authorlookang50x50.png" />
+ Juan M. Aguirregabiria (http://tp.lc.ehu.es/jma.html); Fremont Teng; lookang
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2020, Juan M. Aguirregabiria (http://tp.lc.ehu.es/jma.html); Fremont Teng; lookang. Compiled with EJS 6.0 (191124)
+</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new inelastic("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+    <!-- AdSense: Footer -->
+    <div style="text-align:center; margin:8px 0;">
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-0121577198857509"
+           data-ad-slot="6479767804"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+  </body>
+</html>

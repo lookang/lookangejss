@@ -1,0 +1,423 @@
+:root {
+    --plate-color: #008080; /* Teal color */
+    --gear-color: #607d8b;
+    --gear-border: #455a64;
+    --axle-color: #ffeb3b;
+    --axle-border: #fbc02d;
+    --dot-color: red;
+    --bg-color: #fdf5e6;
+    --text-color: #333;
+    --button-bg: #f0f0f0;
+    --button-hover: #e0e0e0;
+    --button-active: #d0d0d0;
+    --input-border: #ccc;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: 20px;
+    min-height: 100vh;
+}
+
+h1 {
+    font-size: 1.3em; /* Slightly smaller */
+    text-align: center;
+    margin-bottom: 25px;
+    max-width: 90%;
+}
+
+.simulation-container {
+    position: relative;
+    width: 95%;
+    max-width: 750px;
+    min-height: 450px; /* Adjust as needed */
+    margin-bottom: 30px;
+    overflow: hidden; /* Change back to hidden */
+    border: 1px solid var(--input-border);
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 20px; /* Unified padding */
+    cursor: grab; /* Add grab cursor to container */
+}
+
+.gear-assembly {
+    position: relative; /* Keep relative */
+    width: 100%;
+    height: 300px; /* Adjust height */
+    display: flex;
+    align-items: center;
+    z-index: 1; /* Lower z-index */
+    margin-top: 10px; /* Space below answer check */
+    /* cursor: grab; */ /* Moved to .simulation-container */
+}
+
+.gear {
+    position: absolute; /* Positioned by JS */
+    border-radius: 50%;
+    background-color: var(--gear-color);
+    border: 3px solid var(--gear-border);
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+    /* background-image gradient removed for simplicity */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.5s linear; /* Smooth rotation */
+}
+
+/* Center axle */
+.gear::before {
+    content: '';
+    position: absolute;
+    width: 20%;
+    height: 20%;
+    background-color: var(--axle-color);
+    border-radius: 50%;
+    border: 3px solid var(--axle-border);
+    box-sizing: border-box; /* Keep this */
+}
+
+.radius-line {
+    position: absolute;
+    width: 2px; /* Line thickness */
+    height: 50%; /* From center to edge */
+    background-color: #333; /* Dark line color */
+    left: 50%;
+    top: 0; /* Start from top edge */
+    transform-origin: bottom center; /* Rotate around the gear's center */
+    transform: translateX(-50%); /* Center the line horizontally */
+    z-index: 2; /* Below dot, above axle */
+}
+
+.dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: var(--dot-color);
+    border-radius: 50%;
+    top: 8px; /* Distance from top edge */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+}
+
+.labels {
+    /* Styling for labels now above simulation */
+    position: relative;
+    width: 95%;
+    max-width: 650px; /* Match container width */
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 15px; /* Add padding */
+    margin-bottom: 20px; /* Space below labels */
+    background-color: #fff; /* Add background */
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 3;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.label-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px; /* Space between elements */
+}
+
+.label-text {
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.rotation-count {
+    font-size: 0.9em;
+    color: black; /* Changed to black */
+    background-color: #eee;
+    padding: 2px 6px;
+    border-radius: 3px;
+    min-width: 25px; /* Ensure some width */
+    display: inline-block; /* Allow padding/width */
+    margin-top: 3px; /* Space below input */
+    text-align: center; /* Center the number */
+}
+
+.teeth-input { /* Style for teeth inputs - make distinct */
+    width: 60px;
+    padding: 5px 8px;
+    background-color: #e9f5ff; /* Light blue background */
+    border: 1px solid #a0c4e4; /* Blue border */
+    cursor: pointer; /* Indicate interactivity */
+    text-align: center;
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: bold; /* Moved font-weight here */
+}
+
+/* Redundant rule removed */
+/* .teeth-input {
+    font-weight: bold;
+} */
+
+.controls {
+    /* Styling for controls now at the top */
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Space between buttons */
+    margin-bottom: 20px; /* Space below buttons */
+    width: 100%;
+}
+
+.controls button { /* Style buttons specifically within .controls */
+    width: 30%; /* Make buttons wider */
+    max-width: 150px; /* Prevent excessive width on large screens */
+    padding: 12px 10px; /* Adjust padding */
+    font-size: 1.1em; /* Slightly larger text */
+    font-weight: bold;
+}
+
+/* Remove .wide-controls as it's not used */
+/*
+.wide-controls {
+    display: flex;
+    justify-content: center;
+    width: 95%;
+    max-width: 650px;
+    margin: 10px 0 20px 0;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    border: 1px solid var(--input-border);
+    border-radius: 5px;
+    background-color: var(--button-bg);
+    transition: background-color 0.2s ease;
+}
+
+.wide-button {
+    padding: 12px 30px;
+    min-width: 120px;
+    font-size: 1.1em;
+    font-weight: bold;
+    margin: 0 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+*/
+
+button:hover {
+    background-color: var(--button-hover);
+}
+
+button:active {
+    background-color: var(--button-active);
+}
+
+/* Media Query for smaller screens */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 1.1em;
+        margin-bottom: 20px;
+    }
+
+    .simulation-container {
+        min-height: auto; /* Allow shrinking */
+        padding: 15px;
+    }
+
+    .gear-assembly {
+        height: 250px; /* Reduce height */
+        margin-top: 15px;
+    }
+
+
+    .labels {
+        /* Adjust labels for smaller screens */
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        padding: 8px;
+        margin-bottom: 15px;
+    }
+
+    .answer-check-inline {
+        position: static; /* Make static */
+        flex-direction: row; /* Keep as row */
+        gap: 8px;
+        padding: 10px; /* Adjust padding */
+        border-top: none; /* Remove border */
+        background-color: transparent; /* Remove background */
+        margin-bottom: 15px; /* Space before gears */
+    }
+
+    .label-group {
+        width: 75px; /* Adjust width */
+        gap: 3px;
+    }
+
+    .controls {
+       /* Controls are at top now, no specific media query needed here */
+       gap: 15px;
+       margin-bottom: 15px;
+    }
+
+    .controls button { /* Style buttons at top */
+       padding: 10px 25px; /* Make buttons larger */
+       font-size: 1em;
+    }
+
+    button { /* General button adjustments for smaller screens */
+        padding: 8px 15px;
+        font-size: 0.9em;
+    }
+}
+
+@media (max-width: 400px) {
+     h1 {
+        font-size: 1em;
+    }
+    .simulation-container {
+         min-height: 280px;
+         padding-bottom: 120px; /* Even more space */
+     }
+     /* .background-plate media query styles removed */
+     .labels {
+        /* Adjust labels for very small screens */
+        gap: 10px;
+        padding: 5px;
+     }
+     .controls {
+        /* Controls at top, stacking not needed */
+        gap: 10px;
+     }
+     .controls button {
+         padding: 8px 20px;
+         font-size: 0.9em;
+     }
+     .answer-check-inline {
+         flex-direction: column; /* Stack answer check items */
+         gap: 8px;
+         padding: 5px;
+         margin-bottom: 10px;
+     }
+     .answer-check-inline label { margin-bottom: 0;}
+     .answer-check-inline input { width: 80%; margin: 0 auto;}
+     .answer-check-inline button { width: 80%; margin: 0 auto;}
+     .feedback-message { margin-top: 5px;}
+
+}
+
+/* Answer Check Section Styling */
+.answer-check-inline {
+    position: relative; /* Change from absolute */
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 10px; /* Adjust padding */
+    z-index: 5; /* Increase z-index to ensure proper stacking */
+    background-color: #f8f8f8; /* Light background */
+    border-bottom: 1px solid var(--input-border); /* Border below */
+    margin-bottom: 15px; /* Space before gears */
+}
+
+/* Hide the old separate answer check block */
+.answer-check {
+    margin-top: 25px;
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on small screens */
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border: 1px solid var(--input-border);
+    border-radius: 8px;
+    background-color: #fff;
+    width: 95%;
+    max-width: 650px; /* Match simulation container */
+    display: none; /* Hide the original answer check section */
+}
+
+/* Apply teeth-input styles also to the answer input */
+#answerA {
+    width: 70px; /* Slightly wider for answer */
+    padding: 5px 8px;
+    text-align: center;
+    border-radius: 4px;
+    font-size: 0.9em;
+    /* Styles copied from .teeth-input */
+    background-color: #e9f5ff; /* Light blue background */
+    border: 1px solid #a0c4e4; /* Blue border */
+    cursor: text; /* Change to text cursor to indicate editable field */
+    font-weight: bold;
+    -moz-appearance: textfield; /* Firefox */
+    position: relative; /* Ensure proper stacking */
+    z-index: 10; /* Higher z-index to ensure it's on top */
+    pointer-events: auto !important; /* Force pointer events */
+}
+
+/* Remove spinner arrows in Chrome, Safari, Edge, Opera */
+#answerA::-webkit-outer-spin-button,
+#answerA::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+
+.answer-check button {
+     padding: 8px 15px;
+     font-size: 0.9em;
+}
+
+.feedback-message {
+    width: 100%; /* Take full width */
+    text-align: center;
+    margin-top: 10px;
+    font-weight: bold;
+    min-height: 1.2em; /* Reserve space */
+}
+
+.feedback-message.correct {
+    color: green;
+}
+
+.feedback-message.incorrect {
+    color: var(--plate-color); /* Red */
+}
+
+@media (max-width: 450px) {
+    .answer-check {
+        flex-direction: column; /* Stack elements vertically */
+        align-items: stretch; /* Stretch items */
+        text-align: center;
+    }
+     .answer-check label {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+    .answer-check input[type="number"] {
+        width: 100%; /* Full width */
+    }
+     .answer-check button {
+         width: 100%; /* Full width */
+    }
+    .feedback-message {
+        margin-top: 15px;
+    }
+}

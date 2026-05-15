@@ -1,0 +1,663 @@
+// ============================================
+// P.E.E.P. HAZARD CLASSIFICATION ADVENTURE
+// Interactive learning experience for outdoor education
+// MODIFIED: Removed explanation/feedback from risk reduction questions
+// ============================================
+
+// Game state management
+const gameState = {
+    currentScenario: 0,
+    score: 0,
+    totalScenarios: 10,
+    correctAnswers: 0,
+    riskQuestionAnswered: false,
+    scenarios: []
+};
+
+// Scenario data with 10 scenarios and risk reduction questions
+const scenarioData = [
+    {
+        story: "🏕️ You're leading a camping trip. Your team arrives at the campsite and notices dark clouds forming rapidly in the distance.",
+        hazard: "Sudden thunderstorm approaching the campsite",
+        correctCategory: "environment",
+        mitigation: "Monitor weather forecasts before and during trips. Have an evacuation plan. Seek shelter immediately in a sturdy building or vehicle. Avoid open areas, tall trees, and water bodies.",
+        emoji: "⛈️",
+        points: 100,
+        riskQuestion: "What is the BEST immediate action to reduce risk when a thunderstorm approaches?",
+        riskOptions: [
+            { text: "Continue setting up camp quickly to finish before the storm", correct: false },
+            { text: "Seek shelter in a sturdy building or vehicle immediately", correct: true },
+            { text: "Stand under a tall tree to stay dry", correct: false },
+            { text: "Wait and see if the storm passes by", correct: false }
+        ]
+    },
+    {
+        story: "🥾 During a hiking expedition, one of your students mentions they forgot to bring their prescribed inhaler for asthma.",
+        hazard: "Student with asthma without medication",
+        correctCategory: "people",
+        mitigation: "Conduct thorough medical checks before trips. Maintain updated medical records. Carry emergency medications. Ensure participants understand the importance of bringing personal medications.",
+        emoji: "💊",
+        points: 100,
+        riskQuestion: "How can you best prevent medication-related incidents on future trips?",
+        riskOptions: [
+            { text: "Hope participants remember their medications", correct: false },
+            { text: "Implement a mandatory medical checklist and verification before departure", correct: true },
+            { text: "Only allow healthy people on trips", correct: false },
+            { text: "Carry all types of medications just in case", correct: false }
+        ]
+    },
+    {
+        story: "🧗 Your group is preparing for rock climbing. You notice the climbing rope has visible fraying and wear near the middle section.",
+        hazard: "Damaged climbing rope with fraying",
+        correctCategory: "equipment",
+        mitigation: "Conduct regular equipment inspections before each use. Follow manufacturer guidelines for equipment lifespan. Replace damaged equipment immediately. Maintain detailed equipment logs.",
+        emoji: "🪢",
+        points: 100,
+        riskQuestion: "What is the most effective way to manage equipment safety?",
+        riskOptions: [
+            { text: "Use equipment until it breaks", correct: false },
+            { text: "Establish a regular inspection schedule and replace equipment per manufacturer guidelines", correct: true },
+            { text: "Only inspect equipment when someone complains", correct: false },
+            { text: "Buy the cheapest equipment to replace often", correct: false }
+        ]
+    },
+    {
+        story: "🚣 Your kayaking group is about to launch, but you realize no one has reviewed the emergency procedures or capsize drills.",
+        hazard: "No safety briefing or emergency procedures reviewed",
+        correctCategory: "procedure",
+        mitigation: "Always conduct comprehensive safety briefings before activities. Practice emergency procedures. Ensure all participants understand protocols. Document all briefings and acknowledgments.",
+        emoji: "📢",
+        points: 100,
+        riskQuestion: "When should safety briefings be conducted?",
+        riskOptions: [
+            { text: "Only when new participants join", correct: false },
+            { text: "Before every activity, regardless of experience level", correct: true },
+            { text: "Once at the beginning of the season", correct: false },
+            { text: "Only for high-risk activities", correct: false }
+        ]
+    },
+    {
+        story: "🌲 During an orienteering exercise, you discover the trail markers are missing and the terrain is more challenging than expected with steep slopes.",
+        hazard: "Unmarked trails with difficult terrain",
+        correctCategory: "environment",
+        mitigation: "Conduct site reconnaissance before activities. Bring proper navigation tools (map, compass, GPS). Mark trails clearly. Have alternative routes planned. Ensure participants have appropriate skills for terrain difficulty.",
+        emoji: "🧭",
+        points: 100,
+        riskQuestion: "What is the best practice for managing unfamiliar terrain?",
+        riskOptions: [
+            { text: "Explore and figure it out as you go", correct: false },
+            { text: "Conduct advance reconnaissance and bring multiple navigation tools", correct: true },
+            { text: "Follow whoever seems most confident", correct: false },
+            { text: "Turn back immediately without exploring options", correct: false }
+        ]
+    },
+    {
+        story: "🏊 At the swimming area, you notice several participants are not wearing life jackets and some admit they are weak swimmers.",
+        hazard: "Weak swimmers without flotation devices",
+        correctCategory: "people",
+        mitigation: "Assess swimming abilities before water activities. Require life jackets for weak swimmers. Have certified lifeguards present. Establish buddy systems. Set clear boundaries for swimming areas based on skill level.",
+        emoji: "🦺",
+        points: 100,
+        riskQuestion: "How should you manage participants with varying swimming abilities?",
+        riskOptions: [
+            { text: "Let everyone swim together and watch them", correct: false },
+            { text: "Assess abilities beforehand, require life jackets for weak swimmers, and use buddy systems", correct: true },
+            { text: "Only allow strong swimmers in the water", correct: false },
+            { text: "Assume everyone can swim if they signed up", correct: false }
+        ]
+    },
+    {
+        story: "🔥 Your group is preparing to cook dinner, but the camp stove is leaking fuel and making unusual hissing sounds.",
+        hazard: "Malfunctioning camp stove with fuel leak",
+        correctCategory: "equipment",
+        mitigation: "Inspect cooking equipment before trips. Never use leaking fuel equipment. Have backup cooking methods. Store fuel properly. Train staff on equipment troubleshooting. Carry fire extinguishers.",
+        emoji: "🧯",
+        points: 100,
+        riskQuestion: "What should you do with malfunctioning fuel equipment?",
+        riskOptions: [
+            { text: "Try to fix it quickly and use it anyway", correct: false },
+            { text: "Immediately stop use, isolate the equipment, and use alternative cooking methods", correct: true },
+            { text: "Use it outside away from people", correct: false },
+            { text: "Let the most experienced person handle it", correct: false }
+        ]
+    },
+    {
+        story: "🚐 The group is ready to depart, but you realize the emergency contact information and medical forms were left at the office.",
+        hazard: "Missing emergency contacts and medical information",
+        correctCategory: "procedure",
+        mitigation: "Create departure checklists. Maintain digital and physical copies of all forms. Verify documentation before leaving. Store emergency contacts in multiple accessible locations. Use cloud-based systems for backup.",
+        emoji: "📋",
+        points: 100,
+        riskQuestion: "How can you prevent documentation issues on trips?",
+        riskOptions: [
+            { text: "Memorize important information", correct: false },
+            { text: "Use checklists and maintain both digital and physical copies in multiple locations", correct: true },
+            { text: "Only bring documentation for high-risk participants", correct: false },
+            { text: "Get the information from participants if needed", correct: false }
+        ]
+    },
+    {
+        story: "🌡️ On a summer hike, temperatures reach 95°F (35°C) and several participants didn't bring enough water or sun protection.",
+        hazard: "Extreme heat with inadequate hydration and sun protection",
+        correctCategory: "environment",
+        mitigation: "Check weather forecasts and plan accordingly. Require adequate water (1 liter per 2 hours). Provide sun protection guidelines. Schedule activities during cooler hours. Recognize heat exhaustion symptoms. Have cooling methods available.",
+        emoji: "☀️",
+        points: 100,
+        riskQuestion: "What is the best strategy for managing extreme heat conditions?",
+        riskOptions: [
+            { text: "Continue as planned and take breaks when people complain", correct: false },
+            { text: "Plan ahead with adequate water, sun protection, activity timing, and heat illness monitoring", correct: true },
+            { text: "Only hike in shaded areas", correct: false },
+            { text: "Cancel all summer activities", correct: false }
+        ]
+    },
+    {
+        story: "🎒 Before a multi-day backpacking trip, you discover that three participants have never used their backpacks before and don't know how to adjust them properly.",
+        hazard: "Inexperienced participants with improperly fitted equipment",
+        correctCategory: "people",
+        mitigation: "Conduct pre-trip training sessions. Teach proper equipment use and fitting. Require practice sessions before major trips. Assess skill levels honestly. Provide graduated experiences. Ensure proper pack fitting to prevent injuries.",
+        emoji: "🎓",
+        points: 100,
+        riskQuestion: "How should you prepare participants for equipment-intensive activities?",
+        riskOptions: [
+            { text: "Show them once and hope they remember", correct: false },
+            { text: "Conduct mandatory training sessions with practice time before the actual trip", correct: true },
+            { text: "Let experienced participants help during the trip", correct: false },
+            { text: "Provide written instructions only", correct: false }
+        ]
+    }
+];
+
+// Audio context for sound effects (Web Audio API)
+let audioContext;
+let backgroundMusicGain;
+
+// Initialize audio context
+function initAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        backgroundMusicGain = audioContext.createGain();
+        backgroundMusicGain.connect(audioContext.destination);
+        backgroundMusicGain.gain.value = 0.3;
+        playBackgroundMusic();
+    } catch (e) {
+        console.log('Web Audio API not supported');
+    }
+}
+
+// Play background music (simple ambient tone)
+function playBackgroundMusic() {
+    if (!audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(backgroundMusicGain);
+    
+    oscillator.frequency.value = 220;
+    oscillator.type = 'sine';
+    gainNode.gain.value = 0.05;
+    
+    oscillator.start();
+    
+    gainNode.gain.linearRampToValueAtTime(0.05, audioContext.currentTime + 2);
+}
+
+// Play correct answer sound
+function playCorrectSound() {
+    if (!audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+    
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+// Play incorrect answer sound
+function playIncorrectSound() {
+    if (!audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(300, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.2);
+    
+    oscillator.type = 'sawtooth';
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+}
+
+// Play UI click sound
+function playClickSound() {
+    if (!audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+// DOM elements
+let hazardCard, submitBtn, nextBtn, restartBtn, feedbackPanel;
+let dropZones = [];
+let currentDropZone = null;
+
+// Initialize the application
+function init() {
+    hazardCard = document.getElementById('hazard-card');
+    submitBtn = document.getElementById('submit-btn');
+    nextBtn = document.getElementById('next-btn');
+    restartBtn = document.getElementById('restart-btn');
+    feedbackPanel = document.getElementById('feedback-panel');
+    dropZones = document.querySelectorAll('.drop-zone');
+    
+    document.addEventListener('click', function initAudioOnce() {
+        initAudio();
+        document.removeEventListener('click', initAudioOnce);
+    }, { once: true });
+    
+    setupEventListeners();
+    loadScenario(0);
+    setupInfoTooltip();
+}
+
+// Setup info icon tooltip
+function setupInfoTooltip() {
+    const infoIcon = document.getElementById('info-icon');
+    const tooltip = document.getElementById('header-tooltip');
+    
+    infoIcon.addEventListener('click', () => {
+        tooltip.classList.toggle('hidden');
+        playClickSound();
+    });
+    
+    document.addEventListener('click', (e) => {
+        if (!infoIcon.contains(e.target) && !tooltip.contains(e.target)) {
+            tooltip.classList.add('hidden');
+        }
+    });
+}
+
+// Setup all event listeners
+function setupEventListeners() {
+    hazardCard.addEventListener('dragstart', handleDragStart);
+    hazardCard.addEventListener('dragend', handleDragEnd);
+    
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', handleDragOver);
+        zone.addEventListener('dragleave', handleDragLeave);
+        zone.addEventListener('drop', handleDrop);
+        zone.addEventListener('touchstart', handleTouchStart);
+        zone.addEventListener('click', handleZoneClick);
+    });
+    
+    submitBtn.addEventListener('click', handleSubmit);
+    nextBtn.addEventListener('click', handleNext);
+    restartBtn.addEventListener('click', handleRestart);
+    document.getElementById('play-again-btn').addEventListener('click', handleRestart);
+    
+    hazardCard.addEventListener('touchstart', handleCardTouchStart);
+}
+
+// Load a scenario
+function loadScenario(index) {
+    if (index >= scenarioData.length) {
+        showResults();
+        return;
+    }
+    
+    const scenario = scenarioData[index];
+    gameState.currentScenario = index;
+    gameState.riskQuestionAnswered = false;
+    
+    document.getElementById('story-text').textContent = scenario.story;
+    document.getElementById('scenario-image').textContent = scenario.emoji;
+    document.querySelector('.hazard-text').textContent = scenario.hazard;
+    
+    updateProgress();
+    resetUI();
+}
+
+// Update progress bar
+function updateProgress() {
+    const progress = ((gameState.currentScenario) / gameState.totalScenarios) * 100;
+    document.getElementById('progress-bar').style.width = progress + '%';
+    document.getElementById('progress-text').textContent = `Scenario ${gameState.currentScenario + 1} of ${gameState.totalScenarios}`;
+}
+
+// Reset UI for new scenario
+function resetUI() {
+    dropZones.forEach(zone => {
+        zone.querySelector('.dropped-items').innerHTML = '';
+        zone.classList.remove('drag-over');
+        zone.style.border = '';
+        zone.style.background = '';
+    });
+    
+    hazardCard.style.display = 'flex';
+    hazardCard.classList.remove('dragging');
+    currentDropZone = null;
+    
+    submitBtn.disabled = true;
+    submitBtn.classList.remove('hidden');
+    nextBtn.classList.add('hidden');
+    restartBtn.classList.add('hidden');
+    
+    feedbackPanel.classList.add('hidden');
+    document.getElementById('risk-question-section').classList.add('hidden');
+}
+
+// Drag and drop handlers
+function handleDragStart(e) {
+    hazardCard.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragEnd(e) {
+    hazardCard.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drag-over');
+    return false;
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    e.preventDefault();
+    
+    this.classList.remove('drag-over');
+    placeCardInZone(this);
+    playClickSound();
+    
+    return false;
+}
+
+// Touch support for mobile
+let selectedForTouch = false;
+
+function handleCardTouchStart(e) {
+    selectedForTouch = true;
+    hazardCard.style.border = '3px solid #fff';
+    playClickSound();
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+}
+
+function handleZoneClick(e) {
+    if (selectedForTouch && hazardCard.style.display !== 'none') {
+        placeCardInZone(this);
+        selectedForTouch = false;
+        hazardCard.style.border = '3px solid transparent';
+        playClickSound();
+    }
+}
+
+// Place card in zone
+function placeCardInZone(zone) {
+    dropZones.forEach(z => {
+        z.querySelector('.dropped-items').innerHTML = '';
+    });
+    
+    const scenario = scenarioData[gameState.currentScenario];
+    
+    const droppedCard = document.createElement('div');
+    droppedCard.className = 'dropped-card';
+    droppedCard.innerHTML = `
+        <span>${scenario.emoji}</span>
+        <span>${scenario.hazard}</span>
+    `;
+    
+    zone.querySelector('.dropped-items').appendChild(droppedCard);
+    hazardCard.style.display = 'none';
+    currentDropZone = zone.dataset.category;
+    submitBtn.disabled = false;
+}
+
+// Handle submit
+function handleSubmit() {
+    playClickSound();
+    
+    const scenario = scenarioData[gameState.currentScenario];
+    const isCorrect = currentDropZone === scenario.correctCategory;
+    
+    if (isCorrect) {
+        gameState.score += scenario.points;
+        gameState.correctAnswers++;
+        updateScore();
+        playCorrectSound();
+        showFeedback(true, scenario);
+    } else {
+        playIncorrectSound();
+        showFeedback(false, scenario);
+    }
+    
+    submitBtn.classList.add('hidden');
+    
+    const selectedZone = document.querySelector(`[data-category="${currentDropZone}"]`);
+    if (isCorrect) {
+        selectedZone.classList.add('correct-answer');
+    } else {
+        selectedZone.classList.add('incorrect-answer');
+    }
+    
+    if (!isCorrect) {
+        const correctZone = document.querySelector(`[data-category="${scenario.correctCategory}"]`);
+        setTimeout(() => {
+            correctZone.style.border = '3px solid #10b981';
+            correctZone.style.background = 'rgba(167, 243, 208, 0.5)';
+        }, 500);
+    }
+    
+    // Show risk reduction question after a brief delay
+    setTimeout(() => {
+        showRiskQuestion(scenario);
+    }, 1000);
+}
+
+// Show risk reduction question
+function showRiskQuestion(scenario) {
+    const riskSection = document.getElementById('risk-question-section');
+    const questionText = document.getElementById('risk-question-text');
+    const optionsContainer = document.getElementById('risk-options');
+    
+    questionText.textContent = scenario.riskQuestion;
+    optionsContainer.innerHTML = '';
+    
+    scenario.riskOptions.forEach((option, index) => {
+        const optionBtn = document.createElement('div');
+        optionBtn.className = 'risk-option';
+        optionBtn.textContent = option.text;
+        optionBtn.dataset.correct = option.correct;
+        optionBtn.dataset.index = index;
+        
+        // MODIFIED: Updated click handler to remove explanation/feedback display
+        optionBtn.addEventListener('click', () => handleRiskOptionClick(optionBtn, scenario));
+        
+        optionsContainer.appendChild(optionBtn);
+    });
+    
+    riskSection.classList.remove('hidden');
+}
+
+// MODIFIED: Handle risk option click - removed explanation/feedback display
+function handleRiskOptionClick(optionElement, scenario) {
+    // Prevent multiple answers
+    if (gameState.riskQuestionAnswered) return;
+    
+    playClickSound();
+    
+    const isCorrect = optionElement.dataset.correct === 'true';
+    
+    // Mark as answered
+    gameState.riskQuestionAnswered = true;
+    
+    // Disable all options
+    const allOptions = document.querySelectorAll('.risk-option');
+    allOptions.forEach(opt => {
+        opt.classList.add('disabled');
+        // Highlight correct answer
+        if (opt.dataset.correct === 'true') {
+            opt.classList.add('correct');
+        }
+    });
+    
+    // Mark selected option and play appropriate sound
+    if (isCorrect) {
+        optionElement.classList.add('correct');
+        playCorrectSound();
+        // Award bonus points for correct risk reduction answer
+        gameState.score += 50;
+        updateScore();
+    } else {
+        optionElement.classList.add('incorrect');
+        playIncorrectSound();
+    }
+    
+    // MODIFIED: No feedback text displayed - just show next button after a brief delay
+    setTimeout(() => {
+        nextBtn.classList.remove('hidden');
+    }, 500);
+}
+
+// Update score display
+function updateScore() {
+    document.getElementById('score-value').textContent = gameState.score;
+}
+
+// Show feedback
+function showFeedback(isCorrect, scenario) {
+    const feedbackIcon = document.getElementById('feedback-icon');
+    const feedbackText = document.getElementById('feedback-text');
+    const mitigationText = document.getElementById('mitigation-text');
+    
+    if (isCorrect) {
+        feedbackIcon.textContent = '✅';
+        feedbackText.textContent = 'Excellent! You correctly identified this hazard!';
+        feedbackText.style.color = '#10b981';
+    } else {
+        feedbackIcon.textContent = '❌';
+        feedbackText.textContent = `Not quite. This hazard belongs to the ${scenario.correctCategory.toUpperCase()} category.`;
+        feedbackText.style.color = '#ef4444';
+    }
+    
+    mitigationText.innerHTML = `<strong>Risk Mitigation:</strong> ${scenario.mitigation}`;
+    
+    feedbackPanel.classList.remove('hidden');
+}
+
+// Handle next scenario
+function handleNext() {
+    playClickSound();
+    
+    if (gameState.currentScenario < gameState.totalScenarios - 1) {
+        loadScenario(gameState.currentScenario + 1);
+    } else {
+        showResults();
+    }
+}
+
+// Show final results
+function showResults() {
+    const resultsScreen = document.getElementById('results-screen');
+    const finalScore = document.getElementById('final-score');
+    const performanceFeedback = document.getElementById('performance-feedback');
+    const learningSummary = document.getElementById('learning-summary');
+    
+    const percentage = (gameState.correctAnswers / gameState.totalScenarios) * 100;
+    
+    finalScore.textContent = `${gameState.score} Points (${gameState.correctAnswers}/${gameState.totalScenarios} Correct)`;
+    
+    let feedback = '';
+    if (percentage === 100) {
+        feedback = '🌟 Outstanding! You\'re a P.E.E.P. master! You demonstrated excellent understanding of hazard classification and risk reduction strategies.';
+    } else if (percentage >= 80) {
+        feedback = '🎯 Great job! You have a strong grasp of the P.E.E.P. framework and risk management. Review the areas you missed to perfect your skills.';
+    } else if (percentage >= 60) {
+        feedback = '👍 Good effort! You\'re on the right track. Practice more to strengthen your hazard identification and risk reduction skills.';
+    } else {
+        feedback = '💪 Keep learning! Review the P.E.E.P. categories and risk reduction strategies, then try again. Every expert was once a beginner!';
+    }
+    performanceFeedback.textContent = feedback;
+    
+    learningSummary.innerHTML = `
+        <strong>P.E.E.P. Framework Recap:</strong><br>
+        👥 <strong>People:</strong> Human factors, behavior, skills, health<br>
+        🔧 <strong>Equipment:</strong> Tools, gear, equipment condition<br>
+        🌲 <strong>Environment:</strong> Weather, terrain, natural conditions<br>
+        📋 <strong>Procedure:</strong> Planning, protocols, safety procedures<br><br>
+        <strong>Key Risk Reduction Principles:</strong><br>
+        • Always plan ahead and prepare thoroughly<br>
+        • Conduct regular inspections and assessments<br>
+        • Implement systematic checklists and procedures<br>
+        • Provide proper training and practice opportunities<br>
+        • Maintain redundant safety systems<br><br>
+        Remember: Identifying hazards correctly and knowing how to reduce risks keeps everyone safe in outdoor activities!
+    `;
+    
+    resultsScreen.classList.remove('hidden');
+}
+
+// Handle restart
+function handleRestart() {
+    playClickSound();
+    
+    gameState.currentScenario = 0;
+    gameState.score = 0;
+    gameState.correctAnswers = 0;
+    gameState.riskQuestionAnswered = false;
+    
+    updateScore();
+    document.getElementById('results-screen').classList.add('hidden');
+    loadScenario(0);
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

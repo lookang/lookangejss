@@ -1,0 +1,2753 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Earth Moon Gravity Potential Simulator</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.max.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+var EJSS_HARDWARE = EJSS_HARDWARE || {};
+
+EJSS_HARDWARE.orientationTools = function () {
+	var self = {};
+	var mIOSkind = (getMobileOperatingSystem()!=="Android");
+	var mOrientation = 0;
+
+	self.getOrientation = function() { return mOrientation; }
+	
+	function readOrientation() {
+		var orientation;
+		if (mIOSkind) { // Android does it otherwise
+			if (window.orientation=="90") orientation = 90;
+			else if (window.orientation=="0") orientation = 0;
+			else if (window.orientation=="-90") orientation = -90;
+			else orientation = 180;
+		}
+		else { // iOS behaviour
+			if (window.orientation=="90") orientation = -90;
+			else if (window.orientation=="0") orientation = 180;
+			else if (window.orientation=="-90") orientation = 90;
+			else orientation = 0;
+		}
+		return orientation;
+	}
+	
+	function getMobileOperatingSystem() {
+		var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+		if( userAgent.match( /iPad/i ) || userAgent.match( /iPhone/i ) || 
+				userAgent.match( /iPod/i ) ) return 'iOS';
+		if( userAgent.match( /Android/i ) ) return 'Android';
+		return 'unknown';
+	};
+
+	window.addEventListener("orientationchange", function() {
+		mOrientation  = readOrientation();
+  	  }, false);
+
+	mOrientation = readOrientation();
+
+	//alert ("is IOSKind = "+mIOSkind+"\n orientation = "+mOrientation);
+	
+	return self;
+};
+
+EJSS_HARDWARE.accelerometer = function () {
+	var self = {};
+	var mListeners = [];
+	var mOrientationTools = EJSS_HARDWARE.orientationTools();
+	var mAverageTime = 0;
+	var mIsRunning = false;
+
+	var mData = { x : 0, y:0, z:0, interval:0 , alpha: 0, beta: 0, gamma: 0};
+	var mHistory = []; // Stores data taken, most recent data goes to [0] 
+
+	function copyData(acceleration,rotation,data) {
+		data.x = acceleration.x;
+		data.y = acceleration.y;
+		data.z = acceleration.z;
+	    data.alpha = rotation.alpha;
+	    data.beta  = rotation.beta;
+        data.gamma = rotation.gamma;
+        data.millisAgo = 0;
+        return data;
+	};
+	
+	function deviceMotionHandler(eventData) {
+		// Grab the acceleration from the results
+		//var acceleration = eventData.acceleration;
+		var acceleration = eventData.accelerationIncludingGravity;
+	    var rotation = eventData.rotationRate;
+		var interval = eventData.interval;
+		if (mAverageTime>0) {
+	    	for (var j=0, numData=mHistory.length; j<numData; j++) {
+	    		var data = mHistory[j];
+	    		data.millisAgo += interval;
+	    		if (data.millisAgo>mAverageTime) {
+	    			mHistory.length = j;
+	    			break;
+	    		}
+	    	}
+	    	mHistory.unshift(copyData(acceleration,rotation,{}));
+		}
+
+		copyData(acceleration,rotation,mData);
+
+		for (var i=0, n=mListeners.length; i<n; i++) {
+			mListeners[i](mData);
+		}
+	};
+
+	self.isPresent = function() { return (typeof window.DeviceMotionEvent != "undefined"); };
+
+	self.start = function() {
+		if (self.isPresent()) {
+			window.addEventListener('devicemotion', deviceMotionHandler, false);
+			mIsRunning = true;
+		}
+	};
+
+	self.stop = function() {
+		if (self.isPresent()) window.removeEventListener('devicemotion', deviceMotionHandler);
+		mHistory = [];
+		mData = { x : 0, y:0, z:0, interval:0 , alpha: 0, beta: 0, gamma: 0};
+		mIsRunning = false;
+	};
+
+	self.isRunning = function() { return mIsRunning; };
+
+	self.setAverageInterval = function (seconds) {
+		mAverageTime = seconds;
+		if (mAverageTime<=0) mHistory = [];
+	};
+	
+	function averageData() {
+		var data = { x : 0, y:0, z:0, interval:0 , alpha: 0, beta: 0, gamma: 0};
+	    data.alpha = mData.alpha;
+	    data.beta  = mData.beta;
+        data.gamma = mData.gamma;
+        var n = mHistory.length;
+    	for (var i=0; i<n; i++) {
+    		var historicalData = mHistory[i];
+    		data.x += historicalData.x;
+    		data.y += historicalData.y;
+    		data.z += historicalData.z;
+    	}
+    	data.x /= n;
+    	data.y /= n;
+    	data.z /= n;
+    	return data;
+	};
+	
+	self.getDeviceData = function() { return (mAverageTime>0) ? averageData() : mData; };
+	
+	self.getViewData = function () {
+		var data = (mAverageTime>0) ? averageData() : mData;
+		switch (mOrientationTools.getOrientation()) {
+		  case   0 : return { x: data.x, y: data.y, z: data.z, alpha: data.alpha, beta: data.beta, gamma: data.gamma }; break;
+		  case  90 : return { x:-data.y, y: data.x, z: data.z, alpha: data.alpha, beta: data.beta, gamma: data.gamma }; break;
+		  case -90 : return { x: data.y, y:-data.x, z: data.z, alpha: data.alpha, beta: data.beta, gamma: data.gamma }; break;
+		  default  : return { x:-data.x, y:-data.y, z: data.z, alpha: data.alpha, beta: data.beta, gamma: data.gamma }; break;
+	    }
+	};
+
+	self.addListener = function(listener) { mListeners.push(listener); };
+
+	self.removeListener = function(listener) {
+		var index = mListeners.indexOf(listener);
+		if (index>-1) mListeners = mListeners.splice(index,1); 
+	};
+
+	return self;
+
+};
+
+EJSS_HARDWARE.SensorTag = {
+		ACCELEROMETER : 0,
+		GYROSCOPE : 1,
+		AMBIENT_TEMPERATURE : 2,
+		INFRARED_TEMPERATURE : 3,
+		HUMIDITY : 4,
+		BAROMETER : 5,
+		MAGNETOMETER : 6
+};
+
+
+EJSS_HARDWARE.sensorTag = function () {
+	var SensorTag = EJSS_HARDWARE.SensorTag;
+	var self = {};
+
+	self.isSupported = function() {
+		return window.sensors && window.sensors.isSupportedSensorTag();
+	};
+
+	self.start = function(accelerometerPeriod, magnetometerPeriod) {
+		if (typeof accelerometerPeriod === "undefined") accelerometerPeriod = 20;
+		if (typeof magnetometerPeriod === "undefined") magnetometerPeriod = 20;
+		window.sensors.runSensorTag(""+accelerometerPeriod,""+magnetometerPeriod);
+	};
+
+	self.stop = function() {
+		window.sensors.stopSensorTag();
+	};
+
+	self.readData = function(sensor) {
+		if (typeof sensor === "undefined") sensor = SensorTag.ACCELEROMETER;
+		switch (sensor) {
+		default :
+		case SensorTag.ACCELEROMETER : return window.sensors.getSensorTagAccelerometer(); break;
+		case SensorTag.GYROSCOPE : return window.sensors.getSensorTagGyroscope(); break;
+		case SensorTag.AMBIENT_TEMPERATURE : return window.sensors.getSensorTagTempAmb(); break;
+		case SensorTag.INFRARED_TEMPERATURE : return window.sensors.getSensorTagTempIR(); break;
+		case SensorTag.HUMIDITY : return window.sensors.getSensorTagHumidity();break;
+		case SensorTag.BAROMETER : return window.sensors.getSensorTagPressure();break;
+		case SensorTag.MAGNETOMETER : return window.sensors.getSensorTagMagnetometer();break;
+		}
+	};
+
+	return self;
+
+};
+
+EJSS_HARDWARE.linearAccelerometer = function () {
+	var self = {};
+
+	self.isPresent = function() {
+		return window.sensors && window.sensors.isLinearAcceleration();
+	};
+
+	self.start = function() {
+		if (self.isPresent()) window.sensors.runLinearAcceleration();
+	};
+
+	self.stop = function() {
+		if (self.isPresent()) window.sensors.stopLinearAcceleration();
+	};
+
+	self.readData = function() {
+		if (self.isPresent()) return eval(window.sensors.getLinearAcceleration());
+		else return {x:0, y:0, z:0};
+	};
+
+	return self;
+
+};
+
+EJSS_HARDWARE.gyroscope = function () {
+	var self = {};
+
+	self.isPresent = function() {
+		return window.sensors && window.sensors.isGyroscope();
+	};
+
+	self.start = function() {
+		if (self.isPresent()) window.sensors.runGyroscope();
+	};
+
+	self.stop = function() {
+		if (self.isPresent()) window.sensors.stopGyroscope();
+	};
+
+	self.readData = function() {
+		if (self.isPresent()) return eval(window.sensors.getGyroscope());
+		else return {x:0, y:0, z:0};
+	};
+
+	return self;
+
+};
+//--><!]]></script>
+
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function gravity11(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+var accelerometer = EJSS_HARDWARE.accelerometer();
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var inputdropmenu; // EjsS Model.Variables.variables.inputdropmenu
+  var print; // EjsS Model.Variables.variables.print
+  var fontb; // EjsS Model.Variables.variables.fontb
+  var font; // EjsS Model.Variables.variables.font
+  var REarth; // EjsS Model.Variables.variables.REarth
+  var t; // EjsS Model.Variables.variables.t
+  var dt; // EjsS Model.Variables.variables.dt
+  var vxtest; // EjsS Model.Variables.variables.vxtest
+  var vxdrag; // EjsS Model.Variables.variables.vxdrag
+  var k; // EjsS Model.Variables.variables.k
+  var G; // EjsS Model.Variables.variables.G
+  var x1; // EjsS Model.Variables.variables.x1
+  var x2; // EjsS Model.Variables.variables.x2
+  var xtest; // EjsS Model.Variables.variables.xtest
+  var q1; // EjsS Model.Variables.variables.q1
+  var m1; // EjsS Model.Variables.variables.m1
+  var q2; // EjsS Model.Variables.variables.q2
+  var m2; // EjsS Model.Variables.variables.m2
+  var qtest; // EjsS Model.Variables.variables.qtest
+  var mtest; // EjsS Model.Variables.variables.mtest
+  var moonearth; // EjsS Model.Variables.variables.moonearth
+  var earthmoon; // EjsS Model.Variables.variables.earthmoon
+  var E1; // EjsS Model.Variables.variables.E1
+  var g1; // EjsS Model.Variables.variables.g1
+  var V1; // EjsS Model.Variables.variables.V1
+  var phi1; // EjsS Model.Variables.variables.phi1
+  var E2; // EjsS Model.Variables.variables.E2
+  var g2; // EjsS Model.Variables.variables.g2
+  var V2; // EjsS Model.Variables.variables.V2
+  var phi2; // EjsS Model.Variables.variables.phi2
+  var Enet; // EjsS Model.Variables.variables.Enet
+  var gnet; // EjsS Model.Variables.variables.gnet
+  var Vnet; // EjsS Model.Variables.variables.Vnet
+  var phinet; // EjsS Model.Variables.variables.phinet
+  var xmin; // EjsS Model.Variables.variables.xmin
+  var xmax; // EjsS Model.Variables.variables.xmax
+  var ymin; // EjsS Model.Variables.variables.ymin
+  var ymax; // EjsS Model.Variables.variables.ymax
+  var range; // EjsS Model.Variables.variables.range
+  var size; // EjsS Model.Variables.variables.size
+  var sizex1; // EjsS Model.Variables.variables.sizex1
+  var sizex2; // EjsS Model.Variables.variables.sizex2
+  var rangey; // EjsS Model.Variables.variables.rangey
+  var sizey; // EjsS Model.Variables.variables.sizey
+  var sizey1; // EjsS Model.Variables.variables.sizey1
+  var sizey2; // EjsS Model.Variables.variables.sizey2
+  var dx; // EjsS Model.Variables.variables.dx
+  var show1; // EjsS Model.Variables.variables.show1
+  var show2; // EjsS Model.Variables.variables.show2
+  var testc; // EjsS Model.Variables.variables.testc
+  var g1show; // EjsS Model.Variables.variables.g1show
+  var g2show; // EjsS Model.Variables.variables.g2show
+  var gnetshow; // EjsS Model.Variables.variables.gnetshow
+  var showgraph; // EjsS Model.Variables.variables.showgraph
+  var showgraph1; // EjsS Model.Variables.variables.showgraph1
+  var showgraph2; // EjsS Model.Variables.variables.showgraph2
+  var showVgraph; // EjsS Model.Variables.variables.showVgraph
+  var showV1graph; // EjsS Model.Variables.variables.showV1graph
+  var showV2graph; // EjsS Model.Variables.variables.showV2graph
+  var showgradient; // EjsS Model.Variables.variables.showgradient
+  var showF; // EjsS Model.Variables.variables.showF
+  var showU; // EjsS Model.Variables.variables.showU
+  var helpLabel; // EjsS Model.Variables.variables.helpLabel
+  var helpFlag; // EjsS Model.Variables.variables.helpFlag
+  var zeroval; // EjsS Model.Variables.variables.zeroval
+  var plot2max; // EjsS Model.Variables.variables.plot2max
+  var plot1max; // EjsS Model.Variables.variables.plot1max
+  var showmidgraph; // EjsS Model.Variables.variables.showmidgraph
+  var showmidVgraph; // EjsS Model.Variables.variables.showmidVgraph
+  var rM1m; // EjsS Model.Variables.variables.rM1m
+  var rM2m; // EjsS Model.Variables.variables.rM2m
+  var rM1M2; // EjsS Model.Variables.variables.rM1M2
+  var scale; // EjsS Model.Variables.variables.scale
+  var scale1; // EjsS Model.Variables.variables.scale1
+  var scale2; // EjsS Model.Variables.variables.scale2
+  var scalex; // EjsS Model.Variables.variables.scalex
+  var scaley; // EjsS Model.Variables.variables.scaley
+  var scaleyV; // EjsS Model.Variables.variables.scaleyV
+  var gmax; // EjsS Model.Variables.variables.gmax
+  var gmin; // EjsS Model.Variables.variables.gmin
+  var Vy; // EjsS Model.Variables.variables.Vy
+  var gy; // EjsS Model.Variables.variables.gy
+
+  var x1s; // EjsS Model.Variables.store.x1s
+  var x2s; // EjsS Model.Variables.store.x2s
+  var m1s; // EjsS Model.Variables.store.m1s
+  var m2s; // EjsS Model.Variables.store.m2s
+  var sizex2s; // EjsS Model.Variables.store.sizex2s
+  var sizex1s; // EjsS Model.Variables.store.sizex1s
+  var sizey2s; // EjsS Model.Variables.store.sizey2s
+  var sizey1s; // EjsS Model.Variables.store.sizey1s
+  var xtests; // EjsS Model.Variables.store.xtests
+  var option; // EjsS Model.Variables.store.option
+
+  var ke; // EjsS Model.Variables.energy.ke
+  var pe; // EjsS Model.Variables.energy.pe
+  var te; // EjsS Model.Variables.energy.te
+
+  var mode; // EjsS Model.Variables.combomode.mode
+
+  var redness; // EjsS Model.Variables.color variables.redness
+  var greenness; // EjsS Model.Variables.color variables.greenness
+  var blueness; // EjsS Model.Variables.color variables.blueness
+  var colorball1; // EjsS Model.Variables.color variables.colorball1
+  var colorball2; // EjsS Model.Variables.color variables.colorball2
+  var white; // EjsS Model.Variables.color variables.white
+  var backgroundcolor; // EjsS Model.Variables.color variables.backgroundcolor
+
+  var F1; // EjsS Model.Variables.forces.F1
+  var F2; // EjsS Model.Variables.forces.F2
+
+  var s_E1; // EjsS Model.Variables.equation.s_E1
+  var s_E2; // EjsS Model.Variables.equation.s_E2
+  var yE1; // EjsS Model.Variables.equation.yE1
+  var yE2; // EjsS Model.Variables.equation.yE2
+  var max; // EjsS Model.Variables.equation.max
+  var s_V1; // EjsS Model.Variables.equation.s_V1
+  var s_V2; // EjsS Model.Variables.equation.s_V2
+  var yV1; // EjsS Model.Variables.equation.yV1
+  var yV2; // EjsS Model.Variables.equation.yV2
+
+  var V2ymove; // EjsS Model.Variables.lookang.V2ymove
+  var text; // EjsS Model.Variables.lookang.text
+  var textbr; // EjsS Model.Variables.lookang.textbr
+  var textg1; // EjsS Model.Variables.lookang.textg1
+  var textg2; // EjsS Model.Variables.lookang.textg2
+  var textg; // EjsS Model.Variables.lookang.textg
+  var textV1; // EjsS Model.Variables.lookang.textV1
+  var textV2; // EjsS Model.Variables.lookang.textV2
+  var textV; // EjsS Model.Variables.lookang.textV
+  var selected; // EjsS Model.Variables.lookang.selected
+  var Width; // EjsS Model.Variables.lookang.Width
+  var Height; // EjsS Model.Variables.lookang.Height
+  var Width1; // EjsS Model.Variables.lookang.Width1
+
+  var functiong; // EjsS Model.Variables.model.functiong
+  var selectedmodel; // EjsS Model.Variables.model.selectedmodel
+  var functionV; // EjsS Model.Variables.model.functionV
+  var showmodel; // EjsS Model.Variables.model.showmodel
+  var functionY; // EjsS Model.Variables.model.functionY
+
+  var devicePresent; // EjsS Model.Variables.layout.devicePresent
+  var expert; // EjsS Model.Variables.layout.expert
+  var selectedview; // EjsS Model.Variables.layout.selectedview
+  var isAndroid; // EjsS Model.Variables.layout.isAndroid
+  var iOS; // EjsS Model.Variables.layout.iOS
+  var iPad; // EjsS Model.Variables.layout.iPad
+  var iPhone; // EjsS Model.Variables.layout.iPhone
+
+  var gsum; // EjsS Model.Variables.functionplot.gsum
+
+  var _privateOdesList;
+  var _ODEi_evolution1;
+  var userEvents1=[];
+
+  _model.getOdes = function() { return [_ODEi_evolution1]; };
+
+  _model.removeEvents = function(){
+    userEvents1=[];
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      inputdropmenu : inputdropmenu,
+      print : print,
+      fontb : fontb,
+      font : font,
+      REarth : REarth,
+      t : t,
+      dt : dt,
+      vxtest : vxtest,
+      vxdrag : vxdrag,
+      k : k,
+      G : G,
+      x1 : x1,
+      x2 : x2,
+      xtest : xtest,
+      q1 : q1,
+      m1 : m1,
+      q2 : q2,
+      m2 : m2,
+      qtest : qtest,
+      mtest : mtest,
+      moonearth : moonearth,
+      earthmoon : earthmoon,
+      E1 : E1,
+      g1 : g1,
+      V1 : V1,
+      phi1 : phi1,
+      E2 : E2,
+      g2 : g2,
+      V2 : V2,
+      phi2 : phi2,
+      Enet : Enet,
+      gnet : gnet,
+      Vnet : Vnet,
+      phinet : phinet,
+      xmin : xmin,
+      xmax : xmax,
+      ymin : ymin,
+      ymax : ymax,
+      range : range,
+      size : size,
+      sizex1 : sizex1,
+      sizex2 : sizex2,
+      rangey : rangey,
+      sizey : sizey,
+      sizey1 : sizey1,
+      sizey2 : sizey2,
+      dx : dx,
+      show1 : show1,
+      show2 : show2,
+      testc : testc,
+      g1show : g1show,
+      g2show : g2show,
+      gnetshow : gnetshow,
+      showgraph : showgraph,
+      showgraph1 : showgraph1,
+      showgraph2 : showgraph2,
+      showVgraph : showVgraph,
+      showV1graph : showV1graph,
+      showV2graph : showV2graph,
+      showgradient : showgradient,
+      showF : showF,
+      showU : showU,
+      helpLabel : helpLabel,
+      helpFlag : helpFlag,
+      zeroval : zeroval,
+      plot2max : plot2max,
+      plot1max : plot1max,
+      showmidgraph : showmidgraph,
+      showmidVgraph : showmidVgraph,
+      rM1m : rM1m,
+      rM2m : rM2m,
+      rM1M2 : rM1M2,
+      scale : scale,
+      scale1 : scale1,
+      scale2 : scale2,
+      scalex : scalex,
+      scaley : scaley,
+      scaleyV : scaleyV,
+      gmax : gmax,
+      gmin : gmin,
+      Vy : Vy,
+      gy : gy,
+      x1s : x1s,
+      x2s : x2s,
+      m1s : m1s,
+      m2s : m2s,
+      sizex2s : sizex2s,
+      sizex1s : sizex1s,
+      sizey2s : sizey2s,
+      sizey1s : sizey1s,
+      xtests : xtests,
+      option : option,
+      ke : ke,
+      pe : pe,
+      te : te,
+      mode : mode,
+      redness : redness,
+      greenness : greenness,
+      blueness : blueness,
+      colorball1 : colorball1,
+      colorball2 : colorball2,
+      white : white,
+      backgroundcolor : backgroundcolor,
+      F1 : F1,
+      F2 : F2,
+      s_E1 : s_E1,
+      s_E2 : s_E2,
+      yE1 : yE1,
+      yE2 : yE2,
+      max : max,
+      s_V1 : s_V1,
+      s_V2 : s_V2,
+      yV1 : yV1,
+      yV2 : yV2,
+      V2ymove : V2ymove,
+      text : text,
+      textbr : textbr,
+      textg1 : textg1,
+      textg2 : textg2,
+      textg : textg,
+      textV1 : textV1,
+      textV2 : textV2,
+      textV : textV,
+      selected : selected,
+      Width : Width,
+      Height : Height,
+      Width1 : Width1,
+      functiong : functiong,
+      selectedmodel : selectedmodel,
+      functionV : functionV,
+      showmodel : showmodel,
+      functionY : functionY,
+      devicePresent : devicePresent,
+      expert : expert,
+      selectedview : selectedview,
+      isAndroid : isAndroid,
+      iOS : iOS,
+      iPad : iPad,
+      iPhone : iPhone,
+      gsum : gsum
+    };
+  };
+
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return {
+      inputdropmenu : inputdropmenu,
+      print : print,
+      fontb : fontb,
+      font : font
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.inputdropmenu != "undefined") inputdropmenu = json.inputdropmenu;
+    if(typeof json.print != "undefined") print = json.print;
+    if(typeof json.fontb != "undefined") fontb = json.fontb;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.REarth != "undefined") REarth = json.REarth;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.vxtest != "undefined") vxtest = json.vxtest;
+    if(typeof json.vxdrag != "undefined") vxdrag = json.vxdrag;
+    if(typeof json.k != "undefined") k = json.k;
+    if(typeof json.G != "undefined") G = json.G;
+    if(typeof json.x1 != "undefined") x1 = json.x1;
+    if(typeof json.x2 != "undefined") x2 = json.x2;
+    if(typeof json.xtest != "undefined") xtest = json.xtest;
+    if(typeof json.q1 != "undefined") q1 = json.q1;
+    if(typeof json.m1 != "undefined") m1 = json.m1;
+    if(typeof json.q2 != "undefined") q2 = json.q2;
+    if(typeof json.m2 != "undefined") m2 = json.m2;
+    if(typeof json.qtest != "undefined") qtest = json.qtest;
+    if(typeof json.mtest != "undefined") mtest = json.mtest;
+    if(typeof json.moonearth != "undefined") moonearth = json.moonearth;
+    if(typeof json.earthmoon != "undefined") earthmoon = json.earthmoon;
+    if(typeof json.E1 != "undefined") E1 = json.E1;
+    if(typeof json.g1 != "undefined") g1 = json.g1;
+    if(typeof json.V1 != "undefined") V1 = json.V1;
+    if(typeof json.phi1 != "undefined") phi1 = json.phi1;
+    if(typeof json.E2 != "undefined") E2 = json.E2;
+    if(typeof json.g2 != "undefined") g2 = json.g2;
+    if(typeof json.V2 != "undefined") V2 = json.V2;
+    if(typeof json.phi2 != "undefined") phi2 = json.phi2;
+    if(typeof json.Enet != "undefined") Enet = json.Enet;
+    if(typeof json.gnet != "undefined") gnet = json.gnet;
+    if(typeof json.Vnet != "undefined") Vnet = json.Vnet;
+    if(typeof json.phinet != "undefined") phinet = json.phinet;
+    if(typeof json.xmin != "undefined") xmin = json.xmin;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.ymin != "undefined") ymin = json.ymin;
+    if(typeof json.ymax != "undefined") ymax = json.ymax;
+    if(typeof json.range != "undefined") range = json.range;
+    if(typeof json.size != "undefined") size = json.size;
+    if(typeof json.sizex1 != "undefined") sizex1 = json.sizex1;
+    if(typeof json.sizex2 != "undefined") sizex2 = json.sizex2;
+    if(typeof json.rangey != "undefined") rangey = json.rangey;
+    if(typeof json.sizey != "undefined") sizey = json.sizey;
+    if(typeof json.sizey1 != "undefined") sizey1 = json.sizey1;
+    if(typeof json.sizey2 != "undefined") sizey2 = json.sizey2;
+    if(typeof json.dx != "undefined") dx = json.dx;
+    if(typeof json.show1 != "undefined") show1 = json.show1;
+    if(typeof json.show2 != "undefined") show2 = json.show2;
+    if(typeof json.testc != "undefined") testc = json.testc;
+    if(typeof json.g1show != "undefined") g1show = json.g1show;
+    if(typeof json.g2show != "undefined") g2show = json.g2show;
+    if(typeof json.gnetshow != "undefined") gnetshow = json.gnetshow;
+    if(typeof json.showgraph != "undefined") showgraph = json.showgraph;
+    if(typeof json.showgraph1 != "undefined") showgraph1 = json.showgraph1;
+    if(typeof json.showgraph2 != "undefined") showgraph2 = json.showgraph2;
+    if(typeof json.showVgraph != "undefined") showVgraph = json.showVgraph;
+    if(typeof json.showV1graph != "undefined") showV1graph = json.showV1graph;
+    if(typeof json.showV2graph != "undefined") showV2graph = json.showV2graph;
+    if(typeof json.showgradient != "undefined") showgradient = json.showgradient;
+    if(typeof json.showF != "undefined") showF = json.showF;
+    if(typeof json.showU != "undefined") showU = json.showU;
+    if(typeof json.helpLabel != "undefined") helpLabel = json.helpLabel;
+    if(typeof json.helpFlag != "undefined") helpFlag = json.helpFlag;
+    if(typeof json.zeroval != "undefined") zeroval = json.zeroval;
+    if(typeof json.plot2max != "undefined") plot2max = json.plot2max;
+    if(typeof json.plot1max != "undefined") plot1max = json.plot1max;
+    if(typeof json.showmidgraph != "undefined") showmidgraph = json.showmidgraph;
+    if(typeof json.showmidVgraph != "undefined") showmidVgraph = json.showmidVgraph;
+    if(typeof json.rM1m != "undefined") rM1m = json.rM1m;
+    if(typeof json.rM2m != "undefined") rM2m = json.rM2m;
+    if(typeof json.rM1M2 != "undefined") rM1M2 = json.rM1M2;
+    if(typeof json.scale != "undefined") scale = json.scale;
+    if(typeof json.scale1 != "undefined") scale1 = json.scale1;
+    if(typeof json.scale2 != "undefined") scale2 = json.scale2;
+    if(typeof json.scalex != "undefined") scalex = json.scalex;
+    if(typeof json.scaley != "undefined") scaley = json.scaley;
+    if(typeof json.scaleyV != "undefined") scaleyV = json.scaleyV;
+    if(typeof json.gmax != "undefined") gmax = json.gmax;
+    if(typeof json.gmin != "undefined") gmin = json.gmin;
+    if(typeof json.Vy != "undefined") Vy = json.Vy;
+    if(typeof json.gy != "undefined") gy = json.gy;
+    if(typeof json.x1s != "undefined") x1s = json.x1s;
+    if(typeof json.x2s != "undefined") x2s = json.x2s;
+    if(typeof json.m1s != "undefined") m1s = json.m1s;
+    if(typeof json.m2s != "undefined") m2s = json.m2s;
+    if(typeof json.sizex2s != "undefined") sizex2s = json.sizex2s;
+    if(typeof json.sizex1s != "undefined") sizex1s = json.sizex1s;
+    if(typeof json.sizey2s != "undefined") sizey2s = json.sizey2s;
+    if(typeof json.sizey1s != "undefined") sizey1s = json.sizey1s;
+    if(typeof json.xtests != "undefined") xtests = json.xtests;
+    if(typeof json.option != "undefined") option = json.option;
+    if(typeof json.ke != "undefined") ke = json.ke;
+    if(typeof json.pe != "undefined") pe = json.pe;
+    if(typeof json.te != "undefined") te = json.te;
+    if(typeof json.mode != "undefined") mode = json.mode;
+    if(typeof json.redness != "undefined") redness = json.redness;
+    if(typeof json.greenness != "undefined") greenness = json.greenness;
+    if(typeof json.blueness != "undefined") blueness = json.blueness;
+    if(typeof json.colorball1 != "undefined") colorball1 = json.colorball1;
+    if(typeof json.colorball2 != "undefined") colorball2 = json.colorball2;
+    if(typeof json.white != "undefined") white = json.white;
+    if(typeof json.backgroundcolor != "undefined") backgroundcolor = json.backgroundcolor;
+    if(typeof json.F1 != "undefined") F1 = json.F1;
+    if(typeof json.F2 != "undefined") F2 = json.F2;
+    if(typeof json.s_E1 != "undefined") s_E1 = json.s_E1;
+    if(typeof json.s_E2 != "undefined") s_E2 = json.s_E2;
+    if(typeof json.yE1 != "undefined") yE1 = json.yE1;
+    if(typeof json.yE2 != "undefined") yE2 = json.yE2;
+    if(typeof json.max != "undefined") max = json.max;
+    if(typeof json.s_V1 != "undefined") s_V1 = json.s_V1;
+    if(typeof json.s_V2 != "undefined") s_V2 = json.s_V2;
+    if(typeof json.yV1 != "undefined") yV1 = json.yV1;
+    if(typeof json.yV2 != "undefined") yV2 = json.yV2;
+    if(typeof json.V2ymove != "undefined") V2ymove = json.V2ymove;
+    if(typeof json.text != "undefined") text = json.text;
+    if(typeof json.textbr != "undefined") textbr = json.textbr;
+    if(typeof json.textg1 != "undefined") textg1 = json.textg1;
+    if(typeof json.textg2 != "undefined") textg2 = json.textg2;
+    if(typeof json.textg != "undefined") textg = json.textg;
+    if(typeof json.textV1 != "undefined") textV1 = json.textV1;
+    if(typeof json.textV2 != "undefined") textV2 = json.textV2;
+    if(typeof json.textV != "undefined") textV = json.textV;
+    if(typeof json.selected != "undefined") selected = json.selected;
+    if(typeof json.Width != "undefined") Width = json.Width;
+    if(typeof json.Height != "undefined") Height = json.Height;
+    if(typeof json.Width1 != "undefined") Width1 = json.Width1;
+    if(typeof json.functiong != "undefined") functiong = json.functiong;
+    if(typeof json.selectedmodel != "undefined") selectedmodel = json.selectedmodel;
+    if(typeof json.functionV != "undefined") functionV = json.functionV;
+    if(typeof json.showmodel != "undefined") showmodel = json.showmodel;
+    if(typeof json.functionY != "undefined") functionY = json.functionY;
+    if(typeof json.devicePresent != "undefined") devicePresent = json.devicePresent;
+    if(typeof json.expert != "undefined") expert = json.expert;
+    if(typeof json.selectedview != "undefined") selectedview = json.selectedview;
+    if(typeof json.isAndroid != "undefined") isAndroid = json.isAndroid;
+    if(typeof json.iOS != "undefined") iOS = json.iOS;
+    if(typeof json.iPad != "undefined") iPad = json.iPad;
+    if(typeof json.iPhone != "undefined") iPhone = json.iPhone;
+    if(typeof json.gsum != "undefined") gsum = json.gsum;
+  };
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.inputdropmenu != "undefined") inputdropmenu = json.inputdropmenu;
+    if(typeof json.print != "undefined") print = json.print;
+    if(typeof json.fontb != "undefined") fontb = json.fontb;
+    if(typeof json.font != "undefined") font = json.font;
+  };
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["undefined"] = true;
+    __pagesEnabled["svg"] = true;
+    __pagesEnabled["modebywee"] = true;
+    __pagesEnabled["Init Page"] = true;
+    __pagesEnabled["Evol Page"] = true;
+    __pagesEnabled["Error handling code"] = true;
+    __pagesEnabled["Cons Page"] = true;
+    __pagesEnabled["FixRel Page"] = false;
+    __pagesEnabled["energy"] = true;
+    __pagesEnabled["showgraph"] = true;
+    __pagesEnabled["forces"] = true;
+    __pagesEnabled["lines"] = false;
+    __pagesEnabled["display"] = true;
+    __pagesEnabled["function"] = true;
+    __pagesEnabled["pause"] = true;
+  });
+
+  _model.addToReset(function() {
+    inputdropmenu = true; // EjsS Model.Variables.variables.inputdropmenu
+    print = false; // EjsS Model.Variables.variables.print
+    fontb = "normal bold 2vw "; // EjsS Model.Variables.variables.fontb
+    font = "normal normal 2vw "; // EjsS Model.Variables.variables.font
+    REarth = 6.38E6; // EjsS Model.Variables.variables.REarth
+    t = 0; // EjsS Model.Variables.variables.t
+    dt = 60; // EjsS Model.Variables.variables.dt
+    vxtest = 0; // EjsS Model.Variables.variables.vxtest
+    vxdrag = 0; // EjsS Model.Variables.variables.vxdrag
+    k = 9.0; // EjsS Model.Variables.variables.k
+    G = 6.67E-11; // EjsS Model.Variables.variables.G
+    x1 = -384403000; // EjsS Model.Variables.variables.x1
+    x2 = 0; // EjsS Model.Variables.variables.x2
+    xtest = -3.7715893130699086E8*Math.random(); // EjsS Model.Variables.variables.xtest
+    q1 = 20.0; // EjsS Model.Variables.variables.q1
+    m1 = 7.349E22; // EjsS Model.Variables.variables.m1
+    q2 = -10.0; // EjsS Model.Variables.variables.q2
+    m2 = 5.97e24; // EjsS Model.Variables.variables.m2
+    qtest = 1.0; // EjsS Model.Variables.variables.qtest
+    mtest = 1; // EjsS Model.Variables.variables.mtest
+    moonearth = true; // EjsS Model.Variables.variables.moonearth
+    earthmoon = false; // EjsS Model.Variables.variables.earthmoon
+    E1 = 0.0; // EjsS Model.Variables.variables.E1
+    g1 = 0; // EjsS Model.Variables.variables.g1
+    V1 = 0.0; // EjsS Model.Variables.variables.V1
+    phi1 = 0; // EjsS Model.Variables.variables.phi1
+    E2 = 0.0; // EjsS Model.Variables.variables.E2
+    g2 = 0; // EjsS Model.Variables.variables.g2
+    V2 = 0.0; // EjsS Model.Variables.variables.V2
+    phi2 = 0; // EjsS Model.Variables.variables.phi2
+    Enet = 0.0; // EjsS Model.Variables.variables.Enet
+    gnet = 0; // EjsS Model.Variables.variables.gnet
+    Vnet = 0.0; // EjsS Model.Variables.variables.Vnet
+    phinet = 0; // EjsS Model.Variables.variables.phinet
+    xmin = -384403000*1.05; // EjsS Model.Variables.variables.xmin
+    xmax = 12742000*1; // EjsS Model.Variables.variables.xmax
+    ymin = -127420.00; // EjsS Model.Variables.variables.ymin
+    ymax = 127420.00; // EjsS Model.Variables.variables.ymax
+    range = xmax-xmin; // EjsS Model.Variables.variables.range
+    size = range/20; // EjsS Model.Variables.variables.size
+    sizex1 = 3476000; // EjsS Model.Variables.variables.sizex1
+    sizex2 = 12742000; // EjsS Model.Variables.variables.sizex2
+    rangey = ymax-ymin; // EjsS Model.Variables.variables.rangey
+    sizey = rangey/10; // EjsS Model.Variables.variables.sizey
+    sizey1 = rangey/60; // EjsS Model.Variables.variables.sizey1
+    sizey2 = rangey/15; // EjsS Model.Variables.variables.sizey2
+    dx = 0.1; // EjsS Model.Variables.variables.dx
+    show1 = true; // EjsS Model.Variables.variables.show1
+    show2 = true; // EjsS Model.Variables.variables.show2
+    testc = false; // EjsS Model.Variables.variables.testc
+    showgraph = false; // EjsS Model.Variables.variables.showgraph
+    showgraph1 = false; // EjsS Model.Variables.variables.showgraph1
+    showgraph2 = false; // EjsS Model.Variables.variables.showgraph2
+    showV1graph = false; // EjsS Model.Variables.variables.showV1graph
+    showV2graph = false; // EjsS Model.Variables.variables.showV2graph
+    helpLabel = "Show Help"; // EjsS Model.Variables.variables.helpLabel
+    helpFlag = false; // EjsS Model.Variables.variables.helpFlag
+    zeroval = 0; // EjsS Model.Variables.variables.zeroval
+    plot2max = x2+sizex2/2; // EjsS Model.Variables.variables.plot2max
+    plot1max = x1-sizex1/2; // EjsS Model.Variables.variables.plot1max
+    showmidgraph = false; // EjsS Model.Variables.variables.showmidgraph
+    showmidVgraph = false; // EjsS Model.Variables.variables.showmidVgraph
+    scale1 = 1; // EjsS Model.Variables.variables.scale1
+    scale2 = 1; // EjsS Model.Variables.variables.scale2
+    scalex = 1; // EjsS Model.Variables.variables.scalex
+    scaley = 150; // EjsS Model.Variables.variables.scaley
+    scaleyV = 1; // EjsS Model.Variables.variables.scaleyV
+    gmax = 0; // EjsS Model.Variables.variables.gmax
+    gmin = 0; // EjsS Model.Variables.variables.gmin
+    Vy = 0; // EjsS Model.Variables.variables.Vy
+    gy = 0; // EjsS Model.Variables.variables.gy
+  });
+
+  _model.addToReset(function() {
+    x1s = x1; // EjsS Model.Variables.store.x1s
+    x2s = x2; // EjsS Model.Variables.store.x2s
+    m1s = m1; // EjsS Model.Variables.store.m1s
+    m2s = m2; // EjsS Model.Variables.store.m2s
+    sizex2s = sizex2; // EjsS Model.Variables.store.sizex2s
+    sizex1s = sizex1; // EjsS Model.Variables.store.sizex1s
+    sizey2s = sizey2; // EjsS Model.Variables.store.sizey2s
+    sizey1s = sizey1; // EjsS Model.Variables.store.sizey1s
+    xtests = xtest; // EjsS Model.Variables.store.xtests
+    option = "Earth Surface view EarthMoon"; // EjsS Model.Variables.store.option
+  });
+
+  _model.addToReset(function() {
+    ke = 0; // EjsS Model.Variables.energy.ke
+    pe = 0; // EjsS Model.Variables.energy.pe
+    te = 0; // EjsS Model.Variables.energy.te
+  });
+
+  _model.addToReset(function() {
+    mode = new Array(1); // EjsS Model.Variables.combomode.mode
+  });
+
+  _model.addToReset(function() {
+    redness = 250; // EjsS Model.Variables.color variables.redness
+    greenness = 250; // EjsS Model.Variables.color variables.greenness
+    blueness = 250; // EjsS Model.Variables.color variables.blueness
+    backgroundcolor = rgb(0,0,0); // EjsS Model.Variables.color variables.backgroundcolor
+  });
+
+  _model.addToReset(function() {
+    F1 = 0; // EjsS Model.Variables.forces.F1
+    F2 = 0; // EjsS Model.Variables.forces.F2
+  });
+
+  _model.addToReset(function() {
+    yE1 = 0; // EjsS Model.Variables.equation.yE1
+    yE2 = -rangey/15*scaley; // EjsS Model.Variables.equation.yE2
+    max = xmax; // EjsS Model.Variables.equation.max
+    yV1 = -5*rangey/15*scaley; // EjsS Model.Variables.equation.yV1
+    yV2 = -6*rangey/15*scaley; // EjsS Model.Variables.equation.yV2
+  });
+
+  _model.addToReset(function() {
+    V2ymove = 0; // EjsS Model.Variables.lookang.V2ymove
+    text = ""; // EjsS Model.Variables.lookang.text
+    textbr = ""; // EjsS Model.Variables.lookang.textbr
+    textg1 = ""; // EjsS Model.Variables.lookang.textg1
+    textg2 = ""; // EjsS Model.Variables.lookang.textg2
+    textg = ""; // EjsS Model.Variables.lookang.textg
+    textV1 = ""; // EjsS Model.Variables.lookang.textV1
+    textV2 = ""; // EjsS Model.Variables.lookang.textV2
+    textV = ""; // EjsS Model.Variables.lookang.textV
+    selected = new Array(1); // EjsS Model.Variables.lookang.selected
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.lookang.selected
+        selected[_i0] = "Random view MoonEarth";  // EjsS Model.Variables.lookang.selected
+      }
+    }());
+    Width = (_isEPub)?"400":"100%"; // EjsS Model.Variables.lookang.Width
+    Height = (_isEPub)?"500":"100%"; // EjsS Model.Variables.lookang.Height
+    Width1 = "100%"; // EjsS Model.Variables.lookang.Width1
+  });
+
+  _model.addToReset(function() {
+    functiong = "k*q1*scale1/((xval-x1)*(xval-x1))*(xval-x1)/abs(xval-x1)+ k*q2*scale2/((xval-x2)*(xval-x2))*(xval-x2)/abs(xval-x2)"; // EjsS Model.Variables.model.functiong
+    selectedmodel = new Array(1); // EjsS Model.Variables.model.selectedmodel
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.model.selectedmodel
+        selectedmodel[_i0] = "0";  // EjsS Model.Variables.model.selectedmodel
+      }
+    }());
+    functionY = "0"; // EjsS Model.Variables.model.functionY
+  });
+
+  _model.addToReset(function() {
+    devicePresent = accelerometer.isPresent(); // EjsS Model.Variables.layout.devicePresent
+    expert = false; // EjsS Model.Variables.layout.expert
+    selectedview = new Array(1); // EjsS Model.Variables.layout.selectedview
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.layout.selectedview
+        selectedview[_i0] = "both";  // EjsS Model.Variables.layout.selectedview
+      }
+    }());
+    isAndroid = checkAndroid(); // EjsS Model.Variables.layout.isAndroid
+    iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; // EjsS Model.Variables.layout.iOS
+    iPad = /iPad/.test(navigator.userAgent) && !window.MSStream; // EjsS Model.Variables.layout.iPad
+    iPhone = /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; // EjsS Model.Variables.layout.iPhone
+  });
+
+  _model.addToReset(function() {
+    gsum = ""; // EjsS Model.Variables.functionplot.gsum
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _privateOdesList=[];
+    _ODEi_evolution1 = _ODE_evolution1();
+    _privateOdesList.push(_ODEi_evolution1);
+  });
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function getA (x_pos) {  // > CustomCode.accln:1
+      var accln;  // > CustomCode.accln:2
+      accln = scale2*G*(-m2)/((x_pos-x2)*(x_pos-x2))*(x_pos-x2)/Math.abs(x_pos-x2)+scale1*G*(-m1)/((x_pos-x1)*(x_pos-x1))*(x_pos-x1)/Math.abs(x_pos-x1);  // > CustomCode.accln:3
+      return accln;  // > CustomCode.accln:4
+        // > CustomCode.accln:5
+  }  // > CustomCode.accln:6
+
+  //code reference: http://davidwalsh.name/detect-android  // > CustomCode.android:1
+  function checkAndroid () {  // > CustomCode.android:2
+    var ua = navigator.userAgent.toLowerCase();  // > CustomCode.android:3
+    return ua.indexOf("android") > -1; //&& ua.indexOf("mobile");  // > CustomCode.android:4
+  }  // > CustomCode.android:5
+
+  function rgb(r, g, b){  // > CustomCode.color:1
+    return "rgb("+r+","+g+","+b+")";  // > CustomCode.color:2
+  }  // > CustomCode.color:3
+
+  //https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Using_full_screen_mode  // > CustomCode.Lib Page:1
+  // does not work for iOS   // > CustomCode.Lib Page:2
+  /*jslint browser:true */  // > CustomCode.Lib Page:3
+  function toggleFullScreen() {  // > CustomCode.Lib Page:4
+    if (!document.fullscreenElement &&    // alternative standard method  // > CustomCode.Lib Page:5
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods  // > CustomCode.Lib Page:6
+      if (document.documentElement.requestFullscreen) {  // > CustomCode.Lib Page:7
+        document.documentElement.requestFullscreen();  // > CustomCode.Lib Page:8
+      } else if (document.documentElement.msRequestFullscreen) {  // > CustomCode.Lib Page:9
+        document.documentElement.msRequestFullscreen();  // > CustomCode.Lib Page:10
+      } else if (document.documentElement.mozRequestFullScreen) {  // > CustomCode.Lib Page:11
+        document.documentElement.mozRequestFullScreen();  // > CustomCode.Lib Page:12
+      } else if (document.documentElement.webkitRequestFullscreen) {  // > CustomCode.Lib Page:13
+        document.documentElement.webkitRequestFullscreen();  // > CustomCode.Lib Page:14
+      }  // > CustomCode.Lib Page:15
+    } else {  // > CustomCode.Lib Page:16
+      if (document.exitFullscreen) {  // > CustomCode.Lib Page:17
+        document.exitFullscreen();  // > CustomCode.Lib Page:18
+      } else if (document.msExitFullscreen) {  // > CustomCode.Lib Page:19
+        document.msExitFullscreen();  // > CustomCode.Lib Page:20
+      } else if (document.mozCancelFullScreen) {  // > CustomCode.Lib Page:21
+        document.mozCancelFullScreen();  // > CustomCode.Lib Page:22
+      } else if (document.webkitExitFullscreen) {  // > CustomCode.Lib Page:23
+        document.webkitExitFullscreen();  // > CustomCode.Lib Page:24
+      }  // > CustomCode.Lib Page:25
+    }  // > CustomCode.Lib Page:26
+  }  // > CustomCode.Lib Page:27
+
+  // code to be copied to EJSS source code under Custom and used in drawingPanel3D and plottingPanel2D  // > CustomCode.changeOrientation:1
+  // address the problem is height difference is iOS app , epub, and Firefox  // > CustomCode.changeOrientation:2
+  // user need to change only k and kepub  // > CustomCode.changeOrientation:3
+  // copy %changeOrientation()% into the Height Field of drawingPanel3D and plottingPanel2D  // > CustomCode.changeOrientation:4
+  function changeOrientation() {  // > CustomCode.changeOrientation:5
+     // > CustomCode.changeOrientation:6
+  var k =1 ; // k control height 1 is for full screen, 0.9 shorten etc  // > CustomCode.changeOrientation:7
+  var kapple =0.95 // control apple app height  // > CustomCode.changeOrientation:8
+  var kepub =0.95 ;  // > CustomCode.changeOrientation:9
+  // check platform for Apps  // > CustomCode.changeOrientation:10
+  try { // allow code to run in Student Learning Space   // > CustomCode.changeOrientation:11
+    var iOSapp =  (typeof parent.device != 'undefined' && parent.device.platform == "iOS");  // > CustomCode.changeOrientation:12
+    var Androidapp = (typeof parent.device != 'undefined' && parent.device.platform == "Android");  // > CustomCode.changeOrientation:13
+  } catch(e) {  // > CustomCode.changeOrientation:14
+    var iOSapp = false;  // > CustomCode.changeOrientation:15
+    var Androidapp = false;  // > CustomCode.changeOrientation:16
+  }  // > CustomCode.changeOrientation:17
+  // check platform for web browsers  // > CustomCode.changeOrientation:18
+  var iOS =/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:19
+  var iPad =/iPad/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:20
+  var iPhone = /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:21
+  var Android= /Android|android/i.test(navigator.userAgent);  // > CustomCode.changeOrientation:22
+  //navigator  // > CustomCode.changeOrientation:23
+  var Firefox = navigator.userAgent.indexOf("Firefox") != -1;  // > CustomCode.changeOrientation:24
+     // > CustomCode.changeOrientation:25
+  switch (window.orientation) { // using window.orientation as deciding factor  // > CustomCode.changeOrientation:26
+    case 0:  // > CustomCode.changeOrientation:27
+    case 180:  // > CustomCode.changeOrientation:28
+      this.screenOrientation = 'portrait';  // > CustomCode.changeOrientation:29
+      if (iOSapp){ // does not seems to work  // > CustomCode.changeOrientation:30
+          // > CustomCode.changeOrientation:31
+        return window.screen.height*kapple;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:32
+        // > CustomCode.changeOrientation:33
+      }  // > CustomCode.changeOrientation:34
+      else if (_isEPub){ // does not seems to work  // > CustomCode.changeOrientation:35
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.changeOrientation:36
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:37
+        // return window.screen.height;  // > CustomCode.changeOrientation:38
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:39
+        // return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:40
+      }  // > CustomCode.changeOrientation:41
+       // > CustomCode.changeOrientation:42
+      else {  // > CustomCode.changeOrientation:43
+         // > CustomCode.changeOrientation:44
+        return 100*k+"vh";  // > CustomCode.changeOrientation:45
+      }  // > CustomCode.changeOrientation:46
+      break;  // > CustomCode.changeOrientation:47
+    case 90:  // > CustomCode.changeOrientation:48
+    case -90:  // > CustomCode.changeOrientation:49
+      this.screenOrientation = 'landscape';  // > CustomCode.changeOrientation:50
+     // > CustomCode.changeOrientation:51
+      if (iOSapp){ // App  // > CustomCode.changeOrientation:52
+        return window.screen.width*kapple;    // > CustomCode.changeOrientation:53
+        // return window.screen.height;  // > CustomCode.changeOrientation:54
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:55
+        //  return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:56
+      }  // > CustomCode.changeOrientation:57
+      else if (_isEPub){ // does not seems to work  // > CustomCode.changeOrientation:58
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.changeOrientation:59
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:60
+        // return window.screen.height;  // > CustomCode.changeOrientation:61
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:62
+        // return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:63
+      }  // > CustomCode.changeOrientation:64
+       // > CustomCode.changeOrientation:65
+      else {  // > CustomCode.changeOrientation:66
+        return 100*k+"vh";  // > CustomCode.changeOrientation:67
+        }  // > CustomCode.changeOrientation:68
+      break;  // > CustomCode.changeOrientation:69
+    default:  // > CustomCode.changeOrientation:70
+      this.screenOrientation = 'unknown';  // > CustomCode.changeOrientation:71
+      //       return (iPad)?""+(window.screen.width+window.screen.height)*0.4:((iPhone)?""+window.screen.width:_view._format(window.innerHeight*0.9,"0"));  // > CustomCode.changeOrientation:72
+       if (Firefox){  // > CustomCode.changeOrientation:73
+        return window.innerHeight*k;// number as of 20180831 Firefox does not support vh yet so need a separate line to handle  // > CustomCode.changeOrientation:74
+        }  // > CustomCode.changeOrientation:75
+          // > CustomCode.changeOrientation:76
+        else {  // > CustomCode.changeOrientation:77
+          return 100*k+"vh"; // string every other solid deployment, Android Android App web chrome etc works in EJSS6.0beta  // > CustomCode.changeOrientation:78
+          //  works in EjsS_5.3_180131  // > CustomCode.changeOrientation:79
+          //window.innerHeight*k;  // > CustomCode.changeOrientation:80
+  }  // > CustomCode.changeOrientation:81
+  }  // > CustomCode.changeOrientation:82
+     // > CustomCode.changeOrientation:83
+  }  // > CustomCode.changeOrientation:84
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["undefined"]) return;
+    if (showVgraph==undefined){  // > Initialization.undefined:1
+      showVgraph=true;  // > Initialization.undefined:2
+      }  // > Initialization.undefined:3
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["svg"]) return;
+    var container = document.createElement('div');  // > Initialization.svg:1
+    var svggradient = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs>'+  // > Initialization.svg:2
+      '  <radialGradient id="mygrandient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">'+  // > Initialization.svg:3
+      '    <stop offset="0%" style="stop-color:rgb(255,255,255); stop-opacity:0" />'+  // > Initialization.svg:4
+      '    <stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:0.5" />'+  // > Initialization.svg:5
+      '  </radialGradient>'+  // > Initialization.svg:6
+      '</defs></svg>';  // > Initialization.svg:7
+    container.innerHTML = svggradient;  // > Initialization.svg:8
+    document.body.appendChild(container);  // > Initialization.svg:9
+    var container = document.createElement('div');  // > Initialization.svg:10
+    var svggradient = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs>'+  // > Initialization.svg:11
+      '  <radialGradient id="mygrandientred" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">'+  // > Initialization.svg:12
+      '    <stop offset="0%" style="stop-color:rgb(255,0,0); stop-opacity:1" />'+  // > Initialization.svg:13
+      '    <stop offset="100%" style="stop-color:rgb(255,0,0);stop-opacity:1" />'+  // > Initialization.svg:14
+      '  </radialGradient>'+  // > Initialization.svg:15
+      '</defs></svg>';  // > Initialization.svg:16
+    container.innerHTML = svggradient;  // > Initialization.svg:17
+    document.body.appendChild(container);  // > Initialization.svg:18
+    //"url(#mygrandientred)"  // > Initialization.svg:19
+    var container = document.createElement('div');  // > Initialization.svg:20
+    var svggradient = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs>'+  // > Initialization.svg:21
+      '  <radialGradient id="mygrandientgreen" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">'+  // > Initialization.svg:22
+      '    <stop offset="0%" style="stop-color:rgb(0,255,0); stop-opacity:1" />'+  // > Initialization.svg:23
+      '    <stop offset="100%" style="stop-color:rgb(0,255,0);stop-opacity:1" />'+  // > Initialization.svg:24
+      '  </radialGradient>'+  // > Initialization.svg:25
+      '</defs></svg>';  // > Initialization.svg:26
+    container.innerHTML = svggradient;  // > Initialization.svg:27
+    document.body.appendChild(container);  // > Initialization.svg:28
+    //"url(#mygrandientgreen)"  // > Initialization.svg:29
+    var container = document.createElement('div');  // > Initialization.svg:30
+    var svggradient = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs>'+  // > Initialization.svg:31
+      '  <radialGradient id="mygrandientglint" cx="50%" cy="50%" r="90%" fx="90%" fy="10%">'+  // > Initialization.svg:32
+      '    <stop offset="0%" style="stop-color:rgb(255,255,255); stop-opacity:0.5" />'+  // > Initialization.svg:33
+      '    <stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:0.5" />'+  // > Initialization.svg:34
+      '  </radialGradient>'+  // > Initialization.svg:35
+      '</defs></svg>';  // > Initialization.svg:36
+    container.innerHTML = svggradient;  // > Initialization.svg:37
+    document.body.appendChild(container);  // > Initialization.svg:38
+    //"url(#mygrandientglint)"  // > Initialization.svg:39
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["modebywee"]) return;
+    t=0;  // > Initialization.modebywee:1
+     x1 =x1s ; //moon is 1  // > Initialization.modebywee:2
+     x2 =x2s ;  // > Initialization.modebywee:3
+      m1 =m1s ; //moon  // > Initialization.modebywee:4
+    m2 =  m2s;  // > Initialization.modebywee:5
+    sizex2=  sizex2s;  // > Initialization.modebywee:6
+    sizex1= sizex1s;  // > Initialization.modebywee:7
+    sizey2=  sizey2s;  // > Initialization.modebywee:8
+    sizey1= sizey1s;  // > Initialization.modebywee:9
+    xtest= xtests ;  // > Initialization.modebywee:10
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    _update();  // > Initialization.Init Page:1
+  });
+
+  _model.addToInitialization(function() {
+    _initializeSolvers();
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Evol Page"]) return;
+    _ODEi_evolution1.step();
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["Cons Page"]) return;
+    k =G;  // > FixedRelations.Cons Page:1
+    q1 = -m1;// convert to mass  // > FixedRelations.Cons Page:2
+    q2 = -m2;// convert to mass  // > FixedRelations.Cons Page:3
+    rM1m = xtest-x1;  // > FixedRelations.Cons Page:4
+    rM2m = xtest-x2;  // > FixedRelations.Cons Page:5
+    qtest = mtest;  // > FixedRelations.Cons Page:6
+    if (show1==true){ // add by lookang to add mass1 checkbox  // > FixedRelations.Cons Page:7
+        if (xtest != x1)   {  // > FixedRelations.Cons Page:8
+    E1 = k*q1/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1);  // > FixedRelations.Cons Page:9
+    V1 = k*q1/(Math.sqrt((xtest-x1)*(xtest-x1)));  // > FixedRelations.Cons Page:10
+                           }  // > FixedRelations.Cons Page:11
+        else{  // > FixedRelations.Cons Page:12
+    E1 = 1.0e12;  // > FixedRelations.Cons Page:13
+    V1 = 1.0e12*q1;  // > FixedRelations.Cons Page:14
+             }  // > FixedRelations.Cons Page:15
+                     }  // > FixedRelations.Cons Page:16
+    else {  // > FixedRelations.Cons Page:17
+      E1 = 0;  // > FixedRelations.Cons Page:18
+    V1 = 0;  // > FixedRelations.Cons Page:19
+         }  // > FixedRelations.Cons Page:20
+    if (show2)   // > FixedRelations.Cons Page:21
+    {  // > FixedRelations.Cons Page:22
+      if (xtest != x2)  // > FixedRelations.Cons Page:23
+      {  // > FixedRelations.Cons Page:24
+      E2 = k*q2/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2);  // > FixedRelations.Cons Page:25
+      V2 = k*q2/(Math.sqrt((xtest-x2)*(xtest-x2)));  // > FixedRelations.Cons Page:26
+      }  // > FixedRelations.Cons Page:27
+      else  // > FixedRelations.Cons Page:28
+      {  // > FixedRelations.Cons Page:29
+      E2 = 1.0e12;  // > FixedRelations.Cons Page:30
+      V2 = 1.0e12*q2;  // > FixedRelations.Cons Page:31
+      }  // > FixedRelations.Cons Page:32
+    }  // > FixedRelations.Cons Page:33
+    else  // > FixedRelations.Cons Page:34
+    {  // > FixedRelations.Cons Page:35
+    E2 = 0.0;  // > FixedRelations.Cons Page:36
+    V2 = 0.0;  // > FixedRelations.Cons Page:37
+    }  // > FixedRelations.Cons Page:38
+    Enet = E1 + E2;  // > FixedRelations.Cons Page:39
+    Vnet = V1 + V2;  // > FixedRelations.Cons Page:40
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["FixRel Page"]) return;
+    //k =G;  // > FixedRelations.FixRel Page:1
+    //q1 = -m1;// convert to mass  // > FixedRelations.FixRel Page:2
+    //q2 = -m2;// convert to mass  // > FixedRelations.FixRel Page:3
+    rM1m = xtest-x1;  // > FixedRelations.FixRel Page:4
+    rM2m = xtest-x2;  // > FixedRelations.FixRel Page:5
+    qtest = mtest;  // > FixedRelations.FixRel Page:6
+    if (show1===true){ // add by lookang to add mass1 checkbox  // > FixedRelations.FixRel Page:7
+        if (xtest != x1)   {  // > FixedRelations.FixRel Page:8
+    E1 = G*(-m1)/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1);  // > FixedRelations.FixRel Page:9
+    V1 = G*(-m1)/(Math.sqrt((xtest-x1)*(xtest-x1)));  // > FixedRelations.FixRel Page:10
+                           }  // > FixedRelations.FixRel Page:11
+        else{  // > FixedRelations.FixRel Page:12
+    //E1 = 1.0e12;  // > FixedRelations.FixRel Page:13
+    //V1 = 1.0e12*q1;  // > FixedRelations.FixRel Page:14
+    E1 = 0;  // > FixedRelations.FixRel Page:15
+    V1 = 0*q1;  // > FixedRelations.FixRel Page:16
+             }  // > FixedRelations.FixRel Page:17
+                     }  // > FixedRelations.FixRel Page:18
+    else {  // > FixedRelations.FixRel Page:19
+      E1 = 0;  // > FixedRelations.FixRel Page:20
+    V1 = 0;  // > FixedRelations.FixRel Page:21
+         }  // > FixedRelations.FixRel Page:22
+    if (show2===true)   // > FixedRelations.FixRel Page:23
+    {  // > FixedRelations.FixRel Page:24
+      if (xtest != x2)  // > FixedRelations.FixRel Page:25
+      {  // > FixedRelations.FixRel Page:26
+      E2 = G*(-m2)/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2);  // > FixedRelations.FixRel Page:27
+      V2 = G*(-m2)/(Math.sqrt((xtest-x2)*(xtest-x2)));  // > FixedRelations.FixRel Page:28
+      }  // > FixedRelations.FixRel Page:29
+      else  // > FixedRelations.FixRel Page:30
+      {  // > FixedRelations.FixRel Page:31
+      //E2 = 1.0e12;  // > FixedRelations.FixRel Page:32
+     // V2 = 1.0e12*q2;  // > FixedRelations.FixRel Page:33
+        E2 = 0;  // > FixedRelations.FixRel Page:34
+      V2 = 0*q2;  // > FixedRelations.FixRel Page:35
+      }  // > FixedRelations.FixRel Page:36
+    }  // > FixedRelations.FixRel Page:37
+    else  // > FixedRelations.FixRel Page:38
+    {  // > FixedRelations.FixRel Page:39
+    E2 = 0.0;  // > FixedRelations.FixRel Page:40
+    V2 = 0.0;  // > FixedRelations.FixRel Page:41
+    }  // > FixedRelations.FixRel Page:42
+    Enet = E1 + E2;  // > FixedRelations.FixRel Page:43
+    Vnet = V1 + V2;  // > FixedRelations.FixRel Page:44
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["energy"]) return;
+    ke = 0.5*mtest*vxtest*vxtest;  // > FixedRelations.energy:1
+    pe = -scale1*G*mtest*m2/Math.abs(x2-xtest)-scale2*G*mtest*m1/Math.abs(x1-xtest);  // > FixedRelations.energy:2
+    te = ke+pe;  // > FixedRelations.energy:3
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["showgraph"]) return;
+    if (showgraph)  // > FixedRelations.showgraph:1
+    {  // > FixedRelations.showgraph:2
+    plot1max = x1-0.01;  // > FixedRelations.showgraph:3
+    plot2max = plot1max;  // > FixedRelations.showgraph:4
+      if (show2)   // > FixedRelations.showgraph:5
+      {  // > FixedRelations.showgraph:6
+      showmidgraph = true;  // > FixedRelations.showgraph:7
+      plot2max = x2-0.01;  // > FixedRelations.showgraph:8
+        if (x2 < x1)   // > FixedRelations.showgraph:9
+        {  // > FixedRelations.showgraph:10
+          plot2max = plot1max;  // > FixedRelations.showgraph:11
+          plot1max = x2-0.01;  // > FixedRelations.showgraph:12
+        }  // > FixedRelations.showgraph:13
+        else  // > FixedRelations.showgraph:14
+        {  // > FixedRelations.showgraph:15
+          if (x2 == x1)  // > FixedRelations.showgraph:16
+          {  // > FixedRelations.showgraph:17
+            showmidgraph = false;  // > FixedRelations.showgraph:18
+          }  // > FixedRelations.showgraph:19
+        }  // > FixedRelations.showgraph:20
+      }  // > FixedRelations.showgraph:21
+      else  // > FixedRelations.showgraph:22
+      {  // > FixedRelations.showgraph:23
+        showmidgraph = false;  // > FixedRelations.showgraph:24
+      }  // > FixedRelations.showgraph:25
+    }  // > FixedRelations.showgraph:26
+    else  // > FixedRelations.showgraph:27
+    {  // > FixedRelations.showgraph:28
+      showmidgraph = false;  // > FixedRelations.showgraph:29
+    }  // > FixedRelations.showgraph:30
+    if (showVgraph)  // > FixedRelations.showgraph:31
+    {  // > FixedRelations.showgraph:32
+    plot1max = x1-0.01;  // > FixedRelations.showgraph:33
+    plot2max = plot1max;  // > FixedRelations.showgraph:34
+      if (show2)   // > FixedRelations.showgraph:35
+      {  // > FixedRelations.showgraph:36
+      showmidVgraph = true;  // > FixedRelations.showgraph:37
+      plot2max = x2-0.01;  // > FixedRelations.showgraph:38
+        if (x2 < x1)   // > FixedRelations.showgraph:39
+        {  // > FixedRelations.showgraph:40
+          plot2max = plot1max;  // > FixedRelations.showgraph:41
+          plot1max = x2-0.01;  // > FixedRelations.showgraph:42
+        }  // > FixedRelations.showgraph:43
+        else  // > FixedRelations.showgraph:44
+        {  // > FixedRelations.showgraph:45
+          if (x2 == x1)  // > FixedRelations.showgraph:46
+          {  // > FixedRelations.showgraph:47
+            showmidVgraph = false;  // > FixedRelations.showgraph:48
+          }  // > FixedRelations.showgraph:49
+        }  // > FixedRelations.showgraph:50
+      }  // > FixedRelations.showgraph:51
+      else  // > FixedRelations.showgraph:52
+      {  // > FixedRelations.showgraph:53
+        showmidVgraph = false;  // > FixedRelations.showgraph:54
+      }  // > FixedRelations.showgraph:55
+    }  // > FixedRelations.showgraph:56
+    else  // > FixedRelations.showgraph:57
+    {  // > FixedRelations.showgraph:58
+      showmidVgraph = false;  // > FixedRelations.showgraph:59
+    }  // > FixedRelations.showgraph:60
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["forces"]) return;
+    if (show2==false&&testc==false) //  no particle 2 or test charge  // > FixedRelations.forces:1
+    {  // > FixedRelations.forces:2
+    F1 = 0;  // > FixedRelations.forces:3
+    F2 = -F1;    // > FixedRelations.forces:4
+      }  // > FixedRelations.forces:5
+        // > FixedRelations.forces:6
+        // > FixedRelations.forces:7
+        // > FixedRelations.forces:8
+    else if (show2==true&&testc==false) // only particle 1&2  // > FixedRelations.forces:9
+    {  // > FixedRelations.forces:10
+    F1 = -k*q1*q2/((x2-x1)*(x2-x1))*(x2-x1)/Math.abs(x2-x1);  // > FixedRelations.forces:11
+    F2 = -F1;  // > FixedRelations.forces:12
+    }  // > FixedRelations.forces:13
+    else if (show2==false&&testc==true) // only particle 1&testcharge  // > FixedRelations.forces:14
+    {  // > FixedRelations.forces:15
+    F1 = -k*q1*qtest/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1);  // > FixedRelations.forces:16
+    F2 = -F1;  // > FixedRelations.forces:17
+    }  // > FixedRelations.forces:18
+    else if (show2==true&&testc==true) // all 3 particles  // > FixedRelations.forces:19
+    {  // > FixedRelations.forces:20
+    F1 = -k*q1*q2/((x2-x1)*(x2-x1))*(x2-x1)/Math.abs(x2-x1) - k*q1*qtest/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1) ;  // > FixedRelations.forces:21
+    F2 = -F1;  // > FixedRelations.forces:22
+    }  // > FixedRelations.forces:23
+    else // debug  // > FixedRelations.forces:24
+    {  // > FixedRelations.forces:25
+      F1 = 0;  // > FixedRelations.forces:26
+    F2 = -F1;    // > FixedRelations.forces:27
+      }  // > FixedRelations.forces:28
+        // > FixedRelations.forces:29
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["lines"]) return;
+    gy= k*q1*scale1/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1)+ k*q2*scale2/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2);  // > FixedRelations.lines:1
+    Vy = k*q1*scale1/(Math.sqrt((xtest-x1)*(xtest-x1)))+ k*q2*scale2/(Math.sqrt((xtest-x2)*(xtest-x2)));  // > FixedRelations.lines:2
+    gmax = ymax*scaley*1.12; //1.12 by trial and error for aligment of centre to right  // > FixedRelations.lines:3
+    gmin = ymin*scaley*1.12;  // > FixedRelations.lines:4
+    //function plots   // > FixedRelations.lines:5
+    // _view._format(k*q1*scale1,"0.000")+"/sqrt((("+_view._format(xtest,"0.000")+"-r)*("+_view._format(xtest,"0.000")+"-r)))"  // > FixedRelations.lines:6
+    // V1  // > FixedRelations.lines:7
+    // k*q1*scale1/(Math.sqrt((xtest-x1)*(xtest-x1)))   // > FixedRelations.lines:8
+    // _view._format(k*q1*scale1,"0.000")+"/sqrt((("+_view._format(x1,"0.000")+"-r)*("+_view._format(x1,"0.000")+"-r)))"  // > FixedRelations.lines:9
+    //V2  // > FixedRelations.lines:10
+    // // _view._format(k*q2*scale2,"0.000")+"/sqrt((("+_view._format(x2,"0.000")+"-r)*("+_view._format(x2,"0.000")+"-r)))"  // > FixedRelations.lines:11
+    //Vsum  // > FixedRelations.lines:12
+    // _view._format(k*q1*scale1,"0.000")+"/sqrt((("+_view._format(x1,"0.000")+"-r)*("+_view._format(x1,"0.000")+"-r)))"+_view._format(k*q2*scale2,"0.000")+"/sqrt((("+_view._format(x2,"0.000")+"-r)*("+_view._format(x2,"0.000")+"-r)))"  // > FixedRelations.lines:13
+    //g1  // > FixedRelations.lines:14
+    // _view._format(-k*q1*scale1,"0.000")+"/((("+_view._format(x1,"0.000")+"-r)*abs("+_view._format(x1,"0.000")+"-r)))"  // > FixedRelations.lines:15
+    //g2  // > FixedRelations.lines:16
+    // k*q2*scale2/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2)  // > FixedRelations.lines:17
+    // _view._format(-k*q2*scale2,"0.000")+"/((("+_view._format(x2,"0.000")+"-r)*abs("+_view._format(x2,"0.000")+"-r)))"  // > FixedRelations.lines:18
+    // gsum  // > FixedRelations.lines:19
+    gsum= _view._format(-k*q1*scale1,"0.000")+"/((("+_view._format(x1,"0.000")+"-r)*abs("+_view._format(x1,"0.000")+"-r)))+"+_view._format(-k*q2*scale2,"0.000")+"/((("+_view._format(x2,"0.000")+"-r)*abs("+_view._format(x2,"0.000")+"-r)))"  // > FixedRelations.lines:20
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["display"]) return;
+    yE2=yE1-rangey/15*scaley;  // > FixedRelations.display:1
+    yV2= yV1-rangey/15*scaley;  // > FixedRelations.display:2
+    //max screen  // > FixedRelations.display:3
+    if (xtest>xmax) {  // > FixedRelations.display:4
+      xmax = xmax*1.2;  // > FixedRelations.display:5
+    }  // > FixedRelations.display:6
+    if (xtest<xmin) {  // > FixedRelations.display:7
+      xmin = xmin*1.2;  // > FixedRelations.display:8
+    }  // > FixedRelations.display:9
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["function"]) return;
+    functiong ="k*q1*scale1/((xval-x1)*(xval-x1))*(xval-x1)/Math.abs(xval-x1)+ k*q2*scale2/((xval-x2)*(xval-x2))*(xval-x2)/Math.abs(xval-x2)";  // > FixedRelations.function:1
+    functionV ="k*q1*scale1/((r-x1)*(r-x1))*(r-x1)/abs(r-x1)+ k*q2*scale2/((r-x2)*(r-x2))*(r-x2)/abs(r-x2)";  // > FixedRelations.function:2
+    textg1= " g1 = "+_view._format(E1,"0.00")+ "m/s²";  // > FixedRelations.function:3
+    textg2= " g₂ = "+_view._format(E2,"0.00")+ "m/s²";  // > FixedRelations.function:4
+    textg= " g = "+_view._format(Enet,"0.00")+ "m/s²";  // > FixedRelations.function:5
+    textV1= " ϕ1 = "+_view._format(V1,"0")+ "J/kg";  // > FixedRelations.function:6
+    textV2= " ϕ₂ = "+_view._format(V2,"0")+ "J/kg";  // > FixedRelations.function:7
+    textV= " ϕ = "+_view._format(Vnet,"0")+ "J/kg";  // > FixedRelations.function:8
+    textbr = "t = " +_view._format(t,"0") + " s ";  // > FixedRelations.function:9
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["pause"]) return;
+        // > FixedRelations.pause:1
+    //case 2  inside mass1  // > FixedRelations.pause:2
+     if (show1==true&&xtest <(x1+sizex1/2)&&xtest>(x1-sizex1/2))   // > FixedRelations.pause:3
+    {  // > FixedRelations.pause:4
+      _pause();  // > FixedRelations.pause:5
+      }  // > FixedRelations.pause:6
+    //case 3  inside mass2  // > FixedRelations.pause:7
+     if (show2==true&&xtest <(x2+sizex2/2)&&xtest>(x2-sizex2/2))   // > FixedRelations.pause:8
+    {  // > FixedRelations.pause:9
+      _pause();  // > FixedRelations.pause:10
+      }  // > FixedRelations.pause:11
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  function _initializeSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].initializeSolver();
+  }
+
+  function _automaticResetSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].automaticResetSolver();
+  }
+
+  _model.resetSolvers = function() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].resetSolver();
+  };
+
+  _getODE = function (_odeName) {
+    if (_odeName=="Evol Page") return _ODEi_evolution1;
+    return null;
+  }
+
+  function _getEventSolver(_odeName) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return null;
+    return ode.getEventSolver();
+  }
+
+  function _setSolverClass(_odeName, _engine) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return;
+    if (!_engine.setODE) {
+      var classname = _engine.toLowerCase();
+      if      (classname.indexOf("boga")>=0)   _engine = EJSS_ODE_SOLVERS.bogackiShampine23;
+      else if (classname.indexOf("cash")>=0)   _engine = EJSS_ODE_SOLVERS.cashKarp45;
+      else if (classname.indexOf("dopri5")>=0) _engine = EJSS_ODE_SOLVERS.dopri5;
+      else if (classname.indexOf("dopri8")>=0) _engine = EJSS_ODE_SOLVERS.dopri853;
+      else if (classname.indexOf("richa")>=0)  _engine = EJSS_ODE_SOLVERS.eulerRichardson;
+      else if (classname.indexOf("euler")>=0)  _engine = EJSS_ODE_SOLVERS.euler;
+      else if (classname.indexOf("fehlberg87")>=0) _engine = EJSS_ODE_SOLVERS.fehlberg87;
+      else if (classname.indexOf("fehlberg8")>=0)  _engine = EJSS_ODE_SOLVERS.fehlberg8;
+      else if (classname.indexOf("radau")>=0)   _engine = EJSS_ODE_SOLVERS.radau5;
+      else if (classname.indexOf("runge")>=0)  _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("rk4")>=0)    _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("verlet")>=0) _engine = EJSS_ODE_SOLVERS.velocityVerlet;
+    }
+    if (_engine) ode.setSolverClass(_engine);
+  }
+
+  function _ODE_evolution1() {
+    var __odeSelf = {};
+    var __eventSolver;
+    var __solverClass = EJSS_ODE_SOLVERS.rungeKutta4;
+    var __state=[];
+    var __mustInitialize=true;
+    var __isEnabled=true;
+    var __mustUserReinitialize=false;
+    var __mustReinitialize=true;
+
+
+    __odeSelf._getOdeVars = function (){ return["xtest","vxtest","t"]};
+
+    __odeSelf.setSolverClass = function(__aSolverClass) {
+      __solverClass = __aSolverClass;
+      __instantiateSolver();
+    };
+
+    function __instantiateSolver() {
+      __state=[];
+      __pushState();
+      __eventSolver = EJSS_ODE_SOLVERS.interpolatorEventSolver(__solverClass(),__odeSelf);
+      __mustInitialize = true;
+    }
+
+    __odeSelf.setEnabled = function(_enabled) { __isEnabled = _enabled; };
+
+    __odeSelf.getIndependentVariableValue = function() { return __eventSolver.getIndependentVariableValue(); };
+
+    __odeSelf.getInternalStepSize = function() { return __eventSolver.getInternalStepSize(); };
+
+    __odeSelf.isAccelerationIndependentOfVelocity = function() { return false; };
+
+    __odeSelf.initializeSolver = function() {
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); return; }
+      __pushState();
+      __eventSolver.initialize(dt);
+      __eventSolver.setBestInterpolation(true);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.removeAllEvents();
+      for(k in userEvents1){__eventSolver.addEvent(userEvents1[k]);}
+      __eventSolver.setEstimateFirstStep(false);
+      __eventSolver.setEnableExceptions(false);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __mustReinitialize = true;
+      __mustInitialize = false;
+    };
+
+    function __pushState() {
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        if (__state[__cIn]!=xtest) __mustReinitialize = true;
+        __state[__cIn++] = xtest;
+        if (__state[__cIn]!=vxtest) __mustReinitialize = true;
+        __state[__cIn++] = vxtest;
+        if (__state[__cIn]!=t) __mustReinitialize = true;
+        __state[__cIn++] = t;
+    }
+
+    function __arraysChanged () {
+      return false;
+    }
+
+    __odeSelf.getEventSolver = function() {
+      return __eventSolver;
+    };
+
+    __odeSelf.resetSolver = function() {
+      __mustUserReinitialize = true;
+    };
+
+    __odeSelf.automaticResetSolver = function() {
+      __mustReinitialize = true;
+    };
+
+    function __errorAction () {
+      // Make sure the solver is reinitialized;
+      __mustReinitialize = true;
+      var _errorCode = __eventSolver.getErrorCode();
+      if (__pagesEnabled["Error handling code"]) {
+        { // For any error: 
+        }
+      }
+    }
+
+    __odeSelf.step = function() { return __privateStep(false); };
+
+    __odeSelf.solverStep = function() { return __privateStep(true); };
+
+    function __privateStep(__takeMaximumStep) {
+      if (!__isEnabled) return 0;
+      if (dt===0) return 0;
+      if (__mustInitialize) __odeSelf.initializeSolver();
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); }
+      __eventSolver.setStepSize(dt);
+      __eventSolver.setInternalStepSize(dt);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __pushState();
+      if (__mustUserReinitialize) { 
+        __eventSolver.userReinitialize();
+        __mustUserReinitialize = false;
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      else if (__mustReinitialize) { 
+        __eventSolver.reinitialize();
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      var __stepTaken = __takeMaximumStep ? __eventSolver.maxStep() : __eventSolver.step();
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        xtest = __state[__cOut++];
+        vxtest = __state[__cOut++];
+        t = __state[__cOut++];
+      // Check for error
+      if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      return __stepTaken;
+    }
+
+    __odeSelf.getState = function() { return __state; };
+
+    __odeSelf.getRate = function(_aState,_aRate) {
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var xtest = _aState[__cOut++];
+        var vxtest = _aState[__cOut++];
+        var t = _aState[__cOut++];
+      // Compute the rate
+        var __cRate=0;
+        _aRate[__cRate++] = vxtest; // Rate for ODE: Evol Page:xtest
+        _aRate[__cRate++] = getA(xtest); // Rate for ODE: Evol Page:vxtest
+        _aRate[__cRate++] = 1; // independent variable
+        return _aRate;
+    }; //end of getRate
+
+    __odeSelf._addEvent = function(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent){
+    var User_Event = function (userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent) {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return eventType; };
+
+      _eventSelf.getRootFindingMethod = function() { return eventMethod; };
+
+      _eventSelf.getMaxIterations = function() { return maxIter; };
+
+      _eventSelf.getTolerance = function() { return eventTolerance; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var xtest = _aState[__cOut++];
+        var vxtest = _aState[__cOut++];
+        var t = _aState[__cOut++];
+      return eval(userCondition);
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        xtest = __state[__cOut++];
+        vxtest = __state[__cOut++];
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = xtest;
+        __state[__cIn++] = vxtest;
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        if (undefined != functions) eval(functions.toString());
+        eval(userAction);
+        return endAtEvent;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+   userEvents1.push(User_Event(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent));
+   }
+
+    __instantiateSolver();
+
+    return __odeSelf;
+  }
+
+  function _historic_xtest(__time) {
+    var __index = 0;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_vxtest(__time) {
+    var __index = 0 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new gravity11_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.fullscreen.linkProperty("Height",  function() { return Height; }, function(_v) { Height = _v; } ); // HtmlView Page linking property 'Height' for element 'fullscreen'
+          _view.fullscreen.linkProperty("Width",  function() { return Width; }, function(_v) { Width = _v; } ); // HtmlView Page linking property 'Width' for element 'fullscreen'
+          _view.plottingPanel.linkProperty("Width",  function() { return Width1; }, function(_v) { Width1 = _v; } ); // HtmlView Page linking property 'Width' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MaximumY",  function() { return ymax*scaley; } ); // HtmlView Page linking property 'MaximumY' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MaximumX",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'MaximumX' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TRMessage",  function() { return print?"":"Earth Moon Gravity Field (N/kg) and \nPotential (J/kg) in \nOne Dimension Model"; } ); // HtmlView Page linking property 'TRMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumX",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'MinimumX' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumY",  function() { return ymin*scaley; } ); // HtmlView Page linking property 'MinimumY' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TLMessage",  function() { return !print?text:""; } ); // HtmlView Page linking property 'TLMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("BRMessage",  function() { return !print?textbr:""; } ); // HtmlView Page linking property 'BRMessage' for element 'plottingPanel'
+          _view.model2.linkProperty("FunctionY",  function() { return functionY; }, function(_v) { functionY = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'model2'
+          _view.model2.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'model2'
+          _view.model2.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'model2'
+          _view.model2.linkProperty("Visibility",  function() { return showmodel; }, function(_v) { showmodel = _v; } ); // HtmlView Page linking property 'Visibility' for element 'model2'
+          _view.potential4.linkProperty("FunctionY",  function() { return _view._format(k*q1*scale1,"0.000")+"/sqrt((("+_view._format(x1,"0.000")+"-r)*("+_view._format(x1,"0.000")+"-r)))"+_view._format(k*q2*scale2,"0.000")+"/sqrt((("+_view._format(x2,"0.000")+"-r)*("+_view._format(x2,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'potential4'
+          _view.potential4.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'potential4'
+          _view.potential4.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'potential4'
+          _view.potential4.linkProperty("Visibility",  function() { return showVgraph; }, function(_v) { showVgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'potential4'
+          _view.field72.linkProperty("FunctionY",  function() { return gsum; }, function(_v) { gsum = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'field72'
+          _view.field72.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'field72'
+          _view.field72.linkProperty("Maximum",  function() { return x1-sizex1*scalex/2; } ); // HtmlView Page linking property 'Maximum' for element 'field72'
+          _view.field72.linkProperty("Visibility",  function() { return showgraph; }, function(_v) { showgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field72'
+          _view.field73.linkProperty("FunctionY",  function() { return gsum; }, function(_v) { gsum = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'field73'
+          _view.field73.linkProperty("Minimum",  function() { return x1+sizex1*scalex/2; } ); // HtmlView Page linking property 'Minimum' for element 'field73'
+          _view.field73.linkProperty("Maximum",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'Maximum' for element 'field73'
+          _view.field73.linkProperty("Visibility",  function() { return showgraph; }, function(_v) { showgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field73'
+          _view.field74.linkProperty("FunctionY",  function() { return gsum; }, function(_v) { gsum = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'field74'
+          _view.field74.linkProperty("Minimum",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'Minimum' for element 'field74'
+          _view.field74.linkProperty("Maximum",  function() { return x2-sizex2*scalex/2; } ); // HtmlView Page linking property 'Maximum' for element 'field74'
+          _view.field74.linkProperty("Visibility",  function() { return showgraph; }, function(_v) { showgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field74'
+          _view.field7.linkProperty("FunctionY",  function() { return gsum; }, function(_v) { gsum = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'field7'
+          _view.field7.linkProperty("Minimum",  function() { return x2+sizex2*scalex/2; } ); // HtmlView Page linking property 'Minimum' for element 'field7'
+          _view.field7.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'field7'
+          _view.field7.linkProperty("Visibility",  function() { return showgraph; }, function(_v) { showgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field7'
+          _view.g2.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'g2'
+          _view.g2.linkProperty("Y",  function() { return k*q1*scale1/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1)+ k*q2*scale2/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2); } ); // HtmlView Page linking property 'Y' for element 'g2'
+          _view.g2.linkProperty("Visibility",  function() { return showgraph; }, function(_v) { showgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'g2'
+          _view.segment3.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'segment3'
+          _view.segment3.linkProperty("SizeY",  function() { return k*q1*scale1/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1)+ k*q2*scale2/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2); } ); // HtmlView Page linking property 'SizeY' for element 'segment3'
+          _view.segment32.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'segment32'
+          _view.segment32.linkProperty("Visibility",  function() { return showVgraph; }, function(_v) { showVgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'segment32'
+          _view.segment32.linkProperty("SizeY",  function() { return k*q1*scale1/(Math.sqrt((xtest-x1)*(xtest-x1)))+ k*q2*scale2/(Math.sqrt((xtest-x2)*(xtest-x2))); } ); // HtmlView Page linking property 'SizeY' for element 'segment32'
+          _view.g.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'g'
+          _view.g.linkProperty("Y",  function() { return k*q1*scale1/((xtest-x1)*(xtest-x1))*(xtest-x1)/Math.abs(xtest-x1)+ k*q2*scale2/((xtest-x2)*(xtest-x2))*(xtest-x2)/Math.abs(xtest-x2); } ); // HtmlView Page linking property 'Y' for element 'g'
+          _view.g.linkProperty("Text",  function() { return textg; }, function(_v) { textg = _v; } ); // HtmlView Page linking property 'Text' for element 'g'
+          _view.g.linkProperty("Visibility",  function() { return showgraph; }, function(_v) { showgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'g'
+          _view.g.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'g'
+          _view.field3.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'field3'
+          _view.field3.linkProperty("Y",  function() { return k*q1*scale1/(Math.sqrt((xtest-x1)*(xtest-x1)))+ k*q2*scale2/(Math.sqrt((xtest-x2)*(xtest-x2))); } ); // HtmlView Page linking property 'Y' for element 'field3'
+          _view.field3.linkProperty("Visibility",  function() { return showVgraph; }, function(_v) { showVgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field3'
+          _view.group.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'group'
+          _view.group.linkProperty("Y",  function() { return k*q1*scale1/(Math.sqrt((xtest-x1)*(xtest-x1)))+ k*q2*scale2/(Math.sqrt((xtest-x2)*(xtest-x2))); } ); // HtmlView Page linking property 'Y' for element 'group'
+          _view.field2.linkProperty("Text",  function() { return !print?textV:"ϕ"; } ); // HtmlView Page linking property 'Text' for element 'field2'
+          _view.field2.linkProperty("Visibility",  function() { return showVgraph; }, function(_v) { showVgraph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field2'
+          _view.field2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'field2'
+          _view.potential42.linkProperty("FunctionY",  function() { return _view._format(k*q1*scale1,"0.000")+"/sqrt((("+_view._format(x1,"0.000")+"-r)*("+_view._format(x1,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'potential42'
+          _view.potential42.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'potential42'
+          _view.potential42.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'potential42'
+          _view.potential42.linkProperty("Visibility",  function() { return showV1graph; }, function(_v) { showV1graph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'potential42'
+          _view.field622.linkProperty("FunctionY",  function() { return _view._format(-k*q1*scale1,"0.000")+"/((("+_view._format(x1,"0.000")+"-r)*abs("+_view._format(x1,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'field622'
+          _view.field622.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'field622'
+          _view.field622.linkProperty("Maximum",  function() { return x1-sizex1*scalex/2; } ); // HtmlView Page linking property 'Maximum' for element 'field622'
+          _view.field622.linkProperty("Visibility",  function() { return showgraph1; }, function(_v) { showgraph1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field622'
+          _view.field62.linkProperty("FunctionY",  function() { return _view._format(-k*q1*scale1,"0.000")+"/((("+_view._format(x1,"0.000")+"-r)*abs("+_view._format(x1,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'field62'
+          _view.field62.linkProperty("Minimum",  function() { return x1+sizex1*scalex/2; } ); // HtmlView Page linking property 'Minimum' for element 'field62'
+          _view.field62.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'field62'
+          _view.field62.linkProperty("Visibility",  function() { return showgraph1; }, function(_v) { showgraph1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field62'
+          _view.group3.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'group3'
+          _view.group3.linkProperty("Y",  function() { return k*q1*scale1/(Math.sqrt((xtest-x1)*(xtest-x1))); } ); // HtmlView Page linking property 'Y' for element 'group3'
+          _view.field22.linkProperty("Text",  function() { return !print?textV1:"ϕ₁"; } ); // HtmlView Page linking property 'Text' for element 'field22'
+          _view.field22.linkProperty("Visibility",  function() { return showV1graph; }, function(_v) { showV1graph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field22'
+          _view.field22.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'field22'
+          _view.potential422.linkProperty("FunctionY",  function() { return _view._format(k*q2*scale2,"0.000")+"/sqrt((("+_view._format(x2,"0.000")+"-r)*("+_view._format(x2,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'potential422'
+          _view.potential422.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'potential422'
+          _view.potential422.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'potential422'
+          _view.potential422.linkProperty("Visibility",  function() { return showV2graph; }, function(_v) { showV2graph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'potential422'
+          _view.field63.linkProperty("FunctionY",  function() { return _view._format(-k*q2*scale2,"0.000")+"/((("+_view._format(x2,"0.000")+"-r)*abs("+_view._format(x2,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'field63'
+          _view.field63.linkProperty("Minimum",  function() { return xmin*scalex; } ); // HtmlView Page linking property 'Minimum' for element 'field63'
+          _view.field63.linkProperty("Maximum",  function() { return x2-sizex2*scalex/2; } ); // HtmlView Page linking property 'Maximum' for element 'field63'
+          _view.field63.linkProperty("Visibility",  function() { return showgraph2; }, function(_v) { showgraph2 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field63'
+          _view.field6.linkProperty("FunctionY",  function() { return _view._format(-k*q2*scale2,"0.000")+"/((("+_view._format(x2,"0.000")+"-r)*abs("+_view._format(x2,"0.000")+"-r)))"; } ); // HtmlView Page linking property 'FunctionY' for element 'field6'
+          _view.field6.linkProperty("Minimum",  function() { return x2+sizex2*scalex/2; } ); // HtmlView Page linking property 'Minimum' for element 'field6'
+          _view.field6.linkProperty("Maximum",  function() { return xmax*scalex; } ); // HtmlView Page linking property 'Maximum' for element 'field6'
+          _view.field6.linkProperty("Visibility",  function() { return showgraph2; }, function(_v) { showgraph2 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field6'
+          _view.group4.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'group4'
+          _view.group4.linkProperty("Y",  function() { return k*q2*scale2/(Math.sqrt((xtest-x2)*(xtest-x2)))+V2ymove; } ); // HtmlView Page linking property 'Y' for element 'group4'
+          _view.field23.linkProperty("Text",  function() { return !print?textV2:"ϕ₂"; } ); // HtmlView Page linking property 'Text' for element 'field23'
+          _view.field23.linkProperty("Visibility",  function() { return showV2graph; }, function(_v) { showV2graph = _v; } ); // HtmlView Page linking property 'Visibility' for element 'field23'
+          _view.field23.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'field23'
+          _view.m1.linkProperty("SizeX",  function() { return _view.plottingPanel.toPixelMod([(sizex1*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeX' for element 'm1'
+          _view.m1.linkProperty("X",  function() { return x1; }, function(_v) { x1 = _v; } ); // HtmlView Page linking property 'X' for element 'm1'
+          _view.m1.linkProperty("Y",  function() { return zeroval; }, function(_v) { zeroval = _v; } ); // HtmlView Page linking property 'Y' for element 'm1'
+          _view.m1.linkProperty("Visibility",  function() { return show1; }, function(_v) { show1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'm1'
+          _view.m1.linkProperty("SizeY",  function() { return _view.plottingPanel.toPixelMod([(sizex1*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeY' for element 'm1'
+          _view.m1.setAction("OnDrag", function(_data,_info) {
+  zeroval = 0.0;
+  //selected[0]="user_defined";
+  _view.comboBox.setSelectedOptions(["user defined"]);
+
+}); // HtmlView Page setting action 'OnDrag' for element 'm1'
+          _view.segment2.linkProperty("X",  function() { return x1+sizex1*scalex/2; } ); // HtmlView Page linking property 'X' for element 'segment2'
+          _view.segment2.linkProperty("Visibility",  function() { return show1; }, function(_v) { show1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'segment2'
+          _view.segment2.linkProperty("SizeY",  function() { return (ymax-ymin)*scaley; } ); // HtmlView Page linking property 'SizeY' for element 'segment2'
+          _view.segment.linkProperty("X",  function() { return x1-sizex1*scalex/2; } ); // HtmlView Page linking property 'X' for element 'segment'
+          _view.segment.linkProperty("Visibility",  function() { return show1; }, function(_v) { show1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'segment'
+          _view.segment.linkProperty("SizeY",  function() { return (ymax-ymin)*scaley; } ); // HtmlView Page linking property 'SizeY' for element 'segment'
+          _view.moon.linkProperty("SizeX",  function() { return _view.plottingPanel.toPixelMod([(sizex1*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeX' for element 'moon'
+          _view.moon.linkProperty("X",  function() { return x1; }, function(_v) { x1 = _v; } ); // HtmlView Page linking property 'X' for element 'moon'
+          _view.moon.linkProperty("Y",  function() { return zeroval; }, function(_v) { zeroval = _v; } ); // HtmlView Page linking property 'Y' for element 'moon'
+          _view.moon.linkProperty("Visibility",  function() { return show1; }, function(_v) { show1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'moon'
+          _view.moon.linkProperty("SizeY",  function() { return _view.plottingPanel.toPixelMod([(sizex1*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeY' for element 'moon'
+          _view.moon.setAction("OnDrag", function(_data,_info) {
+  zeroval = 0.0;
+  //selected[0]="user_defined";
+  _view.comboBox.setSelectedOptions(["user defined"]);
+
+}); // HtmlView Page setting action 'OnDrag' for element 'moon'
+          _view.m2.linkProperty("SizeX",  function() { return _view.plottingPanel.toPixelMod([(sizex2*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeX' for element 'm2'
+          _view.m2.linkProperty("X",  function() { return x2; }, function(_v) { x2 = _v; } ); // HtmlView Page linking property 'X' for element 'm2'
+          _view.m2.linkProperty("Y",  function() { return zeroval; }, function(_v) { zeroval = _v; } ); // HtmlView Page linking property 'Y' for element 'm2'
+          _view.m2.linkProperty("Visibility",  function() { return show2; }, function(_v) { show2 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'm2'
+          _view.m2.linkProperty("SizeY",  function() { return _view.plottingPanel.toPixelMod([(sizex2*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeY' for element 'm2'
+          _view.m2.setAction("OnDrag", function(_data,_info) {
+  zeroval = 0.0;
+  _view.comboBox.setSelectedOptions(["user defined"]);
+  //selected[0]="user_defined";
+
+}); // HtmlView Page setting action 'OnDrag' for element 'm2'
+          _view.segment222.linkProperty("X",  function() { return x2-sizex2*scalex/2; } ); // HtmlView Page linking property 'X' for element 'segment222'
+          _view.segment222.linkProperty("Visibility",  function() { return show2; }, function(_v) { show2 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'segment222'
+          _view.segment222.linkProperty("SizeY",  function() { return (ymax-ymin)*scaley; } ); // HtmlView Page linking property 'SizeY' for element 'segment222'
+          _view.segment22.linkProperty("X",  function() { return x2+sizex2*scalex/2; } ); // HtmlView Page linking property 'X' for element 'segment22'
+          _view.segment22.linkProperty("Visibility",  function() { return show2; }, function(_v) { show2 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'segment22'
+          _view.segment22.linkProperty("SizeY",  function() { return (ymax-ymin)*scaley; } ); // HtmlView Page linking property 'SizeY' for element 'segment22'
+          _view.earth.linkProperty("SizeX",  function() { return _view.plottingPanel.toPixelMod([(sizex2*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeX' for element 'earth'
+          _view.earth.linkProperty("X",  function() { return x2; }, function(_v) { x2 = _v; } ); // HtmlView Page linking property 'X' for element 'earth'
+          _view.earth.linkProperty("Y",  function() { return zeroval; }, function(_v) { zeroval = _v; } ); // HtmlView Page linking property 'Y' for element 'earth'
+          _view.earth.linkProperty("Visibility",  function() { return show2; }, function(_v) { show2 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'earth'
+          _view.earth.linkProperty("SizeY",  function() { return _view.plottingPanel.toPixelMod([(sizex2*scalex),0])[0]; } ); // HtmlView Page linking property 'SizeY' for element 'earth'
+          _view.earth.setAction("OnDrag", function(_data,_info) {
+  zeroval = 0.0;
+  //selected[0]="user_defined";
+  _view.comboBox.setSelectedOptions(["user defined"]);
+
+}); // HtmlView Page setting action 'OnDrag' for element 'earth'
+          _view.mtest.linkProperty("SizeX",  function() { return size/5; } ); // HtmlView Page linking property 'SizeX' for element 'mtest'
+          _view.mtest.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'mtest'
+          _view.mtest.linkProperty("Y",  function() { return zeroval; }, function(_v) { zeroval = _v; } ); // HtmlView Page linking property 'Y' for element 'mtest'
+          _view.mtest.linkProperty("SizeY",  function() { return sizey/5*scaley; } ); // HtmlView Page linking property 'SizeY' for element 'mtest'
+          _view.mtest.setAction("OnDrag", function(_data,_info) {
+  zeroval = 0.0;
+  //vxtest=0;
+
+}); // HtmlView Page setting action 'OnDrag' for element 'mtest'
+          _view.position.linkProperty("X",  function() { return xtest; }, function(_v) { xtest = _v; } ); // HtmlView Page linking property 'X' for element 'position'
+          _view.position.linkProperty("Y",  function() { return zeroval; }, function(_v) { zeroval = _v; } ); // HtmlView Page linking property 'Y' for element 'position'
+          _view.v.linkProperty("SizeX",  function() { return vxdrag; }, function(_v) { vxdrag = _v; } ); // HtmlView Page linking property 'SizeX' for element 'v'
+          _view.velocitydrag22.setAction("OnRelease", function(_data,_info) {
+  vdrag = false;
+
+}); // HtmlView Page setting action 'OnRelease' for element 'velocitydrag22'
+          _view.velocitydrag22.linkProperty("X",  function() { return vxdrag; }, function(_v) { vxdrag = _v; } ); // HtmlView Page linking property 'X' for element 'velocitydrag22'
+          _view.velocitydrag22.linkProperty("Visibility",  function() { return _isPaused; } ); // HtmlView Page linking property 'Visibility' for element 'velocitydrag22'
+          _view.velocitydrag22.setAction("OnDrag", function(_data,_info) {
+  //vxtest=Math.round(vxdrag/100000)*100;
+  vxtest=Math.round(vxdrag/1000000)*100;
+  //_view.comboBox.setSelectedOptions(["user defined"]);
+
+}); // HtmlView Page setting action 'OnDrag' for element 'velocitydrag22'
+          _view.group2.linkProperty("X",  function() { return vxdrag; }, function(_v) { vxdrag = _v; } ); // HtmlView Page linking property 'X' for element 'group2'
+          _view.v2.linkProperty("Text",  function() { return !print?"v ="+vxtest.toFixed(0) + " m/s":"v"; } ); // HtmlView Page linking property 'Text' for element 'v2'
+          _view.v2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'v2'
+          _view.step.linkProperty("X",  function() { return ((xmax+xmin)*scalex)/2; } ); // HtmlView Page linking property 'X' for element 'step'
+          _view.step.linkProperty("Y",  function() { return ((ymax-20000)*scaley); } ); // HtmlView Page linking property 'Y' for element 'step'
+          _view.step.linkProperty("Visibility",  function() { return !print; } ); // HtmlView Page linking property 'Visibility' for element 'step'
+          _view.scaley.linkProperty("X",  function() { return ((xmax+xmin)*scalex)/20-4000000; } ); // HtmlView Page linking property 'X' for element 'scaley'
+          _view.scaley.linkProperty("Visibility",  function() { return _isPaused; } ); // HtmlView Page linking property 'Visibility' for element 'scaley'
+          _view.scaley.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'scaley'
+          _view.arrow2.setAction("OnPress", function(_data,_info) {
+  scaley=scaley+5;
+  if (scaley>80)scaley=80;
+  if (scaley<1)scaley=1;
+
+}); // HtmlView Page setting action 'OnPress' for element 'arrow2'
+          _view.arrow3.setAction("OnPress", function(_data,_info) {
+  scaley=scaley-5;
+  if (scaley>81)scaley=81;
+  if (scaley<1)scaley=1;
+
+}); // HtmlView Page setting action 'OnPress' for element 'arrow3'
+          _view.controlpanel.linkProperty("Display",  function() { return !print?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'controlpanel'
+          _view.comboBox.linkProperty("Options",  function() { return ["click to select case","user defined","Moon on","Moon off","Earth on","Earth off","","view Moon Earth ","Moon Surface","Net Force Zero","Earth Surface","Random","","view Earth Moon","Moon Surface 2","Net Force Zero 2","Earth Surface 2","","print"]; } ); // HtmlView Page linking property 'Options' for element 'comboBox'
+          _view.comboBox.setAction("OnChange", function(_data,_info) {
+  //var option = _view.comboBox.getProperty("SelectedOptions");
+  //alert(option);
+  var opts = _view.comboBox.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  //"Moon Surface;Net Force Zero;Earth Surface;Random"
+  //"Moon Surface view MoonEarth;Net Force Zero view MoonEarth;Earth Surface view MoonEarth;Random view MoonEarth;Moon Surface view EarthMoon;Net Force Zero view EarthMoon;Earth Surface view EarthMoon"
+  if(option=="Moon Surface"){
+   x1 = -384403000;
+   x2 = 0;
+   m1 = 7.349E22; //moon
+   m2 = 5.97e24;
+   sizex1=3476000;
+   sizex2=12742000;
+   sizey1=rangey/60;
+   sizey2=rangey/15;
+   moonearth=true;
+   earthmoon=false;
+   xtest = x1+sizex1/2;
+   testc = true;
+   
+  }
+  //print function starts
+  else if (option == "print"){
+    print = true;
+    }
+  //printing ends here
+  else if(option=="Moon on"){
+  show1=true;
+  scale1=1;
+  }
+  else if(option=="Moon off"){
+  show1=false;
+  scale1=0;
+  }
+  else if(option=="Earth on"){
+  show2=true;
+  scale2=1;
+  }
+  else if(option=="Earth off"){
+  show2=false;
+  scale2=0;
+  }
+  else if(option=="Net Force Zero"){
+  x1 = -384403000;
+   x2 = 0;
+   m1 = 7.349E22;
+   m2 = 5.97e24;
+    sizex1=3476000;
+   sizex2=12742000;
+    sizey1=rangey/60;
+   sizey2=rangey/15;
+   moonearth=true;
+   earthmoon=false;
+   xtest = x1 + 0.11095*(-x1+x2)/(1+0.11095);
+    testc = true;
+  }else if(option=="Earth Surface"){
+  // xtest = x2 -sizex2/2; // try to achieve theortical value of 11200 m/s
+   // xtest = x2 -sizex2/1.99;
+  // xtest = x2-REarth;
+  x1 = -384403000;
+   x2 = 0;
+   m1 = 7.349E22;
+   m2 = 5.97e24;
+    sizex1=3476000;
+   sizex2=12742000;
+    sizey1=rangey/60;
+   sizey2=rangey/15;
+   moonearth=true;
+   earthmoon=false;
+  xtest = x2 - sizex2/2;
+  testc = true;
+  }else if(option=="Random"){
+    x1 = -384403000;
+   x2 = 0;
+   m1 = 7.349E22;
+   m2 = 5.97e24;
+    sizex1=3476000;
+   sizex2=12742000;
+    sizey1=rangey/60;
+   sizey2=rangey/15;
+   moonearth=true;
+   earthmoon=false;
+    xtest = Math.random()*(-(x2-sizex2/2)+(x1+sizex1/2));
+    testc = true;
+  }
+  //second line
+  else if(option=="Moon Surface 2"){
+   x1 = 0; //moon is 1
+   x2 = -384403000;
+   
+   m1 = 7.349E22; //moon
+   m2 = 5.97e24;
+    sizex2=12742000;
+   sizex1=3476000;
+    sizey2=rangey/15;
+   sizey1=rangey/60;
+    xtest = x1-sizex1/2;
+   testc = true;
+   
+  }
+  else if(option=="Net Force Zero 2"){
+  x1 = 0; //moon is 1
+   x2 = -384403000;
+   
+   m1 = 7.349E22; //moon
+   m2 = 5.97e24;
+    sizex2=12742000;
+   sizex1=3476000;
+    sizey2=rangey/15;
+   sizey1=rangey/60;
+   xtest = x1 + 0.11095*(-x1+x2)/(1+0.11095);
+   //xtest = x2-sizex2/2;
+   testc = true;
+   
+  }
+  else if(option=="Earth Surface 2"){
+   x1 = 0; //moon is 1
+   x2 = -384403000;
+   
+   m1 = 7.349E22; //moon
+   m2 = 5.97e24;
+    sizex2=12742000;
+   sizex1=3476000;
+    sizey2=rangey/15;
+   sizey1=rangey/60;
+   xtest = x2 + sizex2/2;
+   testc = true;
+   
+  }
+   x1s =x1 ; //moon is 1
+   x2s =x2 ;
+    m1s =m1 ; //moon
+  m2s =  m2;
+  sizex2s=  sizex2;
+  sizex1s= sizex1;
+  sizey2s=  sizey2;
+  sizey1s= sizey1;
+  xtests= xtest ;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBox'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBox'
+          _view.comboBox2.linkProperty("Options",  function() { return ["show ϕ","hide ϕ","show ϕ1","hide ϕ1","show ϕ₂","hide ϕ₂","show model","hide model","","print"]; } ); // HtmlView Page linking property 'Options' for element 'comboBox2'
+          _view.comboBox2.setAction("OnChange", function(_data,_info) {
+  //var option = _view.comboBox2.getProperty("SelectedOptions");
+  //alert(option);
+  var opts = _view.comboBox2.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  if ( option=="user_defined"){
+    
+    }
+  //printing begins now
+  else if (option == "print"){
+    print = true;
+    }
+  //printing ends here
+   else if ( option=="vtest =-15000"){
+   vxtest=-15000;
+    }
+    else if ( option=="vtest =-12000"){
+   vxtest=-12000;
+    }
+    else if ( option=="vtest =-11200"){
+   vxtest=-11200;
+    }
+    else if ( option=="vtest =-10000"){
+   vxtest=-10000;
+    }
+    else if ( option=="vtest =-8000"){
+   vxtest=-8000;
+    }
+    else if ( option=="vtest =-6000"){
+   vxtest=-6000;
+    }
+    else if ( option=="vtest =-4000"){
+   vxtest=-4000;
+    }
+    else if ( option=="vtest =-2000"){
+   vxtest=-2000;
+    }
+    else if ( option=="vtest =0"){
+   vxtest=0;
+    }
+    else if ( option=="vtest =15000"){
+   vxtest=15000;
+    }
+    else if ( option=="vtest =12000"){
+   vxtest=12000;
+    }
+    else if ( option=="vtest =11200"){
+   vxtest=11200;
+    }
+    else if ( option=="vtest =10000"){
+   vxtest=10000;
+    }
+    else if ( option=="vtest =8000"){
+   vxtest=8000;
+    }
+    else if ( option=="vtest =6000"){
+   vxtest=6000;
+    }
+    else if ( option=="vtest =4000"){
+   vxtest=4000;
+    }
+    else if ( option=="vtest =2000"){
+   vxtest=2000;
+    }
+    
+    else if ( option=="show ϕ1"){
+   showV1graph=true;
+    }
+     
+     else if ( option=="hide ϕ1"){
+    showV1graph=false;
+    }
+    else if ( option=="show ϕ₂"){
+   showV2graph=true;
+    }
+     
+     else if ( option=="hide ϕ₂"){
+    showV2graph=false;
+    }
+    
+     else if ( option=="show ϕ"){
+   showVgraph=true;
+    }
+     
+     else if ( option=="hide ϕ"){
+    showVgraph=false;
+    }
+    
+    else if ( option=="scaley=1"){
+  scaley=1;
+    }
+    else if ( option=="scaley=10"){
+  scaley=10;
+    }
+    else if ( option=="scaley=50"){
+  scaley=50;
+    }
+    else if ( option=="scaley=100"){
+  scaley=100;
+    }
+    else if ( option=="scaley=150"){
+  scaley=150;
+    }
+    else if ( option=="scaley=200"){
+  scaley=200;
+    }
+    
+    else if ( option=="show model"){
+  showmodel=true;
+  }
+  else if ( option=="hide model"){
+  showmodel=false;
+  }
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBox2'
+          _view.comboBox2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBox2'
+          _view.playPauseButton2.setAction("OffClick", function(_data,_info) {
+  text="paused";
+  _pause();
+
+}); // HtmlView Page setting action 'OffClick' for element 'playPauseButton2'
+          _view.playPauseButton2.linkProperty("State",  function() { return _isPaused; } ); // HtmlView Page linking property 'State' for element 'playPauseButton2'
+          _view.playPauseButton2.setAction("OnClick", function(_data,_info) {
+  _play();
+  text="playing";
+
+}); // HtmlView Page setting action 'OnClick' for element 'playPauseButton2'
+          _view.playPauseButton2.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'playPauseButton2'
+          _view.stepButton2.setAction("OnClick", function(_data,_info) {
+  _step();
+
+}); // HtmlView Page setting action 'OnClick' for element 'stepButton2'
+          _view.stepButton2.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'stepButton2'
+          _view.resetButton2.setAction("OnClick", function(_data,_info) {
+  _reset();
+
+}); // HtmlView Page setting action 'OnClick' for element 'resetButton2'
+          _view.resetButton2.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'resetButton2'
+          _view.modelPanel.linkProperty("Display",  function() { return (showmodel)?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'modelPanel'
+          _view.model.linkProperty("Visibility",  function() { return showmodel; }, function(_v) { showmodel = _v; } ); // HtmlView Page linking property 'Visibility' for element 'model'
+          _view.model.setAction("OnClick", function(_data,_info) {
+  if (inputdropmenu==true){
+    inputdropmenu=false;
+    }
+    else if (inputdropmenu==false){
+    inputdropmenu=true;
+    }
+
+}); // HtmlView Page setting action 'OnClick' for element 'model'
+          _view.model.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'model'
+          _view.models.linkProperty("Height",  function() { return (showmodel)?"":"0"; } ); // HtmlView Page linking property 'Height' for element 'models'
+          _view.models.linkProperty("Width",  function() { return (showmodel)?"":"0"; } ); // HtmlView Page linking property 'Width' for element 'models'
+          _view.models.linkProperty("Options",  function() { return ["-4.002*10^14/r^2","-4.002*10^14/r^2","-4.90245*10^12/abs(3.84*10^8+r)","-4.90245*10^12/abs(3.84*10^8+r)^2","0","show me ϕ Moon","show me ϕ Earth","show me ϕ"]; } ); // HtmlView Page linking property 'Options' for element 'models'
+          _view.models.setAction("OnChange", function(_data,_info) {
+  //var option = _view.models.getProperty("SelectedOptions");
+  //alert(option);
+  var opts = _view.models.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  showmodel=true;
+  functionY=option+"";
+  if (option=="show me g Moon"){
+  //functionY= "-6.67*10^-11*"+_view._format(m1,"0.00")+"/("+_view._format(x1,"0.00")+"+r)^2" ;  
+   functionY= "-4.90245*10^12/("+_view._format(x1,"0.00")+"+r)^2" ;  
+    }
+    if (option=="show me g Earth"){
+  functionY= "-4.002*10^14/("+_view._format(x2,"0.00")+"+r)^2" ;  
+    }
+  if (option=="show me g"){
+  functionY= "-4.90245*10^12/("+_view._format(x1,"0.00")+"+r)^2"+ "-4.002*10^14/("+_view._format(x2,"0.00")+"+r)^2" ;  
+    }
+  if (option=="show me ϕ Moon"){
+  functionY= "-4.90245*10^12/abs("+_view._format(-x1,"0.00")+"+r)" ; 
+    }
+    if (option=="show me ϕ Earth"){
+  functionY= "-4.002*10^14/abs("+_view._format(-x2,"0.00")+"+r)" ;    
+    }
+    if (option=="show me ϕ"){
+  functionY= "-4.90245*10^12/abs("+_view._format(-x1,"0.00")+"+r)"+"-4.002*10^14/abs("+_view._format(-x2,"0.00")+"+r)";  
+    }
+
+}); // HtmlView Page setting action 'OnChange' for element 'models'
+          _view.models.linkProperty("Visibility",  function() { return showmodel; }, function(_v) { showmodel = _v; } ); // HtmlView Page linking property 'Visibility' for element 'models'
+          _view.models.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'models'
+          _view.models.linkProperty("Display",  function() { return inputdropmenu?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'models'
+          _view.fField.linkProperty("Value",  function() { return functionY; }, function(_v) { functionY = _v; } ); // HtmlView Page linking property 'Value' for element 'fField'
+          _view.fField.linkProperty("Visibility",  function() { return showmodel; }, function(_v) { showmodel = _v; } ); // HtmlView Page linking property 'Visibility' for element 'fField'
+          _view.fField.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'fField'
+          _view.fField.linkProperty("Display",  function() { return !inputdropmenu?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'fField'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function gravity11_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = gravity11_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+  _view._addDescriptionPage('7.4.4_Potential_in_Application','./gravity11.xhtml');
+
+  return _view;
+} // end of main function
+
+function gravity11_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"fullscreen", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'fullscreen'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view.fullscreen) // EJsS HtmlView.HtmlView Page: declaration of element 'panel'
+      .setProperty("Height","100%") // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'panel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'panel'
+      .setProperty("CSS",{   "position" : "absolute",   "top" : "0%",    "margin-left":"0px",    "left":"0%" }) // EJsS HtmlView.HtmlView Page: setting property 'CSS' for element 'panel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel'
+      .setProperty("Height","99vh") // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'plottingPanel'
+      .setProperty("Gutters",[0,0,0,0]) // EJsS HtmlView.HtmlView Page: setting property 'Gutters' for element 'plottingPanel'
+      .setProperty("XTicks",1) // EJsS HtmlView.HtmlView Page: setting property 'XTicks' for element 'plottingPanel'
+      .setProperty("XFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'XFixedTick' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("Title","Earth Moon Gravity Field (N/kg) and \nPotential (J/kg) in \nOne Dimension Model") // EJsS HtmlView.HtmlView Page: setting property 'Title' for element 'plottingPanel'
+      .setProperty("YTicks",1) // EJsS HtmlView.HtmlView Page: setting property 'YTicks' for element 'plottingPanel'
+      .setProperty("YFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'YFixedTick' for element 'plottingPanel'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'YAutoTicks' for element 'plottingPanel'
+      .setProperty("AxisYShow",false) // EJsS HtmlView.HtmlView Page: setting property 'AxisYShow' for element 'plottingPanel'
+      .setProperty("AutoScaleY",false) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleY' for element 'plottingPanel'
+      .setProperty("AutoScaleX",false) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleX' for element 'plottingPanel'
+      .setProperty("XAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'XAutoTicks' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"model2", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'model2'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'model2'
+      .setProperty("NumPoints",1000) // EJsS HtmlView.HtmlView Page: setting property 'NumPoints' for element 'model2'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'model2'
+      .setProperty("LineColor","Green") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'model2'
+      .setProperty("LineWidth",4) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'model2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"gandV", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'gandV'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"potential4", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'potential4'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'potential4'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'potential4'
+      .setProperty("LineColor","Blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'potential4'
+      .setProperty("LineWidth",3) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'potential4'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field72", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'field72'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field72'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field72'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field72'
+      .setProperty("LineWidth",3) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field72'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field73", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'field73'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field73'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field73'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field73'
+      .setProperty("LineWidth",3) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field73'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field74", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'field74'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field74'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field74'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field74'
+      .setProperty("LineWidth",3) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field74'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field7", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'field7'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field7'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field7'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field7'
+      .setProperty("LineWidth",3) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field7'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"g2", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'g2'
+      .setProperty("FillColor","White") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'g2'
+      .setProperty("SizeX",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'g2'
+      .setProperty("ShapeType","WHEEL") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'g2'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'g2'
+      .setProperty("SizeY",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'g2'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'g2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.segment,"segment3", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'segment3'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'segment3'
+      .setProperty("Attributes",{ "stroke-dasharray":"4 4 4 4" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'segment3'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'segment3'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.segment,"segment32", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'segment32'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'segment32'
+      .setProperty("Attributes",{ "stroke-dasharray":"4 4 4 4" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'segment32'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'segment32'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.text,"g", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'g'
+      .setProperty("RelativePosition","SOUTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'g'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"field3", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'field3'
+      .setProperty("FillColor","White") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'field3'
+      .setProperty("SizeX",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'field3'
+      .setProperty("ShapeType","WHEEL") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'field3'
+      .setProperty("LineColor","Blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field3'
+      .setProperty("SizeY",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'field3'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'field3'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group", _view.gandV) // EJsS HtmlView.HtmlView Page: declaration of element 'group'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.text,"field2", _view.group) // EJsS HtmlView.HtmlView Page: declaration of element 'field2'
+      .setProperty("FillColor","Blue") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'field2'
+      .setProperty("SizeX",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'field2'
+      .setProperty("RelativePosition","NORTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'field2'
+      .setProperty("SizeY",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'field2'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'field2'
+      .setProperty("EnabledPosition","ENABLED_ANY") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'field2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"gandVone", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'gandVone'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"potential42", _view.gandVone) // EJsS HtmlView.HtmlView Page: declaration of element 'potential42'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'potential42'
+      .setProperty("NumPoints",1000) // EJsS HtmlView.HtmlView Page: setting property 'NumPoints' for element 'potential42'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'potential42'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'potential42'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 16 8 16" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'potential42'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'potential42'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field622", _view.gandVone) // EJsS HtmlView.HtmlView Page: declaration of element 'field622'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field622'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field622'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field622'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 16 8 16" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'field622'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field622'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field62", _view.gandVone) // EJsS HtmlView.HtmlView Page: declaration of element 'field62'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field62'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field62'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field62'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 16 8 16" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'field62'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field62'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group3", _view.gandVone) // EJsS HtmlView.HtmlView Page: declaration of element 'group3'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.text,"field22", _view.group3) // EJsS HtmlView.HtmlView Page: declaration of element 'field22'
+      .setProperty("FillColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'field22'
+      .setProperty("SizeX",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'field22'
+      .setProperty("RelativePosition","NORTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'field22'
+      .setProperty("Y",-500000) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'field22'
+      .setProperty("SizeY",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'field22'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'field22'
+      .setProperty("EnabledPosition","ENABLED_ANY") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'field22'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"gandVone2", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'gandVone2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"potential422", _view.gandVone2) // EJsS HtmlView.HtmlView Page: declaration of element 'potential422'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'potential422'
+      .setProperty("NumPoints",1000) // EJsS HtmlView.HtmlView Page: setting property 'NumPoints' for element 'potential422'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'potential422'
+      .setProperty("LineColor","rgba(0,64,0,1)") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'potential422'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 16 8 16" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'potential422'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'potential422'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field63", _view.gandVone2) // EJsS HtmlView.HtmlView Page: declaration of element 'field63'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field63'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field63'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field63'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 16 8 16" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'field63'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field63'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"field6", _view.gandVone2) // EJsS HtmlView.HtmlView Page: declaration of element 'field6'
+      .setProperty("FunctionX","r") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'field6'
+      .setProperty("Variable","r") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'field6'
+      .setProperty("LineColor","Orange") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'field6'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 16 8 16" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'field6'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'field6'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group4", _view.gandVone2) // EJsS HtmlView.HtmlView Page: declaration of element 'group4'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.text,"field23", _view.group4) // EJsS HtmlView.HtmlView Page: declaration of element 'field23'
+      .setProperty("FillColor","rgba(0,64,0,1)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'field23'
+      .setProperty("SizeX",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'field23'
+      .setProperty("RelativePosition","SOUTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'field23'
+      .setProperty("SizeY",5) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'field23'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'field23'
+      .setProperty("EnabledPosition","ENABLED_ANY") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'field23'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"m1", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'm1'
+      .setProperty("FillColor","Gray") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'm1'
+      .setProperty("ShapeType","WHEEL") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'm1'
+      .setProperty("LineColor","Gray") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'm1'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'm1'
+      .setProperty("EnabledPosition","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'm1'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.segment,"segment2", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'segment2'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'segment2'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 8 8 8" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'segment2'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'segment2'
+      .setProperty("Offset","CENTERED") // EJsS HtmlView.HtmlView Page: setting property 'Offset' for element 'segment2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.segment,"segment", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'segment'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'segment'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 8 8 8" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'segment'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'segment'
+      .setProperty("Offset","CENTERED") // EJsS HtmlView.HtmlView Page: setting property 'Offset' for element 'segment'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.image,"moon", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'moon'
+      .setProperty("ImageUrl","./GField/moon.png") // EJsS HtmlView.HtmlView Page: setting property 'ImageUrl' for element 'moon'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'moon'
+      .setProperty("EnabledPosition","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'moon'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"m2", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'm2'
+      .setProperty("FillColor","colorball2") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'm2'
+      .setProperty("ShapeType","ELLIPSE") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'm2'
+      .setProperty("LineColor","colorball2") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'm2'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'm2'
+      .setProperty("EnabledPosition","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'm2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.segment,"segment222", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'segment222'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'segment222'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 8 8 8" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'segment222'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'segment222'
+      .setProperty("Offset","CENTERED") // EJsS HtmlView.HtmlView Page: setting property 'Offset' for element 'segment222'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.segment,"segment22", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'segment22'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'segment22'
+      .setProperty("Attributes",{ "stroke-dasharray":"8 8 8 8" }) // EJsS HtmlView.HtmlView Page: setting property 'Attributes' for element 'segment22'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'segment22'
+      .setProperty("Offset","CENTERED") // EJsS HtmlView.HtmlView Page: setting property 'Offset' for element 'segment22'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.image,"earth", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'earth'
+      .setProperty("ImageUrl","./GField/earthbynasa.png") // EJsS HtmlView.HtmlView Page: setting property 'ImageUrl' for element 'earth'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'earth'
+      .setProperty("EnabledPosition","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'earth'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"mtest", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'mtest'
+      .setProperty("FillColor","Red") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'mtest'
+      .setProperty("ShapeType","WHEEL") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'mtest'
+      .setProperty("LineColor","Black") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'mtest'
+      .setProperty("EnabledPosition","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'mtest'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"position", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'position'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"v", _view.position) // EJsS HtmlView.HtmlView Page: declaration of element 'v'
+      .setProperty("MarkEnd","ANGLE") // EJsS HtmlView.HtmlView Page: setting property 'MarkEnd' for element 'v'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'v'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'v'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'v'
+      .setProperty("SizeY",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'v'
+      .setProperty("LineWidth",2) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'v'
+      .setProperty("Offset","SOUTH_WEST") // EJsS HtmlView.HtmlView Page: setting property 'Offset' for element 'v'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"velocitydrag22", _view.position) // EJsS HtmlView.HtmlView Page: declaration of element 'velocitydrag22'
+      .setProperty("FillColor","rgba(0,255,255,0.0)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'velocitydrag22'
+      .setProperty("SizeX",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'velocitydrag22'
+      .setProperty("ShapeType","WHEEL") // EJsS HtmlView.HtmlView Page: setting property 'ShapeType' for element 'velocitydrag22'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'velocitydrag22'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'velocitydrag22'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'velocitydrag22'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'velocitydrag22'
+      .setProperty("EnabledPosition","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'velocitydrag22'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group2", _view.position) // EJsS HtmlView.HtmlView Page: declaration of element 'group2'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'group2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.text,"v2", _view.group2) // EJsS HtmlView.HtmlView Page: declaration of element 'v2'
+      .setProperty("FillColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'v2'
+      .setProperty("RelativePosition","SOUTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'v2'
+      .setProperty("Y",1000000) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'v2'
+      .setProperty("EnabledPosition","ENABLED_ANY") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'v2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"step", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'step'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.text,"scaley", _view.step) // EJsS HtmlView.HtmlView Page: declaration of element 'scaley'
+      .setProperty("Y",-2000000) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'scaley'
+      .setProperty("Text","Y-axis scale") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'scaley'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"arrow2", _view.step) // EJsS HtmlView.HtmlView Page: declaration of element 'arrow2'
+      .setProperty("MarkEnd","TRIANGLE") // EJsS HtmlView.HtmlView Page: setting property 'MarkEnd' for element 'arrow2'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'arrow2'
+      .setProperty("LineColor","rgba(0,150,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'arrow2'
+      .setProperty("Y",-2000000) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'arrow2'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'arrow2'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'arrow2'
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'arrow2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.arrow,"arrow3", _view.step) // EJsS HtmlView.HtmlView Page: declaration of element 'arrow3'
+      .setProperty("MarkEnd","TRIANGLE") // EJsS HtmlView.HtmlView Page: setting property 'MarkEnd' for element 'arrow3'
+      .setProperty("SizeX",0) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'arrow3'
+      .setProperty("LineColor","rgba(0,150,0,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'arrow3'
+      .setProperty("Y",-2000000) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'arrow3'
+      .setProperty("SizeY",-20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'arrow3'
+      .setProperty("PixelSize",true) // EJsS HtmlView.HtmlView Page: setting property 'PixelSize' for element 'arrow3'
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'arrow3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"controlpanel", _view.fullscreen) // EJsS HtmlView.HtmlView Page: declaration of element 'controlpanel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'controlpanel'
+      .setProperty("CSS",{   "position" : "absolute",   "top" : "0%",    "margin-left":"0px",    "left":"0%" }) // EJsS HtmlView.HtmlView Page: setting property 'CSS' for element 'controlpanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.controlpanel) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBox'
+      .setProperty("Tooltip","select user_defined and drag the mass") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox2", _view.controlpanel) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBox2'
+      .setProperty("Tooltip","select user_defined and drag the mass") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'comboBox2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"playPauseButton2", _view.controlpanel) // EJsS HtmlView.HtmlView Page: declaration of element 'playPauseButton2'
+      .setProperty("TextOn","►") // EJsS HtmlView.HtmlView Page: setting property 'TextOn' for element 'playPauseButton2'
+      .setProperty("Tooltip","Play/Pause") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'playPauseButton2'
+      .setProperty("TextOff","❚❚") // EJsS HtmlView.HtmlView Page: setting property 'TextOff' for element 'playPauseButton2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"stepButton2", _view.controlpanel) // EJsS HtmlView.HtmlView Page: declaration of element 'stepButton2'
+      .setProperty("Tooltip","Step") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'stepButton2'
+      .setProperty("Text","❚►") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'stepButton2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton2", _view.controlpanel) // EJsS HtmlView.HtmlView Page: declaration of element 'resetButton2'
+      .setProperty("Tooltip","Reset") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'resetButton2'
+      .setProperty("Text","↻") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'resetButton2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"modelPanel", _view.controlpanel) // EJsS HtmlView.HtmlView Page: declaration of element 'modelPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"model", _view.modelPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'model'
+      .setProperty("Background","Green") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'model'
+      .setProperty("Tooltip","key in expression like 4.002*10^14/abs(r)^2 or -4.002*10^14/abs(r) or -4.90245*10^12/abs(r+3.84*10^8)or -4.90245*10^12/abs(r+3.84*10^8)^2") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'model'
+      .setProperty("Foreground","White") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'model'
+      .setProperty("Text","your model, ϕ=?") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'model'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"models", _view.modelPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'models'
+      .setProperty("Tooltip","select suggested models") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'models'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField", _view.modelPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'fField'
+      .setProperty("Width","30vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Earth Moon Gravity Potential Simulator<br />
+     <img alt="Logo" src="GField/Screen Shot 2017-06-07 at 3.50.39 PM (2).png" />
+      </p>
+      <p>
+      <img alt="author image" src="1authorlookangphoto.png" />
+      <img alt="author image" src="01authotandrewduffy.png" />
+ lookang (weelookang@gmail.com); andrew duffy
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2020, CC-BY-SA-NC. Compiled with EJS 6.0 (191124)
+</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new gravity11("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

@@ -1,0 +1,1494 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Graph Generator for Assessment</title>
+ <script type="text/javascript" src="Libraries/he.js"></script>
+<script type="text/javascript" src="Libraries/jszip.js"></script>
+<script type="text/javascript" src="Libraries/filesaver.js"></script>    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+    <script src="Libraries/jszip.js"></script>
+    <script src="Libraries/he.js"></script>
+    <script src="Libraries/filesaver.js"></script>
+
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function graphUI(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var t; // EjsS Model.Variables.Var Table.t
+  var dt; // EjsS Model.Variables.Var Table.dt
+  var pi; // EjsS Model.Variables.Var Table.pi
+  var n; // EjsS Model.Variables.Var Table.n
+  var angle; // EjsS Model.Variables.Var Table.angle
+  var fontLeft; // EjsS Model.Variables.Var Table.fontLeft
+  var elementInteracted; // EjsS Model.Variables.Var Table.elementInteracted
+  var elementInteracted1; // EjsS Model.Variables.Var Table.elementInteracted1
+  var numberOfPoints; // EjsS Model.Variables.Var Table.numberOfPoints
+  var numberOfPoints0; // EjsS Model.Variables.Var Table.numberOfPoints0
+
+  var theta; // EjsS Model.Variables.circle.theta
+
+  var iOS; // EjsS Model.Variables.layout.iOS
+  var Android; // EjsS Model.Variables.layout.Android
+  var iPad; // EjsS Model.Variables.layout.iPad
+  var iPhone; // EjsS Model.Variables.layout.iPhone
+  var Width; // EjsS Model.Variables.layout.Width
+  var Height; // EjsS Model.Variables.layout.Height
+  var Width1; // EjsS Model.Variables.layout.Width1
+  var Width2; // EjsS Model.Variables.layout.Width2
+  var world; // EjsS Model.Variables.layout.world
+  var graph; // EjsS Model.Variables.layout.graph
+  var disabledworld; // EjsS Model.Variables.layout.disabledworld
+  var disabled; // EjsS Model.Variables.layout.disabled
+
+  var xmin; // EjsS Model.Variables.cells.xmin
+  var xmax; // EjsS Model.Variables.cells.xmax
+  var ymin; // EjsS Model.Variables.cells.ymin
+  var ymax; // EjsS Model.Variables.cells.ymax
+
+  var graphTitle; // EjsS Model.Variables.EditableVariable.graphTitle
+  var XAxisTitle; // EjsS Model.Variables.EditableVariable.XAxisTitle
+  var YAxisTitle; // EjsS Model.Variables.EditableVariable.YAxisTitle
+  var font; // EjsS Model.Variables.EditableVariable.font
+  var XMin; // EjsS Model.Variables.EditableVariable.XMin
+  var YMin; // EjsS Model.Variables.EditableVariable.YMin
+  var XMax; // EjsS Model.Variables.EditableVariable.XMax
+  var YMax; // EjsS Model.Variables.EditableVariable.YMax
+  var XTickStep; // EjsS Model.Variables.EditableVariable.XTickStep
+  var YTickStep; // EjsS Model.Variables.EditableVariable.YTickStep
+  var Equation; // EjsS Model.Variables.EditableVariable.Equation
+  var Equation0; // EjsS Model.Variables.EditableVariable.Equation0
+  var Equation1; // EjsS Model.Variables.EditableVariable.Equation1
+  var Equation2; // EjsS Model.Variables.EditableVariable.Equation2
+  var Equation3; // EjsS Model.Variables.EditableVariable.Equation3
+  var colorEquation; // EjsS Model.Variables.EditableVariable.colorEquation
+  var lineWidth; // EjsS Model.Variables.EditableVariable.lineWidth
+  var markerEquation; // EjsS Model.Variables.EditableVariable.markerEquation
+  var distanceMarker; // EjsS Model.Variables.EditableVariable.distanceMarker
+  var decimalPlaces; // EjsS Model.Variables.EditableVariable.decimalPlaces
+  var firstTime; // EjsS Model.Variables.EditableVariable.firstTime
+  var x; // EjsS Model.Variables.EditableVariable.x
+  var y; // EjsS Model.Variables.EditableVariable.y
+  var x1; // EjsS Model.Variables.EditableVariable.x1
+  var y1; // EjsS Model.Variables.EditableVariable.y1
+  var xmodel; // EjsS Model.Variables.EditableVariable.xmodel
+  var temp; // EjsS Model.Variables.EditableVariable.temp
+  var selectedOptions; // EjsS Model.Variables.EditableVariable.selectedOptions
+  var selectOptionsMarker; // EjsS Model.Variables.EditableVariable.selectOptionsMarker
+  var MarkerText; // EjsS Model.Variables.EditableVariable.MarkerText
+  var MarkerTextVisible; // EjsS Model.Variables.EditableVariable.MarkerTextVisible
+  var MarkerText1; // EjsS Model.Variables.EditableVariable.MarkerText1
+  var MarkerTextVisible1; // EjsS Model.Variables.EditableVariable.MarkerTextVisible1
+  var tol; // EjsS Model.Variables.EditableVariable.tol
+
+  _model.getOdes = function() { return []; };
+
+  _model.removeEvents = function(){
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      t : t,
+      dt : dt,
+      pi : pi,
+      n : n,
+      angle : angle,
+      fontLeft : fontLeft,
+      elementInteracted : elementInteracted,
+      elementInteracted1 : elementInteracted1,
+      numberOfPoints : numberOfPoints,
+      numberOfPoints0 : numberOfPoints0,
+      theta : theta,
+      iOS : iOS,
+      Android : Android,
+      iPad : iPad,
+      iPhone : iPhone,
+      Width : Width,
+      Height : Height,
+      Width1 : Width1,
+      Width2 : Width2,
+      world : world,
+      graph : graph,
+      disabledworld : disabledworld,
+      disabled : disabled,
+      xmin : xmin,
+      xmax : xmax,
+      ymin : ymin,
+      ymax : ymax,
+      graphTitle : graphTitle,
+      XAxisTitle : XAxisTitle,
+      YAxisTitle : YAxisTitle,
+      font : font,
+      XMin : XMin,
+      YMin : YMin,
+      XMax : XMax,
+      YMax : YMax,
+      XTickStep : XTickStep,
+      YTickStep : YTickStep,
+      Equation : Equation,
+      Equation0 : Equation0,
+      Equation1 : Equation1,
+      Equation2 : Equation2,
+      Equation3 : Equation3,
+      colorEquation : colorEquation,
+      lineWidth : lineWidth,
+      markerEquation : markerEquation,
+      distanceMarker : distanceMarker,
+      decimalPlaces : decimalPlaces,
+      firstTime : firstTime,
+      x : x,
+      y : y,
+      x1 : x1,
+      y1 : y1,
+      xmodel : xmodel,
+      temp : temp,
+      selectedOptions : selectedOptions,
+      selectOptionsMarker : selectOptionsMarker,
+      MarkerText : MarkerText,
+      MarkerTextVisible : MarkerTextVisible,
+      MarkerText1 : MarkerText1,
+      MarkerTextVisible1 : MarkerTextVisible1,
+      tol : tol
+    };
+  };
+
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return {
+      t : t,
+      dt : dt,
+      pi : pi,
+      n : n,
+      angle : angle,
+      fontLeft : fontLeft,
+      elementInteracted : elementInteracted,
+      elementInteracted1 : elementInteracted1,
+      numberOfPoints : numberOfPoints,
+      numberOfPoints0 : numberOfPoints0,
+      theta : theta,
+      iOS : iOS,
+      Android : Android,
+      iPad : iPad,
+      iPhone : iPhone,
+      Width : Width,
+      Height : Height,
+      Width1 : Width1,
+      Width2 : Width2,
+      world : world,
+      graph : graph,
+      disabledworld : disabledworld,
+      disabled : disabled,
+      xmin : xmin,
+      xmax : xmax,
+      ymin : ymin,
+      ymax : ymax,
+      graphTitle : graphTitle,
+      XAxisTitle : XAxisTitle,
+      YAxisTitle : YAxisTitle,
+      font : font,
+      XMin : XMin,
+      YMin : YMin,
+      XMax : XMax,
+      YMax : YMax,
+      XTickStep : XTickStep,
+      YTickStep : YTickStep,
+      Equation : Equation,
+      Equation0 : Equation0,
+      Equation1 : Equation1,
+      Equation2 : Equation2,
+      Equation3 : Equation3,
+      colorEquation : colorEquation,
+      lineWidth : lineWidth,
+      markerEquation : markerEquation,
+      distanceMarker : distanceMarker,
+      decimalPlaces : decimalPlaces,
+      firstTime : firstTime,
+      x : x,
+      y : y,
+      x1 : x1,
+      y1 : y1,
+      xmodel : xmodel,
+      temp : temp,
+      selectedOptions : selectedOptions,
+      selectOptionsMarker : selectOptionsMarker,
+      MarkerText : MarkerText,
+      MarkerTextVisible : MarkerTextVisible,
+      MarkerText1 : MarkerText1,
+      MarkerTextVisible1 : MarkerTextVisible1,
+      tol : tol
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.pi != "undefined") pi = json.pi;
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.angle != "undefined") angle = json.angle;
+    if(typeof json.fontLeft != "undefined") fontLeft = json.fontLeft;
+    if(typeof json.elementInteracted != "undefined") elementInteracted = json.elementInteracted;
+    if(typeof json.elementInteracted1 != "undefined") elementInteracted1 = json.elementInteracted1;
+    if(typeof json.numberOfPoints != "undefined") numberOfPoints = json.numberOfPoints;
+    if(typeof json.numberOfPoints0 != "undefined") numberOfPoints0 = json.numberOfPoints0;
+    if(typeof json.theta != "undefined") theta = json.theta;
+    if(typeof json.iOS != "undefined") iOS = json.iOS;
+    if(typeof json.Android != "undefined") Android = json.Android;
+    if(typeof json.iPad != "undefined") iPad = json.iPad;
+    if(typeof json.iPhone != "undefined") iPhone = json.iPhone;
+    if(typeof json.Width != "undefined") Width = json.Width;
+    if(typeof json.Height != "undefined") Height = json.Height;
+    if(typeof json.Width1 != "undefined") Width1 = json.Width1;
+    if(typeof json.Width2 != "undefined") Width2 = json.Width2;
+    if(typeof json.world != "undefined") world = json.world;
+    if(typeof json.graph != "undefined") graph = json.graph;
+    if(typeof json.disabledworld != "undefined") disabledworld = json.disabledworld;
+    if(typeof json.disabled != "undefined") disabled = json.disabled;
+    if(typeof json.xmin != "undefined") xmin = json.xmin;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.ymin != "undefined") ymin = json.ymin;
+    if(typeof json.ymax != "undefined") ymax = json.ymax;
+    if(typeof json.graphTitle != "undefined") graphTitle = json.graphTitle;
+    if(typeof json.XAxisTitle != "undefined") XAxisTitle = json.XAxisTitle;
+    if(typeof json.YAxisTitle != "undefined") YAxisTitle = json.YAxisTitle;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.XMin != "undefined") XMin = json.XMin;
+    if(typeof json.YMin != "undefined") YMin = json.YMin;
+    if(typeof json.XMax != "undefined") XMax = json.XMax;
+    if(typeof json.YMax != "undefined") YMax = json.YMax;
+    if(typeof json.XTickStep != "undefined") XTickStep = json.XTickStep;
+    if(typeof json.YTickStep != "undefined") YTickStep = json.YTickStep;
+    if(typeof json.Equation != "undefined") Equation = json.Equation;
+    if(typeof json.Equation0 != "undefined") Equation0 = json.Equation0;
+    if(typeof json.Equation1 != "undefined") Equation1 = json.Equation1;
+    if(typeof json.Equation2 != "undefined") Equation2 = json.Equation2;
+    if(typeof json.Equation3 != "undefined") Equation3 = json.Equation3;
+    if(typeof json.colorEquation != "undefined") colorEquation = json.colorEquation;
+    if(typeof json.lineWidth != "undefined") lineWidth = json.lineWidth;
+    if(typeof json.markerEquation != "undefined") markerEquation = json.markerEquation;
+    if(typeof json.distanceMarker != "undefined") distanceMarker = json.distanceMarker;
+    if(typeof json.decimalPlaces != "undefined") decimalPlaces = json.decimalPlaces;
+    if(typeof json.firstTime != "undefined") firstTime = json.firstTime;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.x1 != "undefined") x1 = json.x1;
+    if(typeof json.y1 != "undefined") y1 = json.y1;
+    if(typeof json.xmodel != "undefined") xmodel = json.xmodel;
+    if(typeof json.temp != "undefined") temp = json.temp;
+    if(typeof json.selectedOptions != "undefined") selectedOptions = json.selectedOptions;
+    if(typeof json.selectOptionsMarker != "undefined") selectOptionsMarker = json.selectOptionsMarker;
+    if(typeof json.MarkerText != "undefined") MarkerText = json.MarkerText;
+    if(typeof json.MarkerTextVisible != "undefined") MarkerTextVisible = json.MarkerTextVisible;
+    if(typeof json.MarkerText1 != "undefined") MarkerText1 = json.MarkerText1;
+    if(typeof json.MarkerTextVisible1 != "undefined") MarkerTextVisible1 = json.MarkerTextVisible1;
+    if(typeof json.tol != "undefined") tol = json.tol;
+  };
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.pi != "undefined") pi = json.pi;
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.angle != "undefined") angle = json.angle;
+    if(typeof json.fontLeft != "undefined") fontLeft = json.fontLeft;
+    if(typeof json.elementInteracted != "undefined") elementInteracted = json.elementInteracted;
+    if(typeof json.elementInteracted1 != "undefined") elementInteracted1 = json.elementInteracted1;
+    if(typeof json.numberOfPoints != "undefined") numberOfPoints = json.numberOfPoints;
+    if(typeof json.numberOfPoints0 != "undefined") numberOfPoints0 = json.numberOfPoints0;
+    if(typeof json.theta != "undefined") theta = json.theta;
+    if(typeof json.iOS != "undefined") iOS = json.iOS;
+    if(typeof json.Android != "undefined") Android = json.Android;
+    if(typeof json.iPad != "undefined") iPad = json.iPad;
+    if(typeof json.iPhone != "undefined") iPhone = json.iPhone;
+    if(typeof json.Width != "undefined") Width = json.Width;
+    if(typeof json.Height != "undefined") Height = json.Height;
+    if(typeof json.Width1 != "undefined") Width1 = json.Width1;
+    if(typeof json.Width2 != "undefined") Width2 = json.Width2;
+    if(typeof json.world != "undefined") world = json.world;
+    if(typeof json.graph != "undefined") graph = json.graph;
+    if(typeof json.disabledworld != "undefined") disabledworld = json.disabledworld;
+    if(typeof json.disabled != "undefined") disabled = json.disabled;
+    if(typeof json.xmin != "undefined") xmin = json.xmin;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.ymin != "undefined") ymin = json.ymin;
+    if(typeof json.ymax != "undefined") ymax = json.ymax;
+    if(typeof json.graphTitle != "undefined") graphTitle = json.graphTitle;
+    if(typeof json.XAxisTitle != "undefined") XAxisTitle = json.XAxisTitle;
+    if(typeof json.YAxisTitle != "undefined") YAxisTitle = json.YAxisTitle;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.XMin != "undefined") XMin = json.XMin;
+    if(typeof json.YMin != "undefined") YMin = json.YMin;
+    if(typeof json.XMax != "undefined") XMax = json.XMax;
+    if(typeof json.YMax != "undefined") YMax = json.YMax;
+    if(typeof json.XTickStep != "undefined") XTickStep = json.XTickStep;
+    if(typeof json.YTickStep != "undefined") YTickStep = json.YTickStep;
+    if(typeof json.Equation != "undefined") Equation = json.Equation;
+    if(typeof json.Equation0 != "undefined") Equation0 = json.Equation0;
+    if(typeof json.Equation1 != "undefined") Equation1 = json.Equation1;
+    if(typeof json.Equation2 != "undefined") Equation2 = json.Equation2;
+    if(typeof json.Equation3 != "undefined") Equation3 = json.Equation3;
+    if(typeof json.colorEquation != "undefined") colorEquation = json.colorEquation;
+    if(typeof json.lineWidth != "undefined") lineWidth = json.lineWidth;
+    if(typeof json.markerEquation != "undefined") markerEquation = json.markerEquation;
+    if(typeof json.distanceMarker != "undefined") distanceMarker = json.distanceMarker;
+    if(typeof json.decimalPlaces != "undefined") decimalPlaces = json.decimalPlaces;
+    if(typeof json.firstTime != "undefined") firstTime = json.firstTime;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.x1 != "undefined") x1 = json.x1;
+    if(typeof json.y1 != "undefined") y1 = json.y1;
+    if(typeof json.xmodel != "undefined") xmodel = json.xmodel;
+    if(typeof json.temp != "undefined") temp = json.temp;
+    if(typeof json.selectedOptions != "undefined") selectedOptions = json.selectedOptions;
+    if(typeof json.selectOptionsMarker != "undefined") selectOptionsMarker = json.selectOptionsMarker;
+    if(typeof json.MarkerText != "undefined") MarkerText = json.MarkerText;
+    if(typeof json.MarkerTextVisible != "undefined") MarkerTextVisible = json.MarkerTextVisible;
+    if(typeof json.MarkerText1 != "undefined") MarkerText1 = json.MarkerText1;
+    if(typeof json.MarkerTextVisible1 != "undefined") MarkerTextVisible1 = json.MarkerTextVisible1;
+    if(typeof json.tol != "undefined") tol = json.tol;
+  };
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["undefined"] = true;
+    __pagesEnabled["Init Page"] = true;
+    __pagesEnabled["FixRel Page"] = false;
+  });
+
+  _model.addToReset(function() {
+    t = 0; // EjsS Model.Variables.Var Table.t
+    dt = 0.05; // EjsS Model.Variables.Var Table.dt
+    pi = Math.PI; // EjsS Model.Variables.Var Table.pi
+    n = 32; // EjsS Model.Variables.Var Table.n
+    angle = pi; // EjsS Model.Variables.Var Table.angle
+    fontLeft = "normal normal 1.5vw "; // EjsS Model.Variables.Var Table.fontLeft
+    elementInteracted = -1; // EjsS Model.Variables.Var Table.elementInteracted
+    elementInteracted1 = -1; // EjsS Model.Variables.Var Table.elementInteracted1
+    numberOfPoints = new Array(10); // EjsS Model.Variables.Var Table.numberOfPoints
+    numberOfPoints0 = new Array(10); // EjsS Model.Variables.Var Table.numberOfPoints0
+  });
+
+  _model.addToReset(function() {
+    theta = pi/4; // EjsS Model.Variables.circle.theta
+  });
+
+  _model.addToReset(function() {
+    iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; // EjsS Model.Variables.layout.iOS
+    Android = /Android|android/i.test(navigator.userAgent); // EjsS Model.Variables.layout.Android
+    iPad = /iPad/.test(navigator.userAgent) && !window.MSStream; // EjsS Model.Variables.layout.iPad
+    iPhone = /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; // EjsS Model.Variables.layout.iPhone
+    Width = (_isEPub)?"400":"100%"; // EjsS Model.Variables.layout.Width
+    Height = (_isEPub)?"500":"100%"; // EjsS Model.Variables.layout.Height
+    Width1 = "60%"; // EjsS Model.Variables.layout.Width1
+    Width2 = "50%"; // EjsS Model.Variables.layout.Width2
+    world = true; // EjsS Model.Variables.layout.world
+    graph = true; // EjsS Model.Variables.layout.graph
+    disabledworld = false; // EjsS Model.Variables.layout.disabledworld
+    disabled = false; // EjsS Model.Variables.layout.disabled
+  });
+
+  _model.addToReset(function() {
+    xmin = -10; // EjsS Model.Variables.cells.xmin
+    xmax = 10; // EjsS Model.Variables.cells.xmax
+    ymin = -10; // EjsS Model.Variables.cells.ymin
+    ymax = 10; // EjsS Model.Variables.cells.ymax
+  });
+
+  _model.addToReset(function() {
+    graphTitle = "Graph of X vs Y"; // EjsS Model.Variables.EditableVariable.graphTitle
+    XAxisTitle = "X"; // EjsS Model.Variables.EditableVariable.XAxisTitle
+    YAxisTitle = "Y"; // EjsS Model.Variables.EditableVariable.YAxisTitle
+    font = "normal normal 0.8vw "; // EjsS Model.Variables.EditableVariable.font
+    XMin = 0; // EjsS Model.Variables.EditableVariable.XMin
+    YMin = 0; // EjsS Model.Variables.EditableVariable.YMin
+    XMax = 10; // EjsS Model.Variables.EditableVariable.XMax
+    YMax = 10; // EjsS Model.Variables.EditableVariable.YMax
+    XTickStep = 1; // EjsS Model.Variables.EditableVariable.XTickStep
+    YTickStep = 1; // EjsS Model.Variables.EditableVariable.YTickStep
+    Equation = ["x","1/x"]; // EjsS Model.Variables.EditableVariable.Equation
+    Equation0 = Equation[0]; // EjsS Model.Variables.EditableVariable.Equation0
+    Equation1 = Equation[1]; // EjsS Model.Variables.EditableVariable.Equation1
+    Equation2 = Equation[2]; // EjsS Model.Variables.EditableVariable.Equation2
+    Equation3 = Equation[3]; // EjsS Model.Variables.EditableVariable.Equation3
+    colorEquation = ["red","red"]; // EjsS Model.Variables.EditableVariable.colorEquation
+    lineWidth = [0,0]; // EjsS Model.Variables.EditableVariable.lineWidth
+    markerEquation = ["","✕","•","█","▲","⬩"]; // EjsS Model.Variables.EditableVariable.markerEquation
+    distanceMarker = [1,1,1,1,1,1,1,1,1,1]; // EjsS Model.Variables.EditableVariable.distanceMarker
+    decimalPlaces = [0,0,0,0,0,0,0,0,0,0]; // EjsS Model.Variables.EditableVariable.decimalPlaces
+    x = [0,1,2,3,4,5,6,7,8,9,10]; // EjsS Model.Variables.EditableVariable.x
+    y = [0,1,2,3,4,5,6,7,8,9,10]; // EjsS Model.Variables.EditableVariable.y
+    x1 = [0,1,2,3,4,5,6,7,8,9,10]; // EjsS Model.Variables.EditableVariable.x1
+    y1 = [0,1,2,3,4,5,6,7,8,9,10]; // EjsS Model.Variables.EditableVariable.y1
+    temp = 0; // EjsS Model.Variables.EditableVariable.temp
+    selectedOptions = ""; // EjsS Model.Variables.EditableVariable.selectedOptions
+    MarkerText = ["(0,0)","(1,1)","(2,2)","(3,3)","(4,4)","(5,5)","(6,6)","(7,7)","(8,8)","(9,9)","(10,10)"]; // EjsS Model.Variables.EditableVariable.MarkerText
+    MarkerTextVisible = new Array(11); // EjsS Model.Variables.EditableVariable.MarkerTextVisible
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<11; _i0+=1) {  // EjsS Model.Variables.EditableVariable.MarkerTextVisible
+        MarkerTextVisible[_i0] = false;  // EjsS Model.Variables.EditableVariable.MarkerTextVisible
+      }
+    }());
+    MarkerText1 = ["(0,0)","(1,1)","(2,2)","(3,3)","(4,4)","(5,5)","(6,6)","(7,7)","(8,8)","(9,9)","(10,10)"]; // EjsS Model.Variables.EditableVariable.MarkerText1
+    MarkerTextVisible1 = new Array(11); // EjsS Model.Variables.EditableVariable.MarkerTextVisible1
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<11; _i0+=1) {  // EjsS Model.Variables.EditableVariable.MarkerTextVisible1
+        MarkerTextVisible1[_i0] = false;  // EjsS Model.Variables.EditableVariable.MarkerTextVisible1
+      }
+    }());
+    tol = 0.00001; // EjsS Model.Variables.EditableVariable.tol
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  //https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Using_full_screen_mode  // > CustomCode.fullscreen:1
+  // does not work for iOS   // > CustomCode.fullscreen:2
+  /*jslint browser:true */  // > CustomCode.fullscreen:3
+  function toggleFullScreen() {  // > CustomCode.fullscreen:4
+    if (!document.fullscreenElement &&    // alternative standard method  // > CustomCode.fullscreen:5
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods  // > CustomCode.fullscreen:6
+      if (document.documentElement.requestFullscreen) {  // > CustomCode.fullscreen:7
+        document.documentElement.requestFullscreen();  // > CustomCode.fullscreen:8
+      } else if (document.documentElement.msRequestFullscreen) {  // > CustomCode.fullscreen:9
+        document.documentElement.msRequestFullscreen();  // > CustomCode.fullscreen:10
+      } else if (document.documentElement.mozRequestFullScreen) {  // > CustomCode.fullscreen:11
+        document.documentElement.mozRequestFullScreen();  // > CustomCode.fullscreen:12
+      } else if (document.documentElement.webkitRequestFullscreen) {  // > CustomCode.fullscreen:13
+        document.documentElement.webkitRequestFullscreen();  // > CustomCode.fullscreen:14
+      }  // > CustomCode.fullscreen:15
+    } else {  // > CustomCode.fullscreen:16
+      if (document.exitFullscreen) {  // > CustomCode.fullscreen:17
+        document.exitFullscreen();  // > CustomCode.fullscreen:18
+      } else if (document.msExitFullscreen) {  // > CustomCode.fullscreen:19
+        document.msExitFullscreen();  // > CustomCode.fullscreen:20
+      } else if (document.mozCancelFullScreen) {  // > CustomCode.fullscreen:21
+        document.mozCancelFullScreen();  // > CustomCode.fullscreen:22
+      } else if (document.webkitExitFullscreen) {  // > CustomCode.fullscreen:23
+        document.webkitExitFullscreen();  // > CustomCode.fullscreen:24
+      }  // > CustomCode.fullscreen:25
+    }  // > CustomCode.fullscreen:26
+  }  // > CustomCode.fullscreen:27
+
+  // code to be copied to EJSS source code under Custom and used in drawingPanel3D and plottingPanel2D  // > CustomCode.changeOrientation:1
+  // address the problem is height difference is iOS app , epub, and Firefox  // > CustomCode.changeOrientation:2
+  // user need to change only k and kepub  // > CustomCode.changeOrientation:3
+  // copy %changeOrientation()% into the Height Field of drawingPanel3D and plottingPanel2D  // > CustomCode.changeOrientation:4
+  function changeOrientation() {  // > CustomCode.changeOrientation:5
+     // > CustomCode.changeOrientation:6
+  var k =0.90 ; // k control height 1 is for full screen, 0.9 shorten etc  // > CustomCode.changeOrientation:7
+  var kapple =0.90 // control apple app height  // > CustomCode.changeOrientation:8
+  var kepub =0.90 ;  // > CustomCode.changeOrientation:9
+  // check platform for Apps  // > CustomCode.changeOrientation:10
+  try { // allow code to run in Student Learning Space   // > CustomCode.changeOrientation:11
+    var iOSapp =  (typeof parent.device != 'undefined' && parent.device.platform == "iOS");  // > CustomCode.changeOrientation:12
+    var Androidapp = (typeof parent.device != 'undefined' && parent.device.platform == "Android");  // > CustomCode.changeOrientation:13
+  } catch(e) {  // > CustomCode.changeOrientation:14
+    var iOSapp = false;  // > CustomCode.changeOrientation:15
+    var Androidapp = false;  // > CustomCode.changeOrientation:16
+  }  // > CustomCode.changeOrientation:17
+  // check platform for web browsers  // > CustomCode.changeOrientation:18
+  var iOS =/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:19
+  var iPad =/iPad/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:20
+  var iPhone = /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.changeOrientation:21
+  var Android= /Android|android/i.test(navigator.userAgent);  // > CustomCode.changeOrientation:22
+  //navigator  // > CustomCode.changeOrientation:23
+  var Firefox = navigator.userAgent.indexOf("Firefox") != -1;  // > CustomCode.changeOrientation:24
+     // > CustomCode.changeOrientation:25
+  switch (window.orientation) { // using window.orientation as deciding factor  // > CustomCode.changeOrientation:26
+    case 0:  // > CustomCode.changeOrientation:27
+    case 180:  // > CustomCode.changeOrientation:28
+      this.screenOrientation = 'portrait';  // > CustomCode.changeOrientation:29
+      if (iOSapp){ // does not seems to work  // > CustomCode.changeOrientation:30
+          // > CustomCode.changeOrientation:31
+        return window.screen.height*kapple;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:32
+        // > CustomCode.changeOrientation:33
+      }  // > CustomCode.changeOrientation:34
+      else if (_isEPub){ // does not seems to work  // > CustomCode.changeOrientation:35
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.changeOrientation:36
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:37
+        // return window.screen.height;  // > CustomCode.changeOrientation:38
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:39
+        // return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:40
+      }  // > CustomCode.changeOrientation:41
+       // > CustomCode.changeOrientation:42
+      else {  // > CustomCode.changeOrientation:43
+         // > CustomCode.changeOrientation:44
+        return 100*k+"vh";  // > CustomCode.changeOrientation:45
+      }  // > CustomCode.changeOrientation:46
+      break;  // > CustomCode.changeOrientation:47
+    case 90:  // > CustomCode.changeOrientation:48
+    case -90:  // > CustomCode.changeOrientation:49
+      this.screenOrientation = 'landscape';  // > CustomCode.changeOrientation:50
+     // > CustomCode.changeOrientation:51
+      if (iOSapp){ // App  // > CustomCode.changeOrientation:52
+        return window.screen.width*kapple;    // > CustomCode.changeOrientation:53
+        // return window.screen.height;  // > CustomCode.changeOrientation:54
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:55
+        //  return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:56
+      }  // > CustomCode.changeOrientation:57
+      else if (_isEPub){ // does not seems to work  // > CustomCode.changeOrientation:58
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.changeOrientation:59
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.changeOrientation:60
+        // return window.screen.height;  // > CustomCode.changeOrientation:61
+        //  return window.innerHeight;  // > CustomCode.changeOrientation:62
+        // return document.documentElement.clientHeight;  // > CustomCode.changeOrientation:63
+      }  // > CustomCode.changeOrientation:64
+       // > CustomCode.changeOrientation:65
+      else {  // > CustomCode.changeOrientation:66
+        return 100*k+"vh";  // > CustomCode.changeOrientation:67
+        }  // > CustomCode.changeOrientation:68
+      break;  // > CustomCode.changeOrientation:69
+    default:  // > CustomCode.changeOrientation:70
+      this.screenOrientation = 'unknown';  // > CustomCode.changeOrientation:71
+      //       return (iPad)?""+(window.screen.width+window.screen.height)*0.4:((iPhone)?""+window.screen.width:_view._format(window.innerHeight*0.9,"0"));  // > CustomCode.changeOrientation:72
+       if (Firefox){  // > CustomCode.changeOrientation:73
+        return window.innerHeight*k;// number as of 20180831 Firefox does not support vh yet so need a separate line to handle  // > CustomCode.changeOrientation:74
+        }  // > CustomCode.changeOrientation:75
+     //   else if (iOS&&(window.orientation==0)||(window.orientation==180)){  // > CustomCode.changeOrientation:76
+     //   return  window.screen.height*k;// number as of 20180831 Firefox does not support vh yet so need a separate line to handle  // > CustomCode.changeOrientation:77
+     //   }  // > CustomCode.changeOrientation:78
+      //  else if (iOS&&(window.orientation==90)||(window.orientation==-90)){  // > CustomCode.changeOrientation:79
+     //   return  window.screen.width*k;// number as of 20180831 Firefox does not support vh yet so need a separate line to handle  // > CustomCode.changeOrientation:80
+     //   }  // > CustomCode.changeOrientation:81
+        else {  // > CustomCode.changeOrientation:82
+        //alert();  // > CustomCode.changeOrientation:83
+        // return 100*k+"%"; // work on fullscreen works in EJSS6.0beta  // > CustomCode.changeOrientation:84
+          //  works in EjsS_5.3_180131  // > CustomCode.changeOrientation:85
+        return  window.innerHeight*k; // work on panel   // > CustomCode.changeOrientation:86
+           // > CustomCode.changeOrientation:87
+  }  // > CustomCode.changeOrientation:88
+  }  // > CustomCode.changeOrientation:89
+     // > CustomCode.changeOrientation:90
+  }  // > CustomCode.changeOrientation:91
+
+  // copy this custom function  // > CustomCode.speech:1
+  // in iOS need to add speech to the play button as On iOS the API works but must be triggered by a user action callback, like a response to a tap event, to provide a better experience to users and avoid unexpected sounds out of your phone  // > CustomCode.speech:2
+  function speech (option) {  // > CustomCode.speech:3
+  try { // allow code to run in Student Learning Space   // > CustomCode.speech:4
+  var isCordova = (!!this.parent.cordova || !!window.cordova);  // > CustomCode.speech:5
+  if(isCordova) { // check it is running in Android or iOS  // > CustomCode.speech:6
+         // parent.TTS.speak({text:option,locale:'zh-CN'});  // > CustomCode.speech:7
+  	parent.TTS.speak({text:option,locale:'us-EN'});  // > CustomCode.speech:8
+  	// parent.TTS.speak({text:option,locale:'en-US'});  // > CustomCode.speech:9
+  	// parent.TTS.speak({text:option,locale:'id-ID'});  // > CustomCode.speech:10
+  }   // > CustomCode.speech:11
+  }   // > CustomCode.speech:12
+  catch(e) {  // > CustomCode.speech:13
+    var isCordova = false;  // > CustomCode.speech:14
+    }  // > CustomCode.speech:15
+      // > CustomCode.speech:16
+     var msg = new SpeechSynthesisUtterance(option);  // > CustomCode.speech:17
+    //https://stackoverflow.com/questions/43983845/speechsynthesis-api-for-chinese-firefox  // > CustomCode.speech:18
+    // Set the text.  // > CustomCode.speech:19
+  	//msg.text = option;   // > CustomCode.speech:20
+  	//https://forums.developer.apple.com/message/323564#323564  // > CustomCode.speech:21
+  	// comment out the next 2 lines for english  // > CustomCode.speech:22
+  //msg.voice = speechSynthesis.getVoices().filter(function(voice) { return voice.name == 'Ting-Ting'; })[0];  // > CustomCode.speech:23
+  //msg.lang = 'zh-CH'; // need for android?  // > CustomCode.speech:24
+  //msg.lang = 'id-ID'; // need for android?  // > CustomCode.speech:25
+  msg.lang = 'us-EN'; // need for android?  // > CustomCode.speech:26
+  //https://flaviocopes.com/speech-synthesis-api/  // > CustomCode.speech:27
+  //debug  // > CustomCode.speech:28
+  //console.log(`Voices #: ${speechSynthesis.getVoices().length}`)  // > CustomCode.speech:29
+  //speechSynthesis.getVoices().forEach(voice => {  // > CustomCode.speech:30
+  // console.log(voice.name, voice.lang)  // > CustomCode.speech:31
+  //})  // > CustomCode.speech:32
+  //debug  // > CustomCode.speech:33
+  // Queue this utterance.  // > CustomCode.speech:34
+  window.speechSynthesis.speak(msg);  // > CustomCode.speech:35
+     // > CustomCode.speech:36
+  }  // > CustomCode.speech:37
+
+  function calculatePoints () {  // > CustomCode.calculatePoints:1
+    // declare new array  // > CustomCode.calculatePoints:2
+    //x = []  // > CustomCode.calculatePoints:3
+    //y = []  // > CustomCode.calculatePoints:4
+    //expected to store older values  // > CustomCode.calculatePoints:5
+    numberOfPoints0[0] = numberOfPoints[0]  // > CustomCode.calculatePoints:6
+      // > CustomCode.calculatePoints:7
+    // to run this second time round  // > CustomCode.calculatePoints:8
+    if (firstTime==false) { // not to run this because want to show the variables initial values  // > CustomCode.calculatePoints:9
+      //expected find new values  // > CustomCode.calculatePoints:10
+      numberOfPoints[0] = (XMax -XMin)/distanceMarker[0]  // > CustomCode.calculatePoints:11
+        // > CustomCode.calculatePoints:12
+      //resetting  // > CustomCode.calculatePoints:13
+      for (var i=0; i<(numberOfPoints0[0]+1)  ; i++) {  // > CustomCode.calculatePoints:14
+        x[i] = 0  // > CustomCode.calculatePoints:15
+        y[i] = 0  // > CustomCode.calculatePoints:16
+        MarkerText[i] = ""  // > CustomCode.calculatePoints:17
+      }  // > CustomCode.calculatePoints:18
+      for (var i=0; i<(numberOfPoints[0]+1)  ; i++) {  // > CustomCode.calculatePoints:19
+        x[i] = i*distanceMarker[0];  // > CustomCode.calculatePoints:20
+        y[i] = _view.fField.evaluate( {  // > CustomCode.calculatePoints:21
+          x : x[i]  // > CustomCode.calculatePoints:22
+        } )  // > CustomCode.calculatePoints:23
+        MarkerText[i] = "("+x[i].toFixed(decimalPlaces[0])+","+y[i].toFixed(decimalPlaces[0])+")"  // > CustomCode.calculatePoints:24
+      }  // > CustomCode.calculatePoints:25
+    }  // > CustomCode.calculatePoints:26
+  firstTime=false // set to false after  // > CustomCode.calculatePoints:27
+  }  // > CustomCode.calculatePoints:28
+
+  function calculatePoints1 () {  // > CustomCode.calculatePoints 2:1
+    // declare new array  // > CustomCode.calculatePoints 2:2
+    //x = []  // > CustomCode.calculatePoints 2:3
+    //y = []  // > CustomCode.calculatePoints 2:4
+    //expected to store older values  // > CustomCode.calculatePoints 2:5
+    numberOfPoints0[1] = numberOfPoints[1]  // > CustomCode.calculatePoints 2:6
+      // > CustomCode.calculatePoints 2:7
+    // to run this second time round  // > CustomCode.calculatePoints 2:8
+    if (firstTime==false) { // not to run this because want to show the variables initial values  // > CustomCode.calculatePoints 2:9
+      //expected find new values  // > CustomCode.calculatePoints 2:10
+      numberOfPoints[1] = (XMax -XMin)/distanceMarker[1]  // > CustomCode.calculatePoints 2:11
+        // > CustomCode.calculatePoints 2:12
+      //resetting  // > CustomCode.calculatePoints 2:13
+      for (var i=0; i<(numberOfPoints0[1]+1)  ; i++) {  // > CustomCode.calculatePoints 2:14
+        x1[i] = 0  // > CustomCode.calculatePoints 2:15
+        y1[i] = 0  // > CustomCode.calculatePoints 2:16
+        MarkerText1[i] = ""  // > CustomCode.calculatePoints 2:17
+      }  // > CustomCode.calculatePoints 2:18
+      for (var i=0; i<(numberOfPoints[1]+1)  ; i++) {  // > CustomCode.calculatePoints 2:19
+        x1[i] = i*distanceMarker[1];  // > CustomCode.calculatePoints 2:20
+        //rename to equation1 from fField  // > CustomCode.calculatePoints 2:21
+        y1[i] = _view.equation1.evaluate( {  // > CustomCode.calculatePoints 2:22
+          x : x1[i]  // > CustomCode.calculatePoints 2:23
+        } )  // > CustomCode.calculatePoints 2:24
+        MarkerText1[i] = "("+x1[i].toFixed(decimalPlaces[1])+","+y1[i].toFixed(decimalPlaces[1])+")"  // > CustomCode.calculatePoints 2:25
+      }  // > CustomCode.calculatePoints 2:26
+    }  // > CustomCode.calculatePoints 2:27
+  firstTime=false // set to false after  // > CustomCode.calculatePoints 2:28
+  }  // > CustomCode.calculatePoints 2:29
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["undefined"]) return;
+    if (firstTime==undefined){  // > Initialization.undefined:1
+      firstTime=true // set to true if undefined  // > Initialization.undefined:2
+      }  // > Initialization.undefined:3
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    calculatePoints ()  // > Initialization.Init Page:1
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["FixRel Page"]) return;
+    calculatePoints ()  // > FixedRelations.FixRel Page:1
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new graphUI_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.GraphTitle.linkProperty("Font",  function() { return fontLeft; }, function(_v) { fontLeft = _v; } ); // HtmlView Page linking property 'Font' for element 'GraphTitle'
+          _view.textField.linkProperty("Value",  function() { return graphTitle; }, function(_v) { graphTitle = _v; } ); // HtmlView Page linking property 'Value' for element 'textField'
+          _view.textField2.linkProperty("Value",  function() { return XAxisTitle; }, function(_v) { XAxisTitle = _v; } ); // HtmlView Page linking property 'Value' for element 'textField2'
+          _view.textField3.linkProperty("Value",  function() { return YAxisTitle; }, function(_v) { YAxisTitle = _v; } ); // HtmlView Page linking property 'Value' for element 'textField3'
+          _view.Xmin.linkProperty("Value",  function() { return XMin; }, function(_v) { XMin = _v; } ); // HtmlView Page linking property 'Value' for element 'Xmin'
+          _view.Xmin.setAction("OnChange", function(_data,_info) {
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'Xmin'
+          _view.Xmax.linkProperty("Value",  function() { return XMax; }, function(_v) { XMax = _v; } ); // HtmlView Page linking property 'Value' for element 'Xmax'
+          _view.Xmax.setAction("OnChange", function(_data,_info) {
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'Xmax'
+          _view.XStep2.linkProperty("Value",  function() { return XTickStep; }, function(_v) { XTickStep = _v; } ); // HtmlView Page linking property 'Value' for element 'XStep2'
+          _view.Xmin2.linkProperty("Value",  function() { return YMin; }, function(_v) { YMin = _v; } ); // HtmlView Page linking property 'Value' for element 'Xmin2'
+          _view.Xmin2.setAction("OnChange", function(_data,_info) {
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'Xmin2'
+          _view.Xmax2.linkProperty("Value",  function() { return YMax; }, function(_v) { YMax = _v; } ); // HtmlView Page linking property 'Value' for element 'Xmax2'
+          _view.Xmax2.setAction("OnChange", function(_data,_info) {
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'Xmax2'
+          _view.XStep22.linkProperty("Value",  function() { return YTickStep; }, function(_v) { YTickStep = _v; } ); // HtmlView Page linking property 'Value' for element 'XStep22'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBox'
+          _view.comboBox.linkProperty("SelectedOptions",  function() { return selectedOptions; }, function(_v) { selectedOptions = _v; } ); // HtmlView Page linking property 'SelectedOptions' for element 'comboBox'
+          _view.fField.linkProperty("Value",  function() { return Equation0; }, function(_v) { Equation0 = _v; } ); // HtmlView Page linking property 'Value' for element 'fField'
+          _view.fField.setAction("OnChange", function(_data,_info) {
+  for (var i=0; i<=10 /* Iterations */ ; i++) {
+    x[i] = i
+    y[i] =_view.fField.evaluate({ x : i  });
+  }
+
+}); // HtmlView Page setting action 'OnChange' for element 'fField'
+          _view.color.linkProperty("Background",  function() { return colorEquation[0]; }, function(_v) { colorEquation[0] = _v; } ); // HtmlView Page linking property 'Background' for element 'color'
+          _view.comboBoxColor.linkProperty("Options",  function() { return ["Red","Blue","Brown","Green","Orange","Purple","Yellow","Maroon","Khaki","Turquoise"]; } ); // HtmlView Page linking property 'Options' for element 'comboBoxColor'
+          _view.comboBoxColor.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxColor.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      colorEquation[0]= option;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxColor'
+          _view.comboBoxColor.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxColor'
+          _view.fField2.linkProperty("Value",  function() { return colorEquation[0]; }, function(_v) { colorEquation[0] = _v; } ); // HtmlView Page linking property 'Value' for element 'fField2'
+          _view.comboBoxWidth.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxWidth.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      lineWidth[0]= option;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxWidth'
+          _view.comboBoxWidth.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxWidth'
+          _view.fField22.linkProperty("Value",  function() { return lineWidth[0]; }, function(_v) { lineWidth[0] = _v; } ); // HtmlView Page linking property 'Value' for element 'fField22'
+          _view.comboBoxMarker.linkProperty("Options",  function() { return ["✕","","•","█","▲","⬩"]; } ); // HtmlView Page linking property 'Options' for element 'comboBoxMarker'
+          _view.comboBoxMarker.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxMarker.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      markerEquation[0]= option
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxMarker'
+          _view.comboBoxMarker.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxMarker'
+          _view.fField222.linkProperty("Value",  function() { return markerEquation[0]; }, function(_v) { markerEquation[0] = _v; } ); // HtmlView Page linking property 'Value' for element 'fField222'
+          _view.comboBoxMarkerDistance.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxMarkerDistance.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      distanceMarker[0]= option
+  //alert(distanceMarker[0])
+  //[1,2,3,4,5,6,7,8,9,10]
+  // bug in passing 0 not sure why to KIV
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxMarkerDistance'
+          _view.comboBoxMarkerDistance.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxMarkerDistance'
+          _view.comboBoxMarkerDP.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxMarkerDP.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      decimalPlaces[0]= option
+  calculatePoints ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxMarkerDP'
+          _view.comboBoxMarkerDP.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxMarkerDP'
+          _view.Equation1.linkProperty("Display",  function() { return Number(selectedOptions)>=2?"inline-flex":"none"; } ); // HtmlView Page linking property 'Display' for element 'Equation1'
+          _view.equation1.linkProperty("Value",  function() { return Equation1; }, function(_v) { Equation1 = _v; } ); // HtmlView Page linking property 'Value' for element 'equation1'
+          _view.equation1.setAction("OnChange", function(_data,_info) {
+  for (var i=0; i<=10 /* Iterations */ ; i++) {
+    x1[i] = i
+    y1[i] =_view.equation1.evaluate({ x : i  });
+  }
+
+}); // HtmlView Page setting action 'OnChange' for element 'equation1'
+          _view.color2.linkProperty("Background",  function() { return colorEquation[1]; }, function(_v) { colorEquation[1] = _v; } ); // HtmlView Page linking property 'Background' for element 'color2'
+          _view.comboBoxColor1.linkProperty("Options",  function() { return ["Red","Blue","Brown","Green","Orange","Purple","Yellow","Maroon","Khaki","Turquoise"]; } ); // HtmlView Page linking property 'Options' for element 'comboBoxColor1'
+          _view.comboBoxColor1.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxColor1.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      colorEquation[1]= option;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxColor1'
+          _view.comboBoxColor1.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxColor1'
+          _view.fField23.linkProperty("Value",  function() { return colorEquation[1]; }, function(_v) { colorEquation[1] = _v; } ); // HtmlView Page linking property 'Value' for element 'fField23'
+          _view.comboBoxWidth1.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxWidth1.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      lineWidth[1]= option;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxWidth1'
+          _view.comboBoxWidth1.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxWidth1'
+          _view.fField223.linkProperty("Value",  function() { return lineWidth[1]; }, function(_v) { lineWidth[1] = _v; } ); // HtmlView Page linking property 'Value' for element 'fField223'
+          _view.comboBoxMarker1.linkProperty("Options",  function() { return ["","✕","•","█","▲","⬩"]; } ); // HtmlView Page linking property 'Options' for element 'comboBoxMarker1'
+          _view.comboBoxMarker1.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxMarker1.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      markerEquation[1]= option
+  calculatePoints1 ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxMarker1'
+          _view.comboBoxMarker1.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxMarker1'
+          _view.fField2222.linkProperty("Value",  function() { return markerEquation[1]; }, function(_v) { markerEquation[1] = _v; } ); // HtmlView Page linking property 'Value' for element 'fField2222'
+          _view.comboBoxMarkerDistance1.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxMarkerDistance1.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      distanceMarker[1]= option
+  calculatePoints1 ()
+  /*
+  for (var i=0; i<10  ; i++) {
+   x1[i] = i*distanceMarker[1]
+   y1[i] = _view.equation1.evaluate({ x : x1[i]})
+  MarkerText1[i] = "("+x1[i].toFixed(decimalPlaces[1])+","+y1[i].toFixed(decimalPlaces[1])+")"
+  }
+  */;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxMarkerDistance1'
+          _view.comboBoxMarkerDistance1.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxMarkerDistance1'
+          _view.comboBoxMarkerDP1.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBoxMarkerDP1.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+      decimalPlaces[1]= option
+  calculatePoints1 ()
+  /*
+  for (var i=0; i<10  ; i++) {
+   x1[i] = i*distanceMarker[1]
+   y1[i] = _view.equation1.evaluate({ x : x1[i]})
+  MarkerText1[i] = "("+x1[i].toFixed(decimalPlaces[1])+","+y1[i].toFixed(decimalPlaces[1])+")"
+  }
+  */;
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBoxMarkerDP1'
+          _view.comboBoxMarkerDP1.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBoxMarkerDP1'
+          _view.debug.setAction("OnPress", function(_data,_info) {
+  for (var i=0; i<(numberOfPoints+1)  ; i++) {
+   x[i] = i*distanceMarker[0]
+   y[i] = _view.fField.evaluate({ x : x[i]})
+  MarkerText[i] = "("+x[i].toFixed(decimalPlaces[0])+","+y[i].toFixed(decimalPlaces[0])+")"
+  }
+
+}); // HtmlView Page setting action 'OnPress' for element 'debug'
+          _view.plottingPanel.linkProperty("Height",  function() { return changeOrientation(); }, function(_v) { changeOrientation() = _v; } ); // HtmlView Page linking property 'Height' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("AxisYFont",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'AxisYFont' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TRMessage",  function() { return "firstTime="+firstTime+"\ndistanceMarker="+distanceMarker; } ); // HtmlView Page linking property 'TRMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("XTickStep",  function() { return XTickStep; }, function(_v) { XTickStep = _v; } ); // HtmlView Page linking property 'XTickStep' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("YTickStep",  function() { return YTickStep; }, function(_v) { YTickStep = _v; } ); // HtmlView Page linking property 'YTickStep' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnPress", function(_data,_info) {
+  var position = _view.plottingPanel.getInteraction().getInteractionPoint();
+
+}); // HtmlView Page setting action 'OnPress' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TLMessage",  function() { return "x="+x+"\ny="+y+"\NelementInteracted="+elementInteracted; } ); // HtmlView Page linking property 'TLMessage' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleYFont",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'TitleYFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleXFont",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'TitleXFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("Title",  function() { return graphTitle; }, function(_v) { graphTitle = _v; } ); // HtmlView Page linking property 'Title' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MaximumY",  function() { return YMax; }, function(_v) { YMax = _v; } ); // HtmlView Page linking property 'MaximumY' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MaximumX",  function() { return XMax; }, function(_v) { XMax = _v; } ); // HtmlView Page linking property 'MaximumX' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumX",  function() { return XMin; }, function(_v) { XMin = _v; } ); // HtmlView Page linking property 'MinimumX' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("MinimumY",  function() { return YMin; }, function(_v) { YMin = _v; } ); // HtmlView Page linking property 'MinimumY' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleY",  function() { return YAxisTitle; }, function(_v) { YAxisTitle = _v; } ); // HtmlView Page linking property 'TitleY' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("AxisXFont",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'AxisXFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleX",  function() { return XAxisTitle; }, function(_v) { XAxisTitle = _v; } ); // HtmlView Page linking property 'TitleX' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TitleFont",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'TitleFont' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("Visibility",  function() { return world===true; } ); // HtmlView Page linking property 'Visibility' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("BRMessage",  function() { return "numberOfPoints="+numberOfPoints+"\nnumberOfPoints0="+numberOfPoints0+"\nselectedOptions="+selectedOptions; } ); // HtmlView Page linking property 'BRMessage' for element 'plottingPanel'
+          _view.group0.linkProperty("Visibility",  function() { return selectedOptions<=1; } ); // HtmlView Page linking property 'Visibility' for element 'group0'
+          _view.analyticCurve.linkProperty("FunctionY",  function() { return Equation0; }, function(_v) { Equation0 = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'analyticCurve'
+          _view.analyticCurve.linkProperty("Minimum",  function() { return XMin+tol; } ); // HtmlView Page linking property 'Minimum' for element 'analyticCurve'
+          _view.analyticCurve.linkProperty("Maximum",  function() { return XMax-tol; } ); // HtmlView Page linking property 'Maximum' for element 'analyticCurve'
+          _view.analyticCurve.linkProperty("LineColor",  function() { return colorEquation[0]; }, function(_v) { colorEquation[0] = _v; } ); // HtmlView Page linking property 'LineColor' for element 'analyticCurve'
+          _view.analyticCurve.linkProperty("LineWidth",  function() { return lineWidth[0]; }, function(_v) { lineWidth[0] = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'analyticCurve'
+          _view.markers.linkProperty("X",  function() { return x; }, function(_v) { x = _v; } ); // HtmlView Page linking property 'X' for element 'markers'
+          _view.markers.setAction("OnEnter", function(_data,_info) {
+  MarkerTextVisible[elementInteracted]=true;
+
+}); // HtmlView Page setting action 'OnEnter' for element 'markers'
+          _view.markers.linkProperty("Y",  function() { return y; }, function(_v) { y = _v; } ); // HtmlView Page linking property 'Y' for element 'markers'
+          _view.markers.linkProperty("Text",  function() { return markerEquation[0]; }, function(_v) { markerEquation[0] = _v; } ); // HtmlView Page linking property 'Text' for element 'markers'
+          _view.markers.linkProperty("ElementInteracted",  function() { return elementInteracted; }, function(_v) { elementInteracted = _v; } ); // HtmlView Page linking property 'ElementInteracted' for element 'markers'
+          _view.textSet.linkProperty("X",  function() { return x; }, function(_v) { x = _v; } ); // HtmlView Page linking property 'X' for element 'textSet'
+          _view.textSet.linkProperty("Y",  function() { return y; }, function(_v) { y = _v; } ); // HtmlView Page linking property 'Y' for element 'textSet'
+          _view.textSet.linkProperty("Text",  function() { return MarkerText; }, function(_v) { MarkerText = _v; } ); // HtmlView Page linking property 'Text' for element 'textSet'
+          _view.textSet.linkProperty("Visibility",  function() { return MarkerTextVisible; }, function(_v) { MarkerTextVisible = _v; } ); // HtmlView Page linking property 'Visibility' for element 'textSet'
+          _view.group02.linkProperty("Visibility",  function() { return selectedOptions==2; } ); // HtmlView Page linking property 'Visibility' for element 'group02'
+          _view.analyticCurve1.linkProperty("FunctionY",  function() { return Equation1; }, function(_v) { Equation1 = _v; } ); // HtmlView Page linking property 'FunctionY' for element 'analyticCurve1'
+          _view.analyticCurve1.linkProperty("Minimum",  function() { return XMin+tol; } ); // HtmlView Page linking property 'Minimum' for element 'analyticCurve1'
+          _view.analyticCurve1.linkProperty("Maximum",  function() { return XMax-tol; } ); // HtmlView Page linking property 'Maximum' for element 'analyticCurve1'
+          _view.analyticCurve1.linkProperty("LineColor",  function() { return colorEquation[1]; }, function(_v) { colorEquation[1] = _v; } ); // HtmlView Page linking property 'LineColor' for element 'analyticCurve1'
+          _view.analyticCurve1.linkProperty("LineWidth",  function() { return lineWidth[1]; }, function(_v) { lineWidth[1] = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'analyticCurve1'
+          _view.markers2.linkProperty("X",  function() { return x1; }, function(_v) { x1 = _v; } ); // HtmlView Page linking property 'X' for element 'markers2'
+          _view.markers2.setAction("OnEnter", function(_data,_info) {
+  MarkerTextVisible1[elementInteracted1]=true;
+
+}); // HtmlView Page setting action 'OnEnter' for element 'markers2'
+          _view.markers2.linkProperty("Y",  function() { return y1; }, function(_v) { y1 = _v; } ); // HtmlView Page linking property 'Y' for element 'markers2'
+          _view.markers2.linkProperty("Text",  function() { return markerEquation[1]; }, function(_v) { markerEquation[1] = _v; } ); // HtmlView Page linking property 'Text' for element 'markers2'
+          _view.markers2.linkProperty("ElementInteracted",  function() { return elementInteracted1; }, function(_v) { elementInteracted1 = _v; } ); // HtmlView Page linking property 'ElementInteracted' for element 'markers2'
+          _view.textSet2.linkProperty("X",  function() { return x1; }, function(_v) { x1 = _v; } ); // HtmlView Page linking property 'X' for element 'textSet2'
+          _view.textSet2.linkProperty("Y",  function() { return y1; }, function(_v) { y1 = _v; } ); // HtmlView Page linking property 'Y' for element 'textSet2'
+          _view.textSet2.linkProperty("Text",  function() { return MarkerText1; }, function(_v) { MarkerText1 = _v; } ); // HtmlView Page linking property 'Text' for element 'textSet2'
+          _view.textSet2.linkProperty("Visibility",  function() { return MarkerTextVisible1; }, function(_v) { MarkerTextVisible1 = _v; } ); // HtmlView Page linking property 'Visibility' for element 'textSet2'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function graphUI_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = graphUI_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+
+  return _view;
+} // end of main function
+
+function graphUI_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"fullscreen", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'fullscreen'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fullscreen'
+      .setProperty("Background","Green") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'fullscreen'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fullscreen'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"GraphTitle", _view.fullscreen) // EJsS HtmlView.HtmlView Page: declaration of element 'GraphTitle'
+      .setProperty("Width","40%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'GraphTitle'
+      .setProperty("CSS",{ "top":"1vh"}) // EJsS HtmlView.HtmlView Page: setting property 'CSS' for element 'GraphTitle'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'GraphTitle'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"Axes_Settings", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'Axes_Settings'
+      .setProperty("Background","rgba(205,210,253,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'Axes_Settings'
+      .setProperty("Display","block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'Axes_Settings'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel2", _view.Axes_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'panel2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"GraphTitle2", _view.panel2) // EJsS HtmlView.HtmlView Page: declaration of element 'GraphTitle2'
+      .setProperty("Text","Graph Title:") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'GraphTitle2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'GraphTitle2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.textField,"textField", _view.panel2) // EJsS HtmlView.HtmlView Page: declaration of element 'textField'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'textField'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel22", _view.Axes_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'panel22'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"GraphTitle22", _view.panel22) // EJsS HtmlView.HtmlView Page: declaration of element 'GraphTitle22'
+      .setProperty("Text","X-Axis Title:") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'GraphTitle22'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'GraphTitle22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.textField,"textField2", _view.panel22) // EJsS HtmlView.HtmlView Page: declaration of element 'textField2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'textField2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel23", _view.Axes_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'panel23'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel23'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"GraphTitle23", _view.panel23) // EJsS HtmlView.HtmlView Page: declaration of element 'GraphTitle23'
+      .setProperty("Text","Y-Axis Title:") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'GraphTitle23'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'GraphTitle23'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.textField,"textField3", _view.panel23) // EJsS HtmlView.HtmlView Page: declaration of element 'textField3'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'textField3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"X_Axis_Settings", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'X_Axis_Settings'
+      .setProperty("Background","rgba(205,210,253,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'X_Axis_Settings'
+      .setProperty("Display","block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'X_Axis_Settings'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label", _view.X_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'label'
+      .setProperty("Text","Xmin=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"Xmin", _view.X_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'Xmin'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'Xmin'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'Xmin'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label2", _view.X_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'label2'
+      .setProperty("Text","Xmax=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"Xmax", _view.X_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'Xmax'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'Xmax'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'Xmax'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"XStep", _view.X_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'XStep'
+      .setProperty("Text","XStep=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'XStep'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"XStep2", _view.X_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'XStep2'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'XStep2'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'XStep2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"Y_Axis_Settings", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'Y_Axis_Settings'
+      .setProperty("Background","rgba(205,210,253,1.0)") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'Y_Axis_Settings'
+      .setProperty("Display","block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'Y_Axis_Settings'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label3", _view.Y_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'label3'
+      .setProperty("Text","Ymin=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"Xmin2", _view.Y_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'Xmin2'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'Xmin2'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'Xmin2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label22", _view.Y_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'label22'
+      .setProperty("Text","Ymax=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"Xmax2", _view.Y_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'Xmax2'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'Xmax2'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'Xmax2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"XStep3", _view.Y_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'XStep3'
+      .setProperty("Text","YStep=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'XStep3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"XStep22", _view.Y_Axis_Settings) // EJsS HtmlView.HtmlView Page: declaration of element 'XStep22'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'XStep22'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'XStep22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBox'
+      .setProperty("Options",[1,2]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"Equation0", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'Equation0'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'Equation0'
+      .setProperty("Display","inline-flex") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'Equation0'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel3", _view.Equation0) // EJsS HtmlView.HtmlView Page: declaration of element 'panel3'
+      .setProperty("Background","Cyan") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'panel3'
+      .setProperty("Tooltip","Equation=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'panel3'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label4", _view.panel3) // EJsS HtmlView.HtmlView Page: declaration of element 'label4'
+      .setProperty("Text","Equation=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label4'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField", _view.panel3) // EJsS HtmlView.HtmlView Page: declaration of element 'fField'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"color", _view.Equation0) // EJsS HtmlView.HtmlView Page: declaration of element 'color'
+      .setProperty("Tooltip","Color=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'color'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'color'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label43", _view.color) // EJsS HtmlView.HtmlView Page: declaration of element 'label43'
+      .setProperty("Text","Color=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label43'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'label43'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxColor", _view.color) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxColor'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField2", _view.color) // EJsS HtmlView.HtmlView Page: declaration of element 'fField2'
+      .setProperty("Width","20%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField2'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField2'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fField2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"width", _view.Equation0) // EJsS HtmlView.HtmlView Page: declaration of element 'width'
+      .setProperty("Background","Yellow") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'width'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'width'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label432", _view.width) // EJsS HtmlView.HtmlView Page: declaration of element 'label432'
+      .setProperty("Tooltip","Line Width=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'label432'
+      .setProperty("Text","Width=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label432'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxWidth", _view.width) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxWidth'
+      .setProperty("Options",[1,0,1,2,3,4,5,6,7,8,9]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBoxWidth'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField22", _view.width) // EJsS HtmlView.HtmlView Page: declaration of element 'fField22'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField22'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField22'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fField22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"marker", _view.Equation0) // EJsS HtmlView.HtmlView Page: declaration of element 'marker'
+      .setProperty("Background","Yellow") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'marker'
+      .setProperty("Tooltip","Marker=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'marker'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'marker'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label4322", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'label4322'
+      .setProperty("Text","Marker=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label4322'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxMarker", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxMarker'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField222", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'fField222'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField222'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField222'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fField222'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"spacing2", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'spacing2'
+      .setProperty("Text","Spacings=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'spacing2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxMarkerDistance", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxMarkerDistance'
+      .setProperty("Options",[1,2,3,4,5,6,7,8,9,10]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBoxMarkerDistance'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"decimalplace", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'decimalplace'
+      .setProperty("Text","D.P.=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'decimalplace'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxMarkerDP", _view.marker) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxMarkerDP'
+      .setProperty("Options",[0,1,2,3,4,5,6,7,8,9]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBoxMarkerDP'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"Equation1", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'Equation1'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'Equation1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel32", _view.Equation1) // EJsS HtmlView.HtmlView Page: declaration of element 'panel32'
+      .setProperty("Background","Cyan") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'panel32'
+      .setProperty("Tooltip","Equation=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'panel32'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel32'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label42", _view.panel32) // EJsS HtmlView.HtmlView Page: declaration of element 'label42'
+      .setProperty("Text","Equation=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label42'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"equation1", _view.panel32) // EJsS HtmlView.HtmlView Page: declaration of element 'equation1'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'equation1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"color2", _view.Equation1) // EJsS HtmlView.HtmlView Page: declaration of element 'color2'
+      .setProperty("Tooltip","Color=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'color2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'color2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label433", _view.color2) // EJsS HtmlView.HtmlView Page: declaration of element 'label433'
+      .setProperty("Text","Color=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label433'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'label433'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxColor1", _view.color2) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxColor1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField23", _view.color2) // EJsS HtmlView.HtmlView Page: declaration of element 'fField23'
+      .setProperty("Width","20%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField23'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField23'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fField23'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"width2", _view.Equation1) // EJsS HtmlView.HtmlView Page: declaration of element 'width2'
+      .setProperty("Background","Yellow") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'width2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'width2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label4323", _view.width2) // EJsS HtmlView.HtmlView Page: declaration of element 'label4323'
+      .setProperty("Tooltip","Line Width=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'label4323'
+      .setProperty("Text","Width=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label4323'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxWidth1", _view.width2) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxWidth1'
+      .setProperty("Options",[0,1,2,3,4,5,6,7,8,9]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBoxWidth1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField223", _view.width2) // EJsS HtmlView.HtmlView Page: declaration of element 'fField223'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField223'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField223'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fField223'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"marker2", _view.Equation1) // EJsS HtmlView.HtmlView Page: declaration of element 'marker2'
+      .setProperty("Background","Yellow") // EJsS HtmlView.HtmlView Page: setting property 'Background' for element 'marker2'
+      .setProperty("Tooltip","Marker=") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'marker2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'marker2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label43222", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'label43222'
+      .setProperty("Text","Marker=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'label43222'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxMarker1", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxMarker1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.functionField,"fField2222", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'fField2222'
+      .setProperty("Width","10%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'fField2222'
+      .setProperty("Tooltip","model") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'fField2222'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'fField2222'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"spacing22", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'spacing22'
+      .setProperty("Text","Spacings=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'spacing22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxMarkerDistance1", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxMarkerDistance1'
+      .setProperty("Options",[1,2,3,4,5,6,7,8,9,10]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBoxMarkerDistance1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"decimalplace2", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'decimalplace2'
+      .setProperty("Text","D.P.=") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'decimalplace2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBoxMarkerDP1", _view.marker2) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBoxMarkerDP1'
+      .setProperty("Options",[0,1,2,3,4,5,6,7,8,9]) // EJsS HtmlView.HtmlView Page: setting property 'Options' for element 'comboBoxMarkerDP1'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"debug", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'debug'
+      .setProperty("Text","button") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'debug'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'debug'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"download", _view.GraphTitle) // EJsS HtmlView.HtmlView Page: declaration of element 'download'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"download2", _view.download) // EJsS HtmlView.HtmlView Page: declaration of element 'download2'
+      .setProperty("Width","45%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'download2'
+      .setProperty("Text","Download") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'download2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.separator,"separator", _view.download) // EJsS HtmlView.HtmlView Page: declaration of element 'separator'
+      .setProperty("Height","5%") // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'separator'
+      .setProperty("Width","5%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'separator'
+      .setProperty("TextAlign","       ") // EJsS HtmlView.HtmlView Page: setting property 'TextAlign' for element 'separator'
+      .setProperty("Orientation","VERTICAL") // EJsS HtmlView.HtmlView Page: setting property 'Orientation' for element 'separator'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'separator'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"reset", _view.download) // EJsS HtmlView.HtmlView Page: declaration of element 'reset'
+      .setProperty("Width","45%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'reset'
+      .setProperty("Text","Reset") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'reset'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view.fullscreen) // EJsS HtmlView.HtmlView Page: declaration of element 'panel'
+      .setProperty("Height","100%") // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'panel'
+      .setProperty("Width","60%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'panel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'plottingPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'plottingPanel'
+      .setProperty("Gutters",[50,50,0,50]) // EJsS HtmlView.HtmlView Page: setting property 'Gutters' for element 'plottingPanel'
+      .setProperty("ShowAreaRectangle",false) // EJsS HtmlView.HtmlView Page: setting property 'ShowAreaRectangle' for element 'plottingPanel'
+      .setProperty("ShowCoordinates",true) // EJsS HtmlView.HtmlView Page: setting property 'ShowCoordinates' for element 'plottingPanel'
+      .setProperty("YScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'YScalePrecision' for element 'plottingPanel'
+      .setProperty("XFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'XFixedTick' for element 'plottingPanel'
+      .setProperty("YFixedTick",0) // EJsS HtmlView.HtmlView Page: setting property 'YFixedTick' for element 'plottingPanel'
+      .setProperty("XAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'XAutoTicks' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("EnabledDragging","ENABLED_X") // EJsS HtmlView.HtmlView Page: setting property 'EnabledDragging' for element 'plottingPanel'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.HtmlView Page: setting property 'YAutoTicks' for element 'plottingPanel'
+      .setProperty("AutoScaleY",false) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleY' for element 'plottingPanel'
+      .setProperty("AutoScaleX",false) // EJsS HtmlView.HtmlView Page: setting property 'AutoScaleX' for element 'plottingPanel'
+      .setProperty("XScalePrecision",0) // EJsS HtmlView.HtmlView Page: setting property 'XScalePrecision' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group0", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'group0'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"analyticCurve", _view.group0) // EJsS HtmlView.HtmlView Page: declaration of element 'analyticCurve'
+      .setProperty("FunctionX","x") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'analyticCurve'
+      .setProperty("Variable","x") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'analyticCurve'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.textSet,"markers", _view.group0) // EJsS HtmlView.HtmlView Page: declaration of element 'markers'
+      .setProperty("Sensitivity",30) // EJsS HtmlView.HtmlView Page: setting property 'Sensitivity' for element 'markers'
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'markers'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group", _view.group0) // EJsS HtmlView.HtmlView Page: declaration of element 'group'
+      .setProperty("Y",0.2) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'group'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.textSet,"textSet", _view.group) // EJsS HtmlView.HtmlView Page: declaration of element 'textSet'
+      .setProperty("RelativePosition","SOUTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'textSet'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group02", _view.plottingPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'group02'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.analyticCurve,"analyticCurve1", _view.group02) // EJsS HtmlView.HtmlView Page: declaration of element 'analyticCurve1'
+      .setProperty("FunctionX","x") // EJsS HtmlView.HtmlView Page: setting property 'FunctionX' for element 'analyticCurve1'
+      .setProperty("Variable","x") // EJsS HtmlView.HtmlView Page: setting property 'Variable' for element 'analyticCurve1'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.textSet,"markers2", _view.group02) // EJsS HtmlView.HtmlView Page: declaration of element 'markers2'
+      .setProperty("Sensitivity",30) // EJsS HtmlView.HtmlView Page: setting property 'Sensitivity' for element 'markers2'
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE") // EJsS HtmlView.HtmlView Page: setting property 'EnabledPosition' for element 'markers2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.group,"group2", _view.group02) // EJsS HtmlView.HtmlView Page: declaration of element 'group2'
+      .setProperty("Y",0.2) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'group2'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.textSet,"textSet2", _view.group2) // EJsS HtmlView.HtmlView Page: declaration of element 'textSet2'
+      .setProperty("RelativePosition","SOUTH") // EJsS HtmlView.HtmlView Page: setting property 'RelativePosition' for element 'textSet2'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Graph Generator for Assessment<br />
+      </p>
+      <p>
+      <img alt="author image" src="1authorlookangphoto5050.png" />
+      <img alt="author image" src="01authorPacoEsquembre2011.png" />
+      <img alt="author image" src="01authorFelix_J_Garcia_Clemente.png" />
+ weelookang@gmail.com; Francisco Esquembre; Felix J. Garcia Clemente
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2023, weelookang@gmail.com; Francisco Esquembre; Felix J. Garcia Clemente.</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new graphUI("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

@@ -1,0 +1,2703 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>P3 WA1 Number Sense — Kid Friendly (One Question • Timer • Instant Check)</title>
+
+  <style>
+    :root{
+      --ink:#0f172a;
+      --muted:#475569;
+      --line:#e5e7eb;
+
+      --shadow: 0 16px 44px rgba(2, 6, 23, .12);
+      --r:24px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+
+      --good:#16a34a;
+      --bad:#dc2626;
+
+      --c1:#22c55e;
+      --c2:#06b6d4;
+      --c3:#6366f1;
+      --c4:#f59e0b;
+      --c5:#ef4444;
+      --c6:#a78bfa;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 650px at 10% 0%, rgba(34,197,94,.18), transparent 60%),
+        radial-gradient(1000px 600px at 100% 10%, rgba(99,102,241,.18), transparent 60%),
+        radial-gradient(1000px 650px at 50% 110%, rgba(245,158,11,.16), transparent 60%),
+        linear-gradient(180deg, #fff7ed 0%, #ecfeff 55%, #f5f3ff 100%);
+      overflow:hidden; /* one-screen */
+    }
+
+    .dots{
+      position:fixed; inset:0; pointer-events:none; opacity:.18;
+      background-image:
+        radial-gradient(circle at 20px 20px, rgba(34,197,94,.55) 2px, transparent 3px),
+        radial-gradient(circle at 70px 60px, rgba(6,182,212,.55) 2px, transparent 3px),
+        radial-gradient(circle at 140px 25px, rgba(245,158,11,.55) 2px, transparent 3px),
+        radial-gradient(circle at 55px 95px, rgba(99,102,241,.55) 2px, transparent 3px);
+      background-size: 180px 120px;
+      mix-blend-mode:multiply;
+    }
+
+    .app{
+      height:100%;
+      max-width:1100px;
+      margin:0 auto;
+      padding:14px;
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      gap:12px;
+      transition: max-width .25s ease, padding .25s ease;
+    }
+
+    header{
+      background:rgba(255,255,255,.86);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      padding:12px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      backdrop-filter: blur(8px);
+    }
+    .brand{display:flex; gap:12px; align-items:center; min-width:0;}
+    .logo{
+      width:44px;height:44px;border-radius:16px;
+      background: conic-gradient(from 180deg, var(--c2), var(--c3), var(--c4), var(--c1), var(--c2));
+      box-shadow: 0 12px 26px rgba(2,6,23,.12);
+      border:1px solid rgba(255,255,255,.7);
+      position:relative; overflow:hidden;
+    }
+    .logo:after{
+      content:""; position:absolute; inset:-20px;
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.85), transparent 40%);
+      transform: rotate(12deg);
+    }
+    h1{
+      margin:0;
+      font-size:15px;
+      letter-spacing:.2px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .sub{
+      font-size:12px;color:var(--muted);
+      margin-top:2px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .topRight{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .pill{
+      display:flex;gap:10px;align-items:center;
+      padding:8px 12px;border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.86);
+      box-shadow: 0 12px 26px rgba(2,6,23,.08);
+      font-size:12px;
+    }
+    .pill b{font-variant-numeric: tabular-nums}
+    .miniDot{
+      width:10px;height:10px;border-radius:999px;background:var(--c2);
+      box-shadow: 0 0 0 4px rgba(6,182,212,.18);
+    }
+
+    .btn{
+      appearance:none;border:0; cursor:pointer;
+      padding:10px 14px;border-radius:16px;
+      font-weight:900; font-size:13px;
+      box-shadow: 0 16px 34px rgba(2,6,23,.14);
+      transition: transform .06s ease, filter .2s ease;
+      user-select:none;
+      display:inline-flex;align-items:center;gap:10px;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{ background: linear-gradient(135deg, rgba(6,182,212,.95), rgba(99,102,241,.95)); color:white; }
+    .btn.good{ background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(6,182,212,.85)); color:white; }
+    .btn.warn{ background: linear-gradient(135deg, rgba(245,158,11,.95), rgba(239,68,68,.85)); color:white; }
+    .btn.ghost{
+      background:rgba(255,255,255,.9);
+      border:1px solid var(--line);
+      box-shadow:none;
+      color:var(--ink);
+      font-weight:850;
+    }
+
+    .main{
+      display:grid;
+      grid-template-columns: 340px 1fr;
+      gap:12px;
+      height:100%;
+      min-height:0;
+      transition: grid-template-columns .25s ease;
+    }
+    @media (max-width: 980px){
+      .main{grid-template-columns:1fr; grid-template-rows: auto 1fr;}
+    }
+
+    .panel{
+      background:rgba(255,255,255,.86);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      padding:12px;
+      min-height:0;
+      backdrop-filter: blur(8px);
+    }
+
+    /* FULLSCREEN QUESTION MODE when teacher hidden */
+    body.fullscreenQ .app{
+      max-width:none;
+      padding:10px;
+      grid-template-rows: auto 1fr;
+    }
+    body.fullscreenQ footer{display:none;}
+    body.fullscreenQ .main{grid-template-columns:1fr;}
+    body.fullscreenQ #teacherPanel{display:none;}
+    body.fullscreenQ .qBody{
+      padding:18px;
+      border-radius: 26px;
+      height:100%;
+    }
+    body.fullscreenQ .screen{height:100%}
+
+    .panel h2{margin:0 0 8px;font-size:13px;letter-spacing:.2px;}
+    .hint{font-size:12px;color:var(--muted);line-height:1.25}
+
+    .field{margin-top:10px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="number"], input[type="text"], select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      outline:none;
+    }
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width: 980px){ .row{grid-template-columns:1fr} }
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{
+      display:flex;gap:8px;align-items:center;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-size:12px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip input{accent-color: var(--c2)}
+    .checkrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+
+    /* Question screen */
+    .screen{
+      position:relative;
+      height:100%;
+      min-height:0;
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      gap:10px;
+    }
+    .qHeader{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    }
+    .qTitle{display:flex;align-items:center;gap:10px;min-width:0;}
+    .qBadge{
+      width:36px;height:36px;border-radius:14px;
+      display:grid;place-items:center;
+      font-weight:950;color:white;
+      background: linear-gradient(135deg, rgba(245,158,11,.95), rgba(99,102,241,.95));
+      box-shadow: 0 14px 28px rgba(2,6,23,.12);
+      flex:0 0 auto;
+    }
+    .qName{font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .qType{font-size:12px;color:var(--muted);margin-top:2px}
+
+    .timerBox{
+      display:flex;align-items:center;gap:10px;
+      padding:8px 12px;border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      box-shadow: 0 12px 22px rgba(2,6,23,.08);
+      font-variant-numeric: tabular-nums;
+    }
+    .timerDot{
+      width:10px;height:10px;border-radius:999px;background:var(--c4);
+      box-shadow: 0 0 0 4px rgba(245,158,11,.18);
+    }
+    .timerHide{display:none}
+    .sr{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+
+    .qBody{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow: var(--shadow);
+      padding:14px;
+      overflow:auto; /* still 1 screen; content can scroll inside */
+    }
+    .prompt{
+      margin:0 0 10px;
+      font-size:18px;
+      line-height:1.25;
+      font-weight:900;
+      color:#0b1220;
+    }
+    .prompt small{display:block;font-size:12px;color:var(--muted);font-weight:750;margin-top:4px}
+
+    .answerArea{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:flex-end;
+    }
+    .answerArea .grow{flex:1;min-width:240px}
+
+    .result{
+      margin-top:12px;
+      padding:12px 12px;
+      border-radius:18px;
+      border:2px dashed rgba(2,6,23,.10);
+      background: linear-gradient(180deg, rgba(34,197,94,.10), rgba(6,182,212,.06));
+      display:none;
+    }
+    .result.bad{
+      background: linear-gradient(180deg, rgba(239,68,68,.10), rgba(245,158,11,.06));
+    }
+    .result h3{margin:0 0 6px;font-size:14px}
+    .result p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.25}
+    .result b{color:var(--ink)}
+
+    /* Place value discs */
+    .pvBoard{
+      margin-top:10px;
+      border:1px solid var(--line);
+      border-radius:20px;
+      overflow:hidden;
+      background: linear-gradient(180deg, rgba(6,182,212,.06), rgba(99,102,241,.05));
+    }
+    .pvHead{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      background:rgba(255,255,255,.88);
+      border-bottom:1px solid var(--line);
+    }
+    .pvHead div{
+      padding:10px 8px;
+      text-align:center;
+      font-weight:950;
+      font-size:12px;
+      color:var(--muted);
+      border-right:1px solid var(--line);
+    }
+    .pvHead div:last-child{border-right:none}
+    .pvCols{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      background:rgba(255,255,255,.70);
+    }
+    .pvCol{
+      min-height:84px;
+      padding:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:center;
+      align-content:flex-start;
+      border-right:1px solid var(--line);
+    }
+    .pvCol:last-child{border-right:none}
+
+    .disc{
+      width:44px;height:44px;border-radius:999px;
+      display:grid;place-items:center;
+      font-weight:950;font-size:12px;
+      color:#0b1220;
+      border:2px solid rgba(2,6,23,.10);
+      box-shadow: 0 12px 22px rgba(2,6,23,.12);
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.95), rgba(255,255,255,.55));
+      position:relative;
+      overflow:hidden;
+    }
+    .disc:after{
+      content:"";
+      position:absolute; inset:-20px;
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.85), transparent 40%);
+      transform: rotate(18deg);
+      opacity:.8;
+    }
+    .disc .txt{position:relative}
+    .disc.th{outline:4px solid rgba(99,102,241,.18)}
+    .disc.h{outline:4px solid rgba(245,158,11,.18)}
+    .disc.t{outline:4px solid rgba(6,182,212,.18)}
+    .disc.o{outline:4px solid rgba(34,197,94,.18)}
+
+    /* Digits boxes */
+    .digitsRow{
+      margin-top:10px;
+      display:flex;gap:12px;flex-wrap:wrap;
+      justify-content:center;
+      padding:14px;
+      border-radius:20px;
+      border:1px solid var(--line);
+      background: linear-gradient(135deg, rgba(245,158,11,.10), rgba(99,102,241,.08));
+    }
+    .digitBox{
+      width:78px;height:50px;border-radius:14px;
+      display:grid;place-items:center;
+      font-size:20px;font-weight:950;
+      color:#0b1220;
+      border:2px solid rgba(2,6,23,.10);
+      background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.98), rgba(255,255,255,.78));
+      box-shadow: 0 12px 22px rgba(2,6,23,.12);
+    }
+
+    footer{
+      display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+      padding:10px 6px;
+    }
+    .credit{
+      font-size:12px;color:var(--muted);
+      padding:8px 12px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.86);
+    }
+
+    /* Confetti */
+    .confetti{
+      position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:60;
+      display:none;
+    }
+    .confetti i{
+      position:absolute; top:-14px;
+      width:10px;height:14px;border-radius:3px;
+      animation: fall 1.55s linear forwards;
+      opacity:.98;
+    }
+    @keyframes fall{
+      to{ transform: translateY(110vh) rotate(540deg); opacity:1; }
+    }
+
+    /* Time-up overlay */
+    .overlay{
+      position:fixed; inset:0; z-index:80;
+      background: rgba(2,6,23,.28);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      backdrop-filter: blur(6px);
+    }
+    .modal{
+      max-width:520px;
+      width:100%;
+      border-radius:28px;
+      border:1px solid rgba(255,255,255,.65);
+      background: rgba(255,255,255,.95);
+      box-shadow: 0 22px 70px rgba(2,6,23,.18);
+      padding:16px;
+    }
+    .modalTop{ display:flex;align-items:center;gap:12px; }
+    .burst{
+      width:48px;height:48px;border-radius:18px;
+      background: conic-gradient(from 180deg, var(--c5), var(--c4), var(--c3), var(--c2), var(--c5));
+      box-shadow: 0 16px 30px rgba(2,6,23,.14);
+    }
+    .modal h3{margin:0;font-size:16px}
+    .modal p{margin:6px 0 0;color:var(--muted);font-size:12.5px;line-height:1.3}
+    .modal .ans{
+      margin-top:12px;
+      padding:12px;
+      border-radius:18px;
+      border:1px dashed rgba(2,6,23,.15);
+      background: linear-gradient(180deg, rgba(245,158,11,.10), rgba(99,102,241,.06));
+      font-weight:900;
+      font-size:14px;
+    }
+    .modal .actions{
+      margin-top:12px;
+      display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;
+    }
+    /* Analytics panel styles */
+    #analyticsDock{
+      position:fixed; right:18px; bottom:18px; z-index:120;
+      width:360px; max-width:calc(100% - 36px);
+      border-radius:14px; overflow:hidden; box-shadow: 0 18px 48px rgba(2,6,23,.18);
+      background: rgba(255,255,255,.95); border:1px solid var(--line);
+      display:flex; flex-direction:column; transition: transform .22s ease, opacity .18s ease;
+      font-size:13px;
+    }
+    #analyticsDock.collapsed{ width:54px; height:54px; border-radius:999px; overflow:visible; }
+    .analytics-header{
+      display:flex; align-items:center; gap:8px; padding:10px 12px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(245,245,245,.96));
+      border-bottom:1px solid var(--line);
+    }
+    .analytics-title{ font-weight:900; font-size:13px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .analytics-controls{ display:flex; gap:8px; align-items:center }
+    .analytics-controls .btn{ padding:6px 8px; border-radius:10px; font-size:12px }
+    .analytics-body{ padding:10px 12px; max-height:260px; overflow:auto; background:linear-gradient(180deg, rgba(250,250,250,.98), rgba(255,255,255,.96)); }
+    .analytics-log{ display:flex; flex-direction:column; gap:8px }
+    .analytics-entry{ display:flex; gap:10px; align-items:flex-start; padding:8px; border-radius:10px; border:1px solid rgba(2,6,23,.04); background:#fff }
+    .analytics-entry .meta{ font-size:12px; color:var(--muted); min-width:120px }
+    .analytics-entry .text{ flex:1; font-size:13px; color:var(--ink) }
+    .analytics-entry.ok{ border-left:4px solid var(--good); }
+    .analytics-entry.bad{ border-left:4px solid var(--bad); }
+    .analytics-entry .resultSym{ font-weight:900; margin-left:8px }
+    .analytics-footer{ display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(250,250,250,.98)); }
+  </style>
+
+  <!-- Always-Clear on Load -->
+  <script>
+    (function(){
+      const ACTIVITY_ID = "https://limkimsze-maker.github.io/P3_WA1_Number_Sense_OneQ/";
+      window.__ACTIVITY_ID__ = ACTIVITY_ID;
+      try{
+        localStorage.removeItem(ACTIVITY_ID);
+        Object.keys(localStorage).forEach(k=>{
+          if(k.startsWith(ACTIVITY_ID+"::") || k.startsWith("sls_scope::"+ACTIVITY_ID) ||
+             k.startsWith("UFCO-firstSubmit::"+ACTIVITY_ID) || k.startsWith("sls_unlike_payload::"+ACTIVITY_ID)){
+            localStorage.removeItem(k);
+          }
+        });
+        sessionStorage.removeItem(ACTIVITY_ID);
+      }catch(e){}
+    })();
+  </script>
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data) {
+    xapiState.actions.push({ t: Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const scoreRegex = new RegExp('(\\d+)\\s*\\/\\s*(\\d+)');
+        const m = text.match(scoreRegex);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max);
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 1000));
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: seconds, type: a.type, label };
+    });
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  // Keyboard tracking for text-based inputs and textareas
+  // This logs each keystroke as a lightweight "key" action so it
+  // appears in the same timeline analytics as clicks.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+
+    // Limit to typical text input fields to avoid flooding from
+    // every key on the whole page.
+    const isTextField = (
+      tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')
+    ) || tag === 'textarea';
+
+    if (!isTextField) return;
+
+    logAction('key', {
+      tag,
+      id: t.id || null,
+      name: t.name || null,
+      value: t.value != null ? String(t.value).substring(0, 120) : null,
+      text: null,
+      key: String(e.key).substring(0, 40),
+      code: String(e.code || '').substring(0, 40)
+    });
+
+    // Group keystrokes slightly to avoid sending on every single key.
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', addSaveBtn); } else { addSaveBtn(); }
+})();
+    </script>
+  
+  
+<!-- xAPI AI Agent - Auto-generated tracking script -->
+<script>
+(function() {
+  function waitForStoreState(maxMs) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      (function tick() {
+        if (typeof window.storeState === 'function') return resolve(true);
+        if (Date.now() - started > maxMs) return resolve(false);
+        setTimeout(tick, 50);
+      })();
+    });
+  }
+
+  function run() {
+    try {
+      (function () {
+  // Auto-execute on DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  function init() {
+    try {
+      var Tracker = createTracker();
+      Tracker.start();
+    } catch (e) {
+      console.error('SLS tracker initialization error:', e && e.stack ? e.stack : e);
+    }
+  }
+
+  function createTracker() {
+    // Configuration
+    var RETRY_DELAY = 250; // ms
+    var MAX_RETRIES = 40; // ~10 seconds
+    var MAX_HISTORY = 200;
+
+    // Session state
+    var sessionStart = Date.now();
+    var history = [];
+    var itemsMap = {}; // keyed by itemId
+    var sendQueue = [];
+    var storeStateAvailable = !!window.storeState;
+    var storeStateRetries = 0;
+
+    // Utility: Attempt to obtain a stable id for an element
+    function elementId(el) {
+      if (!el) return null;
+      return el.getAttribute && (el.getAttribute('data-question-id') || el.id || el.name || el.getAttribute('data-id') || generateElementFingerprint(el));
+    }
+
+    function generateElementFingerprint(el) {
+      // Basic fallback fingerprint: tag + index among siblings
+      try {
+        var tag = el.tagName || 'el';
+        var siblings = el.parentNode ? Array.prototype.indexOf.call(el.parentNode.children, el) : 0;
+        return tag.toLowerCase() + '_' + siblings;
+      } catch (e) {
+        return 'unknown_' + Math.floor(Math.random() * 100000);
+      }
+    }
+
+    function getQuestionText(el) {
+      if (!el) return null;
+      return el.getAttribute && (el.getAttribute('data-question-text') || el.getAttribute('aria-label') || el.placeholder || el.title || findLabelText(el));
+    }
+
+    function findLabelText(el) {
+      try {
+        if (!el || !el.id) return null;
+        var lbl = document.querySelector("label[for='" + CSSescape(el.id) + "']");
+        if (lbl) return lbl.textContent && lbl.textContent.trim();
+      } catch (e) {
+        // ignore
+      }
+      return null;
+    }
+
+    // Safely escape CSS selectors (basic)
+    function CSSescape(s) {
+      return String(s).replace(/(['"\\])/g, '\\$1');
+    }
+
+    function parseCorrect(el) {
+      if (!el) return null;
+      var v = el.getAttribute && el.getAttribute('data-correct');
+      if (v === null || v === undefined) return null;
+      // If JSON-like array stored, try to parse, else return string
+      try {
+        return JSON.parse(v);
+      } catch (e) {
+        return v;
+      }
+    }
+
+    function parseMarks(el) {
+      if (!el) return null;
+      var v = el.getAttribute && el.getAttribute('data-marks');
+      if (v === null || v === undefined) return null;
+      var n = Number(v);
+      return isFinite(n) ? n : null;
+    }
+
+    function nowSeconds() {
+      return Math.round((Date.now() - sessionStart) / 1000);
+    }
+
+    function sanitizeValue(val) {
+      if (val === undefined) return null;
+      if (val === null) return null;
+      if (typeof val === 'object') {
+        try {
+          return JSON.parse(JSON.stringify(val));
+        } catch (e) {
+          return String(val);
+        }
+      }
+      return val;
+    }
+
+    // Build or update an item entry in itemsMap
+    function ensureItemForElement(el) {
+      var id = elementId(el) || ('item_' + Object.keys(itemsMap).length);
+      if (!itemsMap[id]) {
+        itemsMap[id] = {
+          id: id,
+          question: getQuestionText(el) || (el.name || el.id || id),
+          correctOption: parseCorrect(el),
+          userSelection: null,
+          marks: 0,
+          maxMarks: (parseMarks(el) != null ? parseMarks(el) : 0)
+        };
+      }
+      return itemsMap[id];
+    }
+
+    // Record an event
+    function recordEvent(type, el, details) {
+      try {
+        var qid = el ? elementId(el) : null;
+        var qtext = el ? getQuestionText(el) : null;
+        var expected = el ? parseCorrect(el) : null;
+        var entry = {
+          t: nowSeconds(),
+          type: type,
+          q: qid || qtext || null,
+          value: sanitizeValue(details && details.value !== undefined ? details.value : null),
+          expected: sanitizeValue(expected),
+          correct: (details && typeof details.correct === 'boolean') ? details.correct : null,
+          marks: (details && typeof details.marks === 'number') ? details.marks : null
+        };
+        history.push(entry);
+        if (history.length > MAX_HISTORY) history.shift();
+        // Update items state if relevant
+        if (qid || qtext) {
+          var elRef = el || details && details.element;
+          var item = ensureItemForElement(elRef || { id: qid, name: qtext });
+          if (details && details.value !== undefined) {
+            item.userSelection = sanitizeValue(details.value);
+          }
+          if (details && typeof details.marks === 'number') {
+            item.marks = details.marks;
+          }
+        }
+        // After recording we build and queue payload
+        queueStatePayload(details && details.reason ? details.reason : 'answer');
+      } catch (e) {
+        console.error('recordEvent error', e);
+      }
+    }
+
+    // Compute aggregated quiz state
+    function buildState(reason) {
+      var items = Object.keys(itemsMap).map(function (k) {
+        var it = itemsMap[k];
+        // Ensure fields present and sanitized
+        return {
+          id: it.id,
+          question: sanitizeValue(it.question),
+          correctOption: sanitizeValue(it.correctOption == null ? null : it.correctOption),
+          userSelection: sanitizeValue(it.userSelection == null ? null : it.userSelection),
+          marks: typeof it.marks === 'number' ? it.marks : 0,
+          maxMarks: typeof it.maxMarks === 'number' ? it.maxMarks : 0
+        };
+      });
+
+      var total = items.length;
+      var attempted = items.reduce(function (acc, it) {
+        // attempted if userSelection is not null or empty string or empty array
+        if (it.userSelection === null) return acc;
+        if (Array.isArray(it.userSelection)) {
+          return acc + (it.userSelection.length > 0 ? 1 : 0);
+        }
+        if (typeof it.userSelection === 'string') {
+          return acc + (it.userSelection.trim() !== '' ? 1 : 0);
+        }
+        return acc + 1;
+      }, 0);
+
+      var correctCount = items.reduce(function (acc, it) {
+        // Try to compute correctness only if correctOption present
+        if (it.correctOption == null) return acc;
+        try {
+          // Normalize to string/array
+          var want = it.correctOption;
+          var got = it.userSelection;
+          if (Array.isArray(want)) {
+            if (!Array.isArray(got)) return acc;
+            // compare sets
+            var a = want.slice().map(String).sort().join('|');
+            var b = got.slice().map(String).sort().join('|');
+            return acc + (a === b ? 1 : 0);
+          } else {
+            return acc + (String(want) === String(got) ? 1 : 0);
+          }
+        } catch (e) {
+          return acc;
+        }
+      }, 0);
+
+      var score = items.reduce(function (acc, it) {
+        return acc + (typeof it.marks === 'number' ? it.marks : 0);
+      }, 0);
+
+      var max = items.reduce(function (acc, it) {
+        return acc + (typeof it.maxMarks === 'number' ? it.maxMarks : 0);
+      }, 0);
+
+      var feedback = 'Recorded ' + attempted + ' attempted of ' + total + ' items.';
+      return {
+        score: score,
+        max: max,
+        feedback: feedback,
+        reason: reason || 'state-update',
+        quiz: {
+          attempted: attempted,
+          correct: correctCount,
+          total: total,
+          points: null,
+          items: items
+        },
+        history: history.slice(-50)
+      };
+    }
+
+    // Safe serializer to avoid sending undefined or circular structures
+    function safeSerialize(obj) {
+      try {
+        return JSON.parse(JSON.stringify(obj));
+      } catch (e) {
+        // Attempt shallow copy to remove functions and DOM refs
+        try {
+          var copy = {};
+          for (var k in obj) {
+            if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+            var v = obj[k];
+            if (typeof v === 'function') continue;
+            if (v === window || v === document) continue;
+            try {
+              copy[k] = JSON.parse(JSON.stringify(v));
+            } catch (e2) {
+              copy[k] = String(v);
+            }
+          }
+          return copy;
+        } catch (e3) {
+          return { feedback: 'unserializable payload', reason: 'error' };
+        }
+      }
+    }
+
+    // Queue and send state payloads
+    function queueStatePayload(reason) {
+      var payload = buildState(reason);
+      var safe = safeSerialize(payload);
+      sendQueue.push(safe);
+      flushQueue(); // attempt immediate send
+    }
+
+    function flushQueue() {
+      if (!storeStateAvailable) {
+        // try to detect storeState if not tried recently
+        pollForStoreState();
+        return;
+      }
+      while (sendQueue.length) {
+        var p = sendQueue.shift();
+        try {
+          // Final safety: ensure not undefined
+          if (p === undefined || p === null) {
+            console.warn('Suppressing undefined/null payload to storeState');
+            continue;
+          }
+          // Call provided API - note: we must not do any network calls here
+          window.storeState(p);
+        } catch (e) {
+          console.error('window.storeState threw:', e);
+          // re-queue with a slight delay to avoid busy loop
+          (function (payload) {
+            setTimeout(function () {
+              sendQueue.unshift(payload);
+              pollForStoreState();
+            }, RETRY_DELAY);
+          })(p);
+          break;
+        }
+      }
+    }
+
+    function pollForStoreState() {
+      if (storeStateAvailable) {
+        flushQueue();
+        return;
+      }
+      if (typeof window.storeState === 'function') {
+        storeStateAvailable = true;
+        flushQueue();
+        return;
+      }
+      storeStateRetries++;
+      if (storeStateRetries > MAX_RETRIES) {
+        console.warn('storeState not available after retries; payloads will be retained in memory until available.');
+        return;
+      }
+      setTimeout(pollForStoreState, RETRY_DELAY);
+    }
+
+    // Public event wiring
+    function start() {
+      // detect and attach listeners
+      attachCheckboxListeners();
+      attachTextInputListeners();
+      attachDragDropListeners();
+      attachMediaListeners();
+      attachFormListeners();
+      attachGenericButtonListeners();
+      // initial snapshot
+      queueStatePayload('session-start');
+      // Start polling for storeState if not available immediately
+      if (!storeStateAvailable) pollForStoreState();
+    }
+
+    // Checkbox listeners
+    function attachCheckboxListeners() {
+      try {
+        var checkboxes = Array.prototype.slice.call(document.querySelectorAll('input[type="checkbox"]'));
+        checkboxes.forEach(function (cb) {
+          cb.addEventListener('change', function (ev) {
+            var el = ev.target;
+            var name = el.name || elementId(el);
+            // For checkbox groups we want array of checked values
+            var group = name ? Array.prototype.slice.call(document.querySelectorAll("input[type='checkbox'][name='" + CSSescape(name) + "']")) : [el];
+            var checkedValues = group.filter(function (g) { return g.checked; }).map(function (g) { return g.value || g.getAttribute('data-value') || elementId(g); });
+            // Update item for group element (use first checkbox as the representative)
+            var rep = group[0] || el;
+            var item = ensureItemForElement(rep);
+            item.userSelection = checkedValues;
+            // if correct stored on rep, compute correctness
+            var correct = parseCorrect(rep);
+            var isCorrect = null;
+            if (correct != null) {
+              try {
+                if (Array.isArray(correct)) {
+                  var a = correct.slice().map(String).sort().join('|');
+                  var b = checkedValues.slice().map(String).sort().join('|');
+                  isCorrect = (a === b);
+                } else {
+                  isCorrect = (String(correct) === String(checkedValues[0] || ''));
+                }
+              } catch (e) {
+                isCorrect = null;
+              }
+            }
+            // optionally set marks if data-marks exists and correct
+            var marks = parseMarks(rep);
+            if (marks != null && isCorrect === true) {
+              item.marks = marks;
+            } else if (marks != null && isCorrect === false) {
+              item.marks = 0;
+            }
+            recordEvent('checkbox_change', rep, { value: checkedValues, correct: isCorrect, marks: item.marks, reason: 'answer_click' });
+          }, false);
+        });
+      } catch (e) {
+        console.error('attachCheckboxListeners error', e);
+      }
+    }
+
+    // Text input listeners
+    function attachTextInputListeners() {
+      try {
+        var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="text"], input[type="email"], textarea, input[type="number"]'));
+        inputs.forEach(function (inp) {
+          // On input -> update current value (but record less frequently)
+          var lastRecorded = null;
+          inp.addEventListener('input', function (ev) {
+            var v = ev.target.value;
+            var item = ensureItemForElement(ev.target);
+            item.userSelection = v;
+            // throttle recording to avoid spam: only when value changes meaningfully
+            var now = Date.now();
+            if (!lastRecorded || now - lastRecorded > 2000) {
+              lastRecorded = now;
+              recordEvent('text_input_change', ev.target, { value: v, reason: 'answer_change' });
+            }
+          }, false);
+          // On blur -> definite capture
+          inp.addEventListener('blur', function (ev) {
+            var v = ev.target.value;
+            var item = ensureItemForElement(ev.target);
+            item.userSelection = v;
+            recordEvent('text_input_blur', ev.target, { value: v, reason: 'answer' });
+          }, false);
+        });
+      } catch (e) {
+        console.error('attachTextInputListeners error', e);
+      }
+    }
+
+    // Drag-drop listeners
+    function attachDragDropListeners() {
+      try {
+        // Detect draggable elements
+        var draggables = Array.prototype.slice.call(document.querySelectorAll('[draggable="true"], [data-draggable="true"]'));
+        draggables.forEach(function (d) {
+          d.addEventListener('dragstart', function (ev) {
+            try {
+              var id = elementId(d) || ('drag_' + Date.now());
+              d.setAttribute('data-drag-id', id);
+              ev.dataTransfer && ev.dataTransfer.setData && ev.dataTransfer.setData('text/plain', id);
+              recordEvent('drag_start', d, { value: id, reason: 'interaction' });
+            } catch (e) {
+              // ignore
+            }
+          }, false);
+        });
+
+        // Drop zones: elements with data-drop-target or with ondrop handlers
+        var drops = Array.prototype.slice.call(document.querySelectorAll('[data-drop-target], .drop-target, [ondrop]'));
+        // If none found, attempt common selectors where drop is used
+        if (drops.length === 0) {
+          drops = Array.prototype.slice.call(document.querySelectorAll('[data-accept-drag], .dropzone'));
+        }
+        drops.forEach(function (dz) {
+          dz.addEventListener('dragover', function (ev) {
+            ev.preventDefault();
+          }, false);
+          dz.addEventListener('drop', function (ev) {
+            ev.preventDefault();
+            try {
+              var dragId = null;
+              // Prefer dataTransfer
+              if (ev.dataTransfer && ev.dataTransfer.getData) {
+                dragId = ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('text') || null;
+              }
+              // fallback to attribute
+              if (!dragId && ev.dataTransfer && ev.dataTransfer.items && ev.dataTransfer.items.length) {
+                dragId = ev.dataTransfer.items[0] && ev.dataTransfer.items[0].getAsFile && ev.dataTransfer.items[0].getAsFile().name;
+              }
+              if (!dragId) {
+                // try to find a child with data-drag-id
+                var child = dz.querySelector('[data-drag-id]');
+                if (child) dragId = child.getAttribute('data-drag-id');
+              }
+              var draggedEl = dragId ? document.querySelector('[data-drag-id="' + CSSescape(dragId) + '"]') : null;
+              var value = dragId + '->' + (elementId(dz) || dz.id || 'dropzone');
+              // Update item representing the drop target
+              var item = ensureItemForElement(dz);
+              item.userSelection = value;
+              // if drop target has data-correct then compare
+              var correct = parseCorrect(dz);
+              var isCorrect = null;
+              if (correct != null) {
+                try {
+                  isCorrect = (String(correct) === String(dragId));
+                } catch (e) {
+                  isCorrect = null;
+                }
+              }
+              var marks = parseMarks(dz);
+              if (marks != null && isCorrect === true) item.marks = marks;
+              else if (marks != null && isCorrect === false) item.marks = 0;
+              recordEvent('drag_drop', dz, { value: value, correct: isCorrect, marks: item.marks, reason: 'answer' });
+            } catch (e) {
+              console.error('drop handler error', e);
+            }
+          }, false);
+        });
+      } catch (e) {
+        console.error('attachDragDropListeners error', e);
+      }
+    }
+
+    // Media play/pause listeners - capture existing audio/video elements & play/pause buttons
+    function attachMediaListeners() {
+      try {
+        var medias = Array.prototype.slice.call(document.querySelectorAll('audio, video'));
+        medias.forEach(function (m) {
+          m.addEventListener('play', function (ev) {
+            var time = ev.target.currentTime;
+            recordEvent('media_play', ev.target, { value: time, reason: 'play' });
+          }, false);
+          m.addEventListener('pause', function (ev) {
+            var time = ev.target.currentTime;
+            recordEvent('media_pause', ev.target, { value: time, reason: 'pause' });
+          }, false);
+        });
+        // Also watch for custom play/pause buttons with data-media-target or class
+        var mediaButtons = Array.prototype.slice.call(document.querySelectorAll('[data-media-target], .media-play, .media-pause'));
+        mediaButtons.forEach(function (btn) {
+          btn.addEventListener('click', function (ev) {
+            var t = btn.getAttribute('data-media-target');
+            var media = t ? document.querySelector(t) : null;
+            var type = 'media_button';
+            var value = null;
+            if (media && (media.tagName === 'AUDIO' || media.tagName === 'VIDEO')) {
+              // try to infer action by class or data-action
+              var action = btn.getAttribute('data-action') || btn.className || btn.getAttribute('aria-pressed') || '';
+              action = action.toLowerCase();
+              if (action.indexOf('play') >= 0 || action.indexOf('start') >= 0) {
+                type = 'media_play';
+                value = media.currentTime;
+              } else if (action.indexOf('pause') >= 0 || action.indexOf('stop') >= 0) {
+                type = 'media_pause';
+                value = media.currentTime;
+              } else {
+                type = 'media_button';
+                value = media.currentTime;
+              }
+            } else {
+              // Generic button - record click
+              type = 'button_click';
+              value = btn.textContent && btn.textContent.trim();
+            }
+            recordEvent(type, media || btn, { value: value, reason: 'interaction' });
+          }, false);
+        });
+      } catch (e) {
+        console.error('attachMediaListeners error', e);
+      }
+    }
+
+    // Form and submit listeners
+    function attachFormListeners() {
+      try {
+        var forms = Array.prototype.slice.call(document.querySelectorAll('form'));
+        forms.forEach(function (f) {
+          f.addEventListener('submit', function (ev) {
+            try {
+              // Prevent modifying existing behavior; we just capture
+              var payloadReason = 'quiz-submit';
+              // Build user selections for elements inside the form
+              var elements = Array.prototype.slice.call(f.querySelectorAll('input, textarea, select'));
+              elements.forEach(function (el) {
+                var tag = (el.type || el.tagName || '').toLowerCase();
+                if (tag === 'checkbox') {
+                  // handled by change events; ensure item updated
+                  ensureItemForElement(el);
+                } else if (tag === 'radio') {
+                  ensureItemForElement(el);
+                } else {
+                  var item = ensureItemForElement(el);
+                  item.userSelection = el.value;
+                }
+              });
+              recordEvent('form_submit', f, { value: 'form-submitted', reason: payloadReason });
+            } catch (e) {
+              console.error('form submit capture error', e);
+            }
+            // Do not prevent default - we must not alter page behaviour
+          }, false);
+        });
+      } catch (e) {
+        console.error('attachFormListeners error', e);
+      }
+    }
+
+    // Generic "Check/Submit/Reset/Show Answer" button listeners
+    function attachGenericButtonListeners() {
+      try {
+        // Buttons that are likely to perform important actions
+        var selectors = [
+          'button[data-action="submit"]',
+          'button[data-action="check"]',
+          'button[data-action="show-answer"]',
+          'button.show-answer',
+          'button.check',
+          '.show-answer',
+          '.check-answer',
+          'button[data-action="reset"]',
+          'button.reset'
+        ];
+        var buttons = Array.prototype.slice.call(document.querySelectorAll(selectors.join(',')));
+        buttons.forEach(function (b) {
+          b.addEventListener('click', function (ev) {
+            var action = b.getAttribute('data-action') || b.className || b.textContent || 'button';
+            action = (action || '').toString().toLowerCase();
+            var reason = 'interaction';
+            if (action.indexOf('submit') >= 0 || action.indexOf('check') >= 0) reason = 'quiz-submit';
+            if (action.indexOf('show') >= 0) reason = 'show-answer';
+            if (action.indexOf('reset') >= 0) reason = 'reset';
+            // When "show-answer" clicked, try to mark items with correctOption as userSelection=correctOption? No — do not alter user data, only record intent
+            recordEvent('button_click', b, { value: action, reason: reason });
+            // If show-answer, also capture current answers snapshot
+            if (reason === 'show-answer') {
+              queueStatePayload('show-answer');
+            }
+          }, false);
+        });
+      } catch (e) {
+        console.error('attachGenericButtonListeners error', e);
+      }
+    }
+
+    // Public API
+    return {
+      start: start,
+      // Expose a safe manual flush if code elsewhere needs to push a snapshot
+      snapshot: function (reason) {
+        queueStatePayload(reason || 'manual-snapshot');
+      }
+    };
+  }
+})();
+    } catch (error) {
+      console.error('[xAPI Agent Error]', error);
+      // Fail silently to prevent breaking content
+    }
+  }
+
+  const start = () => waitForStoreState(2000).then(run);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+</script>
+  </head>
+
+<body>
+  <div class="dots"></div>
+
+  <!-- ✅ MP3 PLACEHOLDER for loud clock ring when time is up
+       Put your MP3 in the same folder and name it: timeup.mp3
+       OR change the src below to your file name/path.
+  -->
+  <audio id="timeupAudio" preload="auto">
+    <source src="timeup.wav" type="audio/mpeg">
+  </audio>
+
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div style="min-width:0">
+          <h1>P3 WA1 Number Sense</h1>
+          <div class="sub">One question per screen • Instant check • Teacher timer • Time-up shows answer + sound</div>
+        </div>
+      </div>
+
+      <div class="topRight">
+        <div class="pill" title="Progress">
+          <span class="miniDot"></span>
+          <span>Q <b id="qIndex">1</b>/<b id="qTotal">10</b></span>
+          <span>•</span>
+          <span>Score <b id="scoreNow">0</b></span>
+        </div>
+
+        <button class="btn ghost" id="btnToggleTeacher" title="Show/Hide Teacher Settings">Hide Teacher</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- Teacher panel -->
+      <aside class="panel" id="teacherPanel">
+        <h2>Teacher Settings</h2>
+        <div class="hint">Hide this panel to make the question screen full screen.</div>
+
+        <div class="field">
+          <label>Total questions</label>
+          <input type="number" id="inpTotal" min="5" max="40" value="10"/>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Number range</label>
+            <select id="selDigits">
+              <option value="3">3-digit (100–999)</option>
+              <option value="4" selected>4-digit (1000–9999)</option>
+              <option value="mix34">Mix 3–4 digit</option>
+              <option value="mix35">Mix 3–5 digit (100–99999)</option>
+            </select>
+            <div class="hint" style="margin-top:6px">
+              ✅ Only <b>Place value / Digit value</b> questions will force <b>unique digits</b> in 4-digit numbers.
+            </div>
+          </div>
+          <div class="field">
+            <label>Ordering direction</label>
+            <select id="selOrderDir">
+              <option value="asc" selected>Smallest → Greatest</option>
+              <option value="desc">Greatest → Smallest</option>
+              <option value="mix">Mix both</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Time per question (seconds)</label>
+            <input type="number" id="inpTime" min="0" max="999" value="30"/>
+            <div class="hint" style="margin-top:6px">Set 0 to disable timing.</div>
+          </div>
+          <div class="field">
+            <label>Show countdown timer?</label>
+            <select id="selShowTimer">
+              <option value="show" selected>Show</option>
+              <option value="hide">Hide</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Question types (tick what you want)</label>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" id="ckCount" checked/> Counting (place value discs)</label>
+            <label class="chip"><input type="checkbox" id="ckWords" checked/> Writing in words / number</label>
+            <label class="chip"><input type="checkbox" id="ckValue" checked/> Place value / Digit value</label>
+            <label class="chip"><input type="checkbox" id="ckOrder" checked/> Ordering numbers</label>
+            <label class="chip"><input type="checkbox" id="ckPattern" checked/> Number patterns</label>
+            <label class="chip"><input type="checkbox" id="ckFormDigits" checked/> Form number with digits</label>
+            <label class="chip"><input type="checkbox" id="ckAddSub" checked/> 4-digit addition / subtraction</label>
+          </div>
+        </div>
+
+        <div class="checkrow">
+          <button class="btn primary" id="btnNewSet">New Set</button>
+          <button class="btn ghost" id="btnResetScore">Reset Score</button>
+        </div>
+
+        <div class="field" style="margin-top:10px">
+          <label>Auto-grade when choice clicked</label>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" id="ckAutoGrade" checked/> Enable auto-grade on choice click</label>
+          </div>
+        </div>
+
+        <div class="hint" style="margin-top:10px">
+          Audio note: browsers usually allow sound only after a user click. Clicking any button unlocks the MP3.
+        </div>
+      </aside>
+
+      <!-- Question screen -->
+      <section class="screen panel">
+        <div class="qHeader">
+          <div class="qTitle">
+            <div class="qBadge" id="qBadge">1</div>
+            <div style="min-width:0">
+              <div class="qName" id="qName">Question</div>
+              <div class="qType" id="qType">Type</div>
+            </div>
+          </div>
+
+          <div class="timerBox" id="timerBox" aria-live="polite">
+            <span class="timerDot"></span>
+            <span class="sr">Time left</span>
+            <span><b id="timeLeft">--</b>s</span>
+          </div>
+        </div>
+
+        <div class="qBody" id="qBody"></div>
+
+        <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn good" id="btnCheck">Check ✅</button>
+            <button class="btn warn" id="btnShowAns">Show Answer 👀</button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn ghost" id="btnPrev">◀ Prev</button>
+            <button class="btn primary" id="btnNext">Next ▶</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="credit">Designed by Lim Kim Sze © 2026</div>
+      <div class="hint">Time-up shows answer and plays <b>timeup.mp3</b>.</div>
+    </footer>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modalTop">
+        <div class="burst" aria-hidden="true"></div>
+        <div>
+          <h3>Time is up!</h3>
+          <p>The answer is shown below.</p>
+        </div>
+      </div>
+      <div class="ans" id="ovAns">Answer: …</div>
+      <div class="actions">
+        <button class="btn ghost" id="btnCloseOverlay">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics dock (real-time analytics for quizzes) -->
+  <div id="analyticsDock" class="collapsed" aria-hidden="true">
+    <div class="analytics-header">
+      <div class="analytics-title">REAL-TIME Analytics</div>
+      <div class="analytics-controls">
+        <button id="analyticsToggle" class="btn ghost" title="Show/Hide Analytics">▶</button>
+        <button id="analyticsClear" class="btn ghost" title="Clear Log">Clear</button>
+      </div>
+    </div>
+    <div class="analytics-body" id="analyticsBody" aria-live="polite">
+      <div class="analytics-log" id="analyticsLog"></div>
+    </div>
+    <div class="analytics-footer">
+      <div style="flex:1;color:var(--muted);font-size:12px">Logs show question, correct answer, selected answer and result.</div>
+      <div><button id="analyticsExpand" class="btn ghost">Open</button></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ---------- helpers ----------
+  const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+  const pick = (arr)=>arr[rand(0,arr.length-1)];
+  const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+  const byId = (id)=>document.getElementById(id);
+  const shuffle = (a)=>{
+    const x=a.slice();
+    for(let i=x.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [x[i],x[j]]=[x[j],x[i]];
+    }
+    return x;
+  };
+
+  // Pretty number display (with commas)
+  const fmt = (n)=> Number(n).toLocaleString("en-SG");
+
+  // Regroup checks (for more meaningful add/sub questions)
+  function hasCarry(a,b){
+    let carry=0;
+    while(a>0 || b>0){
+      const da=a%10, db=b%10;
+      if(da + db + carry >= 10) return true;
+      carry = (da + db + carry >= 10) ? 1 : 0;
+      a=Math.floor(a/10);
+      b=Math.floor(b/10);
+    }
+    return false;
+  }
+  function hasBorrow(a,b){
+    let borrow=0;
+    while(a>0 || b>0){
+      const da=a%10, db=b%10;
+      if(da - borrow < db) return true;
+      borrow = (da - borrow < db) ? 1 : 0;
+      a=Math.floor(a/10);
+      b=Math.floor(b/10);
+    }
+    return false;
+  }
+
+  // ✅ Unique 4-digit number (no repeated digits) — used ONLY for place value/digit value questions
+  function unique4Digit(){
+    const digits = shuffle([0,1,2,3,4,5,6,7,8,9]).slice(0,4);
+    if(digits[0]===0){
+      for(let i=1;i<4;i++){
+        if(digits[i]!==0){ [digits[0],digits[i]]=[digits[i],digits[0]]; break; }
+      }
+    }
+    return digits[0]*1000 + digits[1]*100 + digits[2]*10 + digits[3];
+  }
+
+  function digitsRange(mode){
+    if(mode==="3") return [100,999];
+    if(mode==="4") return [1000,9999];
+    if(mode==="mix34") return Math.random()<.5 ? [100,999] : [1000,9999];
+    if(mode==="mix35"){
+      const r=Math.random();
+      if(r<.40) return [100,999];
+      if(r<.85) return [1000,9999];
+      return [10000,99999];
+    }
+    return [1000,9999];
+  }
+
+  // General number generator (NO uniqueness guarantee)
+  function getNumber(mode){
+    if(mode==="mix34"){
+      return Math.random()<.5 ? rand(100,999) : rand(1000,9999);
+    }
+    if(mode==="mix35"){
+      const r=Math.random();
+      if(r<.40) return rand(100,999);
+      if(r<.85) return rand(1000,9999);
+      return rand(10000,99999);
+    }
+    const [lo,hi]=digitsRange(mode);
+    return rand(lo,hi);
+  }
+
+  // ---------- number to words (SG style with "and") ----------
+  const ones = ["zero","one","two","three","four","five","six","seven","eight","nine"];
+  const teens = ["ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+  const tens  = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+
+  function twoDigitsToWords(n){
+    if(n<10) return ones[n];
+    if(n<20) return teens[n-10];
+    const t=Math.floor(n/10), u=n%10;
+    if(u===0) return tens[t];
+    return tens[t] + "-" + ones[u];
+  }
+  function threeDigitsToWords(n, useAnd=true){
+    if(n<100) return twoDigitsToWords(n);
+    const h=Math.floor(n/100), r=n%100;
+    if(r===0) return ones[h] + " hundred";
+    return ones[h] + " hundred" + (useAnd ? " and " : " ") + twoDigitsToWords(r);
+  }
+  function numberToWordsSG(n, useAnd=true){
+    n = Math.floor(Math.abs(n));
+    if(n<1000) return threeDigitsToWords(n, useAnd);
+    const th=Math.floor(n/1000), r=n%1000;
+    const thPart = (th<100) ? (th<10 ? ones[th] : twoDigitsToWords(th)) : threeDigitsToWords(th, useAnd);
+    if(r===0) return thPart + " thousand";
+    const needAnd = useAnd && r<100;
+    return thPart + " thousand" + (needAnd ? " and " : " ") + threeDigitsToWords(r, useAnd);
+  }
+  function normalizeWords(s){
+    return (s||"")
+      .toLowerCase()
+      .replace(/[^a-z\s-]/g," ")
+      .replace(/-/g," ")
+      .replace(/\band\b/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+  }
+
+  // ---------- time-up sound (MP3 first, fallback loud ring) ----------
+  let audioCtx = null;
+  function ensureAudio(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state==="suspended") audioCtx.resume().catch(()=>{});
+    }catch(e){}
+    return audioCtx;
+  }
+
+  function loudClockRingFallback(){
+    const ctx = ensureAudio();
+    if(!ctx) return;
+    const now = ctx.currentTime;
+
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(1.0, now + 0.01);   // LOUD
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+    master.connect(ctx.destination);
+
+    function bellHit(t){
+      const hitGain = ctx.createGain();
+      hitGain.gain.setValueAtTime(0.0001, t);
+      hitGain.gain.exponentialRampToValueAtTime(1.0, t + 0.006);
+      hitGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+      hitGain.connect(master);
+
+      // bright bell partials
+      const freqs = [880, 1320, 1760, 2640, 3520];
+      freqs.forEach((f, i)=>{
+        const o = ctx.createOscillator();
+        o.type = "sine";
+        o.frequency.setValueAtTime(f, t);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.34/(i+1), t);
+        o.connect(g);
+        g.connect(hitGain);
+        o.start(t);
+        o.stop(t + 0.62);
+      });
+
+      // sharp click for "ring"
+      const noise = ctx.createBufferSource();
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.18, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i=0;i<data.length;i++){ data[i] = (Math.random()*2-1) * (1 - i/data.length); }
+      noise.buffer = buffer;
+
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.setValueAtTime(2200, t);
+      bp.Q.setValueAtTime(1.2, t);
+
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0.0001, t);
+      ng.gain.exponentialRampToValueAtTime(1.0, t + 0.004);
+      ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+
+      noise.connect(bp);
+      bp.connect(ng);
+      ng.connect(hitGain);
+      noise.start(t);
+      noise.stop(t + 0.2);
+    }
+
+    // double ring
+    bellHit(now);
+    bellHit(now + 0.28);
+  }
+
+  async function playTimeUpSound(){
+    const a = byId("timeupAudio");
+    try{
+      if(a){
+        a.currentTime = 0;
+        a.volume = 1.0;
+        const p = a.play();
+        if(p && typeof p.then==="function") await p;
+        return;
+      }
+    }catch(e){}
+    loudClockRingFallback();
+  }
+
+  function unlockAudio(){
+    try{
+      const a = byId("timeupAudio");
+      if(a){
+        a.muted = true;
+        a.play().then(()=>{
+          a.pause(); a.currentTime = 0; a.muted = false;
+        }).catch(()=>{ a.muted = false; });
+      }
+    }catch(e){}
+    ensureAudio();
+  }
+
+  // ---------- confetti ----------
+  function confettiBoom(){
+    const box = byId("confetti");
+    box.innerHTML="";
+    box.style.display="block";
+    const N = 80;
+    for(let i=0;i<N;i++){
+      const p=document.createElement("i");
+      p.style.left = rand(0,100)+"vw";
+      p.style.animationDelay = (Math.random()*0.25)+"s";
+      p.style.background = `hsla(${rand(0,360)}, 95%, 65%, .98)`;
+      p.style.width = rand(8,12)+"px";
+      p.style.height = rand(10,16)+"px";
+      p.style.transform = `rotate(${rand(0,180)}deg)`;
+      box.appendChild(p);
+    }
+    setTimeout(()=>{ box.style.display="none"; box.innerHTML=""; }, 1600);
+  }
+
+  // ---------- digit forming ----------
+  function permutations(arr){
+    const out=[];
+    function rec(a, i){
+      if(i===a.length){ out.push(a.slice()); return; }
+      for(let j=i;j<a.length;j++){
+        [a[i],a[j]]=[a[j],a[i]];
+        rec(a, i+1);
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+    }
+    rec(arr.slice(), 0);
+    return out;
+  }
+  function bestNumberFromDigits(digs, want){
+    const perms = permutations(digs);
+    let best = null;
+    for(const p of perms){
+      if(p[0]===0) continue;
+      const last = p[p.length-1];
+      if(want.parity==="odd" && last%2===0) continue;
+      if(want.parity==="even" && last%2!==0) continue;
+      const num = p.reduce((acc,d)=>acc*10+d,0);
+      if(best===null) best=num;
+      else if(want.minmax==="min" && num<best) best=num;
+      else if(want.minmax==="max" && num>best) best=num;
+    }
+    return best;
+  }
+
+  // ---------- question generators ----------
+  function genCounting(mode){
+    const n = getNumber(mode);
+    const s = String(n).padStart(4,"0");
+    const th = Number(s[s.length-4]);
+    const h  = Number(s[s.length-3]);
+    const t  = Number(s[s.length-2]);
+    const o  = Number(s[s.length-1]);
+
+    return {
+      type:"counting",
+      name:"Counting (place value discs)",
+      prompt:"Count the place value discs and write the total value.",
+      data:{th,h,t,o,total:n},
+      answerText: String(n),
+      explain: `Total = ${th}×1000 + ${h}×100 + ${t}×10 + ${o}.`
+    };
+  }
+
+  function genWords(mode){
+    const n = getNumber(mode);
+    const words = numberToWordsSG(n, true);
+    const askType = Math.random()<.5 ? "numToWords" : "wordsToNum";
+    return {
+      type:"words",
+      name:"Writing in words / number",
+      prompt: askType==="numToWords"
+        ? `Write <b>${n}</b> in words.`
+        : `Write <b>${words}</b> in number.`,
+      data:{n,words,askType},
+      answerText: askType==="numToWords" ? words : String(n),
+      explain: askType==="numToWords"
+        ? `One correct way: "${words}".`
+        : `The number is ${n}.`
+    };
+  }
+
+  // ✅ ONLY place value/digit value: if it's a 4-digit number, digits must be unique
+  function genValue(mode){
+    let n;
+
+    if(mode==="4"){
+      n = unique4Digit(); // always 4-digit unique
+    }else if(mode==="mix34"){
+      // if it chooses 4-digit, use unique digits; else normal 3-digit
+      n = (Math.random()<.5) ? rand(100,999) : unique4Digit();
+    }else if(mode==="mix35"){
+      const r=Math.random();
+      if(r<.40) n = rand(100,999);
+      else if(r<.85) n = unique4Digit();  // 4-digit portion is unique
+      else n = rand(10000,99999);         // 5-digit can repeat (allowed)
+    }else{
+      // mode==="3" etc
+      n = rand(100,999);
+    }
+
+    const s = String(n);
+    const idxFromLeft = rand(0, s.length-1);
+    const digit = Number(s[idxFromLeft]);
+    const placePow = (s.length-1-idxFromLeft);
+    const placeValue = digit * Math.pow(10, placePow);
+
+    const placeNames = ["ones","tens","hundreds","thousands","ten-thousands"];
+    const placeName = placeNames[placePow] || "ones";
+
+    const variant = pick(["standFor","whichDigit","valueOfDigitInNumber","placeValueOfUnderlined"]);
+
+    if(variant==="standFor"){
+      return {
+        type:"value",
+        name:"Digit value",
+        prompt:`In <b>${n}</b>, the digit <b>${digit}</b> stands for <b>_____</b>.`,
+        data:{answer:placeValue},
+        answerText:String(placeValue),
+        explain:`${digit} in the ${placeName} place = ${placeValue}.`
+      };
+    }
+    if(variant==="whichDigit"){
+      return {
+        type:"value",
+        name:"Place value",
+        prompt:`In <b>${n}</b>, which digit is in the <b>${placeName}</b> place?`,
+        data:{answer:digit},
+        answerText:String(digit),
+        explain:`The ${placeName} digit is ${digit}.`
+      };
+    }
+    if(variant==="valueOfDigitInNumber"){
+      return {
+        type:"value",
+        name:"Value of a digit",
+        prompt:`What is the value of digit <b>${digit}</b> in <b>${n}</b>?`,
+        data:{answer:placeValue},
+        answerText:String(placeValue),
+        explain:`Digit ${digit} is in the ${placeName} place, so its value is ${placeValue}.`
+      };
+    }
+
+    const underlined = s.split("").map((ch,i)=>
+      i===idxFromLeft
+        ? `<span style="text-decoration:underline; text-decoration-thickness:3px; text-underline-offset:4px">${ch}</span>`
+        : ch
+    ).join("");
+
+    return {
+      type:"value",
+      name:"Place value of underlined digit",
+      prompt:`What is the value of the underlined digit in <b>${underlined}</b>?`,
+      data:{answer:placeValue},
+      answerText:String(placeValue),
+      explain:`Underlined digit is ${digit} in the ${placeName} place → ${placeValue}.`
+    };
+  }
+
+  function genOrdering(mode){
+    const count = (Math.random()<.65) ? 3 : 4;
+    const nums = [];
+    while(nums.length<count){
+      const x = getNumber(mode);
+      if(!nums.includes(x)) nums.push(x);
+    }
+    let dir = byId("selOrderDir").value;
+    if(dir==="mix") dir = Math.random()<.5 ? "asc" : "desc";
+    const sorted = nums.slice().sort((a,b)=> dir==="asc" ? a-b : b-a);
+
+    return {
+      type:"ordering",
+      name:"Ordering numbers",
+      prompt:`Arrange from <b>${dir==="asc" ? "smallest" : "greatest"}</b> to <b>${dir==="asc" ? "greatest" : "smallest"}</b>.`,
+      data:{nums, sorted, dir},
+      answerText: sorted.join(", "),
+      explain: `Correct order: ${sorted.join(", ")}.`
+    };
+  }
+
+  function genPattern(mode){
+    const kind = pick(["easy","alt"]);
+    const len = 7;
+    let seq = [];
+
+    if(kind==="easy"){
+      const base = getNumber(mode);
+      const step = pick([5,10,20,25,50,100,-5,-10,-20,-25,-50,-100]);
+      seq = Array.from({length:len}, (_,i)=> base + i*step);
+    }else{
+      const base = getNumber(mode);
+      const a = pick([10,20,50,100]);
+      const b = pick([1,2,5,10]);
+      seq = [base];
+      for(let i=1;i<len;i++){
+        const prev=seq[i-1];
+        seq.push(prev + (i%2===1 ? a : -b));
+      }
+    }
+
+    const blankIndex = rand(3,5);
+    const answer = seq[blankIndex];
+    const display = seq.map((v,i)=> i===blankIndex ? "____" : v);
+
+    return {
+      type:"pattern",
+      name:"Number patterns",
+      prompt:"Fill in the missing number.",
+      data:{display, answer},
+      answerText: String(answer),
+      explain: `Full pattern: ${seq.join(", ")}`
+    };
+  }
+
+  function genFormDigits(){
+    const minmax = Math.random()<.5 ? "min" : "max";
+    const parity = Math.random()<.5 ? "odd" : "even";
+
+    let digits;
+    for(let tries=0;tries<200;tries++){
+      const pool = shuffle([0,1,2,3,4,5,6,7,8,9]);
+      digits = pool.slice(0,4);
+      const hasParity = digits.some(d => (parity==="odd" ? d%2===1 : d%2===0));
+      const hasNonZero = digits.some(d => d!==0);
+      if(!hasParity || !hasNonZero) continue;
+      const best = bestNumberFromDigits(digits, {minmax, parity});
+      if(best!==null){
+        return {
+          type:"formDigits",
+          name:"Form number with digits",
+          prompt:`Use the digits in the boxes to form the <b>${minmax==="min" ? "smallest" : "greatest"}</b> <b>4-digit ${parity}</b> number. Use each digit <b>only once</b>.`,
+          data:{digits, answer:best},
+          answerText: String(best),
+          explain: `Answer: ${best}. (4-digit, first digit not 0, last digit is ${parity}.)`
+        };
+      }
+    }
+    const fallback=[0,3,1,9];
+    return {
+      type:"formDigits",
+      name:"Form number with digits",
+      prompt:`Use the digits in the boxes to form the <b>smallest</b> <b>4-digit odd</b> number. Use each digit <b>only once</b>.`,
+      data:{digits:fallback, answer:1039},
+      answerText: "1039",
+      explain: "Answer: 1039."
+    };
+  }
+
+  // ✅ NEW: 4-digit addition / subtraction (1000–9999)
+  function genAddSub(){
+    let op, a, b, ans;
+    let tries = 0;
+    const wantRegroup = Math.random() < 0.80; // mostly regrouping
+
+    while(true){
+      tries++;
+      op = (Math.random() < 0.5) ? "+" : "-";
+
+      if(op === "+"){
+        // Keep sum within 4 digits (<= 9999)
+        const sum = rand(2000, 9999);
+        a = rand(1000, sum - 1000);
+        b = sum - a;
+        if(a < 1000 || b < 1000 || a > 9999 || b > 9999) continue;
+
+        ans = a + b;
+        if(wantRegroup && !hasCarry(a,b) && tries < 80) continue;
+
+      } else {
+        a = rand(1000, 9999);
+        b = rand(1000, 9999);
+        if(b > a) [a,b] = [b,a];
+
+        ans = a - b;
+        if(wantRegroup && !hasBorrow(a,b) && tries < 80) continue;
+      }
+
+      break;
+    }
+
+    return {
+      type:"addsub",
+      name:"4-digit addition / subtraction",
+      prompt:`Calculate: <b>${fmt(a)} ${op} ${fmt(b)}</b>.`,
+      data:{a,b,op,ans},
+      answerText:String(ans),
+      explain:`${fmt(a)} ${op} ${fmt(b)} = ${fmt(ans)}.`
+    };
+  }
+
+  // ---------- state ----------
+  let Q = [];
+  let qi = 0;
+  let score = 0;
+  let checkedThisQ = false;
+  let timer = null;
+  let timeLeft = 0;
+
+  // ---------- UI refs ----------
+  const qIndexEl = byId("qIndex");
+  const qTotalEl = byId("qTotal");
+  const scoreEl = byId("scoreNow");
+  const qBadge = byId("qBadge");
+  const qName = byId("qName");
+  const qType = byId("qType");
+  const qBody = byId("qBody");
+  const timerBox = byId("timerBox");
+  const timeLeftEl = byId("timeLeft");
+  const overlay = byId("overlay");
+  const ovAns = byId("ovAns");
+
+  // Teacher controls
+  const inpTotal = byId("inpTotal");
+  const selDigits = byId("selDigits");
+  const inpTime = byId("inpTime");
+  const selShowTimer = byId("selShowTimer");
+  const ckCount = byId("ckCount");
+  const ckWords = byId("ckWords");
+  const ckValue = byId("ckValue");
+  const ckOrder = byId("ckOrder");
+  const ckPattern = byId("ckPattern");
+  const ckFormDigits = byId("ckFormDigits");
+  const ckAddSub = byId("ckAddSub");
+  const ckAutoGrade = byId("ckAutoGrade");
+
+  // Auto-grade toggle state
+  let autoGradeEnabled = true;
+  if(ckAutoGrade){ autoGradeEnabled = !!ckAutoGrade.checked; ckAutoGrade.addEventListener('change', ()=>{ autoGradeEnabled = !!ckAutoGrade.checked; }); }
+
+  // Buttons
+  const btnNewSet = byId("btnNewSet");
+  const btnResetScore = byId("btnResetScore");
+  const btnCheck = byId("btnCheck");
+  const btnShowAns = byId("btnShowAns");
+  const btnPrev = byId("btnPrev");
+  const btnNext = byId("btnNext");
+  const btnToggleTeacher = byId("btnToggleTeacher");
+
+  // ---------- timer ----------
+  function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
+
+  function updateTimerUI(){
+    const show = selShowTimer.value === "show";
+    timerBox.classList.toggle("timerHide", !show);
+    timeLeftEl.textContent = (timeLeft>0 ? String(timeLeft) : "--");
+    if(show){
+      const dot = timerBox.querySelector(".timerDot");
+      if(dot){
+        if(timeLeft>0 && timeLeft<=5){
+          dot.style.background = "var(--c5)";
+          dot.style.boxShadow = "0 0 0 4px rgba(239,68,68,.18)";
+        }else{
+          dot.style.background = "var(--c4)";
+          dot.style.boxShadow = "0 0 0 4px rgba(245,158,11,.18)";
+        }
+      }
+    }
+  }
+
+  function startTimer(){
+    stopTimer();
+    const secs = clamp(Number(inpTime.value||0), 0, 999);
+    if(secs<=0){
+      timeLeft = 0;
+      updateTimerUI();
+      return;
+    }
+    timeLeft = secs;
+    updateTimerUI();
+    timer = setInterval(()=>{
+      timeLeft--;
+      if(timeLeft<=0){
+        timeLeft = 0;
+        updateTimerUI();
+        stopTimer();
+        onTimeUp();
+      }else{
+        updateTimerUI();
+      }
+    }, 1000);
+  }
+
+  async function onTimeUp(){
+    if(checkedThisQ) return;
+    showAnswer(true);
+    await playTimeUpSound();
+    overlay.style.display="flex";
+    ovAns.textContent = "Answer: " + Q[qi].answerText;
+  }
+
+  // ---------- rendering helpers ----------
+  function updateTop(){
+    qIndexEl.textContent = String(qi+1);
+    qTotalEl.textContent = String(Q.length);
+    scoreEl.textContent = String(score);
+    qBadge.textContent = String(qi+1);
+  }
+
+  function makeResultBox(){
+    const box=document.createElement("div");
+    box.className="result";
+    box.id="resultBox";
+    box.innerHTML = `<h3 id="resultTitle">Result</h3><p id="resultText"></p>`;
+    return box;
+  }
+
+  function renderInput(labelText, type, id, placeholder){
+    const wrap=document.createElement("div");
+    wrap.className="answerArea";
+    wrap.innerHTML = `
+      <div class="grow">
+        <label>${labelText}</label>
+        <input id="${id}" type="${type}" ${type==="number"?'inputmode="numeric"':''} placeholder="${placeholder||""}"/>
+      </div>
+    `;
+    return wrap;
+  }
+
+  function makeDisc(text, cls){
+    const d=document.createElement("div");
+    d.className="disc "+cls;
+    d.innerHTML = `<span class="txt">${text}</span>`;
+    return d;
+  }
+
+  function renderPVDiscs({th,h,t,o}){
+    const board=document.createElement("div");
+    board.className="pvBoard";
+    board.innerHTML = `
+      <div class="pvHead">
+        <div>Thousands</div><div>Hundreds</div><div>Tens</div><div>Ones</div>
+      </div>
+      <div class="pvCols">
+        <div class="pvCol" id="pvTh"></div>
+        <div class="pvCol" id="pvH"></div>
+        <div class="pvCol" id="pvT"></div>
+        <div class="pvCol" id="pvO"></div>
+      </div>
+    `;
+    const thCol=board.querySelector("#pvTh");
+    const hCol=board.querySelector("#pvH");
+    const tCol=board.querySelector("#pvT");
+    const oCol=board.querySelector("#pvO");
+
+    for(let i=0;i<th;i++) thCol.appendChild(makeDisc("1000","th"));
+    for(let i=0;i<h;i++)  hCol.appendChild(makeDisc("100","h"));
+    for(let i=0;i<t;i++)  tCol.appendChild(makeDisc("10","t"));
+    for(let i=0;i<o;i++)  oCol.appendChild(makeDisc("1","o"));
+    return board;
+  }
+
+  function renderDigitsBoxes(digits){
+    const row=document.createElement("div");
+    row.className="digitsRow";
+    digits.forEach(d=>{
+      const b=document.createElement("div");
+      b.className="digitBox";
+      b.textContent=String(d);
+      row.appendChild(b);
+    });
+    return row;
+  }
+
+  function renderPatternLine(display){
+    const row=document.createElement("div");
+    row.className="digitsRow";
+    row.style.background = "linear-gradient(135deg, rgba(34,197,94,.10), rgba(6,182,212,.08))";
+    display.forEach(v=>{
+      const b=document.createElement("div");
+      b.className="digitBox";
+      b.style.width="92px";
+      b.textContent=String(v);
+      row.appendChild(b);
+    });
+    return row;
+  }
+
+  function enableDragReorder(container){
+    let dragged = null;
+    container.addEventListener("dragstart", (e)=>{
+      const t = e.target.closest(".digitBox");
+      if(!t) return;
+      dragged = t;
+      e.dataTransfer.setData("text/plain", t.dataset.val || "");
+      e.dataTransfer.effectAllowed="move";
+      setTimeout(()=>{ t.style.opacity=".55"; },0);
+    });
+    container.addEventListener("dragend", (e)=>{
+      const t=e.target.closest(".digitBox");
+      if(t) t.style.opacity="1";
+      dragged=null;
+    });
+    container.addEventListener("dragover", (e)=>{
+      e.preventDefault();
+      const over = e.target.closest(".digitBox");
+      if(!dragged || !over || over===dragged) return;
+      const rect = over.getBoundingClientRect();
+      const after = (e.clientX - rect.left) > rect.width/2;
+      if(after) over.after(dragged);
+      else over.before(dragged);
+    });
+    container.addEventListener("drop", (e)=>e.preventDefault());
+  }
+
+  function renderOrderingTiles(nums){
+    const area=document.createElement("div");
+    area.className="digitsRow";
+    area.style.background = "linear-gradient(135deg, rgba(6,182,212,.10), rgba(99,102,241,.08))";
+    area.id="orderArea";
+
+    shuffle(nums).forEach(n=>{
+      const t=document.createElement("div");
+      t.className="digitBox";
+      t.style.cursor="grab";
+      t.style.userSelect="none";
+      t.draggable=true;
+      t.dataset.val=String(n);
+      t.textContent=String(n);
+      area.appendChild(t);
+    });
+
+    enableDragReorder(area);
+    return area;
+  }
+
+  function setResult(ok, title, html){
+    const box = byId("resultBox");
+    const t = byId("resultTitle");
+    const p = byId("resultText");
+    box.style.display="block";
+    box.classList.toggle("bad", !ok);
+    t.textContent = title;
+    p.innerHTML = html;
+  }
+
+  // ---------- render question ----------
+  function renderQ(){
+    stopTimer();
+    checkedThisQ = false;
+
+    updateTop();
+    const q = Q[qi];
+    qName.textContent = q.name;
+    qType.textContent = q.type;
+
+    qBody.innerHTML = "";
+
+    const prompt=document.createElement("div");
+    prompt.className="prompt";
+    prompt.innerHTML = q.prompt + `<small>Press <b>Check ✅</b> for instant scoring.</small>`;
+    qBody.appendChild(prompt);
+
+    if(q.type==="counting"){
+      qBody.appendChild(renderPVDiscs(q.data));
+      qBody.appendChild(renderInput("Total value", "number", "ansInput", "e.g., 3952"));
+    } else if(q.type==="formDigits"){
+      qBody.appendChild(renderDigitsBoxes(q.data.digits));
+      qBody.appendChild(renderInput("Ans", "number", "ansInput", "4-digit answer"));
+    } else if(q.type==="words"){
+      if(q.data.askType==="wordsToNum"){
+        qBody.appendChild(renderInput("Your answer", "number", "ansInput", "Type the number"));
+      } else {
+        qBody.appendChild(renderInput("Your answer", "text", "ansInput", "Type words (e.g., three thousand nine hundred and fifty-two)"));
+      }
+    } else if(q.type==="value"){
+      qBody.appendChild(renderInput("Your answer", "number", "ansInput", "Answer"));
+    } else if(q.type==="ordering"){
+      qBody.appendChild(renderOrderingTiles(q.data.nums));
+      const tip=document.createElement("div");
+      tip.className="hint";
+      tip.style.marginTop="8px";
+      tip.textContent="Drag the tiles to order them.";
+      qBody.appendChild(tip);
+    } else if(q.type==="addsub"){
+      qBody.appendChild(renderInput("Your answer", "number", "ansInput", "Answer"));
+    } else if(q.type==="pattern"){
+      qBody.appendChild(renderPatternLine(q.data.display));
+      qBody.appendChild(renderInput("Your answer", "number", "ansInput", "Missing number"));
+    }
+
+    qBody.appendChild(makeResultBox());
+
+    startTimer();
+    btnPrev.disabled = (qi===0);
+  }
+
+  // ---------- grading ----------
+  function grade(q){
+    if(q.type==="ordering"){
+      const area = byId("orderArea");
+      const vals = Array.from(area?.querySelectorAll(".digitBox")||[]).map(x=>Number(x.dataset.val));
+      const expected = q.data.sorted;
+      return vals.length===expected.length && vals.every((n,i)=>n===expected[i]);
+    }
+    const inp = byId("ansInput");
+    const raw = (inp ? inp.value : "").trim();
+
+    if(q.type==="counting" || q.type==="value" || q.type==="pattern" || q.type==="formDigits" || q.type==="addsub"){
+      return Number(raw) === Number(q.answerText);
+    }
+    if(q.type==="words"){
+      if(q.data.askType==="wordsToNum") return Number(raw) === q.data.n;
+      return normalizeWords(raw) === normalizeWords(q.data.words);
+    }
+    return false;
+  }
+
+  function checkCurrent(){
+    unlockAudio();
+    const q = Q[qi];
+
+    const ok = grade(q);
+    if(ok){
+      // prevent double-scoring
+      if(!checkedThisQ){
+        score++;
+        scoreEl.textContent = String(score);
+      }
+      checkedThisQ = true;
+      stopTimer();
+      setResult(true, "Correct ✅",
+        `Great job! <b>${q.answerText}</b> is correct.<br/><span style="color:var(--muted)">${q.explain}</span>`);
+      confettiBoom();
+    }else{
+      setResult(false, "Not yet ✗",
+        `Try again. <b>Hint:</b> check carefully.<br/><span style="color:var(--muted)">You can press <b>Show Answer</b> to learn.</span>`);
+      // keep timer running (if enabled)
+    }
+  }
+
+  function showAnswer(fromTimeUp=false){
+    unlockAudio();
+    const q=Q[qi];
+    setResult(false, fromTimeUp ? "Time's up ⏰" : "Answer 👀",
+      `The correct answer is: <b>${q.answerText}</b><br/><span style="color:var(--muted)">${q.explain}</span>`);
+    checkedThisQ = true;
+    stopTimer();
+    // Record that the answer was shown (teacher/time-up path) if analytics available
+    if(typeof window.recordAttempt === "function"){
+      const sel = (byId("ansInput") ? (byId("ansInput").value||"") : "(no response)");
+      try{ window.recordAttempt(qi+1, q.prompt, q.answerText, sel || "(no response)"); }catch(e){}
+    }
+  }
+
+  // ---------- navigation ----------
+  function go(delta){
+    const next = qi + delta;
+    if(next<0 || next>=Q.length) return;
+    overlay.style.display="none";
+    qi = next;
+    renderQ();
+  }
+
+  // ---------- build set ----------
+  function buildSet(){
+    const total = clamp(Number(inpTotal.value||10), 5, 40);
+    const mode = selDigits.value;
+
+    const types=[];
+    if(ckCount.checked) types.push("counting");
+    if(ckWords.checked) types.push("words");
+    if(ckValue.checked) types.push("value");
+    if(ckOrder.checked) types.push("ordering");
+    if(ckPattern.checked) types.push("pattern");
+    if(ckFormDigits.checked) types.push("formDigits");
+    if(ckAddSub.checked) types.push("addsub");
+    if(types.length===0){ alert("Please tick at least 1 question type."); return; }
+
+    Q = [];
+    for(let i=0;i<total;i++){
+      const t = pick(types);
+      let q;
+      if(t==="counting") q = genCounting(mode);
+      if(t==="words") q = genWords(mode);
+      if(t==="value") q = genValue(mode);          // ✅ unique 4-digit digits ONLY here
+      if(t==="ordering") q = genOrdering(mode);
+      if(t==="pattern") q = genPattern(mode);
+      if(t==="formDigits") q = genFormDigits();
+      if(t==="addsub") q = genAddSub();            // ✅ NEW
+      Q.push(q);
+    }
+
+    qi = 0;
+    score = 0;
+    scoreEl.textContent = "0";
+    renderQ();
+    qTotalEl.textContent = String(Q.length);
+  }
+
+  // ---------- time-up overlay ----------
+  byId("btnCloseOverlay").addEventListener("click", ()=>{ overlay.style.display="none"; });
+  overlay.addEventListener("click", (e)=>{ if(e.target===overlay) overlay.style.display="none"; });
+
+  // ---------- teacher fullscreen toggle ----------
+  let teacherHidden = false;
+  function setTeacherHidden(h){
+    teacherHidden = !!h;
+    document.body.classList.toggle("fullscreenQ", teacherHidden);
+    btnToggleTeacher.textContent = teacherHidden ? "Show Teacher" : "Hide Teacher";
+  }
+  btnToggleTeacher.addEventListener("click", ()=>{ unlockAudio(); setTeacherHidden(!teacherHidden); });
+
+  // ---------- wiring ----------
+  byId("btnNewSet").addEventListener("click", ()=>{ unlockAudio(); buildSet(); });
+  byId("btnResetScore").addEventListener("click", ()=>{ score=0; scoreEl.textContent="0"; });
+
+  byId("btnCheck").addEventListener("click", checkCurrent);
+  byId("btnShowAns").addEventListener("click", ()=>showAnswer(false));
+  byId("btnPrev").addEventListener("click", ()=>go(-1));
+  byId("btnNext").addEventListener("click", ()=>go(1));
+
+  selShowTimer.addEventListener("change", updateTimerUI);
+
+  // unlock audio on first interaction
+  window.addEventListener("pointerdown", ()=>unlockAudio(), {once:true});
+
+  // ---------- analytics (real-time) ----------
+  (function(){
+    const dock = document.getElementById("analyticsDock");
+    const toggleBtn = document.getElementById("analyticsToggle");
+    const expandBtn = document.getElementById("analyticsExpand");
+    const clearBtn = document.getElementById("analyticsClear");
+    const logEl = document.getElementById("analyticsLog");
+
+    const ANALYTICS_LS_KEY = 'factualfluency::analyticsLog';
+
+    // load persisted analytics (if any)
+    try{
+      const raw = localStorage.getItem(ANALYTICS_LS_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed) && parsed.length){
+          window.__analyticsLog = parsed.slice();
+          parsed.forEach(e=>{ const node = renderEntry(e); logEl.appendChild(node); });
+          scrollToBottom();
+        }
+      }
+    }catch(e){ console.warn('analytics load failed', e); }
+
+    window.__analyticsLog = window.__analyticsLog || [];
+
+    function scrollToBottom(){
+      try{ const body = document.getElementById('analyticsBody'); body.scrollTop = body.scrollHeight; }catch(e){}
+    }
+
+    function formatTime(d){
+      const dt = new Date();
+      return dt.toLocaleTimeString();
+    }
+
+    function renderEntry(e){
+      const wrap = document.createElement('div');
+      wrap.className = 'analytics-entry ' + (e.ok? 'ok':'bad');
+
+      const meta = document.createElement('div'); meta.className='meta';
+      meta.innerHTML = `Q${e.qnum} • ${formatTime()} <div style="color:var(--muted);font-weight:700;margin-top:4px">${e.qtext.replace(/<[^>]+>/g,'').slice(0,60)}</div>`;
+
+      const txt = document.createElement('div'); txt.className='text';
+      txt.innerHTML = `<div><b>Correct:</b> ${String(e.correct)}</div><div style="margin-top:6px"><b>Selected:</b> ${String(e.selected)}</div>`;
+
+      const res = document.createElement('div'); res.className='resultSym';
+      res.textContent = e.ok ? '✅' : '❌';
+
+      wrap.appendChild(meta);
+      wrap.appendChild(txt);
+      wrap.appendChild(res);
+
+      return wrap;
+    }
+
+    function addAnalytics(qnum,qtext,correct,selected,ok){
+      const entry = { qnum, qtext, correct, selected, ok, ts: Date.now() };
+      window.__analyticsLog.push(entry);
+      const node = renderEntry(entry);
+      logEl.appendChild(node);
+      scrollToBottom();
+      // persist
+      try{ localStorage.setItem(ANALYTICS_LS_KEY, JSON.stringify(window.__analyticsLog)); }catch(e){ /* ignore */ }
+    }
+
+    // Public API
+    window.recordAttempt = function(qnum, qtext, correct, selected){
+      try{
+        const norm = (v)=> String(v).trim();
+        const ok = norm(selected) !== '' && norm(norm(selected)) === norm(correct);
+        addAnalytics(qnum, qtext, correct, selected, ok);
+
+        // if xAPI wrapper available and configured, send an xAPI statement
+        try{
+          if(window.ADL && window.ADL.XAPIWrapper && typeof window.ADL.XAPIWrapper.testConfig === 'function' && window.ADL.XAPIWrapper.testConfig()){
+            const verb = (window.ADL && window.ADL.verbs && window.ADL.verbs.answered) ? window.ADL.verbs.answered : { id: 'http://adlnet.gov/expapi/verbs/answered' };
+            const activityId = (window.__ACTIVITY_ID__ || window.location.href) + `#q${qnum}`;
+            const stmt = {
+              verb: verb,
+              object: {
+                id: activityId,
+                definition: {
+                  name: { 'en-US': `Question ${qnum}` },
+                  description: { 'en-US': String(qtext).replace(/<[^>]+>/g,'') }
+                }
+              },
+              result: {
+                response: String(selected),
+                success: !!ok,
+                score: { scaled: ok ? 1 : 0 }
+              }
+            };
+            try{ window.ADL.XAPIWrapper.sendStatement(stmt, function(err,res){ /* optional callback */ }); }catch(e){ console.warn('xAPI sendStatement failed', e); }
+          }
+        }catch(e){ console.warn('xAPI integration error', e); }
+
+        // if collapsed, show a subtle pulse by briefly expanding
+        if(dock.classList.contains('collapsed')){
+          dock.classList.remove('collapsed');
+          setTimeout(()=> dock.classList.add('collapsed'), 2600);
+        }
+      }catch(e){ console.error('analytics.recordAttempt', e); }
+    };
+
+    function recordCurrentAttempt(){
+      try{
+        const q = Q[qi];
+        if(!q) return;
+        let selected = '(no response)';
+        if(q.type === 'ordering'){
+          const area = document.getElementById('orderArea');
+          if(area) selected = Array.from(area.querySelectorAll('.digitBox')).map(x=>x.dataset.val).join(', ');
+        } else {
+          const inp = document.getElementById('ansInput');
+          if(inp) selected = inp.value || '(no response)';
+        }
+        const ok = grade(q);
+        window.recordAttempt(qi+1, q.prompt, q.answerText, selected);
+      }catch(e){ console.error(e); }
+    }
+
+    // Bind UI
+    toggleBtn.addEventListener('click', ()=>{
+      dock.classList.toggle('collapsed');
+      dock.setAttribute('aria-hidden', String(dock.classList.contains('collapsed')));
+      toggleBtn.textContent = dock.classList.contains('collapsed') ? '▶' : '◀';
+    });
+    expandBtn.addEventListener('click', ()=>{ dock.classList.remove('collapsed'); dock.setAttribute('aria-hidden','false'); });
+    clearBtn.addEventListener('click', ()=>{ window.__analyticsLog.length=0; logEl.innerHTML=''; try{ localStorage.removeItem(ANALYTICS_LS_KEY); }catch(e){} });
+
+    // Auto-record after Check and Show Answer
+    try{
+      btnCheck.addEventListener('click', ()=> setTimeout(recordCurrentAttempt, 60));
+      btnShowAns.addEventListener('click', ()=> setTimeout(recordCurrentAttempt, 60));
+    }catch(e){}
+
+    // Auto-bind any custom choice buttons (elements with `.quiz-choice`)
+    // Use `data-answer` or `data-value` or textContent as the selected value.
+    document.addEventListener('click', (ev)=>{
+      try{
+        const el = ev.target.closest && ev.target.closest('.quiz-choice');
+        if(!el) return;
+        const q = Q[qi];
+        if(!q) return;
+        const selected = (el.dataset && (el.dataset.answer || el.dataset.value)) || el.textContent.trim() || '(no response)';
+
+        // If an input exists, populate it so grading uses the choice
+        const inp = document.getElementById('ansInput');
+        if(inp && q.type !== 'ordering'){
+          inp.value = selected;
+        }
+
+        // For ordering, if the choice element contains a comma-separated order, apply it
+        if(q.type === 'ordering'){
+          // expecting data-order or data-value like "3,12,45"
+          const order = (el.dataset && el.dataset.order) || (el.dataset && el.dataset.value) || null;
+          if(order){
+            const area = document.getElementById('orderArea');
+            if(area){
+              // reorder tiles to match provided order
+              const vals = order.split(/\s*,\s*/);
+              vals.forEach(v=>{
+                const tile = area.querySelector(`[data-val='${v}']`);
+                if(tile) area.appendChild(tile);
+              });
+            }
+          }
+        }
+
+        // Auto-grade immediately (if enabled)
+        try{ if(autoGradeEnabled){ checkCurrent(); } }catch(e){ console.warn('auto-grade failed', e); }
+
+        // Record analytics for this selection
+        if(typeof window.recordAttempt === 'function') window.recordAttempt(qi+1, q.prompt, q.answerText, selected);
+      }catch(e){ console.error('quiz-choice binding', e); }
+    });
+
+  })();
+
+  // init
+  setTeacherHidden(false);
+  buildSet();
+})();
+</script>
+</body>
+</html>

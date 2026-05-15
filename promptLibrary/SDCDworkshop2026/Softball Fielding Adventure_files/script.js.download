@@ -1,0 +1,644 @@
+// ===== GAME STATE AND DATA =====
+// Game state object to track current progress
+let gameState = {
+    currentScenario: 0,
+    score: 0,
+    totalScenarios: 5,
+    startTime: Date.now(),
+    soundEnabled: true,
+    correctAnswers: 0
+};
+
+// Scenarios data - each scenario represents a fielding situation in softball
+// MODIFIED: Added visualization data for each scenario
+const scenarios = [
+    {
+        image: '⚾',
+        text: 'A ground ball is hit towards you at shortstop. There\'s a runner on first base. What should you do?',
+        options: [
+            { text: 'Throw directly to first base', correct: false, feedback: 'Not the best choice! With a runner already on first, you should try for the double play.' },
+            { text: 'Throw to second base for the force out', correct: true, feedback: 'Excellent! Throwing to second base gives you a chance at a double play. This is the smart defensive move!' },
+            { text: 'Hold the ball and tag the runner', correct: false, feedback: 'This would be too slow. The runner would likely be safe, and you\'d miss the opportunity for a force out.' },
+            { text: 'Throw to third base', correct: false, feedback: 'There\'s no runner heading to third base yet. Always throw to where you can get an out!' }
+        ],
+        points: 20,
+        // NEW: Visualization data
+        visualization: {
+            ball: { x: 0.35, y: 0.6 }, // Shortstop position
+            runners: [{ base: 1, active: true }],
+            fielder: { x: 0.35, y: 0.6, position: 'SS' },
+            highlight: [2] // Highlight second base
+        }
+    },
+    {
+        image: '🥎',
+        text: 'You\'re playing outfield and a fly ball is hit deep. You realize you can\'t catch it. What\'s your priority?',
+        options: [
+            { text: 'Run as fast as possible to try catching it anyway', correct: false, feedback: 'While effort is good, you need to be realistic. If you can\'t catch it, focus on backup.' },
+            { text: 'Stop running and wait for the ball to land', correct: false, feedback: 'Never give up! You should still pursue the ball to limit the runners\' advancement.' },
+            { text: 'Get behind the ball to prevent extra bases', correct: true, feedback: 'Perfect! By positioning yourself behind the ball, you can quickly retrieve it and prevent runners from taking extra bases.' },
+            { text: 'Call for help from another fielder', correct: false, feedback: 'If the ball is in your zone, it\'s your responsibility. Other fielders have their own positions to cover.' }
+        ],
+        points: 20,
+        // NEW: Visualization data
+        visualization: {
+            ball: { x: 0.7, y: 0.85 }, // Deep outfield
+            runners: [],
+            fielder: { x: 0.6, y: 0.75, position: 'OF' },
+            highlight: [] // No base highlighted
+        }
+    },
+    {
+        image: '🧤',
+        text: 'The bases are loaded with 2 outs. A pop fly is hit near the pitcher\'s mound. You\'re the catcher. What do you do?',
+        options: [
+            { text: 'Stay at home plate and wait', correct: false, feedback: 'You should be more proactive! This is a catchable ball that could end the inning.' },
+            { text: 'Call for the ball and catch it yourself', correct: true, feedback: 'Great decision! As the catcher, you have the best view of the field. Calling for the ball prevents confusion and gets the out!' },
+            { text: 'Let the pitcher catch it', correct: false, feedback: 'The pitcher might not have the best angle. As catcher, you should take charge and make the call.' },
+            { text: 'Point to the first baseman to catch it', correct: false, feedback: 'The catcher is usually in the best position for pop-ups near the mound. Take responsibility!' }
+        ],
+        points: 20,
+        // NEW: Visualization data
+        visualization: {
+            ball: { x: 0.5, y: 0.45 }, // Near pitcher's mound
+            runners: [
+                { base: 1, active: true },
+                { base: 2, active: true },
+                { base: 3, active: true }
+            ],
+            fielder: { x: 0.5, y: 0.25, position: 'C' },
+            highlight: [] // No base highlighted
+        }
+    },
+    {
+        image: '🏃',
+        text: 'You\'re at first base and receive a throw from the outfield. The runner is heading to second. What should you do?',
+        options: [
+            { text: 'Hold the ball at first base', correct: false, feedback: 'The play is at second base now! You need to keep the ball moving to stop the runner.' },
+            { text: 'Throw to second base immediately', correct: true, feedback: 'Excellent! Quick thinking! Throwing to second base can prevent the runner from advancing and shows good field awareness.' },
+            { text: 'Run towards second base with the ball', correct: false, feedback: 'Running with the ball is too slow. A throw is much faster and more effective.' },
+            { text: 'Throw back to the pitcher', correct: false, feedback: 'The runner is advancing! You need to make a play at second base, not return to the pitcher.' }
+        ],
+        points: 20,
+        // NEW: Visualization data
+        visualization: {
+            ball: { x: 0.65, y: 0.35 }, // First base
+            runners: [{ base: 1, active: true, moving: true }],
+            fielder: { x: 0.65, y: 0.35, position: '1B' },
+            highlight: [2] // Highlight second base
+        }
+    },
+    {
+        image: '⚡',
+        text: 'A batter hits a line drive directly at you in the infield. There are runners on base. What\'s your best move?',
+        options: [
+            { text: 'Catch the ball and immediately look for a double play', correct: true, feedback: 'Perfect! Catching the line drive is an out, and checking for runners off base can lead to a double play. Great field awareness!' },
+            { text: 'Duck to avoid getting hit', correct: false, feedback: 'Safety is important, but as a fielder, you should try to make the play! This is a great opportunity for an out.' },
+            { text: 'Catch the ball and throw to first base', correct: false, feedback: 'If you catch the ball, the batter is already out! Look for runners who might be off base instead.' },
+            { text: 'Let the ball go past you to the outfield', correct: false, feedback: 'Never let a catchable ball go by! This is an easy out opportunity.' }
+        ],
+        points: 20,
+        // NEW: Visualization data
+        visualization: {
+            ball: { x: 0.45, y: 0.5 }, // Infield position
+            runners: [
+                { base: 1, active: true },
+                { base: 2, active: true }
+            ],
+            fielder: { x: 0.45, y: 0.5, position: 'IF' },
+            highlight: [1, 2] // Highlight bases with runners
+        }
+    }
+];
+
+// ===== AUDIO SYSTEM =====
+// Create audio context for sound effects (using Web Audio API for offline functionality)
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Function to play a tone (since we can't use external audio files)
+function playSound(frequency, duration, type = 'sine') {
+    if (!gameState.soundEnabled) return;
+    
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch (e) {
+        console.log('Audio not supported');
+    }
+}
+
+// Sound effect functions
+function playCorrectSound() {
+    playSound(523.25, 0.2); // C5
+    setTimeout(() => playSound(659.25, 0.2), 100); // E5
+    setTimeout(() => playSound(783.99, 0.3), 200); // G5
+}
+
+function playIncorrectSound() {
+    playSound(200, 0.3, 'sawtooth');
+}
+
+function playClickSound() {
+    playSound(400, 0.1, 'square');
+}
+
+function playNextSound() {
+    playSound(440, 0.15);
+}
+
+// ===== NEW: FIELD VISUALIZATION SYSTEM =====
+// Function to draw the softball field and scenario visualization
+function drawFieldVisualization(scenarioData) {
+    const canvas = document.getElementById('field-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size based on container
+    const container = document.getElementById('field-visualization');
+    const containerWidth = container.clientWidth - 24; // Account for padding
+    canvas.width = Math.min(containerWidth, 400);
+    canvas.height = canvas.width * 0.75; // 4:3 aspect ratio
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw grass background
+    ctx.fillStyle = '#4CAF50';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw infield dirt (diamond shape)
+    ctx.fillStyle = '#D2691E';
+    ctx.beginPath();
+    ctx.moveTo(width * 0.5, height * 0.2); // Home plate
+    ctx.lineTo(width * 0.65, height * 0.35); // First base
+    ctx.lineTo(width * 0.5, height * 0.5); // Second base
+    ctx.lineTo(width * 0.35, height * 0.35); // Third base
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw bases
+    const bases = [
+        { x: 0.5, y: 0.2, label: 'Home' },
+        { x: 0.65, y: 0.35, label: '1st' },
+        { x: 0.5, y: 0.5, label: '2nd' },
+        { x: 0.35, y: 0.35, label: '3rd' }
+    ];
+    
+    bases.forEach((base, index) => {
+        // Highlight base if specified in scenario
+        if (scenarioData.highlight && scenarioData.highlight.includes(index)) {
+            ctx.fillStyle = '#FFD700';
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(width * base.x - 12, height * base.y - 12, 24, 24);
+            ctx.shadowBlur = 0;
+        } else {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(width * base.x - 10, height * base.y - 10, 20, 20);
+        }
+        
+        // Draw base label
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(base.label, width * base.x, height * base.y + 25);
+    });
+    
+    // Draw runners on bases
+    if (scenarioData.runners) {
+        scenarioData.runners.forEach(runner => {
+            if (runner.active) {
+                const base = bases[runner.base];
+                ctx.fillStyle = runner.moving ? '#FF6B6B' : '#2196F3';
+                ctx.beginPath();
+                ctx.arc(width * base.x, height * base.y - 20, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw runner icon
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('R', width * base.x, height * base.y - 16);
+            }
+        });
+    }
+    
+    // Draw fielder position
+    if (scenarioData.fielder) {
+        const fielder = scenarioData.fielder;
+        ctx.fillStyle = '#764ba2';
+        ctx.beginPath();
+        ctx.arc(width * fielder.x, height * fielder.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw fielder label
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(fielder.position, width * fielder.x, height * fielder.y + 4);
+    }
+    
+    // Draw ball position
+    if (scenarioData.ball) {
+        const ball = scenarioData.ball;
+        // Draw ball shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.arc(width * ball.x + 2, height * ball.y + 2, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw ball
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeStyle = '#FFA500';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(width * ball.x, height * ball.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Add animation effect to ball
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(width * ball.x, height * ball.y, 12, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
+    // Draw legend
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillRect(5, 5, 120, 60);
+    ctx.fillStyle = '#333';
+    ctx.font = '11px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Legend:', 10, 20);
+    ctx.fillText('⚫ Fielder', 10, 35);
+    ctx.fillText('🔵 Runner', 10, 50);
+    ctx.fillText('🟡 Ball', 10, 65);
+}
+
+// ===== ANALYTICS SYSTEM =====
+// Function to log actions for teacher analytics
+function logAction(action, details = '') {
+    const elapsed = Math.round((Date.now() - gameState.startTime) / 1000);
+    const logEntry = document.createElement('div');
+    logEntry.className = 'log-entry';
+    
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'log-time';
+    timeSpan.textContent = `t=${elapsed}s`;
+    
+    const actionSpan = document.createElement('span');
+    actionSpan.className = 'log-action';
+    actionSpan.textContent = ` ${action}`;
+    if (details) {
+        actionSpan.textContent += ` - ${details}`;
+    }
+    
+    logEntry.appendChild(timeSpan);
+    logEntry.appendChild(actionSpan);
+    
+    const analyticsContent = document.getElementById('analytics-content');
+    analyticsContent.insertBefore(logEntry, analyticsContent.firstChild);
+    
+    // Keep only last 50 entries to prevent memory issues
+    while (analyticsContent.children.length > 50) {
+        analyticsContent.removeChild(analyticsContent.lastChild);
+    }
+}
+
+// ===== GAME INITIALIZATION =====
+// Initialize the game when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    logAction('🎮 Game Started', 'Softball Fielding Adventure initialized');
+    loadScenario(0);
+    setupEventListeners();
+});
+
+// ===== EVENT LISTENERS =====
+// Set up all button and interaction event listeners
+function setupEventListeners() {
+    // Sound toggle button
+    const soundToggle = document.getElementById('sound-toggle');
+    soundToggle.addEventListener('click', function() {
+        gameState.soundEnabled = !gameState.soundEnabled;
+        this.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+        this.classList.toggle('muted');
+        playClickSound();
+        logAction('🔊 Sound Toggled', gameState.soundEnabled ? 'ON' : 'OFF');
+    });
+    
+    // Analytics toggle button
+    const analyticsToggle = document.getElementById('analytics-toggle');
+    const analyticsPanel = document.getElementById('analytics-panel');
+    analyticsToggle.addEventListener('click', function() {
+        analyticsPanel.classList.toggle('collapsed');
+        playClickSound();
+        const isOpen = !analyticsPanel.classList.contains('collapsed');
+        logAction('📊 Analytics Panel', isOpen ? 'Opened' : 'Closed');
+    });
+    
+    // Clear log button
+    const clearLog = document.getElementById('clear-log');
+    clearLog.addEventListener('click', function() {
+        document.getElementById('analytics-content').innerHTML = '';
+        playClickSound();
+        logAction('🗑️ Log Cleared', 'All previous logs removed');
+    });
+    
+    // Restart button
+    const restartBtn = document.getElementById('restart-btn');
+    restartBtn.addEventListener('click', function() {
+        playClickSound();
+        logAction('🔄 Game Restarted', 'Player chose to play again');
+        resetGame();
+    });
+    
+    // Next button
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.addEventListener('click', function() {
+        playNextSound();
+        nextScenario();
+    });
+    
+    // MODIFIED: Add window resize listener to redraw canvas
+    window.addEventListener('resize', function() {
+        if (gameState.currentScenario < scenarios.length) {
+            drawFieldVisualization(scenarios[gameState.currentScenario].visualization);
+        }
+    });
+}
+
+// ===== SCENARIO MANAGEMENT =====
+// Load and display a scenario
+// MODIFIED: Added field visualization rendering
+function loadScenario(index) {
+    if (index >= scenarios.length) {
+        endGame();
+        return;
+    }
+    
+    const scenario = scenarios[index];
+    gameState.currentScenario = index;
+    
+    // Update progress bar
+    updateProgress();
+    
+    // Update scenario display
+    document.getElementById('scenario-image').textContent = scenario.image;
+    document.getElementById('scenario-text').textContent = scenario.text;
+    
+    // NEW: Draw field visualization
+    drawFieldVisualization(scenario.visualization);
+    
+    // Hide feedback container
+    document.getElementById('feedback-container').classList.add('hidden');
+    
+    // Create option buttons
+    const optionsContainer = document.getElementById('options-container');
+    optionsContainer.innerHTML = '';
+    
+    scenario.options.forEach((option, optionIndex) => {
+        const button = document.createElement('button');
+        button.className = 'option-btn';
+        button.textContent = option.text;
+        button.addEventListener('click', () => selectOption(optionIndex));
+        
+        // Add touch support
+        button.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            this.style.transform = 'scale(0.98)';
+        });
+        button.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            this.style.transform = '';
+            selectOption(optionIndex);
+        });
+        
+        optionsContainer.appendChild(button);
+    });
+    
+    logAction('📝 Scenario Loaded', `Scenario ${index + 1}: ${scenario.text.substring(0, 50)}...`);
+}
+
+// Handle option selection
+function selectOption(optionIndex) {
+    const scenario = scenarios[gameState.currentScenario];
+    const option = scenario.options[optionIndex];
+    const buttons = document.querySelectorAll('.option-btn');
+    
+    // Disable all buttons
+    buttons.forEach(btn => btn.disabled = true);
+    
+    // Highlight selected button
+    const selectedButton = buttons[optionIndex];
+    
+    if (option.correct) {
+        selectedButton.classList.add('correct');
+        gameState.score += scenario.points;
+        gameState.correctAnswers++;
+        updateScore();
+        playCorrectSound();
+        logAction('✅ Correct Answer', `Selected: "${option.text}" | +${scenario.points} points | Total: ${gameState.score}`);
+    } else {
+        selectedButton.classList.add('incorrect');
+        playIncorrectSound();
+        logAction('❌ Incorrect Answer', `Selected: "${option.text}" | No points awarded`);
+        
+        // Highlight correct answer
+        buttons.forEach((btn, idx) => {
+            if (scenario.options[idx].correct) {
+                setTimeout(() => btn.classList.add('correct'), 500);
+            }
+        });
+    }
+    
+    // Show feedback
+    setTimeout(() => showFeedback(option), 600);
+}
+
+// Display feedback for selected option
+function showFeedback(option) {
+    const feedbackContainer = document.getElementById('feedback-container');
+    const feedbackIcon = document.getElementById('feedback-icon');
+    const feedbackText = document.getElementById('feedback-text');
+    
+    feedbackIcon.textContent = option.correct ? '🎉' : '💭';
+    feedbackText.textContent = option.feedback;
+    
+    feedbackContainer.classList.remove('hidden');
+}
+
+// Move to next scenario
+function nextScenario() {
+    const nextIndex = gameState.currentScenario + 1;
+    if (nextIndex < scenarios.length) {
+        loadScenario(nextIndex);
+    } else {
+        endGame();
+    }
+}
+
+// ===== UI UPDATES =====
+// Update score display
+function updateScore() {
+    document.getElementById('score').textContent = gameState.score;
+}
+
+// Update progress bar
+function updateProgress() {
+    const progress = ((gameState.currentScenario + 1) / gameState.totalScenarios) * 100;
+    document.getElementById('progress-bar').style.width = progress + '%';
+    document.getElementById('progress-text').textContent = `${gameState.currentScenario + 1}/${gameState.totalScenarios}`;
+}
+
+// ===== GAME END =====
+// End the game and show results
+function endGame() {
+    const endScreen = document.getElementById('end-screen');
+    const finalScore = document.getElementById('final-score');
+    const performanceSummary = document.getElementById('performance-summary');
+    
+    const maxScore = scenarios.reduce((sum, s) => sum + s.points, 0);
+    const percentage = Math.round((gameState.score / maxScore) * 100);
+    
+    finalScore.textContent = `${gameState.score} / ${maxScore} points`;
+    
+    let performance = '';
+    let emoji = '';
+    
+    if (percentage >= 90) {
+        performance = 'Outstanding! You\'re a softball fielding expert! 🌟';
+        emoji = '🏆';
+    } else if (percentage >= 70) {
+        performance = 'Great job! You have solid fielding knowledge! 👏';
+        emoji = '🥈';
+    } else if (percentage >= 50) {
+        performance = 'Good effort! Keep practicing your fielding skills! 💪';
+        emoji = '🥉';
+    } else {
+        performance = 'Keep learning! Review the scenarios and try again! 📚';
+        emoji = '⭐';
+    }
+    
+    document.getElementById('trophy').textContent = emoji;
+    performanceSummary.innerHTML = `
+        <p>${performance}</p>
+        <p>You answered ${gameState.correctAnswers} out of ${gameState.totalScenarios} scenarios correctly.</p>
+        <p>Accuracy: ${percentage}%</p>
+    `;
+    
+    endScreen.classList.remove('hidden');
+    
+    logAction('🏁 Game Completed', `Final Score: ${gameState.score}/${maxScore} (${percentage}%) | Correct: ${gameState.correctAnswers}/${gameState.totalScenarios}`);
+}
+
+// ===== GAME RESET =====
+// Reset game to initial state
+function resetGame() {
+    // Reset game state
+    gameState = {
+        currentScenario: 0,
+        score: 0,
+        totalScenarios: 5,
+        startTime: Date.now(),
+        soundEnabled: gameState.soundEnabled, // Preserve sound setting
+        correctAnswers: 0
+    };
+    
+    // Hide end screen
+    document.getElementById('end-screen').classList.add('hidden');
+    
+    // Reset UI
+    updateScore();
+    updateProgress();
+    
+    // Load first scenario
+    loadScenario(0);
+    
+    // Collapse analytics panel
+    document.getElementById('analytics-panel').classList.add('collapsed');
+}
+
+// ===== TOUCH SUPPORT =====
+// Add touch event support for mobile devices
+document.addEventListener('touchstart', function() {}, {passive: true});
+
+// Prevent default touch behavior on buttons to avoid double-tap zoom
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', function(e) {
+            // Allow the click event to fire but prevent zoom
+        }, {passive: true});
+    });
+});
+
+// ===== RESPONSIVE ADJUSTMENTS =====
+// Adjust layout based on viewport height
+function adjustLayout() {
+    const app = document.getElementById('app');
+    if (window.innerHeight > 500 && window.self === window.top) {
+        // Opened in new tab
+        app.style.height = '90vh';
+        document.body.classList.remove('iframe-mode');
+    } else {
+        // In iframe
+        app.style.height = '450px';
+        document.body.classList.add('iframe-mode');
+    }
+}
+
+window.addEventListener('load', adjustLayout);
+window.addEventListener('resize', adjustLayout);
+
+// ===== ACCESSIBILITY =====
+// Keyboard navigation support
+document.addEventListener('keydown', function(e) {
+    // Press 'R' to restart
+    if (e.key === 'r' || e.key === 'R') {
+        const endScreen = document.getElementById('end-screen');
+        if (!endScreen.classList.contains('hidden')) {
+            resetGame();
+        }
+    }
+    
+    // Press 'L' to toggle analytics
+    if (e.key === 'l' || e.key === 'L') {
+        const analyticsPanel = document.getElementById('analytics-panel');
+        analyticsPanel.classList.toggle('collapsed');
+    }
+    
+    // Press 'M' to toggle sound
+    if (e.key === 'm' || e.key === 'M') {
+        const soundToggle = document.getElementById('sound-toggle');
+        soundToggle.click();
+    }
+    
+    // Number keys 1-4 to select options
+    if (e.key >= '1' && e.key <= '4') {
+        const optionIndex = parseInt(e.key) - 1;
+        const buttons = document.querySelectorAll('.option-btn');
+        if (buttons[optionIndex] && !buttons[optionIndex].disabled) {
+            buttons[optionIndex].click();
+        }
+    }
+});
+
+// Log keyboard shortcuts on load
+setTimeout(() => {
+    logAction('⌨️ Keyboard Shortcuts', 'R=Restart | L=Log | M=Mute | 1-4=Select Option');
+}, 1000);

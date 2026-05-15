@@ -1,0 +1,122 @@
+<?php
+//-------------------------Start of utilities functions-----------------------------------
+	function endsWith($FullStr, $EndStr) {
+		$StrLen = strlen($EndStr); // Get the length of the end string
+		$FullStrEnd = substr($FullStr, strlen($FullStr) - $StrLen); // Look at the end of FullStr for the substring the size of EndStr
+		return $FullStrEnd == $EndStr; // If it matches, it does end with EndStr
+	}
+  
+	function startsWith($haystack, $needle) {
+		return substr($haystack, 0, strlen($needle)) === $needle;
+	}
+  
+	function stringMatch($haystack, $needle){
+		$matchresult = false;
+		foreach($haystack as $element=>$action) {
+			switch($action)
+			{
+				case "Exact": 
+				$matchresult = strcasecmp($element, $needle) === 0; //0 = match	
+				break;
+				case "Prefix":
+				$matchresult = startsWith($needle, $element); //tt: find element in needle
+				break;
+				case "Suffix":
+				$matchresult = endsWith($needle, $element);   //tt: find element in needle
+				break;
+				//case "Pattern":
+				//$matchresult = preg_match($element, $needle);
+			}
+			if ($matchresult) return $matchresult;
+		}
+		return $matchresult;
+	}
+  
+  
+	function listDir($prefix, $baseAddress, $dir, $tab, $excludefolders) { 
+		$tab = $tab . "  ";  //TT: indentation in the generated XML code
+
+		#Get the directory listing and sort it into 2 arrays - folders and files - to allow comparison
+		$dh = opendir($dir);
+		while (false !== ($filename = readdir($dh))) {
+			$path = $dir . "/" . $filename;
+			if (is_dir($path)) 
+				$folders[] = $filename;
+			else
+				$files[] = $filename;
+		}
+		sort($folders);
+		sort($files);  														
+															
+		# process recursively the subdirectories first
+		//sample generated XML code:
+		// <dir url="http://localhost/01_measurement/" name="01_measurement">
+		//     <dir url="http://localhost/01_measurement/ejs/" html="info.html" name="ejs">
+		//     </dir>
+		//     ... 
+		// </dir>
+		foreach($folders as $foldername) {			
+			if(!stringMatch($excludefolders, $foldername)){
+				$path = $dir . "/" . $foldername;
+				
+				# entry for the directory	
+				print $tab . '<dir url="' . $baseAddress . $foldername . '/"';
+				if (file_exists($path . "/info.html")) 
+					print ' html="info.html"';
+				print ' name="' . $foldername . '">' . "\n";
+				print listDir ($prefix, $baseAddress . $foldername . "/", $path, $tab, $excludefolders, $includefiles);   //TT: This will recursively "navigate" into folders within.
+				print $tab . "</dir>\n";
+			} 
+		}
+		
+		# process now the models (ZIP files)  
+		//sample generated XML code
+		//<model name="horizontalverticalsincos" html="ejss_model_horizontalverticalsincos.html" zip="ejss_model_horizontalverticalsincos.zip">ejss_model_horizontalverticalsincos</model>
+		$prefixLength = strlen($prefix);
+		foreach($files as $filename) {		  
+			if (!startsWith($filename,$prefix)) continue; 		// Only files with the correct prefix
+			if (!endsWith($filename,".zip")) continue; 			// Only zip files
+
+			$plainname = substr($filename,0,strlen($filename)-4);
+			$name = substr($plainname,$prefixLength);
+			print $tab . "<model";
+			print ' name="' . $name . '"';
+			$htmlfile = $plainname . ".html";
+			if (file_exists($dir . "/" . $htmlfile)) print ' html="' . $htmlfile . '"';
+			else {
+			$htmlfile = "ejss_html_" . $name . ".html";
+			if (file_exists($dir . "/" . $htmlfile)) print ' html="' . $htmlfile . '"';
+			}
+			print ' zip="' . $filename . '">' . $plainname . "</model>\n";
+		}
+	}
+//-------------------------End of utilities functions-----------------------------------
+
+
+//------------------------------------Main----------------------------------------------
+	//Format: key => action where key is the folder name to be excluded
+	//                            action is the type of name comparison. 
+	//                            Valid action values are: "Exact" (exact match), "Prefix" (begins with), "Suffix" (ends with)
+	//Special folders that needed to be excluded: . = current location, .. = parent location, _ = hidden files,   
+	$excludefolders = array("." => "Exact",
+							".."=> "Exact",
+							"_"=> "Exact",
+							"ejs" => "Exact", 
+							"trz" => "Exact",
+							"flash" => "Exact",
+							"xls" => "Exact",
+							"swf" => "Exact",
+							"ejss_model_" => "Prefix"); 		  
+	
+	$baseAddress =  "http://" . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
+	$baseAddress = substr($baseAddress,0,strlen($baseAddress)-strlen(strrchr($baseAddress, "/"))+1);
+	$prefix = $_GET["prefix"];
+	if ($prefix=="") $prefix = "ejss_model_";
+		
+	print '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+	print '<dir url="' . $baseAddress . '"'; 
+	if (file_exists("info.html")) $code .= ' html="info.html"';
+	print ">\n";
+	print listDir ($prefix,$baseAddress,".","  ", $excludefolders);
+	print "</dir>\n";
+?>

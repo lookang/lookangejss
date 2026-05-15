@@ -1,0 +1,593 @@
+<html>
+
+ <style type='text/css'>
+   p {font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; margin-top: 20px; margin-left:20px;}
+   /* #mainTable { width: 100%; font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif} */
+   /* #mainTable td { vertical-align:top; font-size: 10pt; } */
+   .button { font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; font-size: 120%; padding: 10px; width: 100% }
+   .box { font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; font-size: 100%; padding: 2px; }
+   #titable th { padding: 5px; margin: 5px;}
+   #titable td { text-align : center }
+   .greenbg { background-color: #66FF66 !important; }
+   .redbg { background-color: pink !important; }
+   .inputbg { background-color: #FFFF00 !important; }
+   .titlebg { background-color: #ccddff !important; font-weight: bold; line-height: 200%; text-align : center; padding: 5px; margin: 5px; width: 100%; text-transform: uppercase;}
+   #fx stop:nth-child(1){
+     stop-color: white;
+   }
+
+   #fx stop:nth-child(2){
+     stop-color: white;
+   }
+
+   #fx stop:nth-child(3){
+     stop-color: white;
+   }
+
+   /* Removed old ul/li styles */
+
+	.hover_img a { position:relative;}
+	.hover_img a span { position:absolute; display:none; z-index:99; background-color: #ffffff;
+	width: 300px; padding: 10px;
+        left:50%;
+  	-webkit-transform: translateX(-50%);
+  	-ms-transform: translateX(-50%);
+  	transform: translateX(-50%);}
+	.hover_img a:hover span { display:block; }
+
+ </style>
+ <link rel="stylesheet" href="cs/jquery-ui.css">
+ <link rel="stylesheet" href="cs/bootstrap.min.css">
+ <script src="js/jquery-3.6.0.min.js"></script> <!-- Use full jQuery -->
+ <script src="js/jquery-ui.js"></script> <!-- Load jQuery UI after jQuery -->
+ <script src="js/jquery.ui.touch-punch.min.js"></script> <!-- Add Touch Punch -->
+ <script src="js/jquery.stickytableheaders.min.js"></script>
+ <script type="text/javascript" src="js/loader.js"></script>
+ <!-- Popper.js and Bootstrap JS remain -->
+ <script src="js/popper.min.js"></script>
+ <script src="js/bootstrap.min.js"></script>
+
+ <!-- Google Analytics -->
+ <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+ <script>
+   window.dataLayer = window.dataLayer || [];
+   function gtag(){dataLayer.push(arguments);}
+   gtag('js', new Date());
+
+   gtag('config', 'G-S9EWRY1CPJ');
+ </script>
+
+ <!-- Google AdSense -->
+ <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+ <script type="text/javascript">
+
+  google.charts.load('current', {'packages':['corechart']});  // Load the Visualization API and the corechart package.
+  google.charts.setOnLoadCallback(firstLoad);                 // Set a callback to run when the Google Visualization API is loaded.
+
+  var buretteVol = 0;
+  var initMol = -1;
+  var totVol = 0;
+  var pageLoaded = false; // Added pageLoaded flag
+
+  function createSVG(n,a,b){
+   var xmlns = "http://www.w3.org/2000/svg";
+   var e     = document.createElementNS (xmlns, n);
+   for(var k in a){
+     e.setAttributeNS (null, k,a[k]);
+   }
+   for(var k in b){
+     e.setAttribute (k,b[k]);
+   }
+   return e;
+ };
+
+ function firstLoad() {
+   $(document).ready( function() {
+    $("#titable tbody").html( $("#titable tbody").html() + "<tr><td>" + buretteVol.toFixed(2) + "</td><td>" + calculatePH().toFixed(2) + "</td><td>" + totVol.toFixed(2) + "</td></tr>");
+    updateNeutralisation();
+    // $('#titable').stickyTableHeaders({ scrollableArea: $('#titable').parent() , fixedOffset:-30 }); // Consider re-enabling if needed
+    $( "#acidSlider" ).slider({
+     value:100,
+     min: 5,
+     max: 200,
+     step: 5,
+     slide: function( event, ui ) {
+      setFloat("aconc", ui.value / 100);
+     },
+     stop: function( event, ui ) {
+      updateNeutralisation();
+     }
+    });
+    $( "#baseSlider" ).slider({
+     value:100,
+     min: 5,
+     max: 200,
+     step: 5,
+     slide: function( event, ui ) {
+      setFloat("bconc", ui.value / 100);
+     },
+     stop: function( event, ui ) {
+      updateNeutralisation();
+     }
+
+    });
+    $( "#stopTSlider" ).slider({
+     value:500,
+     min: 10,
+     max: 500,
+     step: 10,
+     slide: function( event, ui ) {
+      setFloat("stopt", ui.value / 10);
+     }
+    });
+    pageLoaded = true; // Set flag when page is ready
+    // Initialize Bootstrap tooltips
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
+    });
+     // Redraw chart on window resize for responsiveness
+     $(window).resize(function(){
+        drawChart();
+    });
+    // Initial chart draw
+    drawChart();
+   });
+  }
+
+  function drawChart() {
+   // Create the data table.
+   var data = new google.visualization.DataTable();
+   data.addColumn('number', 'Volume');
+   data.addColumn('number', 'pH');
+   var rows = $("#titable tbody tr");
+   for (i = 0; i < rows.length; i++)
+    data.addRow([ parseFloat($( rows[i] ).children()[0].innerHTML), parseFloat( $( rows[i] ).children()[1].innerHTML ) ]);
+
+   // Set chart options - Removed fixed width/height
+   var options = {
+                  hAxis: { title: 'Volume of weak base added / cm3',
+                  titleTextStyle: {color: '#FF0000', bold: 1, italic: 0, fontSize: 16, fontName: 'Lucida Sans Unicode' }, // Smaller font
+                  viewWindow: { min: 0, max: 50 }, ticks: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]},
+                  vAxis: { title: 'pH', titleTextStyle: {color: '#FF0000', bold: 1, italic: 0, fontSize: 16, fontName: 'Lucida Sans Unicode' }, // Smaller font
+                  viewWindow: { min: 0, max: 14 }, ticks: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] },
+                  chartArea: { top: 20, width: '80%', height: '75%' }, // Adjusted chart area
+                  legend: {position: 'none'},
+                  width: '100%', // Make chart responsive
+                  height: '100%', // Let container control height
+		              lineWidth: 3,
+          	      colors: ['black']
+                  };
+
+   // Instantiate and draw our chart, passing in some options.
+   var chart_div = document.getElementById('chart_div');
+   var chart = new google.visualization.LineChart(chart_div); // Ensure chart_div exists
+
+   google.visualization.events.addListener(chart, 'ready', function() {
+       // Add a small delay to ensure SVG is rendered, or check repeatedly
+       setTimeout(function() {
+           var svg = chart_div.querySelector('svg');
+           if (!svg) {
+               console.error("SVG element not found in chart_div after ready event.");
+               return; // Exit if SVG not found
+           }
+
+           var gradient = createSVG('linearGradient', {x1:0,y1:0, x2:0, y1:1}, {id:'fx'});
+           var defs = svg.querySelector('defs');
+           if (!defs) {
+               defs = createSVG('defs', {}, {});
+               // Ensure there's a first child to insert before, otherwise just append
+               if (svg.firstChild) {
+                   svg.insertBefore(defs, svg.firstChild);
+               } else {
+                   svg.appendChild(defs);
+               }
+           }
+
+           // Clear existing gradients if any to avoid duplicates on resize
+           var existingGrad = defs.querySelector('#fx');
+           if (existingGrad) {
+               defs.removeChild(existingGrad);
+           }
+           defs.appendChild(gradient);
+           gradient.appendChild(createSVG('stop',{offset:'0%'}));
+           gradient.appendChild(createSVG('stop',{offset:'25%'}));
+           gradient.appendChild(createSVG('stop',{offset:'50%'}));
+           gradient.appendChild(createSVG('stop',{offset:'100%'}));
+
+           // Safely apply gradient fill
+           var rectElement = $(svg).find("[clip-path]").parent().find("rect").first();
+           if (rectElement.length > 0) {
+               rectElement.attr("fill", "url(#fx)").attr("fill-opacity", "1");
+           } else {
+               console.warn("Could not find the rectangle element to apply gradient fill.");
+           }
+           changeChartColor($("#indtype").val());
+       }, 100); // Small delay (100ms) - adjust if needed
+   });
+
+
+   function selectHandler() {
+    var selectedItem = chart.getSelection()[0];
+    if (selectedItem) {
+     var pX = data.getValue(selectedItem.row, 0).toFixed(2);
+     var pY = data.getValue(selectedItem.row, 1).toFixed(2);
+     $("#pX").val(pX);
+     $("#pY").val(pY);
+    }
+   }
+
+   google.visualization.events.addListener(chart, 'select', selectHandler);
+   chart.draw(data, options)
+  }
+
+  function getFloat(id) {
+   return parseFloat( $("#"+id).val() );
+  }
+
+  function setFloat(id, v) {
+   $("#"+id).val( parseFloat(v).toFixed(2) ) ;
+  }
+
+  function calculatepKb() {
+   var x = (-Math.log10(getFloat("Kb"))).toFixed(2);
+   $("#pKb").val(x);
+
+   if(getFloat("pKb")<2 || getFloat("pKb")>10)
+    {alert("check Kb value, use scientific notation");}
+  }
+
+  function pHWB() {
+   return 14 + Math.log10(Math.sqrt( getFloat("Kb") * getFloat("bconc") ));
+  }
+
+  function pHBB(concB, concS) {
+   return 14 - (-Math.log10(getFloat("Kb")) + (Math.log10(concS/concB)));
+  }
+
+  function pHWA(conc) {
+   return -Math.log10(Math.sqrt(1e-14/getFloat("Kb")*conc));
+  }
+
+  function pHSA(conc) {
+   return -Math.log10(conc)
+  }
+
+  function calculatePH() {
+   if ( buretteVol.toFixed(2) == 0 ) {
+    return pHSA(getFloat("aconc") * getFloat("atype"));
+   } else if (buretteVol.toFixed(2) == getFloat("bvol").toFixed(2) ) {
+    return pHWA(initMol/totVol);
+   } else if (buretteVol < getFloat("bvol") ) {
+    return pHSA( (initMol - buretteVol * getFloat("bconc")) / (totVol) );
+   } else if (buretteVol > getFloat("bvol") ) {
+    return pHBB( ( buretteVol * getFloat("bconc") - initMol ), (initMol) );
+   }
+  }
+
+  function initVars() {
+   initMol = getFloat("aconc") * getFloat("avol") * getFloat("atype");
+   totVol = getFloat("avol");
+   buretteVol = 0;
+  }
+
+  function titrateStep() {
+   if (initMol == -1) initVars();
+   buretteVol += getFloat("inc");
+   totVol += getFloat("inc");
+   $("#titable tbody").html( $("#titable tbody").html() + "<tr><td>" + buretteVol.toFixed(2) + "</td><td>" + calculatePH().toFixed(2) + "</td><td>" + totVol.toFixed(2) + "</td></tr>");
+   $("#titable").parent().scrollTop( $("#titable").height() )
+  }
+
+  function updateNeutralisation() {
+   $("#bvol").val( ( ( getFloat("avol") * getFloat("aconc") * getFloat("atype") ) / ( getFloat("bconc") ) ).toFixed(2) );
+   if (getFloat("bvol") > 50)
+	{alert("Titre volume cannot exceed maximum capacity of burette!");}
+   else if (getFloat("bvol") < 15)
+	{alert("Titre volume too small, leads to large percentage error!");}
+   resetTitrate();
+  }
+
+  function autoTitrate() {
+   // Added check for pageLoaded
+   if (pageLoaded == false) {
+    alert("Please wait for a while, page scripts still loading.");
+    return;
+   }
+   // Changed loop to use setTimeout for better responsiveness
+   function doStep() {
+       if (buretteVol < getFloat("stopt")) {
+           titrateStep();
+           window.setTimeout(doStep, 1); // Schedule next step
+       } else {
+           drawChart(); // Draw chart when done
+       }
+   }
+   doStep(); // Start the process
+  }
+
+  function resetTitrate() {
+   $("#titable tbody").html( "" )
+   initVars(); // Re-initialize variables
+   $("#titable tbody").html( $("#titable tbody").html() + "<tr><td>" + buretteVol.toFixed(2) + "</td><td>" + calculatePH().toFixed(2) + "</td><td>" + totVol.toFixed(2) + "</td></tr>");
+   drawChart(); // Redraw chart after reset
+  }
+
+ var chartCol = {'0': ["white", "white", "white", "white"],
+		 '1': ["red", "orange", "#ffff33", "#ffff33"],
+                 '2': ["#990099", "grey", "#009933", "#009933"],
+                 '3': ["white", "white", "white","fuchsia"],
+                 '4': ["white", "white", "white","#2c5ba5"],
+                 };
+
+  function changeChartColor(indType) {
+   $("#fx stop:nth-child(1)").css("stop-color",chartCol[indType][0])
+   $("#fx stop:nth-child(2)").css("stop-color",chartCol[indType][1])
+   $("#fx stop:nth-child(3)").css("stop-color",chartCol[indType][2])
+   $("#fx stop:nth-child(4)").css("stop-color",chartCol[indType][3])
+  }
+
+	function checkBoxes() {
+	 if (getFloat("pX") == 0 && $("#WB").prop('checked')==false && $("#AS").prop('checked')==false && $("#SA").prop('checked')==true)
+		{alert("Good job!");}
+	 else if (getFloat("pX") < getFloat("bvol") && getFloat("pX") > 0 && $("#WB").prop('checked')==false && $("#AS").prop('checked')==true && $("#SA").prop('checked')==true)
+		{alert("Good job!");}
+	 else if (getFloat("pX") > getFloat("bvol") && $("#WB").prop('checked')==true && $("#AS").prop('checked')==true && $("#SA").prop('checked')==false)
+		{alert("Good job!");}
+	 else if (getFloat("pX") == getFloat("bvol") && $("#WB").prop('checked')==false && $("#AS").prop('checked')==true && $("#SA").prop('checked')==false)
+		{alert("Good job!");}
+	 else
+		{alert("Please try again.");}
+  	}
+
+
+	function checkBuffer() {
+	 if ( (14-getFloat("pY")) > (getFloat("pKb")-1) && (14-getFloat("pY")) < (getFloat("pKb")+1) )
+	{
+		if($("#buffer").prop('checked')==true)
+		{alert("Good job!");}
+	 	else
+		{alert("Please try again. What are the 2 components required in large excess to form a buffer?");}
+	}
+	else if ( (14-getFloat("pY")) < (getFloat("pKb")-1) || (14-getFloat("pY")) > (getFloat("pKb")+1) )
+	{
+		if($("#buffer").prop('checked')==false)
+		{alert("Good job!");}
+	 	else
+		{alert("Please try again. What are the 2 components required in large excess to form a buffer?");}
+	}
+	}
+
+  function checkQuiz() {
+    const answer = document.getElementById('quizQ1').value;
+    const resultElement = document.getElementById('quizResult');
+    if (answer === 'acidic') {
+      resultElement.textContent = 'Correct! The salt formed (conjugate acid of the weak base) hydrolyzes water to produce H+, making the solution acidic.';
+      resultElement.className = 'mt-2 text-success';
+    } else if (answer === '') {
+       resultElement.textContent = 'Please select an answer.';
+       resultElement.className = 'mt-2 text-warning';
+    }
+    else {
+      resultElement.textContent = 'Incorrect. Try again. Hint: Consider the hydrolysis of the salt formed.';
+      resultElement.className = 'mt-2 text-danger';
+    }
+  }
+ </script>
+
+ <body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" href="#">Titration Curve Generator</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNav">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" href="index.html">Introduction</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="SASB.html">Strong Acid - Strong Base</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="SBSA.html">Strong Base - Strong Acid</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="WASB.html">Weak Acid - Strong Base</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="WBSA.html">Weak Base - Strong Acid</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="SBWA.html">Strong Base - Weak Acid</a>
+      </li>
+      <li class="nav-item active">
+        <a class="nav-link" href="SAWB.html">Strong Acid - Weak Base <span class="sr-only">(current)</span></a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container mt-4" style="max-width: 95%;"> <!-- Added max-width style -->
+  <div class="hover_img mb-3 text-center">
+    <p style="font-size:20px"><b>Titration Curve of Strong Acid against Weak Base</b>
+      <a href="#">(image)<span><img src="SAWB.png" height=500 border=2 alt="Example titration curve for Strong Acid vs Weak Base"></span></a></p>
+  </div>
+
+  <div class="row">
+     <div class="col-lg-2 mb-3"> <!-- Column for Image -->
+         <img src="SAWB.png" class="img-fluid mb-3" alt="Titration curve for Strong Acid vs Weak Base">
+    </div>
+    <div class="col-lg-4 mb-3"> <!-- Column for Inputs - Wider -->
+        <table class="table table-bordered table-sm">
+            <thead>
+              <tr><th colspan=3 class='titlebg'>In the burette</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td width="10%">[base] = </td>
+                <td><input type='input' title="Concentration of weak base in the burette (mol/dm³)" onchange='updateNeutralisation()' class='inputbg box form-control form-control-sm' size="6" id='bconc' value="1.00" /><br /><div id="baseSlider"></td>
+                <td>mol dm-3</td>
+              </tr>
+              <tr>
+                <td>Kb (scientific notation) = </td>
+                <td><input type='input'class='inputbg box form-control form-control-sm' title="Base dissociation constant (Kb) of the weak base" size="6" id='Kb' value="1.80e-5" onchange='calculatepKb(); updateNeutralisation()' /></td>
+                <td>mol dm-3</td>
+              </tr>
+              <tr>
+                <td>pKb = </td>
+                <td><input type='input' class='box form-control form-control-sm' title="Calculated pKb value (-log10(Kb))" size="6" id='pKb' value="4.74" disabled /></td>
+              </tr>
+            </tbody>
+            <thead>
+              <tr><th colspan=3 class='titlebg'>In the conical flask</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>[acid] = </td>
+                <td><input type='input' title="Concentration of strong acid in the conical flask (mol/dm³)" onchange='updateNeutralisation()' class='inputbg box form-control form-control-sm' size="6" id='aconc' value="1.00"/><br /><div id="acidSlider"></td>
+                <td>mol dm-3</td>
+              </tr>
+              <tr>
+                <td>Strong acid is</td>
+                <td colspan=2><select id='atype' title="Select if the strong acid is monoprotic or diprotic" class='inputbg box form-control form-control-sm' onchange='updateNeutralisation()'>
+                    <option value=1>monoprotic</option>
+                    <option value=2>diprotic</option>
+                  </select></td>
+              </tr>
+              <tr>
+                <td>Vol of strong acid</td>
+                <td><select id='avol' title="Volume of strong acid in the conical flask (cm³)" class='inputbg box form-control form-control-sm' onchange="updateNeutralisation();">
+                    <option value=25>25.0</option>
+                    <option value=10>10.0</option>
+                  </select></td>
+                <td>cm3</td>
+              </tr>
+              <tr>
+                <td>Choice of indicator</td>
+                <td colspan=2><select id='indtype' title="Select the indicator to visualize its color change range on the graph" class='inputbg box form-control form-control-sm' onchange='changeChartColor(this.value)'>
+                    <option value='0'>no indicator</option>
+                    <option value='1'>methyl orange (pH 3-4)</option>
+                    <option value='2'>screened methyl orange (pH 3-4)</option>
+                    <option value='3'>phenolphthalein (pH 8-10)</option>
+                    <option value='4'>thymolphthalein (pH 9-10.5)</option>
+                  </select></td>
+              </tr>
+            </tbody>
+            <thead>
+              <tr><th colspan=3 class='titlebg'>Graph</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Vol of weak base req for complete neutralisation</td>
+                <td><input type='input'class='box form-control form-control-sm' title="Calculated volume of base needed for neutralization" size="6" id='bvol' value="25.00" disabled /></td>
+                <td>cm3</td>
+              </tr>
+              <tr>
+                <td>Data points in increments of</td>
+                <td><select id='inc' title="Volume increment for each titration step (cm³)" class='inputbg box form-control form-control-sm' value="1.00">
+                    <option value=1.00>1.00</option>
+                    <option value=0.50>0.50</option>
+                    <option value=0.05>0.05 (1 drop)</option>
+                  </select></td>
+                <td>cm3</td>
+              </tr>
+              <tr>
+                <td colspan=3></td>
+              </tr>
+              <tr>
+                <td>Stop titration at (for auto titration only)</td>
+                <td><input type='input' title="Volume of base to stop automatic titration (cm³)" onchange='updateNeutralisation()' class='inputbg box form-control form-control-sm' size="6" id='stopt' value="50.00" /><br /><div id="stopTSlider"></td>
+                <td>cm3</td>
+              </tr>
+              <tr>
+                <td colspan=3></td>
+              </tr>
+              <tr>
+                 <td colspan="3">
+                    <div class="btn-group d-flex" role="group">
+                        <button type='button' class='button greenbg btn btn-success w-100' title="Add one increment of base and update the graph" onclick='titrateStep(); drawChart()'>Step</button>
+                        <button type='button' class='button redbg btn btn-danger w-100' title="Automatically perform titration up to the 'Stop titration at' volume" onclick='autoTitrate(); drawChart()'>Auto</button>
+                        <button type='button' class='button btn btn-secondary w-100' title="Reset the titration to the initial state" onclick='resetTitrate();'>Reset</button>
+                    </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+    </div>
+    <div class="col-lg-4 mb-3"> <!-- Column for Chart/Check -->
+      <div id="chart_div" style="width: 100%; height: 450px;"></div> <!-- Added style for responsive chart -->
+      <div class="mt-3">
+        <p class='titlebg'>Self Check</p>
+        <b>1. Select a point by clicking the graph:</b><br>
+        Burette Volume <input type='input' class='box form-control form-control-sm d-inline-block w-auto' title="Volume of base added at the selected point" size="6" id='pX' value="0.00" disabled />
+        pH <input type='input' class='box form-control form-control-sm d-inline-block w-auto' title="pH at the selected point" size="6" id='pY' value="0.00" disabled /><br>
+        <b>2. Identify the species present in the conical flask at that point:</b><br>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="SA" value="0">
+          <label class="form-check-label" for="SA">SA</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="AS" value="0">
+          <label class="form-check-label" for="AS">conj acid of WB</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="WB" value="0">
+          <label class="form-check-label" for="WB">xs WB</label>
+        </div>
+        <button type="button" class="btn btn-info btn-sm" title="Check your species identification" onclick='checkBoxes()'>Check</button><br>
+
+        <b>3. Is solution a buffer?</b>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="buffer" value="0">
+          <label class="form-check-label" for="buffer">yes</label>
+        </div>
+        <button type="button" class="btn btn-info btn-sm" title="Check if the solution is a buffer at the selected point" onclick='checkBuffer()'>Check</button>
+        </b>
+      </div>
+       <div class="mt-4">
+        <p class='titlebg'>Quiz</p>
+        <div class="form-group">
+          <label for="quizQ1">Is the pH at the equivalence point for a strong acid-weak base titration acidic, basic, or neutral?</label>
+          <select class="form-control" id="quizQ1" data-toggle="tooltip" title="Select the nature of the solution at the equivalence point.">
+            <option value="">-- Select --</option>
+            <option value="acidic">Acidic (pH < 7)</option>
+            <option value="neutral">Neutral (pH = 7)</option>
+            <option value="basic">Basic (pH > 7)</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="checkQuiz()">Check Answer</button>
+        <p id="quizResult" class="mt-2"></p>
+      </div>
+    </div>
+    <div class="col-lg-2 mb-3"> <!-- Column for Data Table - Narrower -->
+      <div class="table-responsive" style='height:550px'> <!-- Added table-responsive wrapper -->
+        <table id="titable" class="table table-striped table-sm">
+          <thead><th>Burette Vol</th><th>pH</th><th>Total Vol</th></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function checkQuiz() {
+    const answer = document.getElementById('quizQ1').value;
+    const resultElement = document.getElementById('quizResult');
+    if (answer === 'acidic') {
+      resultElement.textContent = 'Correct! The salt formed (conjugate acid of the weak base) hydrolyzes water to produce H+, making the solution acidic.';
+      resultElement.className = 'mt-2 text-success';
+    } else if (answer === '') {
+       resultElement.textContent = 'Please select an answer.';
+       resultElement.className = 'mt-2 text-warning';
+    }
+    else {
+      resultElement.textContent = 'Incorrect. Try again. Hint: Consider the hydrolysis of the salt formed.';
+      resultElement.className = 'mt-2 text-danger';
+    }
+  }
+  </script>
+</div>
+
+ </body>
+</html>

@@ -1,0 +1,512 @@
+// ============================================
+// BYSTANDER HERO ADVENTURE - MAIN SCRIPT
+// ============================================
+// This interactive teaches students how to respond to hurtful behaviours
+// through role-playing scenarios with sorting/categorization mechanics
+
+// ============================================
+// AUDIO SYSTEM
+// ============================================
+// Using Web Audio API to generate sounds without external files
+
+const AudioSystem = {
+    context: null,
+    enabled: true,
+    
+    // Initialize audio context
+    init() {
+        try {
+            this.context = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.log('Web Audio API not supported');
+        }
+    },
+    
+    // Play a tone with specified frequency and duration
+    playTone(frequency, duration, type = 'sine') {
+        if (!this.enabled || !this.context) return;
+        
+        const oscillator = this.context.createOscillator();
+        const gainNode = this.context.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(this.context.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        
+        gainNode.gain.setValueAtTime(0.3, this.context.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+        
+        oscillator.start(this.context.currentTime);
+        oscillator.stop(this.context.currentTime + duration);
+    },
+    
+    // Sound effects
+    playClick() {
+        this.playTone(800, 0.1, 'square');
+    },
+    
+    playSuccess() {
+        this.playTone(523.25, 0.15, 'sine'); // C5
+        setTimeout(() => this.playTone(659.25, 0.15, 'sine'), 100); // E5
+        setTimeout(() => this.playTone(783.99, 0.3, 'sine'), 200); // G5
+    },
+    
+    playError() {
+        this.playTone(300, 0.2, 'sawtooth');
+        setTimeout(() => this.playTone(200, 0.3, 'sawtooth'), 150);
+    },
+    
+    playProgress() {
+        this.playTone(440, 0.1, 'sine');
+        setTimeout(() => this.playTone(554.37, 0.15, 'sine'), 100);
+    },
+    
+    playComplete() {
+        const notes = [523.25, 587.33, 659.25, 783.99];
+        notes.forEach((note, i) => {
+            setTimeout(() => this.playTone(note, 0.2, 'sine'), i * 150);
+        });
+    },
+    
+    toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+    }
+};
+
+// ============================================
+// GAME DATA - Scenarios and Responses
+// ============================================
+// Each scenario presents a situation where students must identify helpful responses
+
+const scenarios = [
+    {
+        id: 1,
+        character: '😢',
+        situation: 'You see your classmate, Sarah, sitting alone at recess. Some students are laughing and pointing at her new glasses.',
+        responses: [
+            { text: 'Sit with Sarah and tell her the glasses look cool', category: 'helpful', points: 20 },
+            { text: 'Join the group laughing to fit in', category: 'unhelpful', points: 0 },
+            { text: 'Tell a teacher about the bullying', category: 'helpful', points: 20 },
+            { text: 'Ignore it and walk away', category: 'unhelpful', points: 0 }
+        ],
+        feedback: {
+            helpful: '⭐ Excellent! Supporting Sarah and reporting bullying are both helpful actions. You showed empathy and courage!',
+            unhelpful: '💭 Remember, ignoring bullying or joining in makes the person feel worse. A true hero stands up for others!'
+        }
+    },
+    {
+        id: 2,
+        character: '😰',
+        situation: 'During a Minecraft game session, you notice someone in the chat calling another player "noob" and "stupid" repeatedly.',
+        responses: [
+            { text: 'Send a private message to check if they\'re okay', category: 'helpful', points: 20 },
+            { text: 'Type "stop being mean" in the chat', category: 'helpful', points: 20 },
+            { text: 'Join in the teasing to be funny', category: 'unhelpful', points: 0 },
+            { text: 'Keep playing and pretend nothing happened', category: 'unhelpful', points: 0 }
+        ],
+        feedback: {
+            helpful: '🌟 Great choice! Speaking up against mean behaviour online and checking on others shows you\'re a digital hero!',
+            unhelpful: '💭 Online bullying hurts just as much as face-to-face bullying. We should always stand up for others, even in games!'
+        }
+    },
+    {
+        id: 3,
+        character: '😔',
+        situation: 'Your friend Alex is being excluded from a group project. The group leader says "Alex is too slow and will make us lose marks."',
+        responses: [
+            { text: 'Suggest ways Alex can contribute to the project', category: 'helpful', points: 20 },
+            { text: 'Agree with the leader to avoid conflict', category: 'unhelpful', points: 0 },
+            { text: 'Offer to work with Alex as partners', category: 'helpful', points: 20 },
+            { text: 'Stay quiet to not get involved', category: 'unhelpful', points: 0 }
+        ],
+        feedback: {
+            helpful: '✨ Wonderful! Including everyone and finding solutions shows great leadership and kindness!',
+            unhelpful: '💭 Excluding others hurts their feelings and isn\'t fair. Everyone deserves a chance to participate and learn!'
+        }
+    },
+    {
+        id: 4,
+        character: '😟',
+        situation: 'In the school canteen, you see a student accidentally spill their drink. Others start laughing and taking photos with their phones.',
+        responses: [
+            { text: 'Help clean up the spill', category: 'helpful', points: 20 },
+            { text: 'Ask others to stop taking photos', category: 'helpful', points: 20 },
+            { text: 'Take a photo to share with friends later', category: 'unhelpful', points: 0 },
+            { text: 'Laugh along with everyone else', category: 'unhelpful', points: 0 }
+        ],
+        feedback: {
+            helpful: '🎯 Perfect! Helping someone in an embarrassing moment and stopping others from making it worse is true heroism!',
+            unhelpful: '💭 Accidents happen to everyone. Making fun of someone when they\'re embarrassed makes them feel much worse!'
+        }
+    },
+    {
+        id: 5,
+        character: '😥',
+        situation: 'On Roblox, you notice a new player being kicked from games repeatedly. In the chat, people are saying "go away, we don\'t want newbies."',
+        responses: [
+            { text: 'Invite the new player to join your game', category: 'helpful', points: 20 },
+            { text: 'Report the mean behaviour to moderators', category: 'helpful', points: 20 },
+            { text: 'Vote to kick them too so you don\'t get targeted', category: 'unhelpful', points: 0 },
+            { text: 'Leave the server to avoid the drama', category: 'unhelpful', points: 0 }
+        ],
+        feedback: {
+            helpful: '🏆 Amazing! Welcoming new players and reporting bullying makes gaming communities better for everyone!',
+            unhelpful: '💭 Everyone was new once! Being kind to beginners helps them learn and makes gaming more fun for all!'
+        }
+    }
+];
+
+// ============================================
+// GAME STATE MANAGEMENT
+// ============================================
+
+const GameState = {
+    currentScenario: 0,
+    score: 0,
+    selectedResponse: null,
+    scenariosCompleted: 0,
+    
+    reset() {
+        this.currentScenario = 0;
+        this.score = 0;
+        this.selectedResponse = null;
+        this.scenariosCompleted = 0;
+    },
+    
+    nextScenario() {
+        this.currentScenario++;
+        this.selectedResponse = null;
+    },
+    
+    addScore(points) {
+        this.score += points;
+    },
+    
+    isComplete() {
+        return this.currentScenario >= scenarios.length;
+    }
+};
+
+// ============================================
+// DOM ELEMENTS
+// ============================================
+
+let elements = {};
+
+function initElements() {
+    elements = {
+        infoIcon: document.getElementById('infoIcon'),
+        headerTooltip: document.getElementById('headerTooltip'),
+        scoreValue: document.getElementById('scoreValue'),
+        soundToggle: document.getElementById('soundToggle'),
+        characterAvatar: document.getElementById('characterAvatar'),
+        storyText: document.getElementById('storyText'),
+        responsePrompt: document.getElementById('responsePrompt'),
+        responseCards: document.getElementById('responseCards'),
+        dropZones: document.getElementById('dropZones'),
+        feedbackPanel: document.getElementById('feedbackPanel'),
+        feedbackIcon: document.getElementById('feedbackIcon'),
+        feedbackText: document.getElementById('feedbackText'),
+        continueBtn: document.getElementById('continueBtn'),
+        actionButtons: document.getElementById('actionButtons'),
+        submitBtn: document.getElementById('submitBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        progressFill: document.getElementById('progressFill'),
+        progressText: document.getElementById('progressText'),
+        resultsScreen: document.getElementById('resultsScreen'),
+        finalScore: document.getElementById('finalScore'),
+        heroRank: document.getElementById('heroRank'),
+        encouragementMessage: document.getElementById('encouragementMessage'),
+        restartBtn: document.getElementById('restartBtn')
+    };
+}
+
+// ============================================
+// UI RENDERING FUNCTIONS
+// ============================================
+
+// Display the current scenario
+function renderScenario() {
+    const scenario = scenarios[GameState.currentScenario];
+    
+    // Update character and story
+    elements.characterAvatar.textContent = scenario.character;
+    elements.storyText.textContent = scenario.situation;
+    
+    // Create response cards
+    elements.responseCards.innerHTML = '';
+    scenario.responses.forEach((response, index) => {
+        const card = document.createElement('div');
+        card.className = 'response-card';
+        card.textContent = response.text;
+        card.dataset.index = index;
+        card.dataset.category = response.category;
+        
+        // Click to select
+        card.addEventListener('click', () => selectResponse(card, index));
+        
+        // Touch events for mobile
+        card.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            selectResponse(card, index);
+        });
+        
+        elements.responseCards.appendChild(card);
+    });
+    
+    // Update progress
+    updateProgress();
+    
+    // Hide feedback and show action buttons
+    elements.feedbackPanel.classList.add('hidden');
+    elements.actionButtons.classList.remove('hidden');
+    
+    AudioSystem.playProgress();
+}
+
+// Select a response card
+function selectResponse(card, index) {
+    // Deselect all cards
+    document.querySelectorAll('.response-card').forEach(c => {
+        c.classList.remove('selected');
+    });
+    
+    // Select this card
+    card.classList.add('selected');
+    GameState.selectedResponse = index;
+    
+    AudioSystem.playClick();
+}
+
+// Submit the selected response
+function submitResponse() {
+    if (GameState.selectedResponse === null) {
+        // No response selected
+        showTemporaryMessage('Please select a response first!');
+        AudioSystem.playError();
+        return;
+    }
+    
+    const scenario = scenarios[GameState.currentScenario];
+    const response = scenario.responses[GameState.selectedResponse];
+    
+    // Check if response is helpful
+    const isHelpful = response.category === 'helpful';
+    
+    // Add points
+    GameState.addScore(response.points);
+    updateScore();
+    
+    // Show feedback
+    showFeedback(isHelpful, scenario);
+    
+    // Hide action buttons
+    elements.actionButtons.classList.add('hidden');
+    
+    // Play sound
+    if (isHelpful) {
+        AudioSystem.playSuccess();
+    } else {
+        AudioSystem.playError();
+    }
+    
+    GameState.scenariosCompleted++;
+}
+
+// Show feedback panel
+function showFeedback(isHelpful, scenario) {
+    elements.feedbackIcon.textContent = isHelpful ? '🎉' : '💡';
+    elements.feedbackText.textContent = isHelpful ? scenario.feedback.helpful : scenario.feedback.unhelpful;
+    
+    if (isHelpful) {
+        elements.feedbackText.innerHTML += `<br><br><strong>+${scenario.responses[GameState.selectedResponse].points} Hero Points!</strong>`;
+    }
+    
+    elements.feedbackPanel.classList.remove('hidden');
+}
+
+// Show temporary message
+function showTemporaryMessage(message) {
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 107, 157, 0.95);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 15px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    tempDiv.textContent = message;
+    document.getElementById('mainContainer').appendChild(tempDiv);
+    
+    setTimeout(() => {
+        tempDiv.remove();
+    }, 2000);
+}
+
+// Continue to next scenario
+function continueAdventure() {
+    GameState.nextScenario();
+    
+    if (GameState.isComplete()) {
+        showResults();
+    } else {
+        renderScenario();
+    }
+}
+
+// Reset current scenario
+function resetScenario() {
+    GameState.selectedResponse = null;
+    renderScenario();
+    AudioSystem.playClick();
+}
+
+// Update score display
+function updateScore() {
+    elements.scoreValue.textContent = GameState.score;
+}
+
+// Update progress bar
+function updateProgress() {
+    const progress = ((GameState.currentScenario + 1) / scenarios.length) * 100;
+    elements.progressFill.style.width = progress + '%';
+    elements.progressText.textContent = `Scenario ${GameState.currentScenario + 1} of ${scenarios.length}`;
+}
+
+// Show final results
+function showResults() {
+    const maxScore = scenarios.length * 20; // Each scenario has one 20-point helpful response
+    const percentage = (GameState.score / maxScore) * 100;
+    
+    let rank, message;
+    
+    if (percentage >= 80) {
+        rank = '🏆 SUPER HERO! 🏆';
+        message = 'You\'re amazing at helping others! You know exactly how to be a great bystander and make a positive difference!';
+    } else if (percentage >= 60) {
+        rank = '⭐ HERO IN TRAINING! ⭐';
+        message = 'Great job! You\'re learning how to help others. Keep practicing these skills to become an even better bystander!';
+    } else if (percentage >= 40) {
+        rank = '💪 BRAVE HELPER! 💪';
+        message = 'Good effort! You\'re starting to understand how to help. Remember, small actions can make a big difference!';
+    } else {
+        rank = '🌱 GROWING HERO! 🌱';
+        message = 'Keep learning! Being a helpful bystander takes practice. Try again and think about how you\'d want others to help you!';
+    }
+    
+    elements.finalScore.textContent = `${GameState.score} / ${maxScore} Hero Points`;
+    elements.heroRank.textContent = rank;
+    elements.encouragementMessage.textContent = message;
+    
+    elements.resultsScreen.classList.remove('hidden');
+    
+    AudioSystem.playComplete();
+}
+
+// Restart the game
+function restartGame() {
+    GameState.reset();
+    updateScore();
+    elements.resultsScreen.classList.add('hidden');
+    renderScenario();
+    AudioSystem.playClick();
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
+function setupEventListeners() {
+    // Info icon hover
+    elements.infoIcon.addEventListener('mouseenter', () => {
+        elements.headerTooltip.classList.remove('hidden');
+    });
+    
+    elements.infoIcon.addEventListener('mouseleave', () => {
+        elements.headerTooltip.classList.add('hidden');
+    });
+    
+    // Touch support for info icon
+    elements.infoIcon.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        elements.headerTooltip.classList.toggle('hidden');
+    });
+    
+    // Sound toggle
+    elements.soundToggle.addEventListener('click', () => {
+        const enabled = AudioSystem.toggle();
+        elements.soundToggle.classList.toggle('muted', !enabled);
+        AudioSystem.playClick();
+    });
+    
+    // Submit button
+    elements.submitBtn.addEventListener('click', submitResponse);
+    
+    // Reset button
+    elements.resetBtn.addEventListener('click', resetScenario);
+    
+    // Continue button
+    elements.continueBtn.addEventListener('click', continueAdventure);
+    
+    // Restart button
+    elements.restartBtn.addEventListener('click', restartGame);
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+function init() {
+    // Check if in iframe or standalone
+    if (window.self === window.top) {
+        document.body.classList.add('standalone');
+    }
+    
+    // Initialize audio
+    AudioSystem.init();
+    
+    // Initialize DOM elements
+    initElements();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Start the game
+    renderScenario();
+    updateScore();
+}
+
+// Start when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+// Prevent context menu on touch devices
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+// Handle visibility change to pause audio if needed
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && AudioSystem.context) {
+        AudioSystem.context.suspend();
+    } else if (AudioSystem.context) {
+        AudioSystem.context.resume();
+    }
+});

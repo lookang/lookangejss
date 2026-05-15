@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Mass Spectrometer</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+        <link rel="stylesheet" href="styles/style.css">
+        <script src = "js/svg.js/svg.js"></script>
+        <script src="js/gsap-public/minified/gsap.min.js"></script>
+        <script src="js/gsap-public/minified/Draggable.min.js"></script>
+        <!-- <script src="js/jquery-3.4.1.min.js"></script>
+        <script src="js/jquery-ui-1.12.1.custom/jquery-ui.css"></script>
+        <script src="js/jquery-ui-1.12.1.custom/jquery-ui.js"></script>
+        <script src="js/searchElem.js"></script>
+        <link rel="stylesheet" href="styles/autocomplete.css"> -->
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+<!-- SVG for manipulation -->
+<svg id="main">        
+    <use href="#background"></use>
+</svg>
+<!-- SVG for manipulation -->
+
+
+   <!-- Button controls -->
+   <div style="width:20%">
+        <div id="heaterSwitch" onclick="onHeater()">Turn on Heater</div>
+        <div id="ioniserSwitch" onclick="onIoniser()">Turn on Ioniser</div> 
+        <div id="datanalyser" onclick="collectData()">Collect data</div> 
+        <!-- <div class="ui-widget">
+            <label for="selectElement"> Element: </label>
+            <input id="selectElement"/>
+        </div> -->
+
+   </div>
+
+<!-- SVG for background -->
+<svg id="background" viewBox="0 0 1024 768">
+    <!-- mass spectrum display out -->
+        <!-- Region between x(200, 1000), y(10, 410) -->
+        <rect x="300" y="10" fill="none" stroke="#050505" stroke-miterlimit="10" width="700" height="400"/>
+        <!-- Graph axis-->   
+             <!-- y-axis -->
+            <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="340" y1="380" x2="340" y2="80"/>
+            <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="335" y1="88" x2="340" y2="80"/>
+            <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="346" y1="88" x2="340" y2="80"/>
+            <!-- x-axis -->
+            <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="340" y1="380" x2="940" y2="380"/>
+            <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="930" y1="374" x2="940" y2="380"/>
+            <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="930" y1="385" x2="940" y2="380"/>
+        <!-- Relative average mass readout -->
+            <rect x="850" y="10" fill="none" stroke="#050505" stroke-miterlimit="10" width="150" height="70"/>
+            <text id = "element" transform="translate(860 30)" font-family="'MyriadPro-Regular'" font-size="14" style="text-decoration: underline;">Sn</text>
+            <text id = "theoryMr" transform="translate(860 50)" font-family="'MyriadPro-Regular'" font-size="14">Mr (NIST) &nbsp &nbsp &nbsp &nbsp: </text>
+            <text id = "sampleMr" transform="translate(860 70)" font-family="'MyriadPro-Regular'" font-size="14">Mr (Sampled) &nbsp: </text>
+    
+    <!-- Vaporisation chamber -->
+        <!-- Ioniser between x(110,137), y(155,230) -->
+        <!-- Main chamber between x(16,137), y(13,155) L137 13-->
+        <path id="vapourChamber" d="M110 230 L110 155 L16 155 L16 13 L137 13 L137 155 L137 155 L137 230" fill="none" fill-opacity="0.1" stroke="#050505" stroke-miterlimit="10" />
+        <path id="heater" d="M0 40 L75 40 L60 55 L75 70 L60 85 L75 100 L60 115 L75 130 L0 130" 
+        fill="none" stroke="blue" stroke-miterlimit="10" />
+        <!-- Ioniser plates -->
+        <!-- Plates are between x(113,134), y(163,223) -->
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="113" y1="163" x2="113" y2="223"/>
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="134" y1="163" x2="134" y2="223"/>
+        <!-- Electrical connections -->
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="87" y1="189.5" x2="112" y2="189.5"/>
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="133" y1="189.5" x2="162" y2="189.5"/>
+        <circle fill="none" stroke="#050505" stroke-miterlimit="10" cx="172.06" cy="190.81" r="11.19"/>
+        <circle fill="none" stroke="#050505" stroke-miterlimit="10" cx="77.06" cy="189.81" r="11.19"/>
+        <line fill="none" stroke="#050505" stroke-width="2" stroke-miterlimit="10" x1="70" y1="190" x2="85" y2="190"/>
+        <line fill="none" stroke="#050505" stroke-width="2" stroke-miterlimit="10" x1="165" y1="191" x2="180" y2="191"/>
+        <line fill="none" stroke="#050505" stroke-width="2" stroke-miterlimit="10" x1="172" y1="198" x2="172" y2="183"/>
+    <!-- Accelation plates -->
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="103" y1="251.5" x2="118" y2="251.5"/>
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="130" y1="251.5" x2="145" y2="251.5"/>
+        <path d="M118 230 L103 230 L103 274 L118 274" fill="none" stroke="#050505" stroke-miterlimit="10" />
+        <path d="M130 230 L145 230 L145 274 L130 274" fill="none" stroke="#050505" stroke-miterlimit="10" />
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="137" y1="274" x2="137" y2="315"/>
+        <line fill="none" stroke="#050505" stroke-miterlimit="10" x1="110" y1="274" x2="110" y2="315"/>
+    <!-- Velocity selection -->
+        <!-- Region is x(110,137), y(300,430) -->
+        <!-- Right positive plate -->
+        <rect x="137" y="300" fill="#7C7676" stroke="#7C7676" stroke-miterlimit="10" width="17" height="130"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="139" y1="373.5" x2="152" y2="373.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="145.5" y1="367" x2="145.5" y2="379"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="139" y1="395.5" x2="152" y2="395.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="145.5" y1="389" x2="145.5" y2="401"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="139" y1="416.5" x2="152" y2="416.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="145.5" y1="410" x2="145.5" y2="422"/>
+        <!-- Left negative plate -->
+        <rect x="93" y="300" fill="#7C7676" stroke="#7C7676" stroke-miterlimit="10" width="17" height="130"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="139" y1="330.5" x2="152" y2="330.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="145.5" y1="324" x2="145.5" y2="336"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="139" y1="351.5" x2="152" y2="351.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="145.5" y1="345" x2="145.5" y2="357"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="93" y1="374.5" x2="106" y2="374.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="93" y1="396.5" x2="106" y2="396.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="93" y1="417.5" x2="106" y2="417.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="93" y1="331.5" x2="106" y2="331.5"/>
+        <line fill="#FFFFFF" stroke="#F9F7F7" stroke-miterlimit="10" x1="93" y1="352.5" x2="106" y2="352.5"/>
+        <!-- Wires -->
+        <line fill="none" stroke="#020202" stroke-miterlimit="10" x1="155" y1="374.5" x2="181" y2="374.5"/>
+        <line fill="none" stroke="#020202" stroke-miterlimit="10" x1="64" y1="374.5" x2="90" y2="374.5"/>
+    <!-- Photographic plate -->
+        <!-- Impact on screen at 430 (semi-circle) -->
+        <rect x="155" y="425" fill="black" stroke="black" stroke-miterlimit="10" width="628.5" height="10"/>
+    <!-- Deflection chamber -->
+        <!-- Deflection region between x(110,783.5), y(430,760) -->
+        <path d="M110 430 L110 760 L783.5 760 L783.5 430 L137 430" fill="none" stroke="#050505" stroke-miterlimit="10" />
+    <!-- Analogue to digital software -->
+        <!-- ATD monitor -->
+        <path stroke="#000000" stroke-miterlimit="10"
+        d = "M870,430 h100 a20,20 0 0 1 20,20 v90 a20,20 0 0 1 -20,20 h-100 a 20,20 0 0 1 -20,-20 v-90 a20,20 0 0 1 20,-20 z" />
+        <path stroke="black" fill="grey" stroke-miterlimit="10"
+        d = "M880,440 h80 a20,20 0 0 1 20,20 v70 a20,20 0 0 1 -20,20 h-80 a 20,20 0 0 1 -20,-20 v-70 a20,20 0 0 1 20,-20 z" />
+        <!-- Signals animation -->
+        <path id = "atdSig"stroke="yellow" fill="none" stroke-miterlimit="10" 
+        d="M860 495 L880 495 
+        L890 510 L900 480 L910 495 
+        L940 495 
+        L950 510 L960 480 
+        L970 495 L980 495"/>
+        <!-- Cables -->
+        <path stroke="#000000" stroke-miterlimit="10" d="M783.5 520 h70z"/>
+        <path stroke="#000000" stroke-miterlimit="10" d="M920 430 v-20z"/>
+        <!-- Text decorations -->
+        <text transform="translate(950 385)" font-family="'MyriadPro-Regular'" font-size="18">m/e</text>
+        <text transform="translate(328 60)" font-family="'MyriadPro-Regular'" font-size="18">Intensity</text>
+        <text id = "title" transform="translate(480 40)" font-family="'ArialMT'" font-size="24" style="text-decoration: underline;">Mass Spectrum</text>
+        <text transform="translate(623 450)" font-family="'MyriadPro-Regular'" font-size="18">photographic plate</text>
+        <text transform="translate(20 340)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="18">velocity</tspan><tspan x="0" y="14.4" font-family="'MyriadPro-Regular'" font-size="18">selector</tspan></text>
+        <text transform="translate(2 183.375)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="18">electron</tspan><tspan x="0" y="14.4" font-family="'MyriadPro-Regular'" font-size="18">impact</tspan><tspan x="0" y="28.8" font-family="'MyriadPro-Regular'" font-size="18">ionisation</tspan></text>
+        <text transform="translate(10 248)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="18">acceleration</tspan><tspan x="0" y="14.4" font-family="'MyriadPro-Regular'" font-size="18">plates</tspan></text>
+        <text transform="translate(150 35.25)"><tspan x="0" y="0" font-family="'MyriadPro-Regular'" font-size="18">vapour</tspan><tspan x="0" y="14.4" font-family="'MyriadPro-Regular'" font-size="18">chamber</tspan></text>
+        <text transform="translate(860 575)" font-family="'MyriadPro-Regular'" font-size="12">analogue-to-digital signals</text>
+    
+    <!-- Legend -->
+    <g transform="translate(0 50)">
+    <circle fill="black" stroke="none" stroke-width="1px" stroke-miterlimit="10" cx="870" cy="630" r="4"/>
+    <text transform="translate(880 632)" font-family="'MyriadPro-Regular'" font-size="18">gaseous atoms/molecules</text>
+    <circle fill="red" stroke="none" stroke-width="1px" stroke-miterlimit="10" cx="870" cy="650" r="1"/>
+    <text transform="translate(880 652)" font-family="'MyriadPro-Regular'" font-size="18">electrons</text>
+    <circle fill="yellow" stroke="black" stroke-width="1px"  stroke-miterlimit="10" cx="870" cy="670" r="3"/>
+    <text transform="translate(880 674)" font-family="'MyriadPro-Regular'" font-size="18">ions</text>
+    <path transform="translate(0 -5)" d="M860 610 h200 a20,20 0 0 1 20,20 v40 a20,20 0 0 1 -20,20 h-200 a20,20 0 0 1 -20,-20 v-40 a20,20 0 0 1 20,-20" fill="none" stroke="#000000" stroke-miterlimit="10"/>
+    </g>
+    <!-- Legend -->
+
+        <!-- Velocity selector dial -->
+        <!-- Dial values -->
+        <g transform="translate(160 -190) scale(1.1 1.1)">
+            <text transform="matrix(1 0 0 1 46.9219 443.5215)" font-family="'MyriadPro-Regular'" font-size="12">0</text>
+            <text transform="matrix(1 0 0 1 86.9219 483.5215)" font-family="'MyriadPro-Regular'" font-size="12">2</text>
+            <text transform="matrix(1 0 0 1 46.9219 525.3223)" font-family="'MyriadPro-Regular'" font-size="12">4</text>
+            <text transform="matrix(1 0 0 1 6.9219 483.5215)" font-family="'MyriadPro-Regular'" font-size="12">6</text>
+            <text transform="matrix(1 0 0 1 76.0469 455.1465)" font-family="'MyriadPro-Regular'" font-size="12">1</text>
+            <text transform="matrix(1 0 0 1 76.0469 515.1465)" font-family="'MyriadPro-Regular'" font-size="12">3</text>
+            <text transform="matrix(1 0 0 1 17.2969 456.2715)" font-family="'MyriadPro-Regular'" font-size="12">7</text>
+            <text transform="matrix(1 0 0 1 21.6719 515.1465)" font-family="'MyriadPro-Regular'" font-size="12">5</text>
+            <g id = "vDial">
+                <circle fill="#F7F5F5" stroke="black" stroke-miterlimit="10" cx="50" cy="480" r="32.5"/>
+                <rect x="47.5" y="450.5" fill="#FF002B" stroke="#F7F5F5" stroke-miterlimit="10" width="4" height="24"/>
+            </g>
+        </g>
+    <!-- Carbon Reference -->
+    <g id = "cRef">
+        <g id="#technician" transform="translate(103 370) scale(0.1 0.1)">
+            <path stroke="#000000" stroke-miterlimit="10" d="M266.345,434.469c0,6.627-5.373,12-12,12h-79.982c-6.627,0-12-5.373-12-12
+                V300.504c0-6.627,5.373-12,12-12h79.982c6.627,0,12,5.373,12,12V434.469z"/>
+            <path stroke="#000000" stroke-miterlimit="10" d="M304.514,332.699c0,6.627-5.373,12-12,12H135.982c-6.627,0-12-5.373-12-12
+                v-32.195c0-6.627,5.373-12,12-12h156.531c6.627,0,12,5.373,12,12V332.699z"/>
+            <path stroke="#000000" stroke-miterlimit="10" d="M123.982,405.708c0,6.627,5.373,12,12,12h12.726c6.627,0,12-5.373,12-12V303.602
+                c0-6.627-5.373-12-12-12h-12.726c-6.627,0-12,5.373-12,12V405.708z"/>
+            <path stroke="#000000" stroke-miterlimit="10" d="M268.345,402.584c0,6.628,5.373,12,12,12h12.726c6.628,0,12-5.372,12-12V300.478
+                c0-6.627-5.371-12-12-12h-12.726c-6.627,0-12,5.373-12,12V402.584z"/>
+            <path stroke="#000000" stroke-miterlimit="10" d="M162.363,509.318c0,6.628,7.008,12,15.652,12h16.598
+                c8.646,0,15.652-5.372,15.652-12V407.212c0-6.627-7.007-12-15.652-12h-16.598c-8.645,0-15.652,5.373-15.652,12V509.318z"/>
+            <circle stroke="#000000" stroke-miterlimit="10" cx="214.354" cy="245.602" r="43.363"/>
+            <path stroke="#000000" stroke-miterlimit="10" d="M218.442,509.318c0,6.628,7.008,12,15.652,12h16.598
+                c8.646,0,15.652-5.372,15.652-12V407.212c0-6.627-7.007-12-15.652-12h-16.598c-8.645,0-15.652,5.373-15.652,12V509.318z"/>
+        </g>
+        <circle id = "carbonRef" fill="yellow" stroke-width="1px" stroke="black" stroke-miterlimit="10" cx="125" cy="430" r="5"/>
+        <text id = "C12mark" transform="translate(120 450)" font-family="'MyriadPro-Regular'" font-size="12">C12: 0 cm</text>   
+    </g>
+
+    <!-- Impact markers -->
+    <rect id="mark0" x="783.5" y="425" fill="#FA3200" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark1" x="783.5" y="425" fill="#FC8466" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark2" x="783.5" y="425" fill="#FED6CC" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark3" x="783.5" y="425" fill="#00FA32" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark4" x="783.5" y="425" fill="#66FC84" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark5" x="783.5" y="425" fill="#CCFED6" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark6" x="783.5" y="425" fill="#3200FA" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark7" x="783.5" y="425" fill="#8466FC" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark8" x="783.5" y="425" fill="#D6CCFE" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+    <rect id="mark9" x="783.5" y="425" fill="#CCDBFE" stroke="#black" stroke-miterlimit="10" width="2" height="10"/>
+</svg>
+<!-- End of SVG for background -->
+    <script src="js/massfunction.js"></script>
+    <script src="js/decorations.js"></script>
+    <script src="js/controls.js"></script>
+    <script src = "js/main.js"></script>
+    <script src = "js/objects.js"></script>
+    </body>
+</html>

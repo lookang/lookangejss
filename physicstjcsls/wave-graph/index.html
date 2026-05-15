@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Mobile & responsive -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wave Simulation</title>
+  <!-- 修改CSS部分 -->
+  <style>
+    :root{
+      --container-max: 100%;
+      --radius: 14px;
+      --pad: 14px;
+      --card-bg: rgba(255,255,255,0.10);
+      --glass-border: 1px solid rgba(255,255,255,0.18);
+      --text-light: #fff;
+      --axis: #000;
+      --tick: #666;
+      --distance-color: #2196F3;
+      --time-color: #4CAF50;
+      --dot-color: #F44336;
+    }
+  
+    /* Base */
+    html,body{height:100%}
+    body{
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
+      margin: 0;
+      padding: min(2vw, 12px); /* 减少页面边距 */
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: var(--text-light);
+    }
+  
+    .container{
+      max-width: var(--container-max);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(10px, 2vw, 16px);
+      padding: clamp(8px, 1.5vw, 12px); /* 减少容器内边距 */
+    }
+
+    h1{
+      text-align: center;
+      margin: 0;
+      font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+      text-shadow: 2px 2px 4px rgba(0,0,0,.3);
+    }
+
+    .graphs{
+      display: grid;
+      gap: clamp(10px, 2vw, 16px);
+    }
+
+    .graph{
+      background: rgba(0,0,0,0.18);
+      border-radius: var(--radius);
+      padding: clamp(8px, 1.8vw, 12px);
+    }
+
+    .graph-title{
+      text-align:center;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: clamp(.9rem, 2vw, 1rem);
+    }
+
+    canvas{
+      background: rgba(255,255,255,0.97);
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.25);
+      display:block;
+      width: 90%;          /* CSS width — we’ll set JS logical size */
+      height: auto;
+      touch-action: manipulation;
+    }
+
+    .controls{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+      gap: clamp(8px, 2vw, 14px);
+    }
+
+    .control{
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      padding: clamp(8px, 2vw, 12px);
+    }
+
+    .control h3{
+      margin: 0 0 6px;
+      font-size: clamp(.85rem, 2vw, .95rem);
+      color: #ffeb3b;
+      letter-spacing:.2px;
+    }
+
+    .row{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: clamp(.8rem, 1.8vw, .9rem);
+      color: #fff;
+    }
+
+    input[type="range"]{
+      width:100%;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.35);
+      -webkit-appearance:none; appearance:none;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      -webkit-appearance:none; appearance:none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background:#ffeb3b;
+      box-shadow: 0 1px 3px rgba(0,0,0,.35);
+      cursor:pointer;
+      touch-action: none;
+    }
+    input[type="range"]::-moz-range-thumb{
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background:#ffeb3b; border:none;
+      box-shadow: 0 1px 3px rgba(0,0,0,.35);
+      cursor:pointer;
+    }
+
+    .buttons{
+      display:flex;
+      gap: 10px;
+      justify-content:center;
+      flex-wrap: wrap;
+    }
+    button{
+      background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+      color:#fff; border:none;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: clamp(.85rem, 2vw, .95rem);
+      letter-spacing:.4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+      cursor:pointer;
+      min-width: 140px;
+      touch-action: manipulation;
+    }
+    button:hover{ transform: translateY(-1px); box-shadow: 0 3px 12px rgba(0,0,0,.35); }
+    button:active{ transform: translateY(0); }
+    .reset{ background: linear-gradient(45deg,#9c27b0,#673ab7); }
+
+    .info{
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      padding: clamp(6px, 1vw, 10px); /* Reduced padding */
+      font-size: clamp(.75rem, 1.6vw, .85rem); /* Reduced font size */
+      text-align:center;
+    }
+
+    /* Mobile refinements */
+    @media (max-width: 600px){
+      .graph{ padding: 8px; }
+      canvas{ box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+      .buttons button{ min-width: 44%; padding: 10px 12px; }
+    }
+
+    /* Respect users who prefer less motion */
+    @media (prefers-reduced-motion: reduce){
+      *{ animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+<div class="info">
+      <strong>Wave Simulation</strong>
+    </div>
+
+    <div class="graphs">
+      <div class="graph">
+        <div class="graph-title">Displacement vs Distance</div>
+        <!-- Logical size set by JS on load/resize -->
+        <canvas id="distanceCanvas"></canvas>
+      </div>
+      <div class="graph">
+        <div class="graph-title">Displacement vs Time</div>
+        <canvas id="timeCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <div class="row"><h3>Amplitude, A (mm)</h3><span id="amplitudeValue">50</span></div>
+        <input type="range" id="amplitudeSlider" min="10" max="100" value="50" />
+      </div>
+
+      <div class="control">
+        <div class="row"><h3>Frequency, f (Hz)</h3> <span id="frequencyValue">1.0</span></div>
+        <input type="range" id="frequencySlider" min="0.1" max="3.0" step="0.1" value="1.0" />
+      </div>
+
+      <div class="control">
+        <div class="row"><h3>Wave Speed, v (mm/s)</h3><span id="speedValue">100</span></div>
+        <input type="range" id="speedSlider" min="20" max="200" value="100" />
+      </div>
+
+      <div class="control">
+        <div class="row"><h3>Wavelength, λ (mm)</h3><span id="wavelengthValue">200</span></div>
+        <input type="range" id="wavelengthSlider" min="80" max="400" step="5" value="200" />
+      </div>
+      
+      <div class="control">
+        <h3>Particle Visibility</h3>
+        <label>
+          <input type="checkbox" id="showRedDot" checked> Show Red Dot
+        </label><br>
+        <label>
+          <input type="checkbox" id="showBlueDot" checked> Show Blue Dot
+        </label>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button id="animateBtn">Start Animation</button>
+      <button class="reset" id="resetBtn">Reset</button>
+    </div>
+
+    
+  </div>
+
+  <script>
+    class WaveSimulation {
+      constructor() {
+        // DOM
+        this.distanceCanvas = document.getElementById('distanceCanvas');
+        this.timeCanvas = document.getElementById('timeCanvas');
+        this.distanceCtx = this.distanceCanvas.getContext('2d');
+        this.timeCtx = this.timeCanvas.getContext('2d');
+        this.realTime = 0;         // seconds of real (wall-clock) time
+
+
+        // State
+        this.amplitude = 50;
+        this.frequency = 1.0;      // Hz
+        this.speed = 100;          // UI factor
+        this.wavelengthPx = 200;   // px per λ
+        this.maxYDisplay = 100;    // y tick range
+        this.timeWindowSec = 5.0;  // visible width (sec)
+        this.sampleEverySec = 1/120;
+        this.lambdaScale = this.wavelengthPx / (this.speed / this.frequency); // = 200 / (100/1) = 2
+        // Animation
+        this.isAnimating = false;
+        this.animationId = null;
+        this.tNow = 0;
+        this._lastPerf = null;
+        this._sampleAccumulator = 0;
+        this.timeData1 = [];
+        this.timeData2 = [];
+        
+        // Configure colors
+        this.particle1Color = '#F44336'; // Red - First particle
+        this.particle2Color = '#2196F3'; // Blue - Second particle
+        this.waveColor = '#4CAF50';      // Green - Wave line
+        
+        // Variables for draggable particles
+        this.particleRadius = 8;        // Particle radius for collision detection
+        this.draggingParticle = null;   // Currently dragging particle (1 or 2)
+        this.refX1 = null;              // X coordinate of first particle
+        this.refX2 = null;              // X coordinate of second particle
+        this.showParticle1 = true;      // Show/hide first particle (red dot)
+        this.showParticle2 = true;      // Show/hide second particle (blue dot)
+        
+        // === Visual units model ===
+        // Treat 'speed' slider as visual speed in px/s (not a factor).
+        // Keep frequency in Hz. Wavelength is in pixels.
+        this.speedPxPerSec = this.speed;      // initialize from slider's value
+        this.lambdaPx      = this.wavelengthPx;
+
+        // One source of truth: whenever any 2 are known, derive the 3rd so v = f*λ.
+
+        // Init
+        this.bindUI();
+        this.resizeAll(); // sets up canvas sizing & DPR scaling
+        this.drawInitialWaves();
+
+        // Responsive: throttle resize
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            this.resizeAll();
+            // redraw current frame
+            if (this.isAnimating) {
+              // let RAF draw; do nothing
+            } else {
+              this.drawInitialWaves();
+            }
+          }, 120);
+        }, { passive: true });
+      }
+
+      bindUI() {
+        // UI binding code
+        const amp = document.getElementById('amplitudeSlider');
+        const freq = document.getElementById('frequencySlider');
+        const spd  = document.getElementById('speedSlider');
+        const wl   = document.getElementById('wavelengthSlider');
+        const animateBtn = document.getElementById('animateBtn');
+        const resetBtn   = document.getElementById('resetBtn');
+
+        amp.addEventListener('input', e=>{
+          this.amplitude = +e.target.value;
+          document.getElementById('amplitudeValue').textContent = this.amplitude;
+          if(!this.isAnimating) this.drawInitialWaves();
+        });
+
+        freq.addEventListener('input', e=>{
+          if (this._programmatic) return;
+          this.frequency = +e.target.value;
+          document.getElementById('frequencyValue').textContent = this.frequency.toFixed(2);
+          // Hold v fixed, recompute λ
+          this.updateLambdaFromVF();
+          if(!this.isAnimating) this.drawInitialWaves();
+        });
+
+        spd.addEventListener('input', e=>{
+          if (this._programmatic) return;
+          this.speedPxPerSec = +e.target.value;
+          this.speed = this.speedPxPerSec; // keep animation scale aligned
+          document.getElementById('speedValue').textContent = this.speedPxPerSec.toFixed(0);
+          // Hold f fixed, recompute λ
+          this.updateLambdaFromVF();
+          if(!this.isAnimating) this.drawInitialWaves();
+        });
+
+        wl.addEventListener('input', e=>{
+          if (this._programmatic) return;
+          this.lambdaPx = +e.target.value;
+          this.wavelengthPx = this.lambdaPx;
+          document.getElementById('wavelengthValue').textContent = this.lambdaPx.toFixed(0);
+          // Hold v fixed, recompute f
+          this.updateFreqFromVL();
+          if(!this.isAnimating) this.drawInitialWaves();
+        });
+
+        animateBtn.addEventListener('click', ()=> this.toggleAnimation());
+        resetBtn.addEventListener('click', ()=> this.reset());
+        
+        // Set up particle dragging
+        this.setupParticleDragging();
+        
+        // Bind particle visibility checkboxes
+        this.bindParticleVisibilityCheckboxes();
+      }
+      
+      // Set up particle dragging functionality
+      setupParticleDragging() {
+        // Mouse events
+        this.distanceCanvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        
+        // Touch events (mobile support)
+        this.distanceCanvas.addEventListener('touchstart', (e) => {
+          e.preventDefault(); // Prevent page scrolling
+          this.handleMouseDown(e.touches[0]);
+        });
+        document.addEventListener('touchmove', (e) => {
+          e.preventDefault(); // Prevent page scrolling
+          this.handleMouseMove(e.touches[0]);
+        });
+        document.addEventListener('touchend', (e) => {
+          this.handleMouseUp();
+        });
+      }
+      
+      // Get mouse/touch coordinates on canvas
+      getCanvasCoordinates(event) {
+        const rect = this.distanceCanvas.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        };
+      }
+      
+      // Check if point is on particle
+      isPointOnParticle(x, y, particleX, particleY) {
+        const dx = x - particleX;
+        const dy = y - particleY;
+        return Math.sqrt(dx * dx + dy * dy) <= this.particleRadius;
+      }
+      
+      // Handle mouse down event
+      handleMouseDown(event) {
+        const { W, H } = this.sizeOf(this.distanceCanvas);
+        const coords = this.getCanvasCoordinates(event);
+        
+        const k = (2*Math.PI) / this.wavelengthPx;
+        const omega = 2*Math.PI*this.frequency;
+        
+        // Calculate current particle positions
+        const refY1 = H/2 - this.amplitude * Math.sin(k * this.refX1 - omega * this.realTime);
+        const refY2 = H/2 - this.amplitude * Math.sin(k * this.refX2 - omega * this.realTime);
+        
+        // Check if particle is clicked
+        if (this.isPointOnParticle(coords.x, coords.y, this.refX1, refY1)) {
+          this.draggingParticle = 1;
+        } else if (this.isPointOnParticle(coords.x, coords.y, this.refX2, refY2)) {
+          this.draggingParticle = 2;
+        }
+        
+        // If dragging particle and animation is running, reset time data
+        if (this.draggingParticle && this.isAnimating) {
+          this.timeData1 = [];
+          this.timeData2 = [];
+          this._sampleAccumulator = 0;
+        }
+      }
+      
+      // Handle mouse move event
+      handleMouseMove(event) {
+        if (this.draggingParticle === null) return;
+        
+        const { W } = this.sizeOf(this.distanceCanvas);
+        const coords = this.getCanvasCoordinates(event);
+        
+        // Limit particle within canvas bounds
+        const newX = Math.max(0, Math.min(W, coords.x));
+        
+        // Update particle position
+        if (this.draggingParticle === 1) {
+          this.refX1 = newX;
+        } else {
+          this.refX2 = newX;
+        }
+        
+        // Redraw
+        if (!this.isAnimating) {
+          this.drawDistanceWave();
+          this.drawTimeWave();
+        }
+      }
+      
+      // Handle mouse up event
+      handleMouseUp() {
+        this.draggingParticle = null;
+      }
+
+      // Update wavelength based on velocity and frequency (v = f*λ)
+      updateLambdaFromVF() {
+        // Set programmatic flag to prevent triggering loop updates
+        this._programmatic = true;
+        // Calculate new wavelength using formula λ = v/f
+        this.lambdaPx = this.speedPxPerSec / this.frequency;
+        this.wavelengthPx = this.lambdaPx;
+        // Update UI display
+        document.getElementById('wavelengthSlider').value = this.lambdaPx;
+        document.getElementById('wavelengthValue').textContent = this.lambdaPx.toFixed(0);
+        // Clear programmatic flag
+        setTimeout(() => { this._programmatic = false; }, 0);
+      }
+
+      // Update frequency based on velocity and wavelength (v = f*λ)
+      updateFreqFromVL() {
+        // Set programmatic flag to prevent triggering loop updates
+        this._programmatic = true;
+        // Calculate new frequency using formula f = v/λ
+        this.frequency = this.speedPxPerSec / this.lambdaPx;
+        // Update UI display
+        document.getElementById('frequencySlider').value = this.frequency;
+        document.getElementById('frequencyValue').textContent = this.frequency.toFixed(2);
+        // Clear programmatic flag
+        setTimeout(() => { this._programmatic = false; }, 0);
+      }
+
+      // --- Responsive canvas sizing --- 
+      resizeAll() {
+        // Get viewport dimensions
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        // Choose logical widths based on container width
+        const container = document.querySelector('.container');
+        const maxW = container.clientWidth - 2*12;
+        
+        // Calculate appropriate heights based on viewport size and layout
+        // We'll use a percentage of viewport height while leaving room for other elements
+        const graphsSectionHeight = Math.min(viewportHeight * 0.6, viewportWidth * 0.7);
+        const h1 = Math.round(graphsSectionHeight * 0.5); // Equal height for both graphs
+        const h2 = h1;
+        
+        this.setCanvasSize(this.distanceCanvas, this.distanceCtx, maxW, h1);
+        this.setCanvasSize(this.timeCanvas, this.timeCtx, maxW, h2);
+        
+        // Initialize particle positions if first resize or not set
+        if (this.refX1 === null) {
+          // Set red dot position to 1 wavelength
+          this.refX1 = Math.max(40, Math.min(maxW - 40, this.wavelengthPx));
+        }
+        if (this.refX2 === null) {
+          // Set blue dot position to 1.5 wavelengths
+          this.refX2 = Math.max(40, Math.min(maxW - 40, this.wavelengthPx * 1.5));
+        }
+        
+        // Ensure particles are within new canvas bounds
+        this.refX1 = Math.max(0, Math.min(maxW, this.refX1));
+        this.refX2 = Math.max(0, Math.min(maxW, this.refX2));
+      }
+      
+      // Reset method
+      reset(){
+      if(this.isAnimating) this.toggleAnimation();
+      this.amplitude = 50; this.frequency = 1.0; this.speed = 100; this.wavelengthPx = 200;
+      this.tNow = 0; this.timeData1 = []; this.timeData2 = []; this.realTime = 0; this._lastPerf = null; this._sampleAccumulator = 0;
+      this.draggingParticle = null;
+      
+      // Reset particle positions
+      const { W } = this.sizeOf(this.distanceCanvas);
+      // Set red dot position to 1 wavelength
+      this.refX1 = Math.max(40, Math.min(W - 40, this.wavelengthPx));
+      // Set blue dot position to 1.5 wavelengths
+      this.refX2 = Math.max(40, Math.min(W - 40, this.wavelengthPx * 1.5));
+      
+      document.getElementById('amplitudeSlider').value = 50;
+      document.getElementById('amplitudeValue').textContent = '50';
+      document.getElementById('frequencySlider').value = 1.0;
+      document.getElementById('frequencyValue').textContent = '1.0';
+      document.getElementById('speedSlider').value = 100;
+      document.getElementById('speedValue').textContent = '100';
+      document.getElementById('wavelengthSlider').value = 200;
+      document.getElementById('wavelengthValue').textContent = '200';
+      
+      this.drawInitialWaves();
+      }
+
+      setCanvasSize(canvas, ctx, cssW, cssH){
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        canvas._cssW = cssW;
+        canvas._cssH = cssH;
+        canvas.style.width  = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        canvas.width  = Math.round(cssW * dpr);
+        canvas.height = Math.round(cssH * dpr);
+        ctx.setTransform(dpr,0,0,dpr,0,0); // 1 unit = 1 CSS px
+      }
+
+      sizeOf(canvas){ return { W: canvas._cssW|0, H: canvas._cssH|0 }; }
+
+      // --- Clean white background + single horizontal axis line --- 
+      drawAxisLine(ctx, canvas){
+        const { W, H } = this.sizeOf(canvas);
+        ctx.clearRect(0,0,W,H);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+      }
+
+      drawAxes(ctx, canvas, xLabel, yLabel){
+        const { W, H } = this.sizeOf(canvas);
+        // y-label (left, vertical)
+        ctx.save();
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.translate(14, H/2);
+        ctx.rotate(-Math.PI/2);
+        ctx.fillText(yLabel, 0, 0);
+        ctx.restore();
+
+        // y ticks (left of canvas)
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#666';
+        const steps = 4;
+        for(let i=-steps;i<=steps;i++){
+          if(i===0) continue;
+          const y = H/2 - (i * this.maxYDisplay / steps);
+          const val = (i * this.maxYDisplay / steps).toFixed(0);
+          if (y > 12 && y < H-28){
+            ctx.textAlign = 'right';
+            ctx.fillText(val, 28, y+3);
+          }
+        }
+        // origin label
+        ctx.textAlign = 'right';
+        ctx.fillText('0', 28, H/2 + 3);
+
+        // x-label (bottom right—small)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#333';
+        ctx.font = '11px Arial';
+        ctx.fillText(xLabel, W - 6, H - 6);
+      }
+
+      drawMovingTimeAxisTicks(ctx, canvas){
+        const { W, H } = this.sizeOf(canvas);
+        ctx.save();
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+
+        const divisions = 10;
+        const stepPx = W / divisions;
+
+        // fixed [0, window] then sliding
+        const tRight = (this.realTime < this.timeWindowSec) ? this.timeWindowSec : this.realTime;
+        const tLeft  = Math.max(0, tRight - this.timeWindowSec);
+        
+        const labelY = H/2 + 14; // directly below axis line
+        for(let i=0;i<=divisions;i++){
+          const x = i * stepPx;
+          const alpha = i / divisions;
+          const t = tLeft + alpha * (tRight - tLeft);
+          ctx.fillText(`${t.toFixed(1)}s`, x, labelY);
+        }
+        ctx.restore();
+      }
+
+      // --- Waves --- 
+      drawDistanceWave(){
+        const ctx = this.distanceCtx, canvas = this.distanceCanvas;
+        const { W, H } = this.sizeOf(canvas);
+
+        this.drawAxisLine(ctx, canvas);
+        this.drawAxes(ctx, canvas, 'Distance', 'Displacement');
+
+        // λ markers just under axis
+        ctx.save();
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#666';
+        for(let i=0; i * this.wavelengthPx < W; i++){
+          const x = Math.round(i * this.wavelengthPx);
+          if (x > 30 && x < W - 30) ctx.fillText(`${i}λ`, x, H/2 + 14);
+        }
+        ctx.restore();
+
+        // waveform - use green
+        ctx.strokeStyle = this.waveColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        const k = (2*Math.PI) / this.wavelengthPx;
+        const omega = 2*Math.PI*this.frequency;
+        for(let x=0;x<W;x++){
+          const y = H/2 - this.amplitude * Math.sin(k * x - omega * this.realTime);
+          if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+
+        // First reference point & amplitude line
+        const refY1 = H/2 - this.amplitude * Math.sin(k * this.refX1 - omega * this.realTime);
+        if (this.showParticle1) {
+          ctx.fillStyle = this.particle1Color;
+          ctx.beginPath(); ctx.arc(this.refX1, refY1, this.particleRadius, 0, Math.PI*2); ctx.fill();
+          
+          // Add particle drag hint (white outer circle)
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(this.refX1, refY1, this.particleRadius + 2, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // Second reference point
+        const refY2 = H/2 - this.amplitude * Math.sin(k * this.refX2 - omega * this.realTime);
+        if (this.showParticle2) {
+          ctx.fillStyle = this.particle2Color;
+          ctx.beginPath(); ctx.arc(this.refX2, refY2, this.particleRadius, 0, Math.PI*2); ctx.fill();
+          
+          // Add particle drag hint (white outer circle)
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(this.refX2, refY2, this.particleRadius + 2, 0, Math.PI*2); ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(33,150,243,0.35)';
+        ctx.setLineDash([6,4]);
+        ctx.beginPath(); ctx.moveTo(0, H/2 - this.amplitude); ctx.lineTo(W, H/2 - this.amplitude); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      drawTimeWave(){
+        const ctx = this.timeCtx, canvas = this.timeCanvas;
+        const { W, H } = this.sizeOf(canvas);
+
+        this.drawAxisLine(ctx, canvas);
+        this.drawAxes(ctx, canvas, 'Time', 'Displacement');
+        this.drawMovingTimeAxisTicks(ctx, canvas);
+
+        // time window
+        const tMax = (this.realTime < this.timeWindowSec) ? this.timeWindowSec : this.realTime;
+        const tMin = Math.max(0, tMax - this.timeWindowSec);
+
+        
+        // prune & guard
+        while(this.timeData1.length && this.timeData1[0].t < tMin) this.timeData1.shift();
+        while(this.timeData2.length && this.timeData2[0].t < tMin) this.timeData2.shift();
+        const range = (tMax - tMin);
+        if((!this.timeData1.length && !this.timeData2.length) || range <= 0) return;
+
+        const mapX = t => ((t - tMin) / (tMax - tMin)) * W;
+
+        // Draw first particle's trajectory
+        if (this.showParticle1 && this.timeData1.length > 1) {
+          ctx.strokeStyle = this.particle1Color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(mapX(this.timeData1[0].t), H/2 - this.timeData1[0].y);
+          for(let i=1;i<this.timeData1.length;i++){
+            const d = this.timeData1[i];
+            ctx.lineTo(mapX(d.t), H/2 - d.y);
+          }
+          ctx.stroke();
+        }
+        
+        // Draw second particle's trajectory
+        if (this.showParticle2 && this.timeData2.length > 1) {
+          ctx.strokeStyle = this.particle2Color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(mapX(this.timeData2[0].t), H/2 - this.timeData2[0].y);
+          for(let i=1;i<this.timeData2.length;i++){
+            const d = this.timeData2[i];
+            ctx.lineTo(mapX(d.t), H/2 - d.y);
+          }
+          ctx.stroke();
+        }
+
+        // First particle's current time point red dot - use actual particle position
+        const omega = 2 * Math.PI * this.frequency;
+        const k = (2 * Math.PI) / this.wavelengthPx;
+        
+        if (this.showParticle1) {
+          const yNow1 = this.amplitude * Math.sin(k * this.refX1 - omega * this.realTime);
+          const xNow1 = mapX(this.realTime);
+          ctx.fillStyle = this.particle1Color;
+          ctx.beginPath(); ctx.arc(xNow1, H/2 - yNow1, 6, 0, Math.PI*2); ctx.fill();
+        }
+        
+        // Second particle's current time point blue dot - use actual particle position
+        if (this.showParticle2) {
+          const yNow2 = this.amplitude * Math.sin(k * this.refX2 - omega * this.realTime);
+          const xNow2 = mapX(this.realTime);
+          ctx.fillStyle = this.particle2Color;
+          ctx.beginPath(); ctx.arc(xNow2, H/2 - yNow2, 6, 0, Math.PI*2); ctx.fill();
+        }
+      }
+
+      drawInitialWaves(){
+        // distance static frame
+        this.drawDistanceWave();
+
+        // time preview from 0..window
+        const ctx = this.timeCtx, canvas = this.timeCanvas;
+        const { W, H } = this.sizeOf(canvas);
+        this.drawAxisLine(ctx, canvas);
+        this.drawAxes(ctx, canvas, 'Time', 'Displacement');
+        // ticks under axis for 0..window
+        ctx.save();
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        const divisions = 10, step = W/divisions, labelY = H/2 + 14;
+        for(let i=0;i<=divisions;i++){
+          const t = (i/divisions) * this.timeWindowSec;
+          ctx.fillText(`${t.toFixed(1)}s`, i*step, labelY);
+        }
+        ctx.restore();
+
+        // Draw initial preview lines for both particles
+        const { W: Wref } = this.sizeOf(this.distanceCanvas);
+        // Use currently set particle positions, or default positions if not set
+        const x01 = this.refX1 || Math.min(200, Math.max(40, Math.round(Wref * 0.28)));
+        const x02 = this.refX2 || Math.min(600, Math.max(300, Math.round(Wref * 0.7)));
+        const omega = 2*Math.PI*this.frequency;
+        const k = (2 * Math.PI) / this.wavelengthPx;
+        
+        // First particle's initial preview line
+        if (this.showParticle1) {
+          ctx.strokeStyle = this.particle1Color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          for(let x=0;x<W;x++){
+            const t = (x/W) * this.timeWindowSec;
+            const y = H/2 - this.amplitude * Math.sin(k * x01 - omega * t);
+            if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+          }
+          ctx.stroke();
+        }
+        
+        // Second particle's initial preview line
+        if (this.showParticle2) {
+          ctx.strokeStyle = this.particle2Color;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          for(let x=0;x<W;x++){
+            const t = (x/W) * this.timeWindowSec;
+            const y = H/2 - this.amplitude * Math.sin(k * x02 - omega * t);
+            if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+          }
+          ctx.stroke();
+        }
+      }
+
+      // --- Animation loop ---
+      animate = () => {
+        const now = performance.now();
+        if (this._lastPerf == null) this._lastPerf = now;
+        const dtReal = (now - this._lastPerf) / 1000;  // real seconds
+        this._lastPerf = now;
+
+        // advance real time (no speed scaling here)
+        this.realTime += dtReal;
+
+        // sample y(t) at fixed probe positions x0 and x1 for the time graph
+        const { W } = this.sizeOf(this.distanceCanvas);
+        // Use currently set particle positions
+        const omega = 2 * Math.PI * this.frequency;
+        const k = (2 * Math.PI) / this.wavelengthPx;
+
+        this._sampleAccumulator += dtReal;
+        while (this._sampleAccumulator >= this.sampleEverySec) {
+          const t = this.realTime;                      // x-axis = real time
+          // First particle data
+          const y1 = this.amplitude * Math.sin(k * this.refX1 - omega * t);
+          this.timeData1.push({ t, y: y1 });
+          // Second particle data
+          const y2 = this.amplitude * Math.sin(k * this.refX2 - omega * t);
+          this.timeData2.push({ t, y: y2 });
+          
+          this._sampleAccumulator -= this.sampleEverySec;
+        }
+
+        this.drawDistanceWave();
+        this.drawTimeWave();
+        if (this.isAnimating) this.animationId = requestAnimationFrame(this.animate);
+
+      }
+
+      toggleAnimation(){
+        const btn = document.getElementById('animateBtn');
+        if(this.isAnimating){
+          this.isAnimating = false;
+          cancelAnimationFrame(this.animationId);
+          btn.textContent = 'Start Animation';
+          btn.style.background = 'linear-gradient(45deg, #ff6b6b, #ee5a24)';
+        } else {
+          this.isAnimating = true;
+          // Calculate initial displacement of particles instead of starting from 0
+          const omega = 2 * Math.PI * this.frequency;
+          const k = (2 * Math.PI) / this.wavelengthPx;
+          const y1 = this.amplitude * Math.sin(k * this.refX1 - omega * 0); // displacement at t=0
+          const y2 = this.amplitude * Math.sin(k * this.refX2 - omega * 0); // displacement at t=0
+          this.timeData1 = [{ t: 0, y: y1 }];
+          this.timeData2 = [{ t: 0, y: y2 }];
+          this.tNow = 0;
+          this.realTime = 0;  
+          this._lastPerf = null;
+          this._sampleAccumulator = 0;
+          btn.textContent = 'Stop Animation';
+          btn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+          this.animationId = requestAnimationFrame(this.animate);
+        }
+      }
+
+      reset(){
+        if(this.isAnimating) this.toggleAnimation();
+        this.amplitude = 50; this.frequency = 1.0; this.speed = 100; this.wavelengthPx = 200;
+        this.tNow = 0; this.timeData1 = []; this.timeData2 = []; this.realTime = 0; this._lastPerf = null; this._sampleAccumulator = 0;
+        this.draggingParticle = null;
+        
+        // Reset particle positions
+        const { W } = this.sizeOf(this.distanceCanvas);
+        this.refX1 = Math.min(200, Math.max(40, Math.round(W * 0.28)));
+        this.refX2 = Math.min(600, Math.max(300, Math.round(W * 0.7)));
+
+        document.getElementById('amplitudeSlider').value = 50;
+        document.getElementById('amplitudeValue').textContent = '50';
+        document.getElementById('frequencySlider').value = 1.0;
+        document.getElementById('frequencyValue').textContent = '1.0';
+        document.getElementById('speedSlider').value = 100;
+        document.getElementById('speedValue').textContent = '100';
+        document.getElementById('wavelengthSlider').value = 200;
+        document.getElementById('wavelengthValue').textContent = '200';
+        
+        // Ensure particle visibility checkboxes are reset to checked
+        const showRedDot = document.getElementById('showRedDot');
+        const showBlueDot = document.getElementById('showBlueDot');
+        if (showRedDot) showRedDot.checked = true;
+        if (showBlueDot) showBlueDot.checked = true;
+        
+        this.showParticle1 = true;
+        this.showParticle2 = true;
+
+        this.drawInitialWaves();
+      }
+      
+      bindParticleVisibilityCheckboxes() {
+        const showRedDot = document.getElementById('showRedDot');
+        const showBlueDot = document.getElementById('showBlueDot');
+        
+        if (showRedDot && showBlueDot) {
+          showRedDot.addEventListener('change', e => {
+            this.showParticle1 = e.target.checked;
+            if(!this.isAnimating) this.drawInitialWaves();
+          });
+          
+          showBlueDot.addEventListener('change', e => {
+            this.showParticle2 = e.target.checked;
+            if(!this.isAnimating) this.drawInitialWaves();
+          });
+        }
+      }
+    }
+
+    // Boot
+    window.addEventListener('load', ()=> new WaveSimulation());
+  </script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <script 
+async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+  <title>Photosynthesis Bubble Simulation (Jar Left • Lamp Centre • Bubble Count Right)</title>
+  <style>
+    :root { --bg:#f6f7fb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280; }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+    .wrap{ width:min(1180px, 96vw); margin:0 auto; padding:18px 0 26px; }
+    h1{ font-size:18px; margin:0 0 10px; font-weight:800; }
+    .card{
+      background:var(--panel); border:1px solid #e5e7eb; border-radius:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.05);
+      padding:14px;
+    }
+    canvas{ width:100%; height:520px; display:block; border-radius:12px; background:#fff; }
+    .controls{
+      margin-top:12px;
+      display:grid; grid-template-columns: 1.2fr 1.2fr 1fr 1fr; gap:12px;
+      align-items:end;
+    }
+    .ctl{
+      border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fbfbfd;
+    }
+    .row{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    label{ font-size:12px; font-weight:800; }
+    .val{ font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    input[type="range"]{ width:100%; margin-top:8px; }
+    .btns{ display:flex; gap:10px; }
+    button{
+      appearance:none; border:1px solid #e5e7eb; border-radius:12px;
+      padding:10px 12px; cursor:pointer; font-weight:900;
+      background:#111827; color:#fff; flex:1;
+    }
+    button.secondary{ background:#fff; color:#111827; }
+    .stats{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;
+    }
+    .stat{
+      border:1px solid #e5e7eb; border-radius:12px; padding:10px; background:#fbfbfd;
+      min-width: 180px;
+    }
+    .stat .k{ font-size:12px; color:var(--muted); }
+    .stat .v{ font-size:18px; font-weight:900; font-variant-numeric:tabular-nums; }
+    @media (max-width: 920px){
+      canvas{ height:480px; }
+      .controls{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Photosynthesis Simulation — adjust distance (light) + baking soda (CO₂) → oxygen bubbles</h1>
+
+    <div class="card">
+      <canvas id="sim" width="1100" height="520"></canvas>
+
+      <div class="controls">
+        <div class="ctl">
+          <div class="row">
+            <label for="distance">Distance plant → lamp (cm)</label>
+            <div class="val" id="distanceVal">20 cm</div>
+          </div>
+          <input id="distance" type="range" min="5" max="60" value="20" step="1" />
+        </div>
+
+        <div class="ctl">
+          <div class="row">
+            <label for="co2">Baking soda added (CO₂)</label>
+            <div class="val" id="co2Val">30%</div>
+          </div>
+          <input id="co2" type="range" min="0" max="100" value="30" step="1" />
+        </div>
+
+        <div class="ctl">
+          <div class="row">
+            <label for="temp">Temperature (°C)</label>
+            <div class="val" id="tempVal">25°C</div>
+          </div>
+          <input id="temp" type="range" min="5" max="40" value="25" step="1" />
+        </div>
+
+        <div class="ctl">
+          <div class="btns">
+            <button id="toggle">▶ Start</button>
+            <button id="reset" class="secondary">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">Bubble rate</div><div class="v" id="rateOut">0 / min</div></div>
+        <div class="stat"><div class="k">Bubbles counted</div><div class="v" id="countOut">0</div></div>
+        <div class="stat"><div class="k">Elapsed time</div><div class="v" id="timeOut">0.0 s</div></div>
+        <div class="stat"><div class="k">Light intensity (relative)</div><div class="v" id="lightOut">0.00</div></div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // ---------- Canvas + UI ----------
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d");
+
+    const distanceEl = document.getElementById("distance");
+    const co2El = document.getElementById("co2");
+    const tempEl = document.getElementById("temp");
+
+    const distanceVal = document.getElementById("distanceVal");
+    const co2Val = document.getElementById("co2Val");
+    const tempVal = document.getElementById("tempVal");
+
+    const toggleBtn = document.getElementById("toggle");
+    const resetBtn  = document.getElementById("reset");
+
+    const rateOut  = document.getElementById("rateOut");
+    const countOut = document.getElementById("countOut");
+    const timeOut  = document.getElementById("timeOut");
+    const lightOut = document.getElementById("lightOut");
+
+    // ---------- Simulation state ----------
+    let running = false;
+    let t = 0;                 // seconds elapsed
+    let bubbleCount = 0;
+    let bubbles = [];
+    let bubbleAccumulator = 0;
+    let lastTs = null;
+
+    // ---------- Layout: Jar LEFT, Lamp CENTRE, Ruler BELOW, Bubble count RIGHT ----------
+    const scene = {
+      tableY: 360,
+      jar:  { x: 80,  y: 80,  w: 380, h: 270 },
+      lamp: { x: 560, y: 145 },
+      ruler:{ x: 130, y: 410, w: 650, h: 70 },
+      counter: { x: 820, y: 120, w: 240, h: 200 },
+      plantAnchor: { x: 250, y: 300 },
+      bubbleSpawn:  { x: 270, y: 300 }
+    };
+
+    // ---------- Model ----------
+    function lightIntensity(distanceCm){
+      const ref = 10; // cm
+      const intensity = (ref*ref) / (distanceCm*distanceCm);
+      return Math.min(intensity, 1.6);
+    }
+    function co2Factor(co2Percent){
+      const c = co2Percent / 100;
+      const k = 0.35;
+      return c / (c + k);
+    }
+    function tempFactor(tempC){
+      const optimum = 28, spread = 10;
+      const f = Math.exp(-Math.pow((tempC - optimum)/spread, 2));
+      return 0.15 + 0.85 * f;
+    }
+    function bubbleRatePerSecond(distanceCm, co2Percent, tempC){
+      const L = lightIntensity(distanceCm);
+      const C = co2Factor(co2Percent);
+      const T = tempFactor(tempC);
+      const Lsat = L / (L + 0.35);
+      const maxPerSec = 2.2;
+      const baseline  = 0.02;
+      return baseline + maxPerSec * (Lsat * C * T);
+    }
+
+    // ---------- Bubbles ----------
+    function spawnBubble(){
+      const x = scene.bubbleSpawn.x + (Math.random()*18 - 9);
+      const y = scene.bubbleSpawn.y + (Math.random()*10 - 5);
+      const r = 4 + Math.random()*4;
+      const vy = 45 + Math.random()*35;
+      const drift = (Math.random()*18 - 9);
+      bubbles.push({ x, y, r, vy, drift, age: 0 });
+    }
+    function stepBubbles(dt){
+      const jar = scene.jar;
+      const jarTop = jar.y + 18;
+      const jarLeft = jar.x + 14;
+      const jarRight = jar.x + jar.w - 14;
+
+      bubbles = bubbles.filter(b => {
+        b.age += dt;
+        b.y -= b.vy * dt;
+        b.x += (b.drift * 0.22) * dt + Math.sin(b.age*2.2) * 0.4;
+
+        if (b.x < jarLeft) b.x = jarLeft;
+        if (b.x > jarRight) b.x = jarRight;
+
+        return b.y > jarTop;
+      });
+    }
+
+    // ---------- Drawing helpers ----------
+    function roundRect(ctx, x, y, w, h, r){
+      const rr = Math.min(r, w/2, h/2);
+      ctx.beginPath();
+      ctx.moveTo(x+rr, y);
+      ctx.arcTo(x+w, y, x+w, y+h, rr);
+      ctx.arcTo(x+w, y+h, x, y+h, rr);
+      ctx.arcTo(x, y+h, x, y, rr);
+      ctx.arcTo(x, y, x+w, y, rr);
+      ctx.closePath();
+    }
+
+    // ---------- Draw scene ----------
+    function drawScene(distanceCm, co2Percent, tempC, ratePerSec){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // Table
+      ctx.fillStyle = "#7c4a2d";
+      ctx.fillRect(0, scene.tableY, canvas.width, canvas.height - scene.tableY);
+      ctx.fillStyle = "#6b3f27";
+      ctx.fillRect(0, scene.tableY, canvas.width, 10);
+
+      // Jar (left)
+      const jar = scene.jar;
+      ctx.fillStyle = "#ffffff";
+      roundRect(ctx, jar.x, jar.y, jar.w, jar.h, 18);
+      ctx.fill();
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Water level (slight visual change with CO2)
+      const waterLevel = jar.y + 16; // water level reaches the brim
+      ctx.save();
+      roundRect(ctx, jar.x+3, jar.y+3, jar.w-6, jar.h-6, 16);
+      ctx.clip();
+      ctx.fillStyle = "rgba(59,130,246,0.22)";
+      ctx.fillRect(jar.x, waterLevel, jar.w, jar.y+jar.h - waterLevel);
+
+      ctx.fillStyle = "rgba(34,197,94,0.14)";
+      ctx.beginPath();
+      ctx.ellipse(scene.plantAnchor.x, scene.plantAnchor.y, 170, 90, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // Surface line
+      ctx.strokeStyle = "rgba(59,130,246,0.38)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(jar.x+14, waterLevel);
+      ctx.lineTo(jar.x+jar.w-14, waterLevel);
+      ctx.stroke();
+
+      // Plant
+      ctx.strokeStyle = "#16a34a";
+      ctx.lineWidth = 6;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(scene.plantAnchor.x, scene.plantAnchor.y);
+      ctx.quadraticCurveTo(scene.plantAnchor.x-70, scene.plantAnchor.y-55, scene.plantAnchor.x-35, scene.plantAnchor.y-130);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(scene.plantAnchor.x, scene.plantAnchor.y);
+      ctx.quadraticCurveTo(scene.plantAnchor.x+55, scene.plantAnchor.y-45, scene.plantAnchor.x+20, scene.plantAnchor.y-125);
+      ctx.stroke();
+
+      ctx.fillStyle = "#22c55e";
+      for (const leaf of [
+        {x:scene.plantAnchor.x-44,y:scene.plantAnchor.y-86,rx:18,ry:10,a:-0.6},
+        {x:scene.plantAnchor.x-22,y:scene.plantAnchor.y-112,rx:16,ry:9,a:0.2},
+        {x:scene.plantAnchor.x+24,y:scene.plantAnchor.y-94,rx:18,ry:10,a:0.8},
+        {x:scene.plantAnchor.x+6,y:scene.plantAnchor.y-126,rx:16,ry:9,a:-0.2},
+      ]){
+        ctx.beginPath();
+        ctx.ellipse(leaf.x, leaf.y, leaf.rx, leaf.ry, leaf.a, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      // Lamp (moves with distance)
+      // Smaller distance => lamp closer to plant; larger distance => lamp farther away
+      const dMinLamp = 5, dMaxLamp = 60;
+      const pDistLamp = (distanceCm - dMinLamp) / (dMaxLamp - dMinLamp);
+      const lampX = 420 + pDistLamp * (700 - 420); // keep it near the centre area
+      const lamp = { x: lampX, y: scene.lamp.y };
+
+      // base
+      ctx.fillStyle = "#f59e0b";
+      roundRect(ctx, lamp.x - 85, scene.tableY - 18, 170, 22, 11);
+      ctx.fill();
+
+      // stand
+      ctx.strokeStyle = "#f59e0b";
+      ctx.lineWidth = 18;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(lamp.x, scene.tableY - 20);
+      ctx.lineTo(lamp.x, lamp.y + 40);
+      ctx.stroke();
+
+      // glow (stronger)
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const glow = ctx.createRadialGradient(lamp.x + 18, lamp.y + 6, 10, lamp.x + 18, lamp.y + 6, 140);
+      glow.addColorStop(0, "rgba(253,224,71,0.95)");
+      glow.addColorStop(0.25, "rgba(253,224,71,0.55)");
+      glow.addColorStop(1, "rgba(253,224,71,0.00)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(lamp.x + 18, lamp.y + 6, 140, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // head
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath();
+      ctx.ellipse(lamp.x, lamp.y, 74, 50, -0.35, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath();
+      ctx.ellipse(lamp.x + 18, lamp.y + 6, 40, 26, -0.35, 0, Math.PI*2);
+      ctx.fill();
+
+      // Light cone to plant (distance changes intensity/alpha)
+      const L = lightIntensity(distanceCm);
+      const alpha = Math.min(0.55, 0.18 + 0.28 * (L/1.6));
+      ctx.save();
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = `rgba(253,224,71,${Math.min(0.9, alpha + 0.25)})`;
+      ctx.fillStyle = `rgba(253,224,71,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(lamp.x + 38, lamp.y + 18);
+      ctx.lineTo(scene.plantAnchor.x - 10, jar.y + 60);
+      ctx.lineTo(scene.plantAnchor.x + 35, jar.y + jar.h - 20);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // Draw bubbles
+      for (const b of bubbles){
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.strokeStyle = "rgba(59,130,246,0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // Ruler BELOW (under jar/lamp)
+      const ru = scene.ruler;
+      ctx.fillStyle = "#f3f4f6";
+      roundRect(ctx, ru.x, ru.y, ru.w, ru.h, 14);
+      ctx.fill();
+      ctx.strokeStyle = "#d1d5db";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // ruler ticks + label
+      ctx.fillStyle = "#111827";
+      ctx.font = "800 13px system-ui";
+      ctx.fillText("Distance scale (cm)", ru.x + 14, ru.y + 22);
+
+      const tickY1 = ru.y + 46;
+      const tickY2 = ru.y + 62;
+      const left = ru.x + 14;
+      const right = ru.x + ru.w - 14;
+
+      ctx.strokeStyle = "#9ca3af";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(left, tickY1);
+      ctx.lineTo(right, tickY1);
+      ctx.stroke();
+
+      // ticks every 5 cm from 5..60 mapped to ruler width
+      const dMin = 5, dMax = 60;
+      for (let d = dMin; d <= dMax; d += 5){
+        const p = (d - dMin) / (dMax - dMin);
+        const x = left + p * (right - left);
+        const tall = (d % 10 === 0);
+        ctx.beginPath();
+        ctx.moveTo(x, tickY1);
+        ctx.lineTo(x, tall ? tickY2 : (tickY2 - 8));
+        ctx.stroke();
+        if (tall){
+          ctx.fillStyle = "#6b7280";
+          ctx.font = "700 11px system-ui";
+          ctx.fillText(String(d), x - 8, ru.y + 40);
+        }
+      }
+
+      // current distance marker
+      const pd = (distanceCm - dMin) / (dMax - dMin);
+      const mx = left + pd * (right - left);
+      ctx.fillStyle = "#111827";
+      ctx.beginPath();
+      ctx.arc(mx, tickY1, 6, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = "#111827";
+      ctx.font = "800 12px system-ui";
+      ctx.fillText(`Plant distance: ${distanceCm} cm`, ru.x + ru.w - 180, ru.y + 22);
+
+      // Bubble count panel RIGHT
+      const box = scene.counter;
+      ctx.fillStyle = "rgba(17,24,39,0.05)";
+      roundRect(ctx, box.x, box.y, box.w, box.h, 16);
+      ctx.fill();
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#111827";
+      ctx.font = "900 18px system-ui";
+      ctx.fillText("Number of bubbles", box.x + 18, box.y + 40);
+
+      ctx.font = "900 46px system-ui";
+      ctx.fillText(String(bubbleCount), box.x + 18, box.y + 100);
+
+      ctx.font = "800 14px system-ui";
+      ctx.fillStyle = "#374151";
+      ctx.fillText(`Time: ${t.toFixed(1)} s`, box.x + 18, box.y + 136);
+      ctx.fillText(`Rate: ${Math.round(ratePerSec*60)} / min`, box.x + 18, box.y + 162);
+
+      // Labels
+      ctx.fillStyle = "#111827";
+      ctx.font = "800 13px system-ui";
+      ctx.fillText("Jar (pondweed in water)", jar.x + 10, jar.y - 10);
+      ctx.fillText("Lamp", lamp.x - 18, lamp.y - 64);
+    }
+
+    // ---------- Loop + UI ----------
+    function updateUI(){
+      const d = Number(distanceEl.value);
+      const c = Number(co2El.value);
+      const tp = Number(tempEl.value);
+
+      distanceVal.textContent = `${d} cm`;
+      co2Val.textContent = `${c}%`;
+      tempVal.textContent = `${tp}°C`;
+
+      const L = lightIntensity(d);
+      const rate = bubbleRatePerSecond(d, c, tp);
+
+      rateOut.textContent  = `${Math.round(rate*60)} / min`;
+      countOut.textContent = bubbleCount;
+      timeOut.textContent  = `${t.toFixed(1)} s`;
+      lightOut.textContent = L.toFixed(2);
+
+      drawScene(d, c, tp, rate);
+    }
+
+    function tick(ts){
+      if (!running){ lastTs = null; return; }
+      if (lastTs == null) lastTs = ts;
+      const dt = Math.min(0.05, (ts - lastTs)/1000);
+      lastTs = ts;
+
+      t += dt;
+
+      const d = Number(distanceEl.value);
+      const c = Number(co2El.value);
+      const tp = Number(tempEl.value);
+
+      const rate = bubbleRatePerSecond(d, c, tp);
+      bubbleAccumulator += rate * dt;
+
+      while (bubbleAccumulator >= 1){
+        bubbleAccumulator -= 1;
+        bubbleCount += 1;
+        spawnBubble();
+      }
+
+      stepBubbles(dt);
+
+      const L = lightIntensity(d);
+      rateOut.textContent  = `${Math.round(rate*60)} / min`;
+      countOut.textContent = bubbleCount;
+      timeOut.textContent  = `${t.toFixed(1)} s`;
+      lightOut.textContent = L.toFixed(2);
+
+      drawScene(d, c, tp, rate);
+
+      requestAnimationFrame(tick);
+    }
+
+    function setRunning(on){
+      running = on;
+      toggleBtn.textContent = running ? "⏸ Pause" : "▶ Start";
+      if (running) requestAnimationFrame(tick);
+    }
+
+    toggleBtn.addEventListener("click", () => setRunning(!running));
+    resetBtn.addEventListener("click", () => {
+      setRunning(false);
+      t = 0; bubbleCount = 0; bubbles = []; bubbleAccumulator = 0;
+      updateUI();
+    });
+
+    [distanceEl, co2El, tempEl].forEach(el => el.addEventListener("input", updateUI));
+
+    updateUI();
+  </script>
+</body>
+</html>

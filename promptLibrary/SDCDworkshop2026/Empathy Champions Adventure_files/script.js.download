@@ -1,0 +1,484 @@
+// ============================================
+// GAME STATE AND DATA MANAGEMENT
+// ============================================
+
+// Game state variables
+let currentScene = 0;
+let score = 0;
+let progress = 0;
+let musicEnabled = true;
+let sfxEnabled = true;
+
+// Audio context for generating simple tones (no external libraries)
+let audioContext;
+let backgroundMusicInterval;
+
+// Adventure scenarios with bullying situations
+const scenarios = [
+    {
+        id: 0,
+        character: '🧒',
+        story: 'Welcome, Empathy Champion! You\'re about to go on an adventure to help others. Click START to begin!',
+        type: 'intro'
+    },
+    {
+        id: 1,
+        character: '😢',
+        story: 'At the playground, you see Sam sitting alone. Some kids took his ball and won\'t give it back. Sam looks sad. What should you do?',
+        type: 'choice',
+        choices: [
+            { text: 'Go talk to Sam and ask if he\'s okay', points: 10, empathy: true },
+            { text: 'Tell the kids to give the ball back', points: 8, empathy: true },
+            { text: 'Ignore it and play somewhere else', points: 0, empathy: false }
+        ]
+    },
+    {
+        id: 2,
+        character: '🤔',
+        story: 'Great choice! Now, let\'s learn about empathy. Sort these responses into "Empathy" or "Not Empathy".',
+        type: 'sorting',
+        cards: [
+            { text: 'I understand how you feel', category: 'empathy', points: 5 },
+            { text: 'That\'s your problem', category: 'not-empathy', points: 5 },
+            { text: 'I\'m here to help you', category: 'empathy', points: 5 },
+            { text: 'Stop crying, it\'s not a big deal', category: 'not-empathy', points: 5 },
+            { text: 'Let me help you feel better', category: 'empathy', points: 5 },
+            { text: 'Just ignore them', category: 'not-empathy', points: 5 }
+        ]
+    },
+    {
+        id: 3,
+        character: '😰',
+        story: 'During PE class, Maya drops her water bottle and everyone laughs. She looks embarrassed. How do you respond?',
+        type: 'choice',
+        choices: [
+            { text: 'Help her pick it up and say "It happens to everyone"', points: 10, empathy: true },
+            { text: 'Laugh along with everyone else', points: 0, empathy: false },
+            { text: 'Tell others to stop laughing and be kind', points: 10, empathy: true }
+        ]
+    },
+    {
+        id: 4,
+        character: '🎯',
+        story: 'Excellent! Let\'s practice more. Sort these actions into empathetic or not empathetic responses.',
+        type: 'sorting',
+        cards: [
+            { text: 'Listen when someone is upset', category: 'empathy', points: 5 },
+            { text: 'Make fun of someone\'s mistakes', category: 'not-empathy', points: 5 },
+            { text: 'Share your toys with others', category: 'empathy', points: 5 },
+            { text: 'Exclude someone from a game', category: 'not-empathy', points: 5 },
+            { text: 'Stand up for someone being bullied', category: 'empathy', points: 5 },
+            { text: 'Spread rumors about classmates', category: 'not-empathy', points: 5 }
+        ]
+    },
+    {
+        id: 5,
+        character: '😔',
+        story: 'At lunch, you notice Alex sitting alone. Some kids are whispering and pointing at him. What\'s the best way to show empathy?',
+        type: 'choice',
+        choices: [
+            { text: 'Invite Alex to sit with you and your friends', points: 10, empathy: true },
+            { text: 'Join the kids who are whispering', points: 0, empathy: false },
+            { text: 'Tell a teacher about the situation', points: 8, empathy: true }
+        ]
+    },
+    {
+        id: 6,
+        character: '🏆',
+        story: 'Amazing work, Empathy Champion! You\'ve completed your adventure and learned how to help others with kindness!',
+        type: 'end'
+    }
+];
+
+// Current sorting scenario data
+let currentSortingData = null;
+let sortedCards = { empathy: [], 'not-empathy': [] };
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+// Initialize the game when page loads
+window.addEventListener('DOMContentLoaded', () => {
+    initAudio();
+    updateDisplay();
+    playBackgroundMusic();
+});
+
+// ============================================
+// AUDIO FUNCTIONS (No external libraries)
+// ============================================
+
+function initAudio() {
+    // Create audio context for sound generation
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+        console.log('Web Audio API not supported');
+    }
+}
+
+// Play a simple tone for sound effects
+function playTone(frequency, duration, type = 'sine') {
+    if (!sfxEnabled || !audioContext) return;
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Play success sound
+function playSuccessSound() {
+    playTone(523.25, 0.1); // C5
+    setTimeout(() => playTone(659.25, 0.1), 100); // E5
+    setTimeout(() => playTone(783.99, 0.2), 200); // G5
+}
+
+// Play error sound
+function playErrorSound() {
+    playTone(200, 0.3, 'sawtooth');
+}
+
+// Play click sound
+function playClickSound() {
+    playTone(400, 0.05);
+}
+
+// Background music (simple melody loop)
+function playBackgroundMusic() {
+    if (!musicEnabled || !audioContext) return;
+    
+    const melody = [261.63, 293.66, 329.63, 392.00, 329.63, 293.66]; // C-D-E-G-E-D
+    let noteIndex = 0;
+    
+    backgroundMusicInterval = setInterval(() => {
+        if (musicEnabled) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = melody[noteIndex];
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.03, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            
+            noteIndex = (noteIndex + 1) % melody.length;
+        }
+    }, 500);
+}
+
+// Toggle music on/off
+function toggleMusic() {
+    musicEnabled = !musicEnabled;
+    const btn = document.getElementById('musicToggle');
+    btn.classList.toggle('muted', !musicEnabled);
+    playClickSound();
+}
+
+// Toggle sound effects on/off
+function toggleSFX() {
+    sfxEnabled = !sfxEnabled;
+    const btn = document.getElementById('sfxToggle');
+    btn.classList.toggle('muted', !sfxEnabled);
+    playClickSound();
+}
+
+// ============================================
+// TOOLTIP FUNCTIONS
+// ============================================
+
+function showTooltip(event, text) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = text;
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('show');
+}
+
+// ============================================
+// GAME FLOW FUNCTIONS
+// ============================================
+
+function startAdventure() {
+    playClickSound();
+    currentScene = 1;
+    updateProgress();
+    updateDisplay();
+}
+
+function updateDisplay() {
+    const scenario = scenarios[currentScene];
+    const storyPanel = document.getElementById('storyPanel');
+    const characterImage = document.getElementById('characterImage');
+    const storyText = document.getElementById('storyText');
+    const choiceArea = document.getElementById('choiceArea');
+    const sortingArea = document.getElementById('sortingArea');
+    
+    // Update character and story
+    characterImage.textContent = scenario.character;
+    storyText.textContent = scenario.story;
+    
+    // Clear previous content
+    choiceArea.innerHTML = '';
+    sortingArea.classList.add('hidden');
+    
+    // Display based on scenario type
+    if (scenario.type === 'intro') {
+        choiceArea.innerHTML = '<button id="startBtn" class="choice-btn start-btn" onclick="startAdventure()">START ADVENTURE</button>';
+    } else if (scenario.type === 'choice') {
+        scenario.choices.forEach((choice, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.textContent = choice.text;
+            btn.onclick = () => handleChoice(choice);
+            choiceArea.appendChild(btn);
+        });
+    } else if (scenario.type === 'sorting') {
+        setupSortingActivity(scenario);
+    } else if (scenario.type === 'end') {
+        const finalMessage = document.createElement('div');
+        finalMessage.className = 'choice-btn start-btn';
+        finalMessage.style.cursor = 'default';
+        finalMessage.textContent = `Final Score: ${score} points! 🎉`;
+        choiceArea.appendChild(finalMessage);
+        
+        const restartBtn = document.createElement('button');
+        restartBtn.className = 'choice-btn';
+        restartBtn.textContent = 'Play Again';
+        restartBtn.onclick = resetGame;
+        choiceArea.appendChild(restartBtn);
+    }
+}
+
+function handleChoice(choice) {
+    playClickSound();
+    
+    if (choice.empathy) {
+        playSuccessSound();
+        score += choice.points;
+    } else {
+        playErrorSound();
+    }
+    
+    updateScore();
+    
+    // Move to next scene after brief delay
+    setTimeout(() => {
+        currentScene++;
+        updateProgress();
+        updateDisplay();
+    }, 1000);
+}
+
+// ============================================
+// SORTING ACTIVITY FUNCTIONS
+// ============================================
+
+function setupSortingActivity(scenario) {
+    const sortingArea = document.getElementById('sortingArea');
+    const responseCards = document.getElementById('responseCards');
+    const choiceArea = document.getElementById('choiceArea');
+    
+    sortingArea.classList.remove('hidden');
+    responseCards.innerHTML = '';
+    
+    // Store current sorting data
+    currentSortingData = scenario.cards;
+    sortedCards = { empathy: [], 'not-empathy': [] };
+    
+    // Clear drop zones
+    document.getElementById('empathyDropZone').innerHTML = '';
+    document.getElementById('notEmpathyDropZone').innerHTML = '';
+    
+    // Create draggable cards
+    scenario.cards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'response-card';
+        cardElement.textContent = card.text;
+        cardElement.draggable = true;
+        cardElement.id = `card-${index}`;
+        cardElement.dataset.category = card.category;
+        cardElement.dataset.points = card.points;
+        
+        // Drag event listeners
+        cardElement.addEventListener('dragstart', dragStart);
+        cardElement.addEventListener('touchstart', touchStart, { passive: false });
+        
+        responseCards.appendChild(cardElement);
+    });
+    
+    // Add submit button
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'choice-btn';
+    submitBtn.textContent = 'Check My Answers';
+    submitBtn.onclick = checkSortingAnswers;
+    choiceArea.appendChild(submitBtn);
+}
+
+// Drag and drop handlers
+function allowDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('drag-over');
+}
+
+function dragStart(event) {
+    event.dataTransfer.setData('text/plain', event.target.id);
+    playClickSound();
+}
+
+function drop(event, category) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    
+    const cardId = event.dataTransfer.getData('text/plain');
+    const card = document.getElementById(cardId);
+    
+    if (card) {
+        const dropZone = category === 'empathy' ? 
+            document.getElementById('empathyDropZone') : 
+            document.getElementById('notEmpathyDropZone');
+        
+        dropZone.appendChild(card);
+        card.style.margin = '5px';
+        playClickSound();
+    }
+}
+
+// Touch support for mobile devices
+let touchedCard = null;
+
+function touchStart(event) {
+    touchedCard = event.target;
+    touchedCard.style.opacity = '0.5';
+}
+
+document.addEventListener('touchmove', (event) => {
+    if (touchedCard) {
+        event.preventDefault();
+    }
+}, { passive: false });
+
+document.addEventListener('touchend', (event) => {
+    if (touchedCard) {
+        touchedCard.style.opacity = '1';
+        
+        const touch = event.changedTouches[0];
+        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        if (dropTarget && dropTarget.classList.contains('drop-zone')) {
+            dropTarget.appendChild(touchedCard);
+            touchedCard.style.margin = '5px';
+            playClickSound();
+        }
+        
+        touchedCard = null;
+    }
+});
+
+// Check sorting answers
+function checkSortingAnswers() {
+    const empathyZone = document.getElementById('empathyDropZone');
+    const notEmpathyZone = document.getElementById('notEmpathyDropZone');
+    
+    let correct = 0;
+    let total = 0;
+    
+    // Check empathy zone
+    Array.from(empathyZone.children).forEach(card => {
+        total++;
+        if (card.dataset.category === 'empathy') {
+            card.classList.add('correct');
+            correct++;
+            score += parseInt(card.dataset.points);
+        } else {
+            card.classList.add('incorrect');
+        }
+    });
+    
+    // Check not-empathy zone
+    Array.from(notEmpathyZone.children).forEach(card => {
+        total++;
+        if (card.dataset.category === 'not-empathy') {
+            card.classList.add('correct');
+            correct++;
+            score += parseInt(card.dataset.points);
+        } else {
+            card.classList.add('incorrect');
+        }
+    });
+    
+    // Play appropriate sound
+    if (correct === total) {
+        playSuccessSound();
+    } else {
+        playErrorSound();
+    }
+    
+    updateScore();
+    
+    // Move to next scene after delay
+    setTimeout(() => {
+        currentScene++;
+        updateProgress();
+        updateDisplay();
+    }, 2000);
+}
+
+// ============================================
+// PROGRESS AND SCORE TRACKING
+// ============================================
+
+function updateScore() {
+    document.getElementById('scoreValue').textContent = score;
+}
+
+function updateProgress() {
+    progress = (currentScene / (scenarios.length - 1)) * 100;
+    document.getElementById('progressFill').style.width = progress + '%';
+}
+
+function resetGame() {
+    playClickSound();
+    currentScene = 0;
+    score = 0;
+    progress = 0;
+    updateScore();
+    updateProgress();
+    updateDisplay();
+}
+
+// ============================================
+// DRAG OVER EFFECT CLEANUP
+// ============================================
+
+document.addEventListener('dragleave', (event) => {
+    if (event.target.classList.contains('category-box')) {
+        event.target.classList.remove('drag-over');
+    }
+});
+
+document.addEventListener('drop', (event) => {
+    document.querySelectorAll('.category-box').forEach(box => {
+        box.classList.remove('drag-over');
+    });
+});

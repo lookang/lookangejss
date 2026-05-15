@@ -1,0 +1,158 @@
+By Jeremy
+Objective: Create an engaging, web-based simulation that allows users to explore 2D projectile motion by firing a virtual cannon. The simulation must visually demonstrate the effects of initial velocity, launch angle, mass, air resistance, and gravity on the trajectory, and provide real-time numerical data for maximum height and horizontal distances.
+
+1. Core Visual & Interactive Elements
+A. The Scene:
+
+A clean, colorful 2D canvas with a sky background and ground.
+
+A cannon positioned at the origin (0, 0) at the bottom-left of the scene. The cannon's barrel should pivot to visually represent the current launch angle.
+
+A projectile (e.g., a cannonball) that is launched from the cannon when the user clicks "Fire".
+
+B. The Trajectory & Data Visualization:
+
+As the projectile flies, it must leave a dotted or dashed line behind it, tracing its path in real-time.
+
+Critical Point Markers:
+
+Launch Point: Clearly marked.
+
+Maximum Height Point: A distinct marker (e.g., a flag or a different colored dot) on the trajectory at the apex. A vertical dashed line should connect this point to the ground, labeled "Max Height".
+
+Landing Point: A marker where the projectile hits the ground.
+
+C. Interactive Controls Panel (Sliders & Inputs): 
+A clearly labeled control panel should allow users to modify the following parameters:
+
+Initial Speed (m/s): A slider from 0 to 150 m/s.
+
+Launch Angle (degrees): A slider from 0° to 90°. The cannon's barrel should rotate in real-time as this slider is moved.
+
+Mass (kg): A slider from 1 kg to 50 kg.
+
+Air Resistance Coefficient: A slider from 0 (no air resistance) to 0.5 (high air resistance).
+
+Gravitational Field Strength (m/s²): A slider from 1 m/s² (e.g., Moon) to 24 m/s² (e.g., Jupiter), with Earth's gravity (9.81 m/s²) as the default.
+
+D. Control Buttons:
+
+FIRE / START: A large, prominent button to launch the projectile with the current parameters.
+
+RESET / CLEAR: A button to stop the current simulation, clear the trajectory, and reset all data displays.
+
+2. Key Data Display (Numerical Readouts)
+A dedicated "Flight Data" panel must display the following information, updated in real-time during the flight and finalized upon landing:
+
+Maximum Height (Y_max): The highest vertical point reached by the projectile, in meters.
+
+Horizontal Distance to Max Height (X_to_peak): The horizontal distance traveled from the launch point to the point directly below the maximum height.
+
+Horizontal Distance from Max Height to Landing (X_from_peak): The horizontal distance traveled from the point directly below the maximum height to the landing point.
+
+Total Horizontal Distance (Range): The sum of X_to_peak and X_from_peak.
+
+(Optional but useful) Time of Flight: The total time the projectile was in the air.
+
+3. Key Functionality & Physics
+A. The "Fire" Button:
+
+The simulation only begins when the Fire button is pressed.
+
+Upon pressing "Fire", the cannonball is launched with the current parameter values.
+
+B. Physics Model & Data Tracking: 
+The simulation must use accurate physics calculations. The core logic should be implemented using numerical integration (Euler or Verlet method) to correctly handle air resistance and track the required data points.
+
+Pseudocode for Physics and Data Tracking:
+
+javascript
+// === SIMULATION PARAMETERS ===
+let speed, angle, mass, gravity, airResistanceCoeff;
+
+// === PROJECTILE STATE ===
+let x, y, vx, vy, time;
+let isFlying = false;
+let trajectoryPoints = [];
+
+// === DATA TRACKING VARIABLES ===
+let maxHeight = 0;
+let distanceToMaxHeight = 0;
+let distanceFromMaxHeightToLanding = 0;
+let totalRange = 0;
+
+// === FIRING MECHANISM ===
+function fireCannon() {
+  // Reset state and tracking variables
+  isFlying = true;
+  trajectoryPoints = [];
+  x = 0;
+  y = 0; // Launch from origin
+  time = 0;
+  maxHeight = 0;
+  distanceToMaxHeight = 0;
+  distanceFromMaxHeightToLanding = 0;
+
+  // Convert angle to radians and set initial velocity
+  let angleRad = radians(angle);
+  vx = speed * cos(angleRad);
+  vy = speed * sin(angleRad);
+}
+
+// === PHYSICS UPDATE (WITH AIR RESISTANCE) ===
+function updateProjectileWithAirResistance() {
+  let dt = 0.1; // Time step
+  time += dt;
+
+  // Calculate velocity magnitude for air resistance
+  let velocity = sqrt(vx*vx + vy*vy);
+
+  // Calculate air resistance force components
+  let F_air_x = -airResistanceCoeff * vx * velocity;
+  let F_air_y = -airResistanceCoeff * vy * velocity;
+
+  // Calculate acceleration (F = ma -> a = F/m)
+  let ax = F_air_x / mass;
+  let ay = -gravity + (F_air_y / mass);
+
+  // Update velocity and position
+  vx += ax * dt;
+  vy += ay * dt;
+  x += vx * dt;
+  y += vy * dt; // Note: y is positive upwards
+
+  // --- CRITICAL DATA TRACKING ---
+  
+  // 1. Track Maximum Height
+  if (y > maxHeight) {
+    maxHeight = y;
+    // 2. When a new max height is set, record the horizontal distance to this point
+    distanceToMaxHeight = x;
+  }
+
+  // Store point for trajectory line
+  trajectoryPoints.push({x: x, y: y});
+
+  // Check for landing (projectile hits the ground, y <= 0)
+  if (y <= 0 && isFlying) {
+    isFlying = false;
+    totalRange = x;
+    // 3. Calculate the horizontal distance FROM the max height point TO the landing point
+    distanceFromMaxHeightToLanding = totalRange - distanceToMaxHeight;
+    
+    // Update the data display panel with final values
+    updateDataDisplay();
+  }
+}
+4. User Workflow & Learning Outcomes
+How a student would use the simulator:
+
+Basic Exploration: Adjust the angle and speed sliders and press Fire. Observe how the trajectory changes and see the numerical values for Max Height, X_to_peak, and X_from_peak update.
+
+Discover Symmetry: Set air resistance to 0. Notice that for a given speed, the X_to_peak and X_from_peak are equal at 45°, demonstrating symmetric motion.
+
+Understand Air Resistance: Increase air resistance. Observe how the trajectory becomes asymmetric and X_from_peak becomes shorter than X_to_peak because the projectile loses more horizontal speed on the way down.
+
+Experiment with Mass: With air resistance on, fire projectiles with different masses but the same speed and angle. Observe that a heavier projectile is less affected by air resistance, resulting in a larger X_from_peak and a more symmetric path.
+
+Analyze Gravity: Change gravity to a low value (Moon). Observe the large increase in Maximum Height and Time of Flight, and note that the horizontal distances X_to_peak and X_from_peak are still equal without air resistance.

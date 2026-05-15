@@ -1,0 +1,463 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=iso-8859-1">
+    <title>MaPS_TL</title>
+    <script type="text/javascript">
+var currentquestion;
+var numberofqns;
+var correctanswers;
+var currentquestionattempts;
+var questionwasattempted = false;
+var myclose = false;
+function ConfirmClose()
+{
+	if(event.clientY < 0)
+	{
+		if(numberofqns == null || numberofqns == 0)
+		{
+			//event.returnValue = 'No assignment was loaded yet.';
+		}
+		else
+		{
+			if(currentquestionattempts == null && questionwasattempted == false)
+			{
+				event.returnValue = "You have not attempted any question yet.";
+			}
+			else
+			{
+				questionwasattempted = true;
+				event.returnValue = 'You have achieved ' + correctanswers + ' out of ' + numberofqns + ' questions correct on your first attempt. It is recommended that you save your work first.';
+			}
+		}
+		setTimeout('myclose = false',100);
+		myclose = true;
+	}
+}
+
+function HandleOnClose()
+{
+	if(myclose==true)
+	{
+		//alert("Window is closed");
+	}
+}
+// Makes the browser prompt the user whether
+// does he/she really want to close the browser.
+//window.onbeforeunload = function(evt)
+//{
+//var message = 'You should save a copy of your work first by clicking Cancel and then Clear.';
+//if(typeof evt == 'undefined')
+//{
+//	evt = window.event;
+//}
+//if(evt)
+//	{
+//		evt.returnValue = message;
+//		//poptastic(currentquestion);
+//	}
+//	else
+//	{
+//		poptastic(currentquestion);
+//	}
+//return message;
+//}
+
+//window.onbeforeunload = function()
+//{
+	//var confirm3 = window.confirm("Do you want to save a copy of your work?");
+	//if (confirm3)
+	//{
+	//	poptastic(currentquestion);
+	//	self.close();
+	//}
+	//else
+	//{
+		//window.onbeforeunload = null;
+	//}
+//}
+
+function ReceiveValueFromFlash(hereisanumber)
+{
+	currentquestion = hereisanumber + 1;
+}
+
+// Calculator functionality
+function doEval(str) {
+return eval(str);
+}
+
+function ReceiveValueFromFlash2(totalqns)
+{
+	numberofqns = totalqns;
+}
+
+function ReceiveValueFromFlash3(coranswers)
+{
+	correctanswers = coranswers;
+}
+
+function ReceiveValueFromFlash4(curqnsattempts)
+{
+	currentquestionattempts = curqnsattempts;
+}
+
+function doEvalForFlash(str,ln) {
+    var retrieveIndex = 0;
+    var leftEq;
+    var rightEq;
+    var valueLeftHand;
+    var valueRightHand;
+    var returnState;
+    var equalsDetected = false;
+    var isNumeric = /(^\d+$)|(^\d+\.\d+$)/;
+    var isValidNumber = /^([0-9])$/;
+    var validEquation = true;
+    var percentageDetected = false;
+    var ratioDetected = false;
+    var isAlphabet = /^([a-zA-Z])$/;
+    var evaluateString;
+    var numOfEquals = 0;
+    for (var i=0; i<=str.length-1; i++) {
+       
+       if(numOfEquals < 1 ) {
+       if(str.charAt(i) == '=' && !equalsDetected ) {
+       retrieveIndex = i;
+       equalsDetected = true;
+       }     
+       }
+       if(str.charAt(i) == '=') {
+       numOfEquals++;
+       if (numOfEquals > 1) {
+       equalsDetected = false;
+       returnState = "false" + "@" + ln;
+       validEquation = false;
+       }
+       }
+    }
+
+    leftEq = str.substring(0,retrieveIndex);
+    rightEq = str.substring(retrieveIndex+1,str.length);
+    leftEq = leftEq.replace(/^\s+|\s+$/g, '');
+    rightEq = rightEq.replace(/^\s+|\s+$/g, '');
+    
+    if ( leftEq.length == 0 || rightEq.length == 0) {
+    }
+    else{ 
+    if (leftEq.length > rightEq.length) {
+    evaluateString = leftEq.length - 1;
+    }
+    else {
+    evaluateString = rightEq.length - 1;
+    }
+    for (var i =0 ; i<=evaluateString;i++) {
+        if (leftEq.charAt(i).match(isAlphabet) || rightEq.charAt(i).match(isAlphabet)) {
+         validEquation = false;
+         break;
+        }
+        else {
+        if (leftEq.charAt(i) == '%' || rightEq.charAt(i) == '%') { 
+         percentageDetected = true; 
+         validEquation = false;
+        }
+        if (leftEq.charAt(i) == ':' || rightEq.charAt(i) == ":") {
+         ratioDetected = true;
+         validEquation = false;
+        }
+        if (leftEq.charAt(i) == '+' || leftEq.charAt(i) == '-' || leftEq.charAt(i) == '*' || leftEq.charAt(i) == '/' || leftEq.charAt(i) == " " || leftEq.charAt(i) == '(' || leftEq.charAt(i) == ')' || leftEq.charAt(i) == '.' || leftEq.charAt(i).match(isValidNumber) || rightEq.charAt(i) == '+' || rightEq.charAt(i) == '-' || rightEq.charAt(i) == '*' || rightEq.charAt(i) == '/' || rightEq.charAt(i) == " " || rightEq.charAt(i) == '(' || rightEq.charAt(i) == ')' || rightEq.charAt(i) == '.' || rightEq.charAt(i).match(isValidNumber) ){
+        }
+        else {
+         validEquation = false;
+        }
+        }
+    }
+    if (ratioDetected) {
+        var firstNum,secondNum,thirdNum,fourthNum,fifthNum,sixthNum;
+        var leftColon = 0;
+        var rightColon = 0;
+        var leftRatio;
+        var rightRatio;
+        var leftRatio2;
+        var rightRatio2;
+        var firstLeftColonIndex = 0;
+        var firstRightColonIndex = 0;
+        var twoColons = false;
+        var noColons = true;
+        for (var i = 0 ; i <= evaluateString; i++) {
+        if (leftEq.charAt(i) == ':' || leftEq.charAt(i).match(isValidNumber) || leftEq.charAt(i) == " " || rightEq.charAt(i) == ':' || rightEq.charAt(i).match(isValidNumber) || rightEq.charAt(i) == " ") {
+        if (leftEq.charAt(i) == ':') {
+        noColons = false;
+        validEquation = false;
+        if (leftColon == 0) {
+        firstLeftColonIndex = i;
+        firstNum = leftEq.substring(0,i);
+        secondNum = leftEq.substring(i+1,leftEq.length);
+        }
+        else if (leftColon == 1) {
+        firstNum = leftEq.substring(0,firstLeftColonIndex);
+        secondNum = leftEq.substring(firstLeftColonIndex+1,i);
+        fifthNum = leftEq.substring(i+1,leftEq.length);
+        twoColons = true;
+        }
+        else if (leftColon > 1) {
+        noColons = true;
+        twoColons = false;
+        break;
+        }
+        else {
+        validEquation = false;
+        }
+        leftColon +=1;
+        }
+        if (rightEq.charAt(i) == ':') {
+        noColons = false;
+        validEquation = false;
+        if (rightColon == 0) {
+        firstRightColonIndex = i;
+        thirdNum = rightEq.substring(0,i);
+        fourthNum = rightEq.substring(i+1,rightEq.length);
+        }
+        else if (rightColon == 1) {
+        thirdNum = rightEq.substring(0,firstRightColonIndex);
+        fourthNum = rightEq.substring(firstRightColonIndex+1,i);
+        sixthNum = rightEq.substring(i+1,rightEq.length);
+        twoColons = true;
+        }
+        else if (rightColon > 1) {
+        noColons = true;
+        twoColons = false;
+        break;
+        }
+        else {
+        validEquation = false;
+        }
+        rightColon +=1;
+        }
+        }
+        else {
+        noColons = true;
+        twoColons = false;
+        validEquation = false;
+        break;
+        }
+        }
+        if (twoColons && !noColons) { 
+        leftRatio = eval(firstNum / secondNum);
+        rightRatio = eval(thirdNum / fourthNum);
+        leftRatio2 = eval(firstNum / fifthNum);
+        rightRatio2 = eval(thirdNum / sixthNum);
+        if (isNaN(leftRatio) || isNaN(rightRatio) || isNaN(leftRatio2) || isNaN(rightRatio2)) {
+        returnState ="";
+        validEquation = false;
+        }
+        if (leftRatio == rightRatio && leftRatio2 == rightRatio2) {
+        returnState = "true" + "@" + ln;
+        }
+        else{
+        returnState = "false" + "@" + ln;
+        }
+        }
+        else if (!twoColons && !noColons) {
+        leftRatio = eval(firstNum / secondNum);
+        rightRatio = eval(thirdNum / fourthNum);
+        if (isNaN(leftRatio) || isNaN(rightRatio)) {
+        returnState = "";
+        validEquation = false;
+        }
+        if (leftRatio == rightRatio) {
+        returnState = "true" + "@" + ln;
+        }
+        else {
+        returnState = "false" + "@" + ln;
+        }
+        }
+        else if (noColons && !twoColons) {
+        returnState = "";
+        validEquation = false;
+        }
+        
+        
+    }
+    if (percentageDetected) {
+    for (var i =0; i <= evaluateString; i++) {
+    if (leftEq.charAt(i) == '%' || leftEq.charAt(i).match(isValidNumber) || leftEq.charAt(i) == " " || rightEq.charAt(i) == '%' || rightEq.charAt(i).match(isValidNumber) || rightEq.charAt(i) == " ") {
+      validEquation = false;
+      returnState = "false" + "@" + ln;
+    }
+    else {
+      validEquation = false;
+      returnState = "";
+      break;
+    }
+    }
+    }
+  if (validEquation) {
+    valueLeftHand = eval(leftEq);
+    valueRightHand = eval(rightEq);
+    valueLeftHand = Math.round(valueLeftHand*10000)/10000;
+    valueRightHand = Math.round(valueRightHand*10000)/10000;
+    if (valueLeftHand == valueRightHand) {
+    returnState = "true" + "@" + ln;
+    }
+    else {
+    returnState = "false" + "@" + ln;
+    }
+    }
+    }
+
+if (!equalsDetected) {
+returnState = "asdasdsasdas" + "@" + ln;
+}
+return returnState;
+}
+
+// Please let this work
+//alert("xD");
+flushtextfile();
+function runthiscrap(){
+// Debugging function.
+// Can be safely ignored.
+alert("OMG LOL IT FINALLY WORKS");
+document.ScreenCapture.sayHello();
+}
+
+function printscreen(path, name){
+//alert("Function is being called.");
+// JavaScript function to call the Java screenshot function.
+document.ScreenCapture.CaptureScreen(path, (name + ".jpg"));
+document.ScreenCapture.WriteText(("file://" + path + "/" + name + ".jpg"), "D:/filenames.txt");
+//var pleasework = document.ScreenCapture.ReadText("D:/filenames.txt", "lol", 0);
+//alert(pleasework);
+//alert("Function called, screenshot taken.");
+return "true";
+}
+
+function poptastic(NumberOfQuestions, totalquestions, correctquestions, attempts)
+{
+	// This function generates the popup results page for the student.
+	//document.ScreenCapture.FlushFileList("D:/filenames.txt");
+	//newwindow=window.open(url,'name','height=400,width=200');
+	//if (window.focus) {newwindow.focus()}
+	<!-- saved from url=(0013)about:internet -->
+  var generator=window.open("","name",'scrollbars=yes,menubar=yes,resizable=yes,height=2000,width=500');
+  //var test1 = document.ScreenCapture.ReadText("D:/filenames.txt", "lol", 0);
+  
+  generator.document.write('<html><head><title>Your Current Work</title>');
+  generator.document.write('<link rel="stylesheet" href="style.css">');
+  generator.document.write('</head><body>');
+  generator.document.write('<p>Here is the screen capture of your work.</p>');
+  generator.document.write('<p>Click on File at the menu bar above. Select "Save Page As" to save a copy of your work.</p>');
+  generator.document.write('<p>Select "Print" to print a copy of your work. To exit, select "Exit".</p>');
+  generator.document.write('<p>You have attempted ' + attempts + ' out of ' + totalquestions + ' questions.</p>');
+  generator.document.write('<p>You got ' + correctquestions + ' out of '  + totalquestions + ' questions correct on your first try.</p>');
+  //generator.document.write('<p><a href="javascript:self.close()">Close</a> the popup.</p>');
+  //alert("Function Start");
+  for (i = 0; i < NumberOfQuestions; i++)
+  {
+	generator.document.write('<p>Question ' + (i+1) + '</p>');
+	generator.document.write('<img src =' + '"' + document.ScreenCapture.ReadText("D:/filenames.txt", "lol", i) + '"' + "width=100%" + "height=100%" + '></img>');
+	generator.document.write('&nbsp;');
+  }
+  //alert("Function End");
+  //generator.document.write('<img src ='  + test1 +  '></img>');
+  generator.document.write('</body></html>');
+  generator.document.close();
+  flushagain();
+}
+
+function flushtextfile()
+{
+	// This function is called in the HTML to clear the text file
+	// and display a welcome message on load.
+	document.ScreenCapture.FlushFileList("D:/filenames.txt");
+	//alert("Welcome to MaPs!");
+}
+
+function flushagain()
+{
+	// This function serves the same purpose
+	// but this is for Flash/ActionScript use.
+	document.ScreenCapture.FlushFileList("D:/filenames.txt");
+}
+
+function importconfirmation()
+{
+	// Prompts the user to confirm his decision
+	// of importing a new assignment.
+	var blah;
+		if(correctanswers == numberofqns)
+	{
+		var ask3 = window.confirm("You have gotten " + correctanswers + " out of " + numberofqns + " questions correct on your first attempt! You got all of them correct on your first try! Great job!");
+	}
+	else
+	{
+	var ask1 = window.confirm("You have gotten " + correctanswers + " out of " + numberofqns + " questions correct on your first attempt.");
+	}
+	var ask2 = window.confirm("If you start a new assignment now, your current work will be erased. To save a screenshot of your current work, click on the Cancel button. Then click on the Clear button.");
+	if (ask2)
+	{
+		//return document.ScreenCapture.trueorfalse(true);
+		return "true";
+		alert("blah");
+	}
+	else
+	{
+		return "false";
+		//return document.ScreenCapture.trueorfalse(false);
+		alert("bah");
+	}
+}
+
+function backtrackconfirmation()
+{
+	// Prompts the user to confirm his decision of backtracking to a previous question.
+	var backask = window.confirm("Are you sure you want to go backwards? The screenshot of the previous question will be erased.");
+	if (backask)
+	{
+		return "true";
+	}
+	else
+	{
+		return "false";
+	}
+}
+</script>
+  </head>
+  <body onload="flushtextfile()" onbeforeunload="ConfirmClose()" onunload="HandleOnClose()"
+    bgcolor="#ffffff">
+    <!--<script language = javascript>-->
+    <applet code="ScreenCapture4.class" name="ScreenCapture" height="0" width="0">
+    </applet>
+    <!--url's used in the movie-->
+    <!--text used in the movie-->
+    <!--
+MaPS (ver 1.0)<p align="left"></p>
+<p align="center"><font face="Times New Roman" size="16" color="#ffffff" letterSpacing="1.000000" kerning="1"><b>Qn</b></font></p>-->
+    <!-- saved from url=(0013)about:internet -->
+    <object classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" codebase="http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=8,0,0,0"
+      id="MaPS_TL_V2"
+      align="middle"
+      height="100%"
+      width="100%">
+      <param name="allowScriptAccess" value="always">
+      <param name="movie" value="MaPS_TL_V2.swf"><param
+        name="menu"
+        value="false"><param
+        name="quality"
+        value="high"><param
+        name="bgcolor"
+        value="#ffffff"><embed
+        src="MaPS_TL_V2.swf"
+        menu="false"
+        quality="high"
+        bgcolor="#ffffff"
+        name="MaPS_TL_V2"
+        allowscriptaccess="always"
+        type="application/x-shockwave-flash"
+        pluginspage="http://www.macromedia.com/go/getflashplayer"
+        align="middle"
+        scale="exactfit"
+        height="100%"
+        width="100%">
+    </object>
+  </body>
+</html>

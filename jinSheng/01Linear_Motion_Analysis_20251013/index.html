@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motion Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        
+        .main-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .description {
+            max-width: 1400px;
+            margin: 0 auto 15px auto;
+            padding: 12px;
+            background-color: white;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .description .bold-text {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 15px;
+        }
+        
+        .description .normal-text {
+            color: #555;
+            margin-top: 3px;
+            font-size: 14px;
+        }
+        
+        .mode-selector {
+            max-width: 1400px;
+            margin: 0 auto 15px auto;
+            padding: 12px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+        
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .mode-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .mode-option label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            cursor: pointer;
+        }
+        
+        .horizontal-container, .vertical-container {
+            display: none;
+        }
+        
+        .horizontal-container.active, .vertical-container.active {
+            display: grid;
+        }
+        
+        /* Horizontal Layout */
+        .horizontal-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            grid-template-columns: 1fr 1fr 1.2fr;
+            gap: 15px;
+            grid-template-rows: auto auto;
+        }
+        
+        .horizontal-container .fbd-panel {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        
+        .horizontal-container .analysis-panel {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .horizontal-container .settings-panel {
+            grid-column: 3;
+            grid-row: 1 / 3;
+        }
+        
+        .horizontal-container .position-panel {
+            grid-column: 1 / 3;
+            grid-row: 2;
+        }
+        
+        /* Vertical Layout */
+        .vertical-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            grid-template-columns: 1fr 1fr 1.2fr;
+            gap: 15px;
+        }
+        
+        .vertical-container .position-panel {
+            grid-column: 1;
+        }
+        
+        .vertical-container .fbd-panel {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .vertical-container .analysis-panel {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        
+        .vertical-container .settings-panel {
+            grid-column: 3;
+            grid-row: 1 / 3;
+        }
+        
+        .settings-panel, .position-panel, .fbd-panel, .analysis-panel {
+            background-color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .settings-title, .position-title, .analysis-title, .fbd-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+            color: #2c3e50;
+        }
+        
+        .position-panel.minimized .position-content-wrapper,
+        .fbd-panel.minimized .fbd-content-wrapper,
+        .analysis-panel.minimized .analysis-content-wrapper {
+            display: none;
+        }
+        
+        .position-content-wrapper,
+        .fbd-content-wrapper,
+        .analysis-content-wrapper {
+            display: block;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: #ecf0f1;
+            color: #7f8c8d;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .close-btn:hover {
+            background-color: #bdc3c7;
+        }
+        
+        .settings-reset-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            background: #e74c3c;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+        
+        .settings-reset-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .position-dropdown {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .position-canvas {
+            width: 100%;
+            display: block;
+            border: 1px solid #e0e0e0;
+            background-color: #fafafa;
+            border-radius: 4px;
+        }
+        
+        .horizontal-container .position-canvas {
+            height: 300px;
+        }
+        
+        .vertical-container .position-canvas {
+            height: 400px;
+        }
+        
+        .position-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .position-controls button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #3498db;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+        
+        .position-controls button:hover {
+            background-color: #2980b9;
+        }
+        
+        .fbd-canvas {
+            width: 100%;
+            height: 300px;
+            display: block;
+        }
+        
+        .settings-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .mass-section, .force-section, .object-section {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+        
+        .object-mass-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .force-fields-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .section-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .force-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .force-header .object-name {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .input-group {
+            margin-bottom: 8px;
+        }
+        
+        .input-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        input[type="number"], select, input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        
+        input[type="number"]:focus, select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .inline-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .inline-input input {
+            flex: 1;
+        }
+        
+        .inline-input span {
+            font-weight: 500;
+        }
+        
+        .calculation {
+            font-size: 15px;
+            line-height: 1.6;
+            padding: 5px;
+        }
+        
+        .calc-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .calc-table td {
+            padding: 2px 6px;
+        }
+        
+        .calc-table .left-col {
+            text-align: right;
+            padding-right: 8px;
+        }
+        
+        .calc-table .equals-col {
+            text-align: center;
+            width: 30px;
+        }
+        
+        .calc-table .right-col {
+            text-align: left;
+            padding-left: 8px;
+        }
+        
+        .no-data {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        @media (max-width: 1024px) {
+            .horizontal-container, .vertical-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            
+            .horizontal-container .fbd-panel,
+            .horizontal-container .analysis-panel,
+            .horizontal-container .settings-panel,
+            .horizontal-container .position-panel,
+            .vertical-container .position-panel,
+            .vertical-container .fbd-panel,
+            .vertical-container .analysis-panel,
+            .vertical-container .settings-panel {
+                grid-column: 1;
+                grid-row: auto;
+            }
+        }
+    </style>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+<body>
+    <div class="main-title">Motion Analysis</div>
+    
+    <div class="description">
+        <div class="bold-text">What helps us understand motion? How does matter interact?</div>
+        <div class="normal-text">Identify the forces acting on the object and observe how they relate to motion.</div>
+    </div>
+    
+    <div class="mode-selector">
+        <div class="mode-option">
+            <input type="radio" id="horizontal-mode" name="motion-mode" value="horizontal" checked>
+            <label for="horizontal-mode">Horizontal Motion</label>
+        </div>
+        <div class="mode-option">
+            <input type="radio" id="vertical-mode" name="motion-mode" value="vertical">
+            <label for="vertical-mode">Vertical Motion</label>
+        </div>
+    </div>
+    
+    <!-- Horizontal Motion Container -->
+    <div class="horizontal-container active" id="horizontal-container">
+        <div class="fbd-panel" id="h-fbdPanel">
+            <button class="close-btn" id="h-fbdToggleBtn">−</button>
+            <div class="fbd-title">Free Body Diagram</div>
+            <div class="fbd-content-wrapper">
+                <svg id="h-fbd-canvas" class="fbd-canvas" viewBox="0 0 400 300"></svg>
+            </div>
+        </div>
+        
+        <div class="analysis-panel" id="h-analysisPanel">
+            <button class="close-btn" id="h-toggleBtn">−</button>
+            <div class="analysis-title">Analysis</div>
+            <div class="analysis-content-wrapper">
+                <div id="h-analysis-content" class="calculation">
+                    <div class="no-data">Enter mass and forces to see analysis</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-panel">
+            <div class="settings-title">Settings</div>
+            <div class="settings-content">
+                <div class="object-mass-row">
+                    <div class="object-section">
+                        <div class="section-label">What is the object?</div>
+                        <div class="input-group">
+                            <input type="text" id="h-object-name" placeholder="e.g., ball, box, person">
+                        </div>
+                    </div>
+                    <div class="mass-section">
+                        <div class="section-label">mass, m</div>
+                        <div class="input-group">
+                            <div class="inline-input">
+                                <input type="number" id="h-mass" placeholder="1-10" min="1" max="10" step="0.1">
+                                <span>kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="force-section">
+                    <div class="force-header">F<sub>1</sub> acting on <span class="object-name" id="h-f1-object-display">object</span></div>
+                    <div class="force-fields-row">
+                        <div class="input-group">
+                            <div class="input-label">type:</div>
+                            <select id="h-f1-type">
+                                <option value="">-- select --</option>
+                                <option value="friction">friction</option>
+                                <option value="air resistance">air resistance</option>
+                                <option value="normal">normal</option>
+                                <option value="tension">tension</option>
+                                <option value="electrostatic">electrostatic</option>
+                                <option value="magnetic">magnetic</option>
+                                <option value="other">other</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">magnitude:</div>
+                            <div class="inline-input">
+                                <input type="number" id="h-f1-magnitude" placeholder="0-100" min="0" max="100" step="1">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">direction:</div>
+                            <select id="h-f1-direction">
+                                <option value="">-- select --</option>
+                                <option value="right">right</option>
+                                <option value="left">left</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="force-section">
+                    <div class="force-header">F<sub>2</sub> acting on <span class="object-name" id="h-f2-object-display">object</span></div>
+                    <div class="force-fields-row">
+                        <div class="input-group">
+                            <div class="input-label">type:</div>
+                            <select id="h-f2-type">
+                                <option value="">-- select --</option>
+                                <option value="friction">friction</option>
+                                <option value="air resistance">air resistance</option>
+                                <option value="normal">normal</option>
+                                <option value="tension">tension</option>
+                                <option value="electrostatic">electrostatic</option>
+                                <option value="magnetic">magnetic</option>
+                                <option value="other">other</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">magnitude:</div>
+                            <div class="inline-input">
+                                <input type="number" id="h-f2-magnitude" placeholder="0-100" min="0" max="100" step="1">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">direction:</div>
+                            <select id="h-f2-direction">
+                                <option value="">-- select --</option>
+                                <option value="right">right</option>
+                                <option value="left">left</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="force-section">
+                    <div class="force-header">F<sub>3</sub> acting on <span class="object-name" id="h-f3-object-display">object</span></div>
+                    <div class="force-fields-row">
+                        <div class="input-group">
+                            <div class="input-label">type:</div>
+                            <select id="h-f3-type">
+                                <option value="">-- select --</option>
+                                <option value="friction">friction</option>
+                                <option value="air resistance">air resistance</option>
+                                <option value="normal">normal</option>
+                                <option value="tension">tension</option>
+                                <option value="electrostatic">electrostatic</option>
+                                <option value="magnetic">magnetic</option>
+                                <option value="other">other</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">magnitude:</div>
+                            <div class="inline-input">
+                                <input type="number" id="h-f3-magnitude" placeholder="0-100" min="0" max="100" step="1">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">direction:</div>
+                            <select id="h-f3-direction">
+                                <option value="">-- select --</option>
+                                <option value="right">right</option>
+                                <option value="left">left</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="settings-reset-btn" id="h-settings-reset-btn">Reset All Settings</button>
+        </div>
+        
+        <div class="position-panel" id="h-positionPanel">
+            <button class="close-btn" id="h-positionToggleBtn">−</button>
+            <div class="position-title">Position</div>
+            <div class="position-content-wrapper">
+                <select id="h-initial-condition" class="position-dropdown">
+                    <option value="right">initially moving to the right at 20 m/s</option>
+                    <option value="rest" selected>initially/momentarily at rest</option>
+                    <option value="left">initially moving to the left at 20 m/s</option>
+                </select>
+                <svg id="h-position-canvas" class="position-canvas" viewBox="0 0 800 300"></svg>
+                <div class="position-controls">
+                    <button id="h-step-btn">Step</button>
+                    <button id="h-reset-btn">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vertical Motion Container -->
+    <div class="vertical-container" id="vertical-container">
+        <div class="position-panel" id="v-positionPanel">
+            <button class="close-btn" id="v-positionToggleBtn">−</button>
+            <div class="position-title">Position</div>
+            <div class="position-content-wrapper">
+                <select id="v-initial-condition" class="position-dropdown">
+                    <option value="falling">initially falling at 20 m/s</option>
+                    <option value="rest" selected>initially/momentarily at rest</option>
+                    <option value="rising">initially rising at 20 m/s</option>
+                </select>
+                <svg id="v-position-canvas" class="position-canvas" viewBox="0 0 300 400"></svg>
+                <div class="position-controls">
+                    <button id="v-step-btn">Step</button>
+                    <button id="v-reset-btn">Reset</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="fbd-panel" id="v-fbdPanel">
+            <button class="close-btn" id="v-fbdToggleBtn">−</button>
+            <div class="fbd-title">Free Body Diagram</div>
+            <div class="fbd-content-wrapper">
+                <svg id="v-fbd-canvas" class="fbd-canvas" viewBox="0 0 400 300"></svg>
+            </div>
+        </div>
+        
+        <div class="analysis-panel" id="v-analysisPanel">
+            <button class="close-btn" id="v-toggleBtn">−</button>
+            <div class="analysis-title">Analysis</div>
+            <div class="analysis-content-wrapper">
+                <div id="v-analysis-content" class="calculation">
+                    <div class="no-data">Enter mass and forces to see analysis</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-panel">
+            <div class="settings-title">Settings</div>
+            <div class="settings-content">
+                <div class="object-mass-row">
+                    <div class="object-section">
+                        <div class="section-label">What is the object?</div>
+                        <div class="input-group">
+                            <input type="text" id="v-object-name" placeholder="e.g., ball, box, person">
+                        </div>
+                    </div>
+                    <div class="mass-section">
+                        <div class="section-label">mass, m</div>
+                        <div class="input-group">
+                            <div class="inline-input">
+                                <input type="number" id="v-mass" placeholder="1-10" min="1" max="10" step="0.1">
+                                <span>kg</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="force-section">
+                    <div class="force-header">F<sub>1</sub> acting on <span class="object-name" id="v-f1-object-display">object</span></div>
+                    <div class="force-fields-row">
+                        <div class="input-group">
+                            <div class="input-label">type:</div>
+                            <select id="v-f1-type">
+                                <option value="">-- select --</option>
+                                <option value="gravitational">gravitational</option>
+                                <option value="friction">friction</option>
+                                <option value="air resistance">air resistance</option>
+                                <option value="normal">normal</option>
+                                <option value="tension">tension</option>
+                                <option value="electrostatic">electrostatic</option>
+                                <option value="magnetic">magnetic</option>
+                                <option value="other">other</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">magnitude:</div>
+                            <div class="inline-input">
+                                <input type="number" id="v-f1-magnitude" placeholder="0-100" min="0" max="100" step="1">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">direction:</div>
+                            <select id="v-f1-direction">
+                                <option value="">-- select --</option>
+                                <option value="down">down</option>
+                                <option value="up">up</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="force-section">
+                    <div class="force-header">F<sub>2</sub> acting on <span class="object-name" id="v-f2-object-display">object</span></div>
+                    <div class="force-fields-row">
+                        <div class="input-group">
+                            <div class="input-label">type:</div>
+                            <select id="v-f2-type">
+                                <option value="">-- select --</option>
+                                <option value="gravitational">gravitational</option>
+                                <option value="friction">friction</option>
+                                <option value="air resistance">air resistance</option>
+                                <option value="normal">normal</option>
+                                <option value="tension">tension</option>
+                                <option value="electrostatic">electrostatic</option>
+                                <option value="magnetic">magnetic</option>
+                                <option value="other">other</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">magnitude:</div>
+                            <div class="inline-input">
+                                <input type="number" id="v-f2-magnitude" placeholder="0-100" min="0" max="100" step="1">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">direction:</div>
+                            <select id="v-f2-direction">
+                                <option value="">-- select --</option>
+                                <option value="down">down</option>
+                                <option value="up">up</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="force-section">
+                    <div class="force-header">F<sub>3</sub> acting on <span class="object-name" id="v-f3-object-display">object</span></div>
+                    <div class="force-fields-row">
+                        <div class="input-group">
+                            <div class="input-label">type:</div>
+                            <select id="v-f3-type">
+                                <option value="">-- select --</option>
+                                <option value="gravitational">gravitational</option>
+                                <option value="friction">friction</option>
+                                <option value="air resistance">air resistance</option>
+                                <option value="normal">normal</option>
+                                <option value="tension">tension</option>
+                                <option value="electrostatic">electrostatic</option>
+                                <option value="magnetic">magnetic</option>
+                                <option value="other">other</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">magnitude:</div>
+                            <div class="inline-input">
+                                <input type="number" id="v-f3-magnitude" placeholder="0-100" min="0" max="100" step="1">
+                                <span>N</span>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-label">direction:</div>
+                            <select id="v-f3-direction">
+                                <option value="">-- select --</option>
+                                <option value="down">down</option>
+                                <option value="up">up</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="settings-reset-btn" id="v-settings-reset-btn">Reset All Settings</button>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script>
+        // Separate state for horizontal and vertical modes
+        const horizontalState = {
+            currentStep: 0,
+            positions: [],
+            currentAcceleration: 0,
+            currentAccelerationDirection: ''
+        };
+        
+        const verticalState = {
+            currentStep: 0,
+            positions: [],
+            currentAcceleration: 0,
+            currentAccelerationDirection: ''
+        };
+        
+        let currentMode = 'horizontal';
+        
+        // Mode switching
+        document.querySelectorAll('input[name="motion-mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                switchMode(this.value);
+            });
+        });
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            if (mode === 'horizontal') {
+                document.getElementById('horizontal-container').classList.add('active');
+                document.getElementById('vertical-container').classList.remove('active');
+                horizontalState.currentStep = 0;
+                updateAll('h');
+            } else {
+                document.getElementById('vertical-container').classList.add('active');
+                document.getElementById('horizontal-container').classList.remove('active');
+                verticalState.currentStep = 0;
+                updateAll('v');
+            }
+        }
+        
+        // Utility functions
+        function formatNumber(num) {
+            if (num === 0) return '0';
+            if (Number.isInteger(num)) return num.toString();
+            
+            const precision = 3;
+            const magnitude = Math.floor(Math.log10(Math.abs(num)));
+            const decimals = Math.max(0, precision - magnitude - 1);
+            const rounded = parseFloat(num.toFixed(decimals));
+            
+            if (Number.isInteger(rounded)) return rounded.toString();
+            return rounded.toString();
+        }
+        
+        function updateObjectDisplays(prefix) {
+            const objectNameInput = document.getElementById(`${prefix}-object-name`);
+            const objectName = objectNameInput ? (objectNameInput.value.trim() || 'object') : 'object';
+            
+            for (let i = 1; i <= 3; i++) {
+                const display = document.getElementById(`${prefix}-f${i}-object-display`);
+                if (display) display.textContent = objectName;
+            }
+        }
+        
+        function resetSettings(prefix) {
+            const objectNameInput = document.getElementById(`${prefix}-object-name`);
+            if (objectNameInput) objectNameInput.value = '';
+            
+            const massInput = document.getElementById(`${prefix}-mass`);
+            if (massInput) massInput.value = '';
+            
+            const initialConditionInput = document.getElementById(`${prefix}-initial-condition`);
+            if (initialConditionInput) initialConditionInput.value = 'rest';
+            
+            for (let i = 1; i <= 3; i++) {
+                const typeInput = document.getElementById(`${prefix}-f${i}-type`);
+                const magnitudeInput = document.getElementById(`${prefix}-f${i}-magnitude`);
+                const directionInput = document.getElementById(`${prefix}-f${i}-direction`);
+                
+                if (typeInput) typeInput.selectedIndex = 0;
+                if (magnitudeInput) magnitudeInput.value = '';
+                if (directionInput) directionInput.selectedIndex = 0;
+            }
+            
+            const state = prefix === 'h' ? horizontalState : verticalState;
+            state.currentAcceleration = 0;
+            state.currentAccelerationDirection = '';
+            state.currentStep = 0;
+            state.positions = [];
+            
+            updateObjectDisplays(prefix);
+            updateAll(prefix);
+        }
+        
+        function updateAll(prefix) {
+            updateAnalysis(prefix);
+            drawFBD(prefix);
+            resetPosition(prefix);
+        }
+        
+        function calculatePositions(prefix) {
+            const state = prefix === 'h' ? horizontalState : verticalState;
+            state.positions = [];
+            
+            const initialConditionInput = document.getElementById(`${prefix}-initial-condition`);
+            if (!initialConditionInput) return;
+            
+            const initialCondition = initialConditionInput.value;
+            let u = 0;
+            
+            if (prefix === 'h') {
+                if (initialCondition === 'right') u = 20;
+                else if (initialCondition === 'rest') u = 0;
+                else if (initialCondition === 'left') u = -20;
+            } else {
+                if (initialCondition === 'falling') u = 20;
+                else if (initialCondition === 'rest') u = 0;
+                else if (initialCondition === 'rising') u = -20;
+            }
+            
+            let a = state.currentAcceleration;
+            const negativeDirection = prefix === 'h' ? 'left' : 'up';
+            if (state.currentAccelerationDirection === negativeDirection) {
+                a = -a;
+            }
+            
+            for (let t = 0; t <= 10; t++) {
+                const s = u * t + 0.5 * a * t * t;
+                state.positions.push(s);
+            }
+        }
+        
+        function drawPositionDiagram(prefix) {
+            const svg = document.getElementById(`${prefix}-position-canvas`);
+            if (!svg) return;
+            
+            svg.innerHTML = '';
+            
+            const state = prefix === 'h' ? horizontalState : verticalState;
+            if (state.positions.length === 0) return;
+            
+            if (prefix === 'h') {
+                drawHorizontalPosition(svg, state);
+            } else {
+                drawVerticalPosition(svg, state);
+            }
+        }
+        
+        function drawHorizontalPosition(svg, state) {
+            const svgWidth = 800;
+            const svgHeight = 300;
+            const centerY = svgHeight / 2;
+            const margin = 60;
+            const drawWidth = svgWidth - 2 * margin;
+            
+            let minPos = 0, maxPos = 0;
+            for (let i = 0; i <= 10; i++) {
+                minPos = Math.min(minPos, state.positions[i]);
+                maxPos = Math.max(maxPos, state.positions[i]);
+            }
+            
+            const totalRange = maxPos - minPos;
+            if (totalRange === 0) {
+                minPos = -10;
+                maxPos = 10;
+            } else {
+                const padding = totalRange * 0.1;
+                minPos = minPos - padding;
+                maxPos = maxPos + padding;
+            }
+            
+            const scale = drawWidth / (maxPos - minPos);
+            const zeroX = margin - minPos * scale;
+            
+            function posToX(s) {
+                return zeroX + s * scale;
+            }
+            
+            // Draw axis
+            const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            axis.setAttribute('x1', margin);
+            axis.setAttribute('y1', centerY);
+            axis.setAttribute('x2', svgWidth - margin);
+            axis.setAttribute('y2', centerY);
+            axis.setAttribute('stroke', '#ccc');
+            axis.setAttribute('stroke-width', '2');
+            svg.appendChild(axis);
+            
+            // Draw s=0 line
+            const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            zeroLine.setAttribute('x1', zeroX);
+            zeroLine.setAttribute('y1', centerY - 20);
+            zeroLine.setAttribute('x2', zeroX);
+            zeroLine.setAttribute('y2', centerY + 20);
+            zeroLine.setAttribute('stroke', '#333');
+            zeroLine.setAttribute('stroke-width', '2');
+            svg.appendChild(zeroLine);
+            
+            // s=0 label
+            const zeroLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            zeroLabel.setAttribute('x', zeroX);
+            zeroLabel.setAttribute('y', centerY + 35);
+            zeroLabel.setAttribute('font-size', '12');
+            zeroLabel.setAttribute('fill', '#333');
+            zeroLabel.setAttribute('text-anchor', 'middle');
+            zeroLabel.textContent = 's=0';
+            svg.appendChild(zeroLabel);
+            
+            // Draw dots
+            for (let i = 0; i <= state.currentStep; i++) {
+                const s = state.positions[i];
+                const x = posToX(s);
+                const opacity = i === state.currentStep ? 1.0 : 0.3 + (i / state.currentStep) * 0.4;
+                
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('cx', x);
+                dot.setAttribute('cy', centerY);
+                dot.setAttribute('r', '6');
+                dot.setAttribute('fill', '#E74C3C');
+                dot.setAttribute('fill-opacity', opacity);
+                dot.setAttribute('stroke', '#333');
+                dot.setAttribute('stroke-width', '1');
+                dot.setAttribute('stroke-opacity', opacity);
+                svg.appendChild(dot);
+                
+                const labelY = i % 2 === 0 ? centerY - 25 : centerY + 40;
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', x);
+                label.setAttribute('y', labelY);
+                label.setAttribute('font-size', '10');
+                label.setAttribute('fill', '#666');
+                label.setAttribute('opacity', opacity);
+                label.setAttribute('text-anchor', 'middle');
+                label.textContent = `t=${i}s, s=${formatNumber(s)}m`;
+                svg.appendChild(label);
+            }
+        }
+        
+        function drawVerticalPosition(svg, state) {
+            const svgWidth = 300;
+            const svgHeight = 400;
+            const centerX = svgWidth / 2;
+            const margin = 40;
+            const drawHeight = svgHeight - 2 * margin;
+            
+            let minPos = 0, maxPos = 0;
+            for (let i = 0; i <= 10; i++) {
+                minPos = Math.min(minPos, state.positions[i]);
+                maxPos = Math.max(maxPos, state.positions[i]);
+            }
+            
+            const totalRange = maxPos - minPos;
+            if (totalRange === 0) {
+                minPos = -10;
+                maxPos = 10;
+            } else {
+                const padding = totalRange * 0.1;
+                minPos = minPos - padding;
+                maxPos = maxPos + padding;
+            }
+            
+            const scale = drawHeight / (maxPos - minPos);
+            const zeroY = margin - minPos * scale;
+            
+            function posToY(s) {
+                return zeroY + s * scale;
+            }
+            
+            // Draw axis
+            const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            axis.setAttribute('x1', centerX);
+            axis.setAttribute('y1', margin);
+            axis.setAttribute('x2', centerX);
+            axis.setAttribute('y2', svgHeight - margin);
+            axis.setAttribute('stroke', '#ccc');
+            axis.setAttribute('stroke-width', '2');
+            svg.appendChild(axis);
+            
+            // Draw s=0 line
+            const zeroLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            zeroLine.setAttribute('x1', centerX - 20);
+            zeroLine.setAttribute('y1', zeroY);
+            zeroLine.setAttribute('x2', centerX + 20);
+            zeroLine.setAttribute('y2', zeroY);
+            zeroLine.setAttribute('stroke', '#333');
+            zeroLine.setAttribute('stroke-width', '2');
+            svg.appendChild(zeroLine);
+            
+            // s=0 label
+            const zeroLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            zeroLabel.setAttribute('x', centerX + 30);
+            zeroLabel.setAttribute('y', zeroY + 5);
+            zeroLabel.setAttribute('font-size', '12');
+            zeroLabel.setAttribute('fill', '#333');
+            zeroLabel.textContent = 's=0';
+            svg.appendChild(zeroLabel);
+            
+            // Draw dots
+            for (let i = 0; i <= state.currentStep; i++) {
+                const s = state.positions[i];
+                const y = posToY(s);
+                const opacity = i === state.currentStep ? 1.0 : 0.3 + (i / state.currentStep) * 0.4;
+                
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('cx', centerX);
+                dot.setAttribute('cy', y);
+                dot.setAttribute('r', '6');
+                dot.setAttribute('fill', '#E74C3C');
+                dot.setAttribute('fill-opacity', opacity);
+                dot.setAttribute('stroke', '#333');
+                dot.setAttribute('stroke-width', '1');
+                dot.setAttribute('stroke-opacity', opacity);
+                svg.appendChild(dot);
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', centerX - 70);
+                label.setAttribute('y', y + 4);
+                label.setAttribute('font-size', '10');
+                label.setAttribute('fill', '#666');
+                label.setAttribute('opacity', opacity);
+                label.setAttribute('text-anchor', 'end');
+                label.textContent = `t=${i}s, s=${formatNumber(s)}m`;
+                svg.appendChild(label);
+            }
+        }
+        
+        function stepPosition(prefix) {
+            const state = prefix === 'h' ? horizontalState : verticalState;
+            if (state.currentStep < 10) {
+                state.currentStep++;
+                drawPositionDiagram(prefix);
+            }
+        }
+        
+        function resetPosition(prefix) {
+            const state = prefix === 'h' ? horizontalState : verticalState;
+            state.currentStep = 0;
+            calculatePositions(prefix);
+            drawPositionDiagram(prefix);
+        }
+        
+        function updateAnalysis(prefix) {
+            const massInput = document.getElementById(`${prefix}-mass`);
+            const analysisContent = document.getElementById(`${prefix}-analysis-content`);
+            
+            if (!massInput || !analysisContent) return;
+            
+            const mass = parseFloat(massInput.value);
+            const forces = [];
+            
+            for (let i = 1; i <= 3; i++) {
+                const magnitudeInput = document.getElementById(`${prefix}-f${i}-magnitude`);
+                const directionInput = document.getElementById(`${prefix}-f${i}-direction`);
+                const typeInput = document.getElementById(`${prefix}-f${i}-type`);
+                
+                if (!magnitudeInput || !directionInput || !typeInput) continue;
+                
+                const magnitude = parseFloat(magnitudeInput.value);
+                const direction = directionInput.value;
+                const type = typeInput.value;
+                
+                if (!isNaN(magnitude) && magnitude !== 0 && direction && type) {
+                    forces.push({
+                        name: `F<sub>${i}</sub>`,
+                        magnitude: magnitude,
+                        direction: direction,
+                        type: type
+                    });
+                }
+            }
+            
+            const state = prefix === 'h' ? horizontalState : verticalState;
+            
+            if (!mass || mass < 1 || mass > 10 || forces.length === 0) {
+                analysisContent.innerHTML = '<div class="no-data">Enter mass and forces to see analysis</div>';
+                state.currentAcceleration = 0;
+                state.currentAccelerationDirection = '';
+                return;
+            }
+            
+            let fnetEquation = '';
+            let fnetCalculation = '';
+            let fnetValue = 0;
+            
+            const positiveDirection = prefix === 'h' ? 'right' : 'down';
+            
+            forces.forEach((force, index) => {
+                const isPositive = force.direction === positiveDirection;
+                
+                if (index === 0) {
+                    if (isPositive) {
+                        fnetEquation += `${force.name}`;
+                        fnetCalculation += `${formatNumber(force.magnitude)}`;
+                        fnetValue += force.magnitude;
+                    } else {
+                        fnetEquation += `−${force.name}`;
+                        fnetCalculation += `−${formatNumber(force.magnitude)}`;
+                        fnetValue -= force.magnitude;
+                    }
+                } else {
+                    if (isPositive) {
+                        fnetEquation += ` + ${force.name}`;
+                        fnetCalculation += ` + ${formatNumber(force.magnitude)}`;
+                        fnetValue += force.magnitude;
+                    } else {
+                        fnetEquation += ` − ${force.name}`;
+                        fnetCalculation += ` − ${formatNumber(force.magnitude)}`;
+                        fnetValue -= force.magnitude;
+                    }
+                }
+            });
+            
+            const fnetMagnitude = Math.abs(fnetValue);
+            const negativeDirection = prefix === 'h' ? 'left' : 'up';
+            const fnetDirection = fnetValue > 0 ? positiveDirection : (fnetValue < 0 ? negativeDirection : '');
+            
+            const acceleration = fnetMagnitude / mass;
+            
+            state.currentAcceleration = acceleration;
+            state.currentAccelerationDirection = fnetDirection;
+            
+            let html = '<table class="calc-table">';
+            html += `<tr><td class="left-col">F<sub>net</sub></td><td class="equals-col">=</td><td class="right-col">${fnetEquation}</td></tr>`;
+            html += `<tr><td class="left-col"></td><td class="equals-col">=</td><td class="right-col">${fnetCalculation}</td></tr>`;
+            
+            if (fnetMagnitude === 0) {
+                html += `<tr><td class="left-col"></td><td class="equals-col">=</td><td class="right-col">${formatNumber(fnetMagnitude)} N</td></tr>`;
+            } else {
+                html += `<tr><td class="left-col"></td><td class="equals-col">=</td><td class="right-col">${formatNumber(fnetMagnitude)} N ${fnetDirection}</td></tr>`;
+            }
+            
+            html += '<tr><td colspan="3">&nbsp;</td></tr>';
+            html += '<tr><td class="left-col">F<sub>net</sub></td><td class="equals-col">=</td><td class="right-col">ma</td></tr>';
+            html += '<tr><td colspan="3">&nbsp;</td></tr>';
+            html += `<tr><td class="left-col">a</td><td class="equals-col">=</td><td class="right-col">F<sub>net</sub> / m</td></tr>`;
+            html += `<tr><td class="left-col"></td><td class="equals-col">=</td><td class="right-col">${formatNumber(fnetMagnitude)} / ${formatNumber(mass)}</td></tr>`;
+            
+            if (fnetMagnitude === 0) {
+                html += `<tr><td class="left-col"></td><td class="equals-col">=</td><td class="right-col">${formatNumber(acceleration)} m/s²</td></tr>`;
+            } else {
+                html += `<tr><td class="left-col"></td><td class="equals-col">=</td><td class="right-col">${formatNumber(acceleration)} m/s² ${fnetDirection}</td></tr>`;
+            }
+            
+            html += '</table>';
+            analysisContent.innerHTML = html;
+        }
+        
+        function drawFBD(prefix) {
+            const svg = document.getElementById(`${prefix}-fbd-canvas`);
+            if (!svg) return;
+            
+            svg.innerHTML = '';
+            
+            const centerX = 200;
+            const centerY = 150;
+            const objectRadius = 30;
+            const arrowLength = 80;
+            
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', centerX);
+            circle.setAttribute('cy', centerY);
+            circle.setAttribute('r', objectRadius);
+            circle.setAttribute('fill', '#E74C3C');
+            circle.setAttribute('stroke', '#333');
+            circle.setAttribute('stroke-width', '2');
+            svg.appendChild(circle);
+            
+            const objectNameInput = document.getElementById(`${prefix}-object-name`);
+            const objectName = objectNameInput ? (objectNameInput.value.trim() || 'object') : 'object';
+            const objectLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            objectLabel.setAttribute('x', centerX);
+            objectLabel.setAttribute('y', centerY + 5);
+            objectLabel.setAttribute('text-anchor', 'middle');
+            objectLabel.setAttribute('font-size', '14');
+            objectLabel.setAttribute('font-weight', 'bold');
+            objectLabel.setAttribute('fill', 'white');
+            objectLabel.textContent = objectName;
+            svg.appendChild(objectLabel);
+            
+            const forces = [];
+            for (let i = 1; i <= 3; i++) {
+                const magnitudeInput = document.getElementById(`${prefix}-f${i}-magnitude`);
+                const directionInput = document.getElementById(`${prefix}-f${i}-direction`);
+                const typeInput = document.getElementById(`${prefix}-f${i}-type`);
+                
+                if (!magnitudeInput || !directionInput || !typeInput) continue;
+                
+                const magnitude = parseFloat(magnitudeInput.value);
+                const direction = directionInput.value;
+                const type = typeInput.value;
+                
+                if (!isNaN(magnitude) && magnitude > 0 && direction && type) {
+                    forces.push({
+                        index: i,
+                        name: `F${i}`,
+                        magnitude: magnitude,
+                        direction: direction,
+                        type: type
+                    });
+                }
+            }
+            
+            if (prefix === 'h') {
+                const rightForces = forces.filter(f => f.direction === 'right');
+                const leftForces = forces.filter(f => f.direction === 'left');
+                drawHorizontalArrows(svg, rightForces, centerX, centerY, objectRadius, arrowLength, 'right');
+                drawHorizontalArrows(svg, leftForces, centerX, centerY, objectRadius, arrowLength, 'left');
+            } else {
+                const upForces = forces.filter(f => f.direction === 'up');
+                const downForces = forces.filter(f => f.direction === 'down');
+                drawVerticalArrows(svg, upForces, centerX, centerY, objectRadius, arrowLength, 'up');
+                drawVerticalArrows(svg, downForces, centerX, centerY, objectRadius, arrowLength, 'down');
+            }
+        }
+        
+        function drawHorizontalArrows(svg, forces, centerX, centerY, objectRadius, arrowLength, direction) {
+            if (forces.length === 0) return;
+            
+            // Create arrowhead marker if not exists in this SVG
+            if (!svg.querySelector('defs #arrowhead-h')) {
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', 'arrowhead-h');
+                marker.setAttribute('markerWidth', '10');
+                marker.setAttribute('markerHeight', '10');
+                marker.setAttribute('refX', '5');
+                marker.setAttribute('refY', '3');
+                marker.setAttribute('orient', 'auto');
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', '0 0, 10 3, 0 6');
+                polygon.setAttribute('fill', '#333');
+                marker.appendChild(polygon);
+                defs.appendChild(marker);
+                svg.insertBefore(defs, svg.firstChild);
+            }
+            
+            const isRight = direction === 'right';
+            const spacing = 40;
+            
+            forces.forEach((force, index) => {
+                let arrowY;
+                if (forces.length === 1) arrowY = centerY;
+                else if (forces.length === 2) arrowY = centerY + (index === 0 ? -spacing/2 : spacing/2);
+                else if (forces.length === 3) arrowY = centerY + (index - 1) * spacing;
+                
+                const startX = isRight ? centerX + objectRadius : centerX - objectRadius;
+                const endX = isRight ? centerX + objectRadius + arrowLength : centerX - objectRadius - arrowLength;
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', startX);
+                line.setAttribute('y1', arrowY);
+                line.setAttribute('x2', endX);
+                line.setAttribute('y2', arrowY);
+                line.setAttribute('stroke', '#333');
+                line.setAttribute('stroke-width', '3');
+                line.setAttribute('marker-end', 'url(#arrowhead-h)');
+                svg.appendChild(line);
+                
+                let labelX, labelY, anchor;
+                
+                // Position labels near the arrowhead end to avoid blocking
+                const labelOffset = 0.75; // Position at 75% of arrow length from start
+                
+                if (forces.length === 1) {
+                    labelX = startX + (endX - startX) * labelOffset;
+                    labelY = arrowY - 20;
+                    anchor = 'middle';
+                } else if (forces.length === 2) {
+                    labelX = startX + (endX - startX) * labelOffset;
+                    labelY = index === 0 ? arrowY - 20 : arrowY + 30;
+                    anchor = 'middle';
+                } else if (forces.length === 3) {
+                    if (index === 0) {
+                        labelX = startX + (endX - startX) * labelOffset;
+                        labelY = arrowY - 20;
+                        anchor = 'middle';
+                    } else if (index === 1) {
+                        // Position middle arrow label at the far end with more offset
+                        labelX = isRight ? endX - 40 : endX + 40;
+                        labelY = arrowY - 20;
+                        anchor = 'middle';
+                    } else {
+                        labelX = startX + (endX - startX) * labelOffset;
+                        labelY = arrowY + 30;
+                        anchor = 'middle';
+                    }
+                }
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', labelX);
+                text.setAttribute('y', labelY);
+                text.setAttribute('text-anchor', anchor);
+                text.setAttribute('font-size', '13');
+                text.setAttribute('fill', '#333');
+                
+                const mainText = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                mainText.textContent = 'F';
+                text.appendChild(mainText);
+                
+                const subscript = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                subscript.textContent = force.index;
+                subscript.setAttribute('font-size', '9');
+                subscript.setAttribute('baseline-shift', 'sub');
+                text.appendChild(subscript);
+                
+                const restText = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                restText.textContent = ` ${force.type}, ${formatNumber(force.magnitude)} N`;
+                text.appendChild(restText);
+                
+                svg.appendChild(text);
+            });
+        }
+        
+        function drawVerticalArrows(svg, forces, centerX, centerY, objectRadius, arrowLength, direction) {
+            if (forces.length === 0) return;
+            
+            // Create arrowhead marker if not exists in this SVG
+            if (!svg.querySelector('defs #arrowhead-v')) {
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', 'arrowhead-v');
+                marker.setAttribute('markerWidth', '10');
+                marker.setAttribute('markerHeight', '10');
+                marker.setAttribute('refX', '5');
+                marker.setAttribute('refY', '3');
+                marker.setAttribute('orient', 'auto');
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', '0 0, 10 3, 0 6');
+                polygon.setAttribute('fill', '#333');
+                marker.appendChild(polygon);
+                defs.appendChild(marker);
+                svg.insertBefore(defs, svg.firstChild);
+            }
+            
+            const isUp = direction === 'up';
+            const spacing = 40;
+            
+            forces.forEach((force, index) => {
+                let arrowX;
+                if (forces.length === 1) arrowX = centerX;
+                else if (forces.length === 2) arrowX = centerX + (index === 0 ? -spacing/2 : spacing/2);
+                else if (forces.length === 3) arrowX = centerX + (index - 1) * spacing;
+                
+                const startY = isUp ? centerY - objectRadius : centerY + objectRadius;
+                const endY = isUp ? centerY - objectRadius - arrowLength : centerY + objectRadius + arrowLength;
+                
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', arrowX);
+                line.setAttribute('y1', startY);
+                line.setAttribute('x2', arrowX);
+                line.setAttribute('y2', endY);
+                line.setAttribute('stroke', '#333');
+                line.setAttribute('stroke-width', '3');
+                line.setAttribute('marker-end', 'url(#arrowhead-v)');
+                svg.appendChild(line);
+                
+                let labelX, labelY, anchor;
+                
+                if (forces.length === 1) {
+                    labelX = arrowX + 15;
+                    labelY = (startY + endY) / 2;
+                    anchor = 'start';
+                } else if (forces.length === 2) {
+                    labelX = index === 0 ? arrowX - 15 : arrowX + 15;
+                    labelY = (startY + endY) / 2;
+                    anchor = index === 0 ? 'end' : 'start';
+                } else if (forces.length === 3) {
+                    if (index === 0) {
+                        labelX = arrowX - 15;
+                        labelY = (startY + endY) / 2;
+                        anchor = 'end';
+                    } else if (index === 1) {
+                        labelX = arrowX;
+                        labelY = isUp ? endY - 15 : endY + 15;
+                        anchor = 'middle';
+                    } else {
+                        labelX = arrowX + 15;
+                        labelY = (startY + endY) / 2;
+                        anchor = 'start';
+                    }
+                }
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', labelX);
+                text.setAttribute('y', labelY);
+                text.setAttribute('text-anchor', anchor);
+                text.setAttribute('font-size', '14');
+                text.setAttribute('fill', '#333');
+                
+                const mainText = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                mainText.textContent = 'F';
+                text.appendChild(mainText);
+                
+                const subscript = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                subscript.textContent = force.index;
+                subscript.setAttribute('font-size', '10');
+                subscript.setAttribute('baseline-shift', 'sub');
+                text.appendChild(subscript);
+                
+                const restText = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                restText.textContent = ` ${force.type}, ${formatNumber(force.magnitude)} N`;
+                text.appendChild(restText);
+                
+                svg.appendChild(text);
+            });
+        }
+        
+        // Setup event listeners for both modes
+        function setupEventListeners(prefix) {
+            // Toggle buttons
+            const toggleBtn = document.getElementById(`${prefix}-toggleBtn`);
+            const analysisPanel = document.getElementById(`${prefix}-analysisPanel`);
+            if (toggleBtn && analysisPanel) {
+                toggleBtn.addEventListener('click', function() {
+                    analysisPanel.classList.toggle('minimized');
+                    this.textContent = analysisPanel.classList.contains('minimized') ? '+' : '−';
+                });
+            }
+            
+            const fbdToggleBtn = document.getElementById(`${prefix}-fbdToggleBtn`);
+            const fbdPanel = document.getElementById(`${prefix}-fbdPanel`);
+            if (fbdToggleBtn && fbdPanel) {
+                fbdToggleBtn.addEventListener('click', function() {
+                    fbdPanel.classList.toggle('minimized');
+                    this.textContent = fbdPanel.classList.contains('minimized') ? '+' : '−';
+                });
+            }
+            
+            const positionToggleBtn = document.getElementById(`${prefix}-positionToggleBtn`);
+            const positionPanel = document.getElementById(`${prefix}-positionPanel`);
+            if (positionToggleBtn && positionPanel) {
+                positionToggleBtn.addEventListener('click', function() {
+                    positionPanel.classList.toggle('minimized');
+                    this.textContent = positionPanel.classList.contains('minimized') ? '+' : '−';
+                });
+            }
+            
+            // Validation
+            const massInput = document.getElementById(`${prefix}-mass`);
+            if (massInput) {
+                massInput.addEventListener('change', function() {
+                    const value = parseFloat(this.value);
+                    if (isNaN(value)) {
+                        alert('Please enter a valid number for mass.');
+                        this.value = '';
+                    } else if (value < 1) {
+                        alert('Mass must be between 1 and 10 kg.');
+                        this.value = 1;
+                    } else if (value > 10) {
+                        alert('Mass must be between 1 and 10 kg.');
+                        this.value = 10;
+                    }
+                    updateAnalysis(prefix);
+                });
+            }
+            
+            const magnitudeInputs = ['f1-magnitude', 'f2-magnitude', 'f3-magnitude'];
+            magnitudeInputs.forEach(inputId => {
+                const input = document.getElementById(`${prefix}-${inputId}`);
+                if (input) {
+                    input.addEventListener('change', function() {
+                        const value = parseFloat(this.value);
+                        if (isNaN(value)) {
+                            alert('Please enter a valid number for force magnitude.');
+                            this.value = '';
+                        } else if (value < 0) {
+                            alert('Force magnitude must be between 0 and 100 N.');
+                            this.value = 0;
+                        } else if (value > 100) {
+                            alert('Force magnitude must be between 0 and 100 N.');
+                            this.value = 100;
+                        }
+                        updateAnalysis(prefix);
+                    });
+                }
+            });
+            
+            // Event listeners for inputs
+            const container = document.getElementById(`${prefix === 'h' ? 'horizontal' : 'vertical'}-container`);
+            container.querySelectorAll('input, select').forEach(element => {
+                if (element.id === `${prefix}-initial-condition` || element.id === `${prefix}-object-name`) return;
+                element.addEventListener('input', () => updateAll(prefix));
+                element.addEventListener('change', () => updateAll(prefix));
+            });
+            
+            const initialConditionDropdown = document.getElementById(`${prefix}-initial-condition`);
+            if (initialConditionDropdown) {
+                initialConditionDropdown.addEventListener('change', function() {
+                    resetPosition(prefix);
+                });
+            }
+            
+            const objectNameInput = document.getElementById(`${prefix}-object-name`);
+            if (objectNameInput) {
+                objectNameInput.addEventListener('input', function() {
+                    updateObjectDisplays(prefix);
+                    drawFBD(prefix);
+                });
+            }
+            
+            const settingsResetBtn = document.getElementById(`${prefix}-settings-reset-btn`);
+            if (settingsResetBtn) {
+                settingsResetBtn.addEventListener('click', function() {
+                    resetSettings(prefix);
+                });
+            }
+            
+            const stepBtn = document.getElementById(`${prefix}-step-btn`);
+            const resetBtn = document.getElementById(`${prefix}-reset-btn`);
+            if (stepBtn) stepBtn.addEventListener('click', () => stepPosition(prefix));
+            if (resetBtn) resetBtn.addEventListener('click', () => resetPosition(prefix));
+        }
+        
+        // Initialize both modes
+        setupEventListeners('h');
+        setupEventListeners('v');
+        
+        // Initial update for horizontal mode
+        updateObjectDisplays('h');
+        updateAnalysis('h');
+        drawFBD('h');
+        resetPosition('h');
+    </script>
+<!-- AIzipper Custom Footer Start -->
+<div class="aizipper-custom-footer">
+<p>add credit: made by jinSheng, using Claude
+for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/01-foundations-of-physics/forces-moments/04-turning-effects-of-forces" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/01-foundations-of-physics/forces-moments/04-turning-effects-of-forces</a></p>
+</div>
+<!-- AIzipper Custom Footer End -->
+</body>
+</html>

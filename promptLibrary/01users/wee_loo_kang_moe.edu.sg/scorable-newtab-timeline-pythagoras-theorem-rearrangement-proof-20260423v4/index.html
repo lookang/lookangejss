@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Interactive proof of Pythagoras' Theorem using rearrangement method. Explore how triangles can be rearranged to show c² = a² + b².">
+    <title>Pythagoras' Theorem - Rearrangement Proof</title>
+    <link rel="stylesheet" href="styles.css?v=2">
+    
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+<link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data, timestamp) {
+    xapiState.actions.push({ t: timestamp || Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function readDomNumberById(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const directScore =
+        readDomNumberById('score') ??
+        readDomNumberById('points') ??
+        readDomNumberById('correctCount') ??
+        readDomNumberById('correct') ??
+        readDomNumberById('correctAnswers') ??
+        readDomNumberById('correctAnswersCount');
+
+      const directMax =
+        readDomNumberById('max') ??
+        readDomNumberById('total') ??
+        readDomNumberById('totalQuestions') ??
+        readDomNumberById('questionsToAdvance') ??
+        readDomNumberById('attemptCount') ??
+        readDomNumberById('attempts') ??
+        readDomNumberById('totalAttempts');
+
+      if (directScore != null) {
+        const max = directMax != null ? directMax : (directScore > 0 ? directScore : null);
+        return { score: directScore, max };
+      }
+
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="correct" i]', '[class*="correct" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const scoreRegex = new RegExp('(\d+)\s*\/\s*(\d+)');
+        const m = text.match(scoreRegex);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max, actionLog) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    }
+    return lines.join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 100) / 10);
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: Number(seconds.toFixed(1)), type: a.type, label };
+    });
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog);
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function escapeHtml(text) {
+    return String(text == null ? '' : text).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[ch]));
+  }
+
+  function normalizeText(text) {
+    return String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  }
+
+  function getActionTimeSec(action) {
+    const raw = action && action.t != null ? action.t : Date.now();
+    return Number(Math.max(0, Math.round((raw - xapiState.startTime) / 100) / 10).toFixed(1));
+  }
+
+  function parseQuizAttemptDetails(details) {
+    const text = normalizeText(details);
+    if (!text) return null;
+
+    const questionMatch = /Q:\s*"([^"]*)"/i.exec(text);
+    const studentMatch = /Student:\s*"([^"]*)"/i.exec(text);
+    const correctMatch = /Correct:\s*"([^"]*)"/i.exec(text);
+    const attemptMatch = /Attempt:\s*(\d+)/i.exec(text);
+    const incorrect = /\bINCORRECT\b/i.test(text);
+    const correct = !incorrect && /\bCORRECT\b/i.test(text);
+
+    return {
+      question: questionMatch ? normalizeText(questionMatch[1]) : '',
+      studentAnswer: studentMatch ? normalizeText(studentMatch[1]) : '',
+      correctAnswer: correctMatch ? normalizeText(correctMatch[1]) : '',
+      attempt: attemptMatch ? Number(attemptMatch[1]) : null,
+      isCorrect: correct
+    };
+  }
+
+  function getCheckpointKey(question) {
+    const text = normalizeText(question).toLowerCase();
+    if (text.includes('changing size')) return 'triangleSize';
+    if (text.includes('white') && text.includes('area')) return 'whiteArea';
+    if (text.includes('____ + ____') || text.includes('c^2') || text.includes('c2')) return 'equation';
+    return 'other';
+  }
+
+  function getCheckpointLabel(key, question) {
+    if (key === 'triangleSize') return 'Triangle size checkpoint';
+    if (key === 'whiteArea') return 'White area checkpoint';
+    if (key === 'equation') return 'Equation checkpoint';
+    return normalizeText(question) || 'Checkpoint';
+  }
+
+  function getReachedStage(maxAngle, checkpoints) {
+    let stage = 0;
+    if (maxAngle >= 20) stage = 1;
+    if (maxAngle >= 50) stage = 2;
+    if (maxAngle >= 80) stage = 3;
+    if (checkpoints.triangleSize.attempts.length) stage = Math.max(stage, 1);
+    if (checkpoints.whiteArea.attempts.length) stage = Math.max(stage, 2);
+    if (checkpoints.equation.attempts.length) stage = Math.max(stage, 3);
+    return stage;
+  }
+
+  function normalizeTeacherEvent(action) {
+    if (!action) return null;
+
+    const t = getActionTimeSec(action);
+
+    if (action.type === 'learning-analytics') {
+      const actionText = normalizeText(action.data && (action.data.action || action.data.text));
+      const detailsText = normalizeText(action.data && action.data.details);
+      if (!actionText && !detailsText) return null;
+
+      if (/^interactive loaded$/i.test(actionText) || /^log cleared$/i.test(actionText)) return null;
+
+      const quiz = /^quiz answer submitted$/i.test(actionText) ? parseQuizAttemptDetails(detailsText) : null;
+      if (quiz) {
+        const key = getCheckpointKey(quiz.question);
+        const answer = quiz.studentAnswer || '[blank]';
+        const outcome = quiz.isCorrect ? 'correct' : 'incorrect';
+        return {
+          t,
+          kind: 'quiz-' + key,
+          quiz: Object.assign({ key }, quiz),
+          label: `${getCheckpointLabel(key, quiz.question)}: answered "${answer}" (${outcome}${quiz.attempt ? `, attempt ${quiz.attempt}` : ''})`
+        };
+      }
+
+      let match = /^a changed to (.+)$/i.exec(actionText);
+      if (match) {
+        const cMatch = /c:\s*([^,]+)/i.exec(detailsText);
+        const extra = cMatch ? ` (c = ${normalizeText(cMatch[1])})` : '';
+        return { t, kind: 'change-a', label: `Changed side a to ${normalizeText(match[1])}${extra}` };
+      }
+
+      match = /^b changed to (.+)$/i.exec(actionText);
+      if (match) {
+        const cMatch = /c:\s*([^,]+)/i.exec(detailsText);
+        const extra = cMatch ? ` (c = ${normalizeText(cMatch[1])})` : '';
+        return { t, kind: 'change-b', label: `Changed side b to ${normalizeText(match[1])}${extra}` };
+      }
+
+      match = /^slider moved to\s*([0-9.]+)/i.exec(actionText);
+      if (match) {
+        return {
+          t,
+          kind: 'rotate',
+          angle: Number(match[1]),
+          label: `Rotated the triangles to ${normalizeText(match[1])} degrees`
+        };
+      }
+
+      if (/^animation completed$/i.test(actionText)) {
+        const angleMatch = /([0-9.]+)\s*(?:degrees|deg|\u00B0)/i.exec(detailsText);
+        const angle = angleMatch ? Number(angleMatch[1]) : 90;
+        return { t, kind: 'rotate', angle, label: `Ran the animation to ${angle} degrees` };
+      }
+
+      if (/^animation started$/i.test(actionText)) {
+        return { t, kind: 'animation-start', label: 'Started the animation', includeInLog: false };
+      }
+
+      match = /^preset:\s*(.+)$/i.exec(actionText);
+      if (match) {
+        return { t, kind: 'preset', label: `Tried another triangle: ${normalizeText(match[1])}` };
+      }
+
+      if (/^explanation revealed$/i.test(actionText)) {
+        return { t, kind: 'explanation-open', label: 'Opened the explanation' };
+      }
+
+      if (/^explanation hidden$/i.test(actionText)) {
+        return { t, kind: 'explanation-close', label: 'Closed the explanation', includeInLog: false };
+      }
+
+      if (/^reset clicked$/i.test(actionText)) {
+        return { t, kind: 'reset', label: 'Reset the interactive' };
+      }
+
+      if (/^hints (shown|hidden)$/i.test(actionText)) {
+        return {
+          t,
+          kind: 'hints-toggle',
+          label: /shown/i.test(actionText) ? 'Turned hints on' : 'Turned hints off'
+        };
+      }
+
+      if (/^labels (shown|hidden)$/i.test(actionText)) {
+        return {
+          t,
+          kind: 'labels-toggle',
+          label: /shown/i.test(actionText) ? 'Turned labels on' : 'Turned labels off'
+        };
+      }
+
+      match = /^(.* triangle) clicked$/i.exec(actionText);
+      if (match) {
+        return { t, kind: 'triangle-inspect', label: `Inspected the ${normalizeText(match[1]).toLowerCase()}` };
+      }
+
+      return {
+        t,
+        kind: action.type,
+        label: [actionText, detailsText].filter(Boolean).join(' - ')
+      };
+    }
+
+    if (action.type === 'click') return null;
+
+    return null;
+  }
+
+  function compressTeacherEvents(events) {
+    const kept = [];
+    const replaceable = new Set(['change-a', 'change-b', 'rotate']);
+
+    events.forEach(event => {
+      if (!event) return;
+      const prev = kept.length ? kept[kept.length - 1] : null;
+      if (prev && replaceable.has(event.kind) && prev.kind === event.kind && (event.t - prev.t) <= 3) {
+        kept[kept.length - 1] = event;
+        return;
+      }
+      if (prev && prev.kind === event.kind && prev.label === event.label && (event.t - prev.t) <= 1.5) {
+        return;
+      }
+      kept.push(event);
+    });
+
+    return kept;
+  }
+
+  function getPersistentRubricState() {
+    try {
+      return window.__xapiActivityRubric || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildTeacherInsights(actions) {
+    const rawEvents = (Array.isArray(actions) ? actions : []).map(normalizeTeacherEvent).filter(Boolean);
+    const compactEvents = compressTeacherEvents(rawEvents);
+    const persistentRubric = getPersistentRubricState();
+    const checkpoints = {
+      triangleSize: { label: 'Triangle size checkpoint', attempts: [] },
+      whiteArea: { label: 'White area checkpoint', attempts: [] },
+      equation: { label: 'Equation checkpoint', attempts: [] }
+    };
+    const stageByKey = { triangleSize: 1, whiteArea: 2, equation: 3 };
+
+    let maxAngle = 0;
+    let sideChangeCount = 0;
+    let presetCount = 0;
+    let explanationOpenCount = 0;
+    let labelsToggleCount = 0;
+    let hintsToggleCount = 0;
+    let firstCorrectTime = null;
+
+    compactEvents.forEach(event => {
+      if (Number.isFinite(event.angle)) maxAngle = Math.max(maxAngle, event.angle);
+      if (event.kind === 'change-a' || event.kind === 'change-b') sideChangeCount += 1;
+      if (event.kind === 'preset') presetCount += 1;
+      if (event.kind === 'explanation-open') explanationOpenCount += 1;
+      if (event.kind === 'labels-toggle') labelsToggleCount += 1;
+      if (event.kind === 'hints-toggle') hintsToggleCount += 1;
+    });
+
+    if (persistentRubric) {
+      maxAngle = Math.max(maxAngle, Number(persistentRubric.maxRotateAngle || 0));
+      sideChangeCount = Math.max(
+        sideChangeCount,
+        (persistentRubric.aChanged ? 1 : 0) + (persistentRubric.bChanged ? 1 : 0)
+      );
+    }
+
+    rawEvents.forEach(event => {
+      if (!event.quiz) return;
+      const bucket = checkpoints[event.quiz.key] || null;
+      if (!bucket) return;
+      bucket.attempts.push(event.quiz);
+      if (event.quiz.isCorrect && firstCorrectTime == null) firstCorrectTime = event.t;
+    });
+
+    const quizAttempts = rawEvents.filter(event => event.quiz).length;
+    const correctCount = rawEvents.filter(event => event.quiz && event.quiz.isCorrect).length;
+    const reachedStage = getReachedStage(maxAngle, checkpoints);
+    const reliedOnExplanation = explanationOpenCount > 0 && (firstCorrectTime == null || rawEvents.some(event => event.kind === 'explanation-open' && event.t <= firstCorrectTime));
+
+    const teacherSummary = [];
+    if (maxAngle >= 80) {
+      teacherSummary.push(`Reached the full rearrangement view (${Math.round(maxAngle)} degrees), so the student saw the key c^2 to a^2 + b^2 transition.`);
+    } else if (maxAngle >= 20) {
+      teacherSummary.push(`Rotated the diagram to ${Math.round(maxAngle)} degrees but did not reach the full rearrangement view.`);
+    } else {
+      teacherSummary.push('Did not rotate far enough to reach the key rearrangement stages.');
+    }
+
+    if (sideChangeCount || presetCount) {
+      const parts = [];
+      if (sideChangeCount) parts.push(`changed side lengths ${sideChangeCount} time${sideChangeCount === 1 ? '' : 's'}`);
+      if (presetCount) parts.push(`tried ${presetCount} alternate triangle${presetCount === 1 ? '' : 's'}`);
+      teacherSummary.push('Exploration evidence: ' + parts.join(' and ') + '.');
+    } else {
+      teacherSummary.push('Stayed on the default triangle, so generalisation to other right triangles is still unclear.');
+    }
+
+    if (quizAttempts) {
+      teacherSummary.push(`Submitted ${quizAttempts} checkpoint answer${quizAttempts === 1 ? '' : 's'}; ${correctCount} ${correctCount === 1 ? 'was' : 'were'} correct.`);
+    } else if (reachedStage >= 1) {
+      teacherSummary.push('Reached at least one checkpoint stage but did not submit a checkpoint answer.');
+    }
+
+    if (explanationOpenCount || hintsToggleCount || labelsToggleCount) {
+      const supportBits = [];
+      if (explanationOpenCount) supportBits.push(`opened the explanation ${explanationOpenCount} time${explanationOpenCount === 1 ? '' : 's'}`);
+      if (hintsToggleCount) supportBits.push(`toggled hints ${hintsToggleCount} time${hintsToggleCount === 1 ? '' : 's'}`);
+      if (labelsToggleCount) supportBits.push(`toggled labels ${labelsToggleCount} time${labelsToggleCount === 1 ? '' : 's'}`);
+      teacherSummary.push('Support used: ' + supportBits.join(', ') + '.');
+    }
+
+    const checkpointLines = Object.keys(checkpoints).map(key => {
+      const bucket = checkpoints[key];
+      const latest = bucket.attempts.length ? bucket.attempts[bucket.attempts.length - 1] : null;
+      if (!latest) {
+        return `${bucket.label}: ${reachedStage >= stageByKey[key] ? 'not answered yet' : 'not reached yet'}.`;
+      }
+      const answer = latest.studentAnswer || '[blank]';
+      if (latest.isCorrect) {
+        return `${bucket.label}: correct${latest.attempt ? ` on attempt ${latest.attempt}` : ''}; latest answer "${answer}".`;
+      }
+      return `${bucket.label}: still incorrect${latest.attempt ? ` after attempt ${latest.attempt}` : ''}; latest answer "${answer}".`;
+    });
+
+    const misconceptionLines = [];
+    const sizeLatest = checkpoints.triangleSize.attempts.length ? checkpoints.triangleSize.attempts[checkpoints.triangleSize.attempts.length - 1] : null;
+    const areaLatest = checkpoints.whiteArea.attempts.length ? checkpoints.whiteArea.attempts[checkpoints.whiteArea.attempts.length - 1] : null;
+    const equationLatest = checkpoints.equation.attempts.length ? checkpoints.equation.attempts[checkpoints.equation.attempts.length - 1] : null;
+
+    if (sizeLatest && !sizeLatest.isCorrect) {
+      misconceptionLines.push('The student may think the triangles change size when they rotate; revisit that only the arrangement changes.');
+    }
+    if (areaLatest && !areaLatest.isCorrect) {
+      misconceptionLines.push('The student may think the uncovered area changes, instead of only changing shape.');
+    }
+    if (equationLatest && !equationLatest.isCorrect) {
+      misconceptionLines.push('The student has not yet linked the rearrangement to c^2 = a^2 + b^2.');
+    }
+    if (!presetCount && sideChangeCount === 0) {
+      misconceptionLines.push('The student has not tested whether the proof still works for a different right triangle.');
+    }
+    if (reliedOnExplanation) {
+      misconceptionLines.push('The student relied on the explanation before reaching a correct checkpoint answer.');
+    }
+
+    return {
+      actionLog: compactEvents
+        .filter(event => event.includeInLog !== false)
+        .slice(-10)
+        .map(event => ({ t: event.t, type: event.kind, label: event.label })),
+      teacherSummary,
+      checkpointLines,
+      misconceptionLines: misconceptionLines.slice(0, 4),
+      maxAngle,
+      quizAttempts,
+      correctCount,
+      sideChangeCount,
+      presetCount,
+      explanationOpenCount
+    };
+  }
+
+  function buildInteractionMarking(actions) {
+    const persistentRubric = getPersistentRubricState();
+    const items = [
+      {
+        id: 'slider-b',
+        question: 'Changed slider b',
+        correctOption: 'Move slider b at least once',
+        userSelection: persistentRubric && persistentRubric.bValue != null ? String(persistentRubric.bValue) : null,
+        marks: persistentRubric && persistentRubric.bChanged ? 1 : 0,
+        maxMarks: 1
+      },
+      {
+        id: 'slider-a',
+        question: 'Changed slider a',
+        correctOption: 'Move slider a at least once',
+        userSelection: persistentRubric && persistentRubric.aValue != null ? String(persistentRubric.aValue) : null,
+        marks: persistentRubric && persistentRubric.aChanged ? 1 : 0,
+        maxMarks: 1
+      },
+      {
+        id: 'slider-rotate',
+        question: 'Changed rotate slider',
+        correctOption: 'Move the rotate slider at least once',
+        userSelection: persistentRubric && persistentRubric.rotateValue != null ? String(persistentRubric.rotateValue) + ' degrees' : null,
+        marks: persistentRubric && persistentRubric.rotateChanged ? 1 : 0,
+        maxMarks: 1
+      },
+      {
+        id: 'equation',
+        question: 'Complete the idea: c^2 = ____ + ____',
+        correctOption: 'a^2 + b^2',
+        userSelection: persistentRubric && persistentRubric.equationAnswer != null ? String(persistentRubric.equationAnswer) : null,
+        marks: persistentRubric && persistentRubric.equationCorrect ? 2 : 0,
+        maxMarks: 2
+      }
+    ];
+
+    const byId = Object.fromEntries(items.map(item => [item.id, item]));
+
+    (Array.isArray(actions) ? actions : []).forEach(action => {
+      if (!action || action.type !== 'learning-analytics') return;
+
+      const actionText = normalizeText(action.data && (action.data.action || action.data.text));
+      const detailsText = normalizeText(action.data && action.data.details);
+
+      let match = /^b changed to (.+)$/i.exec(actionText);
+      if (match) {
+        byId['slider-b'].marks = 1;
+        byId['slider-b'].userSelection = normalizeText(match[1]);
+        return;
+      }
+
+      match = /^a changed to (.+)$/i.exec(actionText);
+      if (match) {
+        byId['slider-a'].marks = 1;
+        byId['slider-a'].userSelection = normalizeText(match[1]);
+        return;
+      }
+
+      match = /^slider moved to\s*([0-9.]+)/i.exec(actionText);
+      if (match) {
+        byId['slider-rotate'].marks = 1;
+        byId['slider-rotate'].userSelection = normalizeText(match[1]) + ' degrees';
+        return;
+      }
+
+      if (!/^quiz answer submitted$/i.test(actionText)) return;
+      const quiz = parseQuizAttemptDetails(detailsText);
+      if (!quiz) return;
+      if (getCheckpointKey(quiz.question) !== 'equation') return;
+
+      const answer = quiz.studentAnswer || '[blank]';
+      byId.equation.userSelection = answer;
+      if (quiz.isCorrect) {
+        byId.equation.marks = 2;
+      }
+    });
+
+    const totalMarks = items.reduce((sum, item) => sum + item.marks, 0);
+    const maxMarks = items.reduce((sum, item) => sum + item.maxMarks, 0);
+    const attempted = items.filter(item => item.userSelection != null).length;
+    const completed = items.filter(item => item.marks === item.maxMarks).length;
+
+    return { items, totalMarks, maxMarks, attempted, completed };
+  }
+
+  function buildFeedback(summary, score, max, actionLog, teacherInsights) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Meaningful Steps: ' + (actionLog ? actionLog.length : 0));
+    if (teacherInsights && Number.isFinite(teacherInsights.maxAngle)) {
+      lines.push('Furthest Rearrangement View: ' + Math.round(teacherInsights.maxAngle) + ' degrees');
+    }
+    lines.push('');
+    lines.push('Teacher Summary:');
+    (teacherInsights && teacherInsights.teacherSummary && teacherInsights.teacherSummary.length
+      ? teacherInsights.teacherSummary
+      : ['No teacher summary available yet.'])
+      .forEach(line => lines.push('- ' + line));
+    lines.push('');
+    lines.push('Checkpoint Evidence:');
+    (teacherInsights && teacherInsights.checkpointLines && teacherInsights.checkpointLines.length
+      ? teacherInsights.checkpointLines
+      : ['No checkpoint evidence recorded yet.'])
+      .forEach(line => lines.push('- ' + line));
+    if (teacherInsights && teacherInsights.misconceptionLines && teacherInsights.misconceptionLines.length) {
+      lines.push('');
+      lines.push('Possible Misconceptions:');
+      teacherInsights.misconceptionLines.forEach(line => lines.push('- ' + line));
+    }
+    lines.push('');
+    lines.push('Action Log:');
+    if (Array.isArray(actionLog) && actionLog.length) {
+      actionLog.forEach(a => {
+        const label = a && a.label ? a.label : (a && a.type ? a.type : 'event');
+        const time = (a && a.t != null) ? a.t : 0;
+        lines.push('t=' + time + 's ' + label);
+      });
+    } else {
+      lines.push('No meaningful actions recorded yet.');
+    }
+    return lines.map(escapeHtml).join('<br>');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice();
+    const rubric = buildInteractionMarking(actions);
+    const scoreInfo = rubric && rubric.maxMarks > 0
+      ? { score: rubric.totalMarks, max: rubric.maxMarks }
+      : extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const teacherInsights = buildTeacherInsights(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes,
+      meaningfulSteps: teacherInsights.actionLog.length,
+      maxAngle: teacherInsights.maxAngle,
+      checkpointAttempts: teacherInsights.quizAttempts,
+      correctCheckpoints: teacherInsights.correctCount
+    };
+
+    const actionLog = teacherInsights.actionLog;
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max, actionLog, teacherInsights);
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      quiz: {
+        attempted: rubric.attempted,
+        correct: rubric.completed,
+        total: rubric.items.length,
+        points: rubric.totalMarks,
+        rubricTotal: rubric.maxMarks,
+        items: rubric.items
+      },
+      hiddenMarks: {
+        totalMarks: rubric.totalMarks,
+        maxMarks: rubric.maxMarks,
+        items: rubric.items
+      },
+      actionLog,
+      actions,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        activityFeedback: feedback,
+        marking: rubric,
+        teacherInsights,
+        dashboard: captureDashboardSnapshot()
+      },
+      teacherInsights
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  function parseAnalyticsEntry(entry) {
+    try {
+      const timeEl = entry.querySelector ? entry.querySelector('.log-time') : null;
+      const actionEl = entry.querySelector ? entry.querySelector('.log-action') : null;
+      const valueEl = entry.querySelector ? entry.querySelector('.log-value') : null;
+
+      const fullText = normalizeText(entry.textContent || '');
+      const timeText = timeEl ? timeEl.textContent : fullText;
+      let actionText = actionEl ? normalizeText(actionEl.textContent) : null;
+      let valueText = valueEl ? normalizeText(valueEl.textContent) : null;
+
+      const timeMatch = /t=([0-9.]+)s/i.exec(timeText);
+      const timeSec = timeMatch ? Number(timeMatch[1]) : null;
+
+      if (!actionText && fullText) {
+        const tail = normalizeText(fullText.replace(/^t=[0-9.]+s\s*/i, ''));
+        const parts = tail.split(/\s*(?:\u2022|\|)\s*/).map(normalizeText).filter(Boolean);
+        if (parts.length) {
+          actionText = parts[0] || null;
+          valueText = parts.slice(1).join(' | ') || null;
+        } else if (tail) {
+          actionText = tail;
+        }
+      }
+
+      const label = [actionText, valueText].filter(Boolean).join(' ').trim();
+      return {
+        timeSec: Number.isFinite(timeSec) ? timeSec : null,
+        action: actionText ? actionText.trim() : null,
+        details: valueText ? valueText.trim() : null,
+        label: label || null
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function hookLearningAnalyticsLog() {
+    try {
+      if (window.__xapiLearningAnalyticsHooked) return;
+      window.__xapiLearningAnalyticsHooked = true;
+
+      const seen = new Set();
+
+      function recordEntry(entry) {
+        const parsed = parseAnalyticsEntry(entry);
+        if (!parsed) return;
+        const sig = [parsed.timeSec, parsed.action, parsed.details].join('|');
+        if (seen.has(sig)) return;
+        seen.add(sig);
+        if (seen.size > 300) {
+          const keep = Array.from(seen).slice(-200);
+          seen.clear();
+          keep.forEach(k => seen.add(k));
+        }
+
+        const ts = parsed.timeSec != null
+          ? (xapiState.startTime + Math.round(parsed.timeSec * 1000))
+          : Date.now();
+
+        logAction('learning-analytics', {
+          text: parsed.label || parsed.action || 'Analytics Event',
+          action: parsed.action || null,
+          details: parsed.details || null,
+          source: 'learning-analytics',
+          timeSec: parsed.timeSec
+        }, ts);
+
+        scheduleFlush('learning-analytics', 400);
+      }
+
+      function attachToContainer(container) {
+        if (!container || container.__xapiObserverAttached) return;
+        container.__xapiObserverAttached = true;
+
+        Array.from(container.querySelectorAll('.log-entry')).forEach(recordEntry);
+
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (!(node instanceof Element)) return;
+              if (node.classList.contains('log-entry')) {
+                recordEntry(node);
+              } else {
+                node.querySelectorAll && node.querySelectorAll('.log-entry').forEach(recordEntry);
+              }
+            });
+          });
+        });
+
+        observer.observe(container, { childList: true, subtree: true });
+      }
+
+      function tryAttach() {
+        const container = document.getElementById('logContainer') || document.querySelector('.analytics-content #logContainer');
+        if (container) {
+          attachToContainer(container);
+          return true;
+        }
+        const entry = document.querySelector('.log-entry');
+        if (entry && entry.parentElement) {
+          attachToContainer(entry.parentElement);
+          return true;
+        }
+        return false;
+      }
+
+      if (tryAttach()) return;
+
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts += 1;
+        if (tryAttach() || attempts > 20) {
+          clearInterval(timer);
+        }
+      }, 500);
+    } catch (e) {}
+  }
+
+  // Keyboard tracking for text-based inputs and textareas
+  // This logs each keystroke as a lightweight "key" action so it
+  // appears in the same timeline analytics as clicks.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+
+    const tag = String(t.tagName).toLowerCase();
+    const type = (t.type || '').toLowerCase();
+
+    // Limit to typical text input fields to avoid flooding from
+    // every key on the whole page.
+    const isTextField = (
+      tag === 'input' && (!type || type === 'text' || type === 'search' || type === 'email' || type === 'number')
+    ) || tag === 'textarea';
+
+    if (!isTextField) return;
+
+    logAction('key', {
+      tag,
+      id: t.id || null,
+      name: t.name || null,
+      value: t.value != null ? String(t.value).substring(0, 120) : null,
+      text: null,
+      key: String(e.key).substring(0, 40),
+      code: String(e.code || '').substring(0, 40)
+    });
+
+    // Group keystrokes slightly to avoid sending on every single key.
+    scheduleFlush('auto-key', 800);
+  }, true);
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    // In quiz contexts, we avoid sending "pause" events when switching tabs,
+    // because SLS learners commonly return to the parent tab.
+    try {
+      if (document.hidden && window.__xapiDisablePauseFlush === true) return;
+    } catch (e) {}
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      addSaveBtn();
+      hookLearningAnalyticsLog();
+    });
+  } else {
+    addSaveBtn();
+    hookLearningAnalyticsLog();
+  }
+})();
+    </script>
+  
+    <!-- xAPI Quiz Tracking -->
+    <script>
+(function() {
+  // Unified tracking: quiz instrumentation is always present.
+  // We DO NOT force statement sending here. The vendor glue (lib/xAPI.js)
+  // will still send state reliably; statements are best-effort depending on CORS.
+
+  const qs = { questions: [], answers: {}, attempted: 0 };
+  const quizMeta = { total: 0, correct: 0, max: 0, lastScoreSent: null };
+  const history = [];
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+  const answerDedup = { lastSig: '', lastAt: 0 };
+  const metricsState = { lastKey: '', timer: null };
+  const activityRubric = {
+    bChanged: false,
+    aChanged: false,
+    rotateChanged: false,
+    bValue: null,
+    aValue: null,
+    rotateValue: null,
+    maxRotateAngle: 0,
+    equationCorrect: false,
+    equationAnswer: null
+  };
+  try { window.__xapiActivityRubric = activityRubric; } catch (e) {}
+
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (CORS failures in SLS hosting)
+  // - Use window.storeState(...) only; vendor/xAPI.js will send state + score statement.
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }
+
+  function pushHistory(evt) {
+    history.push(Object.assign({ t: Date.now() }, evt));
+    if (history.length > 80) history.shift();
+  }
+
+  function toNumber(val) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function readDomNumber(id) {
+    try {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = (el.textContent || '').replace(/[^0-9.]/g, '');
+      return toNumber(text);
+    } catch {
+      return null;
+    }
+  }
+
+  function getQuestionText() {
+    try {
+      const el = document.getElementById('question');
+      if (el && el.textContent) return el.textContent.trim().substring(0, 160);
+    } catch {}
+    return null;
+  }
+
+  function getGameState() {
+    try { return window.gameState || null; } catch { return null; }
+  }
+
+  function getMetricsFromGameState() {
+    const gs = getGameState();
+    if (!gs) return null;
+    const attempted = toNumber(gs.totalAttempts != null ? gs.totalAttempts : null);
+    const correct = toNumber(gs.correctCount != null ? gs.correctCount : null);
+    const points = toNumber(gs.score != null ? gs.score : null);
+    const max = toNumber(gs.questionsToAdvance != null ? gs.questionsToAdvance : null);
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetricsFromDom() {
+    const attempted = readDomNumber('totalAttempts');
+    const correct = readDomNumber('correctCount');
+    const points = readDomNumber('score');
+    const max = readDomNumber('totalQuestions');
+    const hasAny = attempted != null || correct != null || points != null || max != null;
+    if (!hasAny) return null;
+    return { attempted, correct, points, max };
+  }
+
+  function getMetrics() {
+    return getMetricsFromGameState() || getMetricsFromDom() || null;
+  }
+
+  function syncFromMetrics() {
+    const m = getMetrics();
+    if (!m) return;
+    if (m.attempted != null) qs.attempted = m.attempted;
+    if (m.correct != null) quizMeta.correct = m.correct;
+    if (m.max != null) quizMeta.max = m.max;
+  }
+
+  function startMetricsWatcher() {
+    if (metricsState.timer) return;
+    metricsState.timer = setInterval(() => {
+      const m = getMetrics();
+      if (!m) return;
+      const key = [m.attempted, m.correct, m.points, m.max].join('|');
+      if (key === metricsState.lastKey) return;
+      metricsState.lastKey = key;
+      syncFromMetrics();
+      scheduleFlush('auto-metrics');
+      maybeComputeAndSendScore();
+    }, 1200);
+  }
+
+  function recordAnswer(evt) {
+    try {
+      const sig = [evt.q, evt.value, evt.correct, evt.expected].join('|');
+      const now = Date.now();
+      if (sig === answerDedup.lastSig && now - answerDedup.lastAt < 800) return;
+      answerDedup.lastSig = sig;
+      answerDedup.lastAt = now;
+      pushHistory(evt);
+
+      const gs = getGameState();
+      const hasCounts = gs && (gs.totalAttempts != null || gs.correctCount != null);
+      if (!hasCounts) {
+        qs.attempted++;
+        if (evt.correct === true) quizMeta.correct++;
+      }
+    } catch (e) {}
+  }
+
+  // Build per-question breakdown for SLS and LRS analytics.
+  // Groups answer-like events by question id/text and derives:
+  // - question id/text
+  // - last user selection
+  // - inferred correct option (when available)
+  // - simple marks (1 for correct, 0 for not-certain/incorrect)
+  // This is emitted as quiz.items[] and also mirrored under
+  // hiddenMarks so vendor/xAPI.js can push it into result.extensions.
+  function buildQuizBreakdown() {
+    const items = [
+      {
+        id: 'slider-b',
+        question: 'Changed slider b',
+        correctOption: 'Move slider b at least once',
+        userSelection: activityRubric.bValue != null ? String(activityRubric.bValue) : null,
+        marks: activityRubric.bChanged ? 1 : 0,
+        maxMarks: 1
+      },
+      {
+        id: 'slider-a',
+        question: 'Changed slider a',
+        correctOption: 'Move slider a at least once',
+        userSelection: activityRubric.aValue != null ? String(activityRubric.aValue) : null,
+        marks: activityRubric.aChanged ? 1 : 0,
+        maxMarks: 1
+      },
+      {
+        id: 'slider-rotate',
+        question: 'Changed rotate slider',
+        correctOption: 'Move the rotate slider at least once',
+        userSelection: activityRubric.rotateValue != null ? String(activityRubric.rotateValue) + ' degrees' : null,
+        marks: activityRubric.rotateChanged ? 1 : 0,
+        maxMarks: 1
+      },
+      {
+        id: 'equation',
+        question: 'Complete the idea: c^2 = ____ + ____',
+        correctOption: 'a^2 + b^2',
+        userSelection: activityRubric.equationAnswer,
+        marks: activityRubric.equationCorrect ? 2 : 0,
+        maxMarks: 2
+      }
+    ];
+
+    const totalMarks = items.reduce((sum, item) => sum + item.marks, 0);
+    const maxMarks = items.reduce((sum, item) => sum + item.maxMarks, 0);
+    const attempted = items.filter(item => item.userSelection != null).length;
+    const completed = items.filter(item => item.marks === item.maxMarks).length;
+
+    return { items, totalMarks, maxMarks, attempted, completed };
+  }
+
+  function looksLikeActivityFeedback(text) {
+    return /Interactive Response Assistant|Teacher Summary:|Action Log:/i.test(String(text || ''));
+  }
+
+  function getLatestActivityFeedback() {
+    try {
+      const state = window.__xapiLastState || null;
+      if (!state) return '';
+      if (state.details && state.details.activityFeedback && looksLikeActivityFeedback(state.details.activityFeedback)) {
+        return String(state.details.activityFeedback);
+      }
+      if (state.feedback && looksLikeActivityFeedback(state.feedback)) {
+        return String(state.feedback);
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.history && p.history.length ? p.history[p.history.length - 1] : null;
+      return String(p.reason) + '|' + p.score + '/' + p.max + '|' + (p.history ? p.history.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    syncFromMetrics();
+    const breakdown = buildQuizBreakdown();
+    const finalScore = breakdown.totalMarks;
+    const finalMax = breakdown.maxMarks;
+    const activityFeedback = getLatestActivityFeedback();
+
+    const payload = {
+      score: finalScore,
+      max: finalMax,
+      feedback: activityFeedback || ('Marks: ' + finalScore + '/' + finalMax),
+      reason,
+      quiz: {
+        attempted: breakdown.attempted,
+        correct: breakdown.completed,
+        total: breakdown.items.length,
+        points: breakdown.totalMarks,
+        rubricTotal: breakdown.maxMarks,
+        items: breakdown.items
+      },
+      history: history.slice(-80),
+      details: {}
+    };
+
+    if (activityFeedback) {
+      payload.details.activityFeedback = activityFeedback;
+    }
+
+    // Attach per-question breakdown when available so that vendor/xAPI.js
+    // can expose it via result.extensions.hiddenMarks and result.extensions.quizSummary.
+    if (breakdown.items.length) {
+      payload.quiz.items = breakdown.items;
+      payload.hiddenMarks = {
+        totalMarks: breakdown.totalMarks,
+        maxMarks: breakdown.maxMarks,
+        items: breakdown.items
+      };
+    }
+    const sig = signatureOfPayload(payload);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(payload);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 700;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      if (Date.now() - flushState.lastSentAt < 500) return scheduleFlush(reason, 500);
+      flush(reason);
+    }, d);
+  }
+
+  // Best-effort: attempt to infer correctness from common patterns.
+  // If we can't infer, we still send a score statement with raw=attempted.
+  function isCorrectFromInput(inputEl) {
+    try {
+      if (!inputEl) return null;
+      // Common patterns:
+      // - data-correct="true"
+      // - aria-correct / data-answer
+      // - value matches data-correct-value on group container
+      if (inputEl.dataset && (inputEl.dataset.correct === 'true' || inputEl.dataset.isCorrect === 'true')) return true;
+      const group = inputEl.closest('[data-correct],[data-answer],[data-correct-value]');
+      if (group) {
+        const correct = group.dataset.correct || group.dataset.answer || group.dataset.correctValue;
+        if (correct != null) return String(inputEl.value).trim() === String(correct).trim();
+      }
+      // Heuristic: label contains "(correct)"
+      const lbl = inputEl.closest('label');
+      if (lbl && /correct/i.test(lbl.textContent)) return true;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sendScoreToSLS(scoreRaw, max, feedback) {
+    try {
+      if (typeof window.storeState === 'function') {
+        const breakdown = buildQuizBreakdown();
+        const activityFeedback = getLatestActivityFeedback();
+
+        const state = {
+          score: scoreRaw,
+          max: max,
+          feedback: activityFeedback || feedback || '',
+          quiz: {
+            attempted: breakdown.attempted,
+            correct: breakdown.completed,
+            total: breakdown.items.length,
+            points: breakdown.totalMarks,
+            rubricTotal: breakdown.maxMarks
+          },
+          history: history.slice(-80),
+          details: {}
+        };
+
+        if (activityFeedback) {
+          state.details.activityFeedback = activityFeedback;
+        }
+
+        if (breakdown.items.length) {
+          state.quiz.items = breakdown.items;
+          state.hiddenMarks = {
+            totalMarks: breakdown.totalMarks,
+            maxMarks: breakdown.maxMarks,
+            items: breakdown.items
+          };
+        }
+
+        window.storeState(state);
+      }
+    } catch (e) {}
+  }
+
+  function maybeComputeAndSendScore() {
+    const breakdown = buildQuizBreakdown();
+    const raw = breakdown.totalMarks;
+    const max = breakdown.maxMarks;
+    const scoreKey = raw + '/' + max;
+    if (quizMeta.lastScoreSent === scoreKey) return;
+    quizMeta.lastScoreSent = scoreKey;
+
+    const feedback = 'Marks: ' + raw + '/' + max;
+    sendScoreToSLS(raw, max, feedback);
+    // Score statement sending is handled by vendor/xAPI.js when storeState is called.
+    scheduleFlush('auto-score');
+  }
+
+  function normalizeEquationTerm(value) {
+    return String(value == null ? '' : value)
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/²/g, '2')
+      .replace(/\^2/g, '2');
+  }
+
+  function isEquationCorrect(answer1, answer2) {
+    const left = normalizeEquationTerm(answer1);
+    const right = normalizeEquationTerm(answer2);
+    return (left === 'a2' && right === 'b2') || (left === 'b2' && right === 'a2');
+  }
+
+  function markSliderChanged(key, rawValue) {
+    const value = rawValue != null && rawValue !== '' ? Number(rawValue) : null;
+    if (key === 'b') {
+      activityRubric.bChanged = true;
+      if (value != null && Number.isFinite(value)) activityRubric.bValue = value / 10;
+    }
+    if (key === 'a') {
+      activityRubric.aChanged = true;
+      if (value != null && Number.isFinite(value)) activityRubric.aValue = value / 10;
+    }
+    if (key === 'rotate') {
+      activityRubric.rotateChanged = true;
+      if (value != null && Number.isFinite(value)) {
+        activityRubric.rotateValue = value;
+        activityRubric.maxRotateAngle = Math.max(activityRubric.maxRotateAngle || 0, value);
+      }
+    }
+    maybeComputeAndSendScore();
+    scheduleFlush('rubric-' + key, 250);
+  }
+
+  function attachRubricHooks() {
+    const bSlider = document.getElementById('bSlider');
+    if (bSlider && !bSlider.__xapiRubricHooked) {
+      bSlider.__xapiRubricHooked = true;
+      bSlider.addEventListener('input', (e) => markSliderChanged('b', e && e.target ? e.target.value : null), true);
+    }
+
+    const aSlider = document.getElementById('aSlider');
+    if (aSlider && !aSlider.__xapiRubricHooked) {
+      aSlider.__xapiRubricHooked = true;
+      aSlider.addEventListener('input', (e) => markSliderChanged('a', e && e.target ? e.target.value : null), true);
+    }
+
+    const rotateSlider = document.getElementById('rotationSlider');
+    if (rotateSlider && !rotateSlider.__xapiRubricHooked) {
+      rotateSlider.__xapiRubricHooked = true;
+      rotateSlider.addEventListener('input', (e) => markSliderChanged('rotate', e && e.target ? e.target.value : null), true);
+    }
+
+    const checkAnswerBtn = document.getElementById('checkAnswerBtn');
+    if (checkAnswerBtn && !checkAnswerBtn.__xapiRubricHooked) {
+      checkAnswerBtn.__xapiRubricHooked = true;
+      checkAnswerBtn.addEventListener('click', () => {
+        setTimeout(() => {
+          const answer1 = document.getElementById('answer1');
+          const answer2 = document.getElementById('answer2');
+          const value1 = answer1 ? answer1.value : '';
+          const value2 = answer2 ? answer2.value : '';
+          activityRubric.equationAnswer = `${String(value1 || '').trim()} + ${String(value2 || '').trim()}`.trim();
+          if (isEquationCorrect(value1, value2)) {
+            activityRubric.equationCorrect = true;
+          }
+          maybeComputeAndSendScore();
+          scheduleFlush('rubric-equation', 250);
+        }, 0);
+      }, true);
+    }
+  }
+
+  function initQuiz() {
+    const rgs = {};
+    document.querySelectorAll('input[type="radio"]').forEach(inp => {
+      if (!rgs[inp.name]) { rgs[inp.name] = true; qs.questions.push(inp.name); }
+    });
+    quizMeta.total = 5;
+    quizMeta.max = 5;
+    attachRubricHooks();
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
+        const ix = qs.questions.indexOf(e.target.name);
+        if (ix >= 0) {
+          const ok = isCorrectFromInput(e.target);
+          recordAnswer({
+            type: 'answer',
+            q: e.target.name,
+            value: String(e.target.value).substring(0, 120),
+            correct: ok === true ? true : (ok === false ? false : null)
+          });
+          // Flush quickly so click history / correct-wrong shows up
+          scheduleFlush('answer');
+          maybeComputeAndSendScore();
+        }
+      }
+    });
+
+    // Button-based answers (common in Claude-generated interactives)
+    document.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('button,[role="button"],.answer-btn') : null;
+      if (!btn) return;
+      const inGrid = btn.closest && btn.closest('#answerGrid');
+      const looksLikeAnswer = inGrid || btn.classList.contains('answer-btn') || btn.dataset.answer != null;
+      if (!looksLikeAnswer) return;
+
+      const valueRaw = btn.dataset.answer != null ? btn.dataset.answer : (btn.textContent || '');
+      const value = String(valueRaw).trim().substring(0, 120);
+      const gs = getGameState();
+      const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+      const correct = expected != null ? (String(value) === String(expected)) : null;
+
+      recordAnswer({
+        type: 'answer_click',
+        q: getQuestionText(),
+        value,
+        correct,
+        expected
+      });
+
+      scheduleFlush('answer_click');
+      maybeComputeAndSendScore();
+    }, true);
+
+    startMetricsWatcher();
+
+    // Do not flush on visibility change for quiz mode.
+    // Switching back to the parent SLS tab should not mark the activity as paused.
+    window.addEventListener('beforeunload', () => { try { flush('unload'); } catch (e) {} });
+  }
+  function hookAnalytics() {
+    try {
+      if (typeof window.logAnalytics !== 'function') return;
+      if (window.__xapiAnalyticsHooked) return;
+      window.__xapiAnalyticsHooked = true;
+
+      const original = window.logAnalytics;
+      window.logAnalytics = function(action, challenge, studentAnswer, correctAnswer, result) {
+        try {
+          original.apply(this, arguments);
+        } catch (e) {}
+
+        const actionType = (action || '').toString().toLowerCase();
+        const isAnswer = actionType === 'answer_check' || actionType === 'answer' || actionType === 'check_answer';
+        const isStart = actionType === 'game_start' || actionType === 'start' || actionType === 'level_start';
+
+        recordAnswer({
+          type: actionType || 'event',
+          q: challenge ? String(challenge).substring(0, 140) : null,
+          value: studentAnswer != null ? String(studentAnswer).substring(0, 140) : null,
+          correct: result === 'correct' ? true : (result === 'incorrect' ? false : null),
+          expected: correctAnswer != null ? String(correctAnswer).substring(0, 140) : null,
+          result: result || null
+        });
+
+        if (isAnswer) {
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } else if (isStart) {
+          scheduleFlush('game_start');
+        } else {
+          scheduleFlush(actionType || 'analytics');
+        }
+      };
+    } catch (e) {}
+  }
+
+  function hookCheckAnswer() {
+    try {
+      if (window.__xapiCheckAnswerHooked) return;
+      if (typeof window.checkAnswer !== 'function') return;
+      const original = window.checkAnswer;
+      window.checkAnswer = function(selectedAnswer, btn) {
+        try {
+          const gs = getGameState();
+          const expected = gs && gs.correctAnswer != null ? String(gs.correctAnswer) : null;
+          const value = selectedAnswer != null ? String(selectedAnswer).substring(0, 120) : null;
+          const correct = expected != null && value != null ? (String(value) === String(expected)) : null;
+          recordAnswer({
+            type: 'answer_check',
+            q: getQuestionText(),
+            value,
+            correct,
+            expected
+          });
+          scheduleFlush('answer_check');
+          maybeComputeAndSendScore();
+        } catch (e) {}
+        return original.apply(this, arguments);
+      };
+      window.__xapiCheckAnswerHooked = true;
+    } catch (e) {}
+  }
+
+  function startCheckAnswerWatcher() {
+    if (window.__xapiCheckAnswerWatch) return;
+    window.__xapiCheckAnswerWatch = true;
+    const timer = setInterval(() => {
+      hookCheckAnswer();
+      if (window.__xapiCheckAnswerHooked) clearInterval(timer);
+    }, 600);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initQuiz();
+      hookAnalytics();
+      startCheckAnswerWatcher();
+    });
+  } else {
+    initQuiz();
+    hookAnalytics();
+    startCheckAnswerWatcher();
+  }
+})();
+    </script>
+  </head>
+<body>
+    <div id="app">
+        <!-- Collapsible title section -->
+        <div id="titleSection" class="title-section">
+            <h1 id="mainTitle">Pythagoras' Theorem - Rearrangement Proof</h1>
+            <button id="toggleTitle" class="toggle-btn" aria-label="Hide title">Hide Title</button>
+        </div>
+
+        <!-- Main content area -->
+        <div id="mainContent" class="main-content">
+            <!-- Left panel: SVG diagram -->
+            <div class="diagram-container">
+                <svg id="diagram" viewBox="0 0 570 570" preserveAspectRatio="xMidYMid meet">
+
+                    <!-- Pattern fills for colour-blind mode -->
+                    <defs>
+                        <!-- Pink: diagonal stripes -->
+                        <pattern id="patPink" width="10" height="10" patternUnits="userSpaceOnUse">
+                            <rect width="10" height="10" fill="#ff69b4"/>
+                            <line x1="0" y1="10" x2="10" y2="0" stroke="white" stroke-width="2.5"/>
+                            <line x1="-2" y1="2"  x2="2"  y2="-2" stroke="white" stroke-width="2.5"/>
+                            <line x1="8" y1="12"  x2="12" y2="8"  stroke="white" stroke-width="2.5"/>
+                        </pattern>
+                        <!-- Yellow: dots -->
+                        <pattern id="patYellow" width="12" height="12" patternUnits="userSpaceOnUse">
+                            <rect width="12" height="12" fill="#ffd700"/>
+                            <circle cx="6" cy="6" r="3" fill="#806000"/>
+                        </pattern>
+                        <!-- Blue: horizontal stripes -->
+                        <pattern id="patBlue" width="10" height="10" patternUnits="userSpaceOnUse">
+                            <rect width="10" height="10" fill="#1e90ff"/>
+                            <line x1="0" y1="5" x2="10" y2="5" stroke="white" stroke-width="2.5"/>
+                        </pattern>
+                        <!-- Green: cross-hatch -->
+                        <pattern id="patGreen" width="10" height="10" patternUnits="userSpaceOnUse">
+                            <rect width="10" height="10" fill="#7fff00"/>
+                            <line x1="0" y1="0" x2="10" y2="10" stroke="#1a5c1a" stroke-width="1.8"/>
+                            <line x1="10" y1="0" x2="0" y2="10" stroke="#1a5c1a" stroke-width="1.8"/>
+                        </pattern>
+                    </defs>
+
+                    <rect x="0" y="0" width="600" height="600" fill="#f9f9f9"/>
+
+                    <!-- Outer square boundary -->
+                    <rect id="outerSquare" x="75" y="75" width="450" height="450" fill="none" stroke="#333" stroke-width="3"/>
+
+                    <!-- Area labels (c², a², b²) -->
+                    <text id="labelC2" x="300" y="300" class="area-label" text-anchor="middle" dominant-baseline="middle">c²</text>
+                    <text id="labelA2" x="412.5" y="225" class="area-label" text-anchor="middle" dominant-baseline="middle">a²</text>
+                    <text id="labelB2" x="412.5" y="412.5" class="area-label" text-anchor="middle" dominant-baseline="middle">b²</text>
+
+                    <!-- Dashed borders for c², a² and b² squares (behind triangles) -->
+                    <polygon id="squareC2" points=""
+                          fill="none" stroke="#d97706" stroke-width="2.5"
+                          stroke-dasharray="10 6" opacity="0"/>
+                    <rect id="squareA2" x="0" y="0" width="0" height="0"
+                          fill="none" stroke="#1e3a8a" stroke-width="2.5"
+                          stroke-dasharray="10 6" opacity="0"/>
+                    <rect id="squareB2" x="0" y="0" width="0" height="0"
+                          fill="none" stroke="#7c3aed" stroke-width="2.5"
+                          stroke-dasharray="10 6" opacity="0"/>
+
+                    <!-- Triangles — click any triangle for details -->
+                    <polygon id="trianglePink"   points="" fill="#ff69b4" stroke="#333" stroke-width="2" class="triangle-poly" tabindex="0" aria-label="Pink triangle"/>
+                    <polygon id="triangleYellow" points="" fill="#ffd700" stroke="#333" stroke-width="2" class="triangle-poly" tabindex="0" aria-label="Yellow triangle"/>
+                    <polygon id="triangleBlue"   points="" fill="#1e90ff" stroke="#333" stroke-width="2" class="triangle-poly" tabindex="0" aria-label="Blue triangle"/>
+                    <polygon id="triangleGreen"  points="" fill="#7fff00" stroke="#333" stroke-width="2" class="triangle-poly" tabindex="0" aria-label="Green triangle"/>
+
+                    <!-- Right-angle markers -->
+                    <path id="markerPink"   class="right-angle-marker"/>
+                    <path id="markerYellow" class="right-angle-marker"/>
+                    <path id="markerBlue"   class="right-angle-marker"/>
+                    <path id="markerGreen"  class="right-angle-marker"/>
+
+                    <!-- Side labels — pink triangle -->
+                    <text id="labelA" x="300" y="61"  class="side-label" text-anchor="middle">a</text>
+                    <text id="labelB" x="61"  y="165" class="side-label" text-anchor="end" dominant-baseline="middle">b</text>
+                    <text id="labelC" x="208" y="183" class="side-label" text-anchor="middle" dominant-baseline="middle">c</text>
+
+                    <!-- Side labels — yellow triangle -->
+                    <text id="yellowLabelA" x="50" y="300" class="side-label" text-anchor="end"    dominant-baseline="middle">a</text>
+                    <text id="yellowLabelB" x="300" y="545" class="side-label" text-anchor="middle">b</text>
+                    <text id="yellowLabelC" x="300" y="420" class="side-label" text-anchor="middle" dominant-baseline="middle">c</text>
+
+                    <!-- Pivot point indicator -->
+                    <circle id="pivotPoint" cx="300" cy="525" r="5" fill="#0066cc" stroke="#fff" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <!-- Right panel: Controls -->
+            <div class="control-panel">
+                <!-- Instruction panel -->
+                <div id="instructionPanel" class="instruction-panel">
+                    <p id="instructionText" class="instruction-text">Move the slider slowly. What shape do you see in the middle?</p>
+                </div>
+
+                <!-- Side b slider  [ID now matches what it controls] -->
+                <div class="slider-container">
+                    <label for="bSlider" class="slider-label">b = <span id="bDisplay">18</span></label>
+                    <input type="range" id="bSlider" min="0" max="270" value="180" step="10" class="slider" aria-label="Side b slider">
+                </div>
+
+                <!-- Side a slider -->
+                <div class="slider-container">
+                    <label for="aSlider" class="slider-label">a = <span id="aDisplay">24</span></label>
+                    <input type="range" id="aSlider" min="0" max="360" value="240" step="10" class="slider" aria-label="Side a slider">
+                </div>
+
+                <!-- Rotation slider -->
+                <div class="slider-container">
+                    <label for="rotationSlider" class="slider-label">Rotate (Blue &amp; Green) = <span id="angleDisplay">0</span>°</label>
+                    <input type="range" id="rotationSlider" min="0" max="90" value="0" step="1" class="slider" aria-label="Rotation angle slider">
+                </div>
+
+                <!-- Live equation display -->
+                <div id="equationDisplay" class="equation-display">
+                    <div class="eq-values">
+                        a = <strong id="eqA">24</strong>,&nbsp;
+                        b = <strong id="eqB">18</strong>,&nbsp;
+                        c = <strong id="eqC">30.0</strong>
+                    </div>
+                    <div class="eq-formula">
+                        a² + b² &nbsp;=&nbsp;
+                        <span id="eqA2">576</span> + <span id="eqB2">324</span>
+                        &nbsp;=&nbsp;<span id="eqSum">900</span>&nbsp;=&nbsp;c² ✓
+                    </div>
+                </div>
+
+                <!-- Conservation of area breakdown -->
+                <div id="areaBreakdown" class="area-breakdown">
+                    <div class="breakdown-title">Conservation of area</div>
+                    <div class="breakdown-row">Outer square (a+b)² = <span id="brkOuter">1,764</span></div>
+                    <div class="breakdown-row">4 triangles 4×½ab &nbsp;= <span id="brkTriangles">864</span></div>
+                    <div class="breakdown-row breakdown-result">White area = c² &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span id="brkWhite">900</span> ✓</div>
+                </div>
+
+                <!-- Control buttons -->
+                <div class="button-group">
+                    <button id="playBtn"          class="control-btn play-btn">▶ Play</button>
+                    <button id="resetBtn"          class="control-btn">Reset</button>
+                    <button id="toggleLabelsBtn"   class="control-btn">Hide Labels</button>
+                    <button id="toggleHintsBtn"    class="control-btn">Hide Hints</button>
+                    <button id="tryTriangleBtn"    class="control-btn try-btn">Try Another △</button>
+                    <button id="togglePatternsBtn" class="control-btn pattern-btn">Patterns: OFF</button>
+                </div>
+
+                <!-- Reveal explanation -->
+                <div class="explanation-container">
+                    <button id="revealExplanationBtn" class="control-btn explanation-btn">Reveal Explanation</button>
+                    <div id="explanationText" class="explanation-text hidden">
+                        The triangles do not change size. They are only rearranged. So the uncovered area stays equal. This shows that c² = a² + b².
+                    </div>
+                </div>
+
+                <!-- Stage checkpoint (stages 1 and 2) -->
+                <div id="stageCheckPanel" class="checkpoint-panel hidden">
+                    <p id="stageCheckQuestion" class="checkpoint-question"></p>
+                    <div class="checkpoint-inputs">
+                        <input type="text" id="stageAnswer" class="checkpoint-input stage-input" placeholder="Type your answer">
+                        <button id="stageCheckBtn" class="control-btn small-btn">Check</button>
+                    </div>
+                    <p id="stageCheckFeedback" class="checkpoint-feedback"></p>
+                </div>
+
+                <!-- Final checkpoint (stage 3) -->
+                <div id="checkpointPanel" class="checkpoint-panel hidden">
+                    <p class="checkpoint-question">Complete the idea: c² = ____ + ____</p>
+                    <div class="checkpoint-inputs">
+                        <input type="text" id="answer1" class="checkpoint-input" placeholder="?" aria-label="First answer">
+                        <span>+</span>
+                        <input type="text" id="answer2" class="checkpoint-input" placeholder="?" aria-label="Second answer">
+                        <button id="checkAnswerBtn" class="control-btn small-btn">Check</button>
+                    </div>
+                    <p id="checkpointFeedback" class="checkpoint-feedback"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics panel -->
+        <div id="analyticsSection" class="analytics-section">
+            <div class="analytics-header">
+                <h3>Interaction Log</h3>
+                <div class="analytics-controls">
+                    <button id="clearLogBtn" class="small-btn">Clear Log</button>
+                    <button id="toggleAnalyticsBtn" class="small-btn" aria-label="Hide interaction log">Hide Log</button>
+                </div>
+            </div>
+            <div id="analyticsContent" class="analytics-content">
+                <div id="logEntries" class="log-entries"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Triangle info tooltip -->
+    <div id="tooltip" class="tooltip hidden" role="tooltip">
+        <button id="tooltipClose" class="tooltip-close" aria-label="Close tooltip">×</button>
+        <p id="tooltipText"></p>
+    </div>
+
+    <script src="script.js"></script>
+    <p style="text-align: center; font-size: small; margin-top: 20px;">credit: by lookang, kailin and sharon using ACP interactive generator until more complex edits are done using Claude Code.</p>
+</body>
+</html>

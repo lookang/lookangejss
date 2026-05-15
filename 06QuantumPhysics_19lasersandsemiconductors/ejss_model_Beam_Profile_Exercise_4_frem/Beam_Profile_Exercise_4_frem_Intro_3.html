@@ -1,0 +1,335 @@
+<html>
+  <head>
+    <title> Beam_Profile_Exercise_4.py</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Beam_Profile_Exercise_4.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file will generate a plot of
+    </p>
+    <p style="margin-top: 0">
+      # beam profile data, guess function, and fit function
+    </p>
+    <p style="margin-top: 0">
+      # for the TEM00 laser mode
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # The fit is generated using the curve_fit function of Python
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Written by:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Selected and normalized power data from graduate student:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Najwa Sulaiman
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # nsulaima@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20160627 by ERB
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # import the commands needed to make the plot and fit the data
+    </p>
+    <p style="margin-top: 0">
+      from __future__ import print_function
+    </p>
+    <p style="margin-top: 0">
+      from pylab import xlim,xlabel,ylim,ylabel,grid,show,plot,legend,title
+    </p>
+    <p style="margin-top: 0">
+      from numpy import linspace,ones,sqrt
+    </p>
+    <p style="margin-top: 0">
+      from scipy.special import erf
+    </p>
+    <p style="margin-top: 0">
+      from scipy.optimize import curve_fit
+    </p>
+    <p style="margin-top: 0">
+      from matplotlib.pyplot import errorbar
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Inputs
+    </p>
+    <p style="margin-top: 0">
+      npts_guess = 200 # number of intervals in the guess function
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Initialize the fit parameter(s)
+    </p>
+    <p style="margin-top: 0">
+      w0 = 0.020 # The initial guess for w0 [in.]
+    </p>
+    <p style="margin-top: 0">
+      print('The initial guess for w0 is ',w0,' in.')
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # The knife-edge position data (corrected from raw data) [in.]
+    </p>
+    <p style="margin-top: 0">
+      Xcorr_points = -linspace(0.0366, -0.0354, 37)
+    </p>
+    <p style="margin-top: 0">
+      # The power data (corrected and normalized from raw data)
+    </p>
+    <p style="margin-top: 0">
+      Powercorr_points = [1.000, 1.000, 1.000, 0.999, 0.999, 0.998, 0.998, 
+      0.998, 0.995, 0.992, 0.983, 0.968, 0.947, 0.915, 0.870, 0.814, 0.738, 
+      0.638, 0.532, 0.420, 0.315, 0.229, 0.156, 0.105, 0.066, 0.040, 0.025, 
+      0.016, 0.012, 0.010, 0.008, 0.007, 0.007, 0.007, 0.006, 0.006, 0.005]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Error bar data here
+    </p>
+    <p style="margin-top: 0">
+      Xcorr_points_err = 0.0001*ones(len(Xcorr_points)) # position error [in.]
+    </p>
+    <p style="margin-top: 0">
+      Powercorr_points_err = 0.01*ones(len(Powercorr_points)) # scaled power 
+      error
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the fit function: 0.5*(1.0 - erf(sqrt(2.0)*x/w0))
+    </p>
+    <p style="margin-top: 0">
+      def func(x, w0):
+    </p>
+    <p style="margin-top: 0">
+      return 0.5*(1.0 - erf(sqrt(2.0)*x/w0))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the guess function
+    </p>
+    <p style="margin-top: 0">
+      # First, the knife-edge position values
+    </p>
+    <p style="margin-top: 0">
+      Xcorr_inch_guess = 
+      linspace(min(Xcorr_points),max(Xcorr_points),npts_guess)
+    </p>
+    <p style="margin-top: 0">
+      # Second, the scaled power guess
+    </p>
+    <p style="margin-top: 0">
+      Powercorr_guess = func(Xcorr_inch_guess, w0)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Use the curve_fit function to fit the model to the experimental data
+    </p>
+    <p style="margin-top: 0">
+      # Note that the output consists of two parts:
+    </p>
+    <p style="margin-top: 0">
+      # The first part is an array of the values of the fit parameters
+    </p>
+    <p style="margin-top: 0">
+      # as determined by a least-squares fitting algorithm;
+    </p>
+    <p style="margin-top: 0">
+      # the second part is the covariance array (a square, symmetric matrix)
+    </p>
+    <p style="margin-top: 0">
+      # that has the uncertainties in the parameters on the diagonal of the 
+      array.
+    </p>
+    <p style="margin-top: 0">
+      curve_fit_output = curve_fit(func, Xcorr_points, Powercorr_points, w0)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      print(curve_fit_output)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      w0_fit = curve_fit_output[0]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the array needed to make a smooth plot of the fit function
+    </p>
+    <p style="margin-top: 0">
+      Powercorr_fit = func(Xcorr_inch_guess,w0_fit)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the limits of the horizontal axis
+    </p>
+    <p style="margin-top: 0">
+      xlim(min(Xcorr_points),max(Xcorr_points))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the horizontal axis, with units
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;Knife-edge position $x$ [inch]&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the limits of the vertical axis
+    </p>
+    <p style="margin-top: 0">
+      ylim(min(Powercorr_points),max(Powercorr_points))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the vertical axis, with units
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;Scaled transmitted power $P(x)/P_0$&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Make a grid on the plot
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the data as symbols with error bars: magenta (m) circles (o).
+    </p>
+    <p style="margin-top: 0">
+      errorbar(Xcorr_points,Powercorr_points,xerr=Xcorr_points_err,yerr=Powercorr_points_err,fmt=&quot;mo&quot;,label=&quot;Data&quot;)
+    </p>
+    <p style="margin-top: 0">
+      # Plot the guess as a line: black (k) dashed (--)
+    </p>
+    <p style="margin-top: 0">
+      plot(Xcorr_inch_guess,Powercorr_guess,&quot;k--&quot;,label=&quot;Guess&quot;)
+    </p>
+    <p style="margin-top: 0">
+      # Plot the fit as a line: blue (b)
+    </p>
+    <p style="margin-top: 0">
+      plot(Xcorr_inch_guess,Powercorr_fit,&quot;b&quot;,label=&quot;Fit&quot;)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Make the legend
+    </p>
+    <p style="margin-top: 0">
+      legend(loc=1)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Make title
+    </p>
+    <p style="margin-top: 0">
+      title('Guess value of $w_0 = $%.2e mm, fit value of $w_0 = $%.2e 
+      mm'%(w0,w0_fit))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

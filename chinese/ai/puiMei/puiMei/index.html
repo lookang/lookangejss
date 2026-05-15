@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>魔法识字屋</title>
+<!-- 引入 Hanzi Writer 库用于笔顺动画 -->
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "KaiTi", "楷体", serif;
+  background-color: #e6d6ff;
+  overflow-y: auto;
+  position: relative;
+}
+h1 {
+  color: #d63384;
+  padding: 20px;
+  font-size: 40px;
+  text-align: center;
+  text-shadow: 2px 2px #fff0f6;
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 50px;
+}
+.card {
+  background: rgba(255, 240, 246, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 8px 16px rgba(214, 51, 132, 0.3);
+  padding: 30px;
+  width: 90%;
+  max-width: 600px;
+  margin: 20px 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.parts {
+  font-size: 60px;
+  color: #d63384;
+  margin-bottom: 20px;
+}
+button {
+  background: #ff80bf;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 18px;
+  margin: 10px;
+  transition: background 0.3s, transform 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+button:hover {
+  background: #ff4da6;
+  transform: scale(1.05);
+}
+button:active {
+  transform: scale(1.0);
+}
+.info {
+  margin-top: 15px;
+  text-align: left;
+  font-size: 18px;
+  line-height: 1.8;
+  color: #a61e4d;
+  display: none;
+}
+.character-illustration {
+  width: 200px;
+  height: 200px;
+  margin: 20px auto;
+  border: 3px solid #d63384;
+  border-radius: 15px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 120px;
+  box-shadow: 0 4px 8px rgba(214, 51, 132, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+.illustration-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+}
+.speaker-icon {
+  display: inline-block;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #ff80bf;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+.speaker-icon:hover {
+  color: #ff4da6;
+  transform: scale(1.2);
+}
+.speaker-icon:active {
+  transform: scale(1.0);
+}
+.practice {
+  margin-top: 20px;
+  display: none;
+}
+.writing-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+.animation-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#character-target-div {
+    width: 250px;
+    height: 250px;
+    border: 2px solid #ff80bf;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.animation-buttons {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.animation-buttons button {
+    padding: 8px 15px;
+    font-size: 16px;
+}
+.nav-buttons {
+  margin: 10px 0 20px 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.star {
+  position: absolute;
+  color: #fff;
+  font-size: 12px;
+  animation: floatStar linear infinite;
+  z-index: -1;
+}
+@keyframes floatStar {
+  0% { transform: translateY(0) translateX(0); opacity: 1; }
+  100% { transform: translateY(-600px) translateX(50px); opacity: 0; }
+}
+.pronunciation-group {
+  margin-bottom: 10px;
+}
+#feedback-message {
+    margin-top: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #d63384;
+    height: 30px;
+    transition: opacity 0.5s;
+}
+#challenge-status {
+    background-color: #fff0f6;
+    border: 2px solid #ff80bf;
+    border-radius: 20px;
+    padding: 10px 20px;
+    margin-top: 20px;
+    font-size: 18px;
+    color: #d63384;
+    display: inline-block;
+}
+#settings-panel {
+    display: none;
+    background-color: #fff0f6;
+    border: 2px solid #ff80bf;
+    border-radius: 20px;
+    padding: 20px;
+    margin-top: 10px;
+    text-align: left;
+    max-width: 300px;
+}
+#settings-panel label {
+    font-size: 16px;
+    color: #d63384;
+}
+#settings-panel input[type="range"] {
+    width: 100%;
+}
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #f0f;
+    opacity: 0;
+    animation: fall 3s ease-in-out forwards;
+}
+@keyframes fall {
+    0% {
+        transform: translateY(-100px) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(calc(100vh + 100px)) rotate(720deg);
+        opacity: 0;
+    }
+}
+</style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+<h1>✨ 魔法识字屋 ✨</h1>
+
+<div class="container">
+  <div class="card" id="card">
+    <div class="parts" id="parts"></div>
+    <button onclick="showInfo()">学习汉字</button>
+    <div id="info" class="info"></div>
+
+    <div class="practice" id="practice">
+      <h3>✍️ 练习笔顺</h3>
+      <div class="writing-container">
+        <div class="animation-container">
+          <div id="character-target-div"></div>
+          <div class="animation-buttons">
+            <button onclick="animateStrokes()">播放笔顺</button>
+            <button onclick="quizStrokes()">笔顺测验</button>
+          </div>
+           <div id="feedback-message"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="challenge-status">
+    连续答对：<span id="streak-count">0</span> / 5 | 获得徽章：<span id="badge-count">0</span> ⭐
+  </div>
+
+  <div class="nav-buttons">
+    <button onclick="prevCharacter()">← 上一个</button>
+    <button onclick="nextCharacter()">下一个 →</button>
+  </div>
+    
+  <button onclick="toggleSettings()">⚙️ 设置</button>
+  <div id="settings-panel">
+    <label for="speed-slider">笔顺动画速度</label>
+    <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1.2">
+    <small>（设置将在下一个汉字或重播时生效）</small>
+  </div>
+</div>
+
+<!-- 用于播放云端语音的隐藏音频播放器 -->
+<audio id="cloud-audio-player" style="display:none;"></audio>
+
+<script>
+// 动态星星
+for(let i=0; i<30; i++){
+  const star = document.createElement('div');
+  star.className = 'star';
+  star.style.left = Math.random()*window.innerWidth+'px';
+  star.style.top = Math.random()*window.innerHeight+'px';
+  star.style.fontSize = (5+Math.random()*10)+'px';
+  star.style.animationDuration = (3+Math.random()*5)+'s';
+  star.style.opacity = Math.random();
+  star.innerText = '⭐';
+  document.body.appendChild(star);
+}
+
+// 汉字数据
+const data = {
+  "需": { parts: ["雨", "而"], pronunciations: [{ pinyin: "xū", words: ["需要", "需求", "必需品", "急需"] }], lookalikes: [{char:"雷", pinyin:"léi"}, {char:"霄", pinyin:"xiāo"}], origin: "“需”字最早的样子像一个人站在雨下等待，所以它的本意是“等待”，后来才引申为“需要”。", sentence: "小明上学需要带书包和文具。", illustration: { type: "visual", content: `<div style="font-size: 60px;">🤕🩹</div><div style="font-size: 18px; color: #666;">需要擦药</div>` } },
+  "纸": { parts: ["纟", "氏"], pronunciations: [{ pinyin: "zhǐ", words: ["白纸", "纸张", "报纸", "纸巾"] }], lookalikes: [{char:"低", pinyin:"dī"}, {char:"抵", pinyin:"dǐ"}], origin: "左边的“纟”代表丝线，说明最早的纸和丝织品有关。右边的“氏”表示读音。合起来就是古代的一种书写材料。", sentence: "妈妈给我一张白纸画画。", illustration: { type: "visual", content: `<div style="font-size: 60px;">🎨📄</div><div style="font-size: 18px; color: #666;">在纸上画画</div>` } },
+  "穿": { parts: ["穴", "牙"], pronunciations: [{ pinyin: "chuān", words: ["穿衣", "穿鞋", "穿过", "穿越"] }], lookalikes: [{char:"突", pinyin:"tū"}, {char:"窄", pinyin:"zhǎi"}], origin: "“穿”字上面是一个“穴”，代表洞穴，下面是一颗“牙”。想象一下牙齿用力穿透一个东西，就是“穿”的感觉啦！", sentence: "弟弟学会了自己穿衣服。", illustration: { type: "visual", content: `<div style="font-size: 60px;">👵🧵🪡</div><div style="font-size: 18px; color: #666;">穿针引线</div>` } },
+  "然": { parts: ["灬", "犬", "肉"], pronunciations: [{ pinyin: "rán", words: ["然后", "自然", "虽然", "当然"] }], lookalikes: [{char:"燃", pinyin:"rán"}, {char:"默", pinyin:"mò"}], origin: "“然”的古代写法是“燃”。它的字形就像下面有火，上面在烤着一块肉，还飘着香味。所以它的本意是“燃烧”，后来被借用作“如此，这样”的意思。", sentence: "我们先写作业，然后去公园玩。", illustration: { type: "visual", content: `<div style="font-size: 60px;">🔥🥩</div><div style="font-size: 18px; color: #666;">肉自然熟了</div>` } },
+  "接": { parts: ["扌", "妾"], pronunciations: [{ pinyin: "jiē", words: ["接住", "连接", "接受", "迎接"] }], lookalikes: [{char:"捷", pinyin:"jié"}, {char:"妾", pinyin:"qiè"}], origin: "左边的“扌”是提手旁，表示和手的动作有关。右边的部分代表一个跪着的女子，合起来就像是伸出手迎接或接触别人。", sentence: "哥哥用双手接住了飞来的球。", illustration: { type: "visual", content: `<div style="font-size: 60px;">🙌⚾️</div><div style="font-size: 18px; color: #666;">接住了球</div>` } },
+  "折": { parts: ["扌", "斤"], pronunciations: [{ pinyin: "zhé", words: ["折纸", "折断", "折叠", "转折"] }, { pinyin: "shé", words: ["折本", "折了"], tts_override: { "折本": "蛇本", "折了": "蛇了" }, tts_char_override: "蛇" }], lookalikes: [{char:"拆", pinyin:"chāi"}, {char:"哲", pinyin:"zhé"}], origin: "左边是提手旁“扌”，右边是一把“斤”（斧头）。用手拿斧头把东西砍断，就是“折断”的意思。", sentence: "老师教我们折出美丽的纸花。", illustration: { type: "visual", content: `<div style="font-size: 60px;">📄➡️✈️</div><div style="font-size: 18px; color: #666;">折纸飞机</div>` } },
+  "服": { parts: ["月", "卩", "又"], pronunciations: [{ pinyin: "fú", words: ["衣服", "服务", "服从", "制服"] }], lookalikes: [{char:"胁", pinyin:"xié"}, {char:"那", pinyin:"nà"}], origin: "“服”字最早的样子，像是一个人被按着跪下，表示“服从”。后来才引申出“衣服”、“服务”等意思。", sentence: "姐姐把脏衣服洗得很干净。", illustration: { type: "visual", content: `<div style="font-size: 60px;">🧼👕</div><div style="font-size: 18px; color: #666;">洗衣服</div>` } },
+  "求": { parts: ["一", "水", "丶"], pronunciations: [{ pinyin: "qiú", words: ["请求", "要求", "求助", "追求"] }], lookalikes: [{char:"球", pinyin:"qiú"}, {char:"救", pinyin:"jiù"}], origin: "“求”字最早的样子像一件毛皮大衣，是古代人冬天非常想要的东西，所以它就有了“追求、请求”的意思。", sentence: "小华向老师请求帮助解决难题。", illustration: { type: "visual", content: `<div style="font-size: 60px;">🙋‍♀️➡️👩‍🏫</div><div style="font-size: 18px; color: #666;">向老师请求</div>` } },
+  "重": { parts: ["千", "里"], pronunciations: [{ pinyin: "zhòng", words: ["重量", "沉重", "重要", "重物"] }, { pinyin: "chóng", words: ["重复", "重新", "重来", "重做"], tts_override: { "重复": "虫复", "重新": "虫新", "重来": "虫来", "重做": "虫做" }, tts_char_override: "虫" }], lookalikes: [{char:"童", pinyin:"tóng"}, {char:"董", pinyin:"dǒng"}], origin: "“重”字最早的样子是一个人背着一个大包裹，看起来很沉重的样子，所以它的本意就是“重量大”。", sentence: "这个箱子太重了，我搬不动。", illustration: { type: "visual", content: `<div style="font-size: 60px;">📦💪</div><div style="font-size: 18px; color: #666;">箱子很重</div>` } },
+  "乱": { parts: ["舌", "乚"], pronunciations: [{ pinyin: "luàn", words: ["混乱", "乱七八糟", "打乱", "慌乱"] }], lookalikes: [{char:"乳", pinyin:"rǔ"}, {char:"辞", pinyin:"cí"}], origin: "“乱”字的左边是“舌”，代表说话。右边的“乚”像一个钩子或一条打结的线，把舌头给绊住了，让话没法好好说出来，颠三-倒四的。所以，“乱”就是指说话或做事没有条理、乱糟糟的样子。", sentence: "房间里太乱了，我要收拾整齐。", illustration: { type: "visual", content: `<div style="font-size: 60px;">👱‍♀️💨</div><div style="font-size: 18px; color: #666;">头发很乱</div>` } },
+  "容": { parts: ["宀", "谷"], pronunciations: [{ pinyin: "róng", words: ["容易", "容器", "宽容", "容量"] }], lookalikes: [{char:"熔", pinyin:"róng"}, {char:"溶", pinyin:"róng"}], origin: "上面的“宀”代表房子，下面的“谷”代表山谷。房子和山谷都能装很多东西，所以“容”的意思就是“容纳、包含”。", sentence: "这道数学题很容易，我很快就做完了。", illustration: { type: "visual", content: `<div style="font-size: 50px; line-height:1.1">1️⃣+1️⃣<br>=<br>2️⃣</div><div style="font-size: 18px; color: #666;">很容易</div>` } },
+  "易": { parts: ["日", "勿"], pronunciations: [{ pinyin: "yì", words: ["容易", "简易", "交易", "变易"] }], lookalikes: [{char:"昜", pinyin:"yáng"}, {char:"场", pinyin:"chǎng"}], origin: "“易”字最早的样子像一只蜥蜴，因为蜥蜴的颜色会变来变去，所以“易”有“改变”的意思，后来引申为“容易”。", sentence: "学会骑自行车其实不容易。", illustration: { type: "visual", content: `<div style="font-size: 35px; color: #666; line-height: 1.2;">987×634<br/>+2874÷2367<br>= ?</div>` } }
+};
+
+const keys = Object.keys(data);
+let current = 0;
+let writer = null;
+
+let correctStreak = 0;
+let badges = 0;
+let gAnimationSpeed = 1.2;
+const streakGoal = 5;
+
+const encouragementMessages = ['你真棒！😍', '笔顺完全正确！🎉', '太厉害了！💯', '写得真好！👍'];
+
+// --- 最终版云端语音模块 ---
+const cloudSpeechModule = (() => {
+    const audioPlayer = document.getElementById('cloud-audio-player');
+    
+    function play(text) {
+        if (!text) return;
+        
+        // **FIXED**: Using a high-quality and reliable Baidu TTS endpoint.
+        const encodedText = encodeURIComponent(text);
+        const ttsUrl = `https://fanyi.baidu.com/gettts?lan=zh&text=${encodedText}&spd=5&source=web`;
+        
+        audioPlayer.src = ttsUrl;
+        
+        const playPromise = audioPlayer.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error("音频播放失败:", error);
+                // 可以在这里给用户一个提示，例如弹出一个小消息
+            });
+        }
+    }
+
+    return {
+        play: play
+    };
+})();
+
+
+// --- 播放函数现在调用新的云端模块 ---
+function playPronunciation(type, text) {
+  let textToSpeak = text || '';
+  if (!text) {
+    const currentCharacter = keys[current];
+    const currentData = data[currentCharacter];
+    switch(type) {
+      case 'character': textToSpeak = currentCharacter; break;
+      case 'words': textToSpeak = currentData.pronunciations.map(p => p.words.join('，')).join('，'); break;
+      case 'sentence': textToSpeak = currentData.sentence; break;
+    }
+  } else if (type === 'word') {
+     const currentCharacter = keys[current];
+     const item = data[currentCharacter];
+     for (const pron of item.pronunciations) {
+        if (pron.tts_override && pron.words.includes(text)) {
+            textToSpeak = pron.tts_override[text] || text;
+            break;
+        }
+        if (pron.tts_char_override && text === currentCharacter) {
+            textToSpeak = pron.tts_char_override;
+            break;
+        }
+     }
+  }
+  cloudSpeechModule.play(textToSpeak);
+}
+
+function loadCharacter(index){
+  const key = keys[index];
+  const item = data[key];
+  document.getElementById("parts").innerHTML = item.parts.join(" + ");
+  const infoDiv = document.getElementById("info");
+  let pronunciationContent = '';
+  item.pronunciations.forEach((pron) => {
+    // 修正多音字单字发音的点击事件
+    const charToSpeak = pron.tts_char_override || key;
+    pronunciationContent += `<div class="pronunciation-group">
+        <b>拼音：</b>${pron.pinyin}
+        <span class="speaker-icon" onclick="playPronunciation('character', '${charToSpeak}')" title="听发音">🔊</span>
+        <br>
+        <b>配词：</b>${pron.words.map(word => `${word}<span class="speaker-icon" onclick="playPronunciation('word', '${word}')" title="听发音">🔊</span>`).join("，")}
+    </div>`;
+  });
+
+  let lookalikesContent = item.lookalikes.map(lk => 
+    `${lk.char}(${lk.pinyin})<span class="speaker-icon" onclick="playPronunciation('word', '${lk.char}')" title="听发音">🔊</span>`
+  ).join("，");
+    
+  const originStoryContent = `<p><b>📖 汉字故事：</b>${item.origin}<span class="speaker-icon" onclick="playStory()" title="听故事">🔊</span></p>`;
+
+  infoDiv.innerHTML = `<div class="character-illustration"><div class="illustration-content">${item.illustration.content}</div></div>${pronunciationContent}<p><b>形近字：</b>${lookalikesContent}</p>${originStoryContent}<p><b>造句：</b>${item.sentence}<span class="speaker-icon" onclick="playPronunciation('sentence', '${item.sentence}')" title="听发音">🔊</span></p>`;
+  infoDiv.style.display = "none";
+  document.getElementById("practice").style.display = "none";
+  
+  const targetDiv = document.getElementById('character-target-div');
+  targetDiv.innerHTML = '';
+  if (typeof HanziWriter !== 'undefined') {
+      writer = HanziWriter.create(targetDiv, key, {
+          width: 250, height: 250, padding: 5,
+          showOutline: true, 
+          strokeAnimationSpeed: gAnimationSpeed,
+          delayBetweenStrokes: 150,
+          strokeColor: '#d63384', outlineColor: 'rgba(214, 51, 132, 0.2)'
+      });
+  } else {
+      console.error("Hanzi Writer library not loaded.");
+  }
+  document.getElementById('feedback-message').innerText = '';
+  window.scrollTo(0, 0);
+}
+
+function showInfo(){
+  document.getElementById("info").style.display = "block";
+  document.getElementById("practice").style.display = "block";
+  if (writer) setTimeout(() => writer.animateCharacter(), 300);
+}
+
+function animateStrokes() { 
+    if (writer) {
+        const key = keys[current];
+        const targetDiv = document.getElementById('character-target-div');
+        targetDiv.innerHTML = ''; 
+        writer = HanziWriter.create(targetDiv, key, {
+            width: 250, height: 250, padding: 5, showOutline: true, 
+            strokeAnimationSpeed: gAnimationSpeed, delayBetweenStrokes: 150,
+            strokeColor: '#d63384', outlineColor: 'rgba(214, 51, 132, 0.2)'
+        });
+        writer.animateCharacter();
+    }
+}
+
+function quizStrokes() {
+    if (writer) {
+        const feedbackEl = document.getElementById('feedback-message');
+        feedbackEl.innerText = '';
+        writer.quiz({
+            onComplete: function(summaryData) {
+                const randomIndex = Math.floor(Math.random() * encouragementMessages.length);
+                feedbackEl.innerText = encouragementMessages[randomIndex];
+                correctStreak++;
+                updateChallengeStatus();
+                showConfetti();
+                if (correctStreak >= streakGoal) {
+                    badges++;
+                    correctStreak = 0;
+                    feedbackEl.innerText = `太棒了！获得一枚新徽章！`;
+                    updateChallengeStatus();
+                }
+            },
+            onMistake: function(strokeData) {
+                feedbackEl.innerText = '笔画错了哦，再试一次！';
+                correctStreak = 0;
+                updateChallengeStatus();
+                setTimeout(() => {
+                    if(feedbackEl.innerText === '笔画错了哦，再试一次！') {
+                        feedbackEl.innerText = '';
+                    }
+                }, 1500);
+            }
+        });
+    }
+}
+
+function prevCharacter() { current = (current - 1 + keys.length) % keys.length; loadCharacter(current); }
+function nextCharacter() { current = (current + 1) % keys.length; loadCharacter(current); }
+
+function updateChallengeStatus() {
+    document.getElementById('streak-count').innerText = correctStreak;
+    document.getElementById('badge-count').innerText = badges;
+}
+
+function showConfetti() {
+    const container = document.querySelector('.card');
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        container.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+    }
+}
+
+function toggleSettings() {
+    const panel = document.getElementById('settings-panel');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function playStory() {
+    const key = keys[current];
+    const item = data[key];
+    if (item && item.origin) {
+        playPronunciation('sentence', item.origin);
+    }
+}
+
+document.getElementById('speed-slider').addEventListener('input', (event) => {
+    gAnimationSpeed = parseFloat(event.target.value);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCharacter(0);
+    updateChallengeStatus();
+});
+</script>
+</body>
+</html>

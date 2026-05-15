@@ -1,0 +1,150 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Space Exploration Timeline”** where students drag major space exploration events onto the correct decade on a horizontal timeline, then check their answers and receive feedback (with optional certificate at the end).
+
+TARGET AUDIENCE:
+- Upper Primary / Lower Secondary Science / History (~10–14 years old)
+
+INTERACTIVE REQUIREMENTS:
+- A horizontal **timeline** from the 1950s to the 2020s, divided into decade segments:
+  - 1950s, 1960s, 1970s, 1980s, 1990s, 2000s, 2010s, 2020s.
+- A set of draggable **event cards** representing key milestones in space exploration, each showing:
+  - An icon (emoji) representing the event.
+  - The **year** (e.g., 1957, 1961, 1969, …, 2020).
+  - A short **title** (e.g., “Sputnik 1 Launch”, “Moon Landing”).
+- Students drag event cards from the bottom panel onto the correct decade segment on the timeline.
+- Top control bar with:
+  - **Check My Work** button.
+  - **Show Me** hint button.
+  - **Reset** button.
+  - **Zoom slider** to scale the timeline horizontally.
+  - Progress indicator showing “X/12 correct” plus a progress bar.
+- Event detail modal: clicking an event (either card or placed on timeline) opens more detailed description.
+- A **success modal** with simple celebration and options to “Print Certificate” and “Play Again” when all events are correctly placed.
+- Self-contained HTML, CSS, JavaScript (no external frameworks).
+- **MOBILE-RESPONSIVE & TOUCH-FRIENDLY**:
+  - Horizontal scrolling for the timeline.
+  - Drag-and-drop works on both mouse and touch devices.
+
+SPECIFIC REQUIREMENTS:
+
+Event data
+- Include at least these 12 events (or similar), each with:
+  - `id`, `year`, `title`, `icon`, `type`, `description`, `details`, and `decade` fields.
+- Example set:
+  - 1957 – Sputnik 1 Launch (🛰️) – First artificial satellite.
+  - 1961 – First Human in Space (👨‍🚀) – Yuri Gagarin.
+  - 1969 – Moon Landing (🌙) – Apollo 11.
+  - 1970 – Venera 7 Landing (🪐) – First successful Venus landing.
+  - 1975 – Apollo–Soyuz Mission (🤝) – US–Soviet cooperation.
+  - 1981 – Space Shuttle Program (🚀) – First reusable spacecraft.
+  - 1986 – Challenger Disaster (💥) – Shuttle tragedy.
+  - 1990 – Hubble Space Telescope (🔭) – Space observatory.
+  - 1998 – International Space Station (🏗️) – Global orbiting laboratory.
+  - 2003 – Columbia Disaster (💔) – Second shuttle tragedy.
+  - 2012 – SpaceX Dragon (🐉) – First commercial cargo to ISS.
+  - 2020 – Crew Dragon Demo-2 (👨‍🚀👨‍🚀) – First commercial crew flight.
+
+Timeline & drop zones
+- Timeline container with fixed internal width (e.g., 800px) and horizontal scroll.
+- For each decade:
+  - A **decade marker** at the left edge, labelled by year (e.g., 1960).
+  - A **drop zone** spanning that decade range, labelled with decade text (e.g., “1960s”).
+- Each drop zone element:
+  - Has `data-decade` = starting year of that decade (1950, 1960, …, 2020).
+  - Listens for `dragover`, `drop`, `dragenter`, `dragleave` events.
+  - Applies a `drag-over` class while a card is over it.
+
+Event cards (bottom panel)
+- `event-cards` container holding all `.event-card` elements at start.
+- Each `.event-card`:
+  - `draggable="true"`.
+  - Data attributes: `data-event-id`, `data-year`, `data-decade`, `data-type`.
+  - Inner HTML includes icon, year, and title text.
+- Cards are **shuffled** before rendering for variety.
+- Each card:
+  - Has drag event handlers (`dragstart`, `dragend`).
+  - Has a click handler to open a detailed modal.
+  - Shows tooltip on hover with a short description.
+
+Drag-and-drop behaviour
+- When a card is dropped on a `drop-zone`:
+  - Create a **timeline event** element positioned within that decade zone.
+  - Mark the original card:
+    - Add `placed` class.
+    - Disable further dragging (draggable = false).
+    - Track placed event IDs in a `Set`.
+- Timeline events:
+  - `.timeline-event` with data attributes (id, type, etc.).
+  - Positioned with a bit of random horizontal offset within the decade zone for visual variety.
+  - Display icon, year, and title.
+  - Click opens the same detail modal.
+  - Hover shows tooltip with brief description.
+
+Checking & feedback
+- `checkAnswers()`:
+  - For each `.timeline-event`, get its `data-event-id` and find the corresponding event data.
+  - Determine which **drop zone** (decade) it lies above, based on its x-position relative to drop-zone bounds.
+  - Compare event’s `decade` value with drop zone’s `data-decade`.
+  - If correct:
+    - Add `correct` class to both the timeline event and its original card.
+  - If incorrect:
+    - Add `incorrect` class.
+    - Show tooltip near the event with a hint (e.g., “This event happened in the 1970s”).
+- Track `correctPlacements` (number of correctly placed events) and display in progress indicator.
+- When all events are correctly placed (`correctPlacements === totalEvents`):
+  - Show **success modal** with rocket animation and congrats message.
+
+Hints (“Show Me”)
+- `showMeHint()`:
+  - Identify events not yet placed (or those incorrectly placed, depending on design).
+  - For the next unplaced event in sequence, highlight:
+    - The event card (e.g., pulse animation).
+    - The correct decade drop zone (pulse animation).
+  - Show a tooltip near the card: e.g., “This event belongs in the 1970s”.
+  - Advance internal index so subsequent clicks move to the next unplaced event.
+
+Reset & zoom
+- `resetTimeline()`:
+  - Remove all timeline events.
+  - Reset all cards: remove `placed`, `correct`, `incorrect` classes; restore `draggable = true`.
+  - Clear placed events set and reset `correctPlacements` and hint index.
+  - Reset progress display and hide any modals.
+- Zoom slider:
+  - Changes the horizontal scale of the timeline using CSS transform `scaleX(zoomLevel)`.
+  - Range 1–3, default 1.
+
+Modals & certificate
+- **Event details modal**:
+  - Shows icon, year, title, short description, and longer explanation text.
+  - Close button hides modal.
+- **Success modal**:
+  - Shows rocket emoji animation, congrats text, and two buttons:
+    - “Print Certificate”: opens a new window with a styled certificate summarizing achievement and date, then calls `print()`.
+    - “Play Again”: calls `resetTimeline()`.
+
+Tooltips
+- Single tooltip element positioned near cursor for both cards and timeline events.
+- `showTooltip(e, text)` sets tooltip text and positions it near event/cursor; adds a `show` class.
+- `hideTooltip()` removes the `show` class.
+
+Progress tracking
+- Progress display shows: “X/12 correct”, where X is `correctPlacements`.
+- Progress bar width reflects percentage of correct placements.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Identify and sequence key events in the history of space exploration.
+  - Group events into correct **decades** and reason about chronological order.
+  - Recognise major themes: firsts in space, international cooperation, technological milestones, and accidents.
+- The interactive should encourage **temporal reasoning** and engagement with historical context via exploration.
+
+INTERACTION FEATURES TO INCLUDE:
+- Drag-and-drop linking of events to decades with mouse and touch.
+- Visual feedback (correct/incorrect), tooltips, and hints.
+- Success celebration and optional printable certificate.
+- Zooming timeline for accessibility on different device sizes.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

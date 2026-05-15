@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Knight Strategy game to maximise moves landing on stars only</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <link rel="stylesheet"  type="text/css" href="./_ejs_library/css/ejss.css" />
+
+    <script type='text/javascript'><!--//--><![CDATA[//><!--
+      var gOldOnError = window.onerror;
+      window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+        console.log(errorMsg + " (at " + url.toString() + " => line:" + lineNumber + ")" );
+        if (gOldOnError) return gOldOnError(errorMsg, url, lineNumber);
+        return false;
+      }
+    //--><!]]></script>
+    <script src="./_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="./_ejs_library/ejsS.v1.min.js"></script>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+function _simulation (_topFrame, _libraryPath, _codebasePath, _inputParameters) {
+
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isEPub = false;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+  var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+  // Is this still needed if we don't have locales???
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var numOfRows; // Model.Variables.Var Table.numOfRows
+  var numOfCols; // Model.Variables.Var Table.numOfCols
+  var numOfSquares; // Model.Variables.Var Table.numOfSquares
+  var numOfStars; // Model.Variables.Var Table.numOfStars
+  var squareX; // Model.Variables.Var Table.squareX
+  var squareY; // Model.Variables.Var Table.squareY
+  var squareColor; // Model.Variables.Var Table.squareColor
+  var squareHighlighted; // Model.Variables.Var Table.squareHighlighted
+  var squareFilled; // Model.Variables.Var Table.squareFilled
+  var squareLength; // Model.Variables.Var Table.squareLength
+  var idxToPos; // Model.Variables.Var Table.idxToPos
+  var posToIdx; // Model.Variables.Var Table.posToIdx
+  var symbolStr; // Model.Variables.Var Table.symbolStr
+  var symbolX; // Model.Variables.Var Table.symbolX
+  var symbolY; // Model.Variables.Var Table.symbolY
+  var textStr; // Model.Variables.Var Table.textStr
+  var textX; // Model.Variables.Var Table.textX
+  var textY; // Model.Variables.Var Table.textY
+  var moveCounter; // Model.Variables.Var Table.moveCounter
+  var topScore; // Model.Variables.Var Table.topScore
+  var interact; // Model.Variables.Var Table.interact
+  var gameOver; // Model.Variables.Var Table.gameOver
+  var font; // Model.Variables.Var Table.font
+  var fontSymbol; // Model.Variables.Var Table.fontSymbol
+  var fromUndo; // Model.Variables.Var Table.fromUndo
+
+  var filledColor; // Model.Variables.colours.filledColor
+  var unfilledColor; // Model.Variables.colours.unfilledColor
+  var highlightColor; // Model.Variables.colours.highlightColor
+
+  var clickundo; // Model.Variables.lookang.clickundo
+  var undo; // Model.Variables.lookang.undo
+  var textXunicode; // Model.Variables.lookang.textXunicode
+  var textYunicode; // Model.Variables.lookang.textYunicode
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return { numOfRows : numOfRows, numOfCols : numOfCols, numOfSquares : numOfSquares, numOfStars : numOfStars, squareX : squareX, squareY : squareY, squareColor : squareColor, squareHighlighted : squareHighlighted, squareFilled : squareFilled, squareLength : squareLength, idxToPos : idxToPos, posToIdx : posToIdx, symbolStr : symbolStr, symbolX : symbolX, symbolY : symbolY, textStr : textStr, textX : textX, textY : textY, moveCounter : moveCounter, topScore : topScore, interact : interact, gameOver : gameOver, font : font, fontSymbol : fontSymbol, fromUndo : fromUndo, filledColor : filledColor, unfilledColor : unfilledColor, highlightColor : highlightColor, clickundo : clickundo, undo : undo, textXunicode : textXunicode, textYunicode : textYunicode };
+  }
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return { numOfRows : numOfRows, numOfCols : numOfCols, numOfSquares : numOfSquares, numOfStars : numOfStars, squareX : squareX, squareY : squareY, squareColor : squareColor, squareHighlighted : squareHighlighted, squareFilled : squareFilled, squareLength : squareLength, idxToPos : idxToPos, posToIdx : posToIdx, symbolStr : symbolStr, symbolX : symbolX, symbolY : symbolY, textStr : textStr, textX : textX, textY : textY, moveCounter : moveCounter, topScore : topScore, interact : interact, gameOver : gameOver, font : font, fontSymbol : fontSymbol, fromUndo : fromUndo, filledColor : filledColor, unfilledColor : unfilledColor, highlightColor : highlightColor, clickundo : clickundo, undo : undo, textXunicode : textXunicode, textYunicode : textYunicode };
+  }
+
+  _model._readParameters = function(json) {
+    if(typeof json.numOfRows != 'undefined') numOfRows = json.numOfRows;
+    if(typeof json.numOfCols != 'undefined') numOfCols = json.numOfCols;
+    if(typeof json.numOfSquares != 'undefined') numOfSquares = json.numOfSquares;
+    if(typeof json.numOfStars != 'undefined') numOfStars = json.numOfStars;
+    if(typeof json.squareX != 'undefined') squareX = json.squareX;
+    if(typeof json.squareY != 'undefined') squareY = json.squareY;
+    if(typeof json.squareColor != 'undefined') squareColor = json.squareColor;
+    if(typeof json.squareHighlighted != 'undefined') squareHighlighted = json.squareHighlighted;
+    if(typeof json.squareFilled != 'undefined') squareFilled = json.squareFilled;
+    if(typeof json.squareLength != 'undefined') squareLength = json.squareLength;
+    if(typeof json.idxToPos != 'undefined') idxToPos = json.idxToPos;
+    if(typeof json.posToIdx != 'undefined') posToIdx = json.posToIdx;
+    if(typeof json.symbolStr != 'undefined') symbolStr = json.symbolStr;
+    if(typeof json.symbolX != 'undefined') symbolX = json.symbolX;
+    if(typeof json.symbolY != 'undefined') symbolY = json.symbolY;
+    if(typeof json.textStr != 'undefined') textStr = json.textStr;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.moveCounter != 'undefined') moveCounter = json.moveCounter;
+    if(typeof json.topScore != 'undefined') topScore = json.topScore;
+    if(typeof json.interact != 'undefined') interact = json.interact;
+    if(typeof json.gameOver != 'undefined') gameOver = json.gameOver;
+    if(typeof json.font != 'undefined') font = json.font;
+    if(typeof json.fontSymbol != 'undefined') fontSymbol = json.fontSymbol;
+    if(typeof json.fromUndo != 'undefined') fromUndo = json.fromUndo;
+    if(typeof json.filledColor != 'undefined') filledColor = json.filledColor;
+    if(typeof json.unfilledColor != 'undefined') unfilledColor = json.unfilledColor;
+    if(typeof json.highlightColor != 'undefined') highlightColor = json.highlightColor;
+    if(typeof json.clickundo != 'undefined') clickundo = json.clickundo;
+    if(typeof json.undo != 'undefined') undo = json.undo;
+    if(typeof json.textXunicode != 'undefined') textXunicode = json.textXunicode;
+    if(typeof json.textYunicode != 'undefined') textYunicode = json.textYunicode;
+  }
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.numOfRows != 'undefined') numOfRows = json.numOfRows;
+    if(typeof json.numOfCols != 'undefined') numOfCols = json.numOfCols;
+    if(typeof json.numOfSquares != 'undefined') numOfSquares = json.numOfSquares;
+    if(typeof json.numOfStars != 'undefined') numOfStars = json.numOfStars;
+    if(typeof json.squareX != 'undefined') squareX = json.squareX;
+    if(typeof json.squareY != 'undefined') squareY = json.squareY;
+    if(typeof json.squareColor != 'undefined') squareColor = json.squareColor;
+    if(typeof json.squareHighlighted != 'undefined') squareHighlighted = json.squareHighlighted;
+    if(typeof json.squareFilled != 'undefined') squareFilled = json.squareFilled;
+    if(typeof json.squareLength != 'undefined') squareLength = json.squareLength;
+    if(typeof json.idxToPos != 'undefined') idxToPos = json.idxToPos;
+    if(typeof json.posToIdx != 'undefined') posToIdx = json.posToIdx;
+    if(typeof json.symbolStr != 'undefined') symbolStr = json.symbolStr;
+    if(typeof json.symbolX != 'undefined') symbolX = json.symbolX;
+    if(typeof json.symbolY != 'undefined') symbolY = json.symbolY;
+    if(typeof json.textStr != 'undefined') textStr = json.textStr;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.moveCounter != 'undefined') moveCounter = json.moveCounter;
+    if(typeof json.topScore != 'undefined') topScore = json.topScore;
+    if(typeof json.interact != 'undefined') interact = json.interact;
+    if(typeof json.gameOver != 'undefined') gameOver = json.gameOver;
+    if(typeof json.font != 'undefined') font = json.font;
+    if(typeof json.fontSymbol != 'undefined') fontSymbol = json.fontSymbol;
+    if(typeof json.fromUndo != 'undefined') fromUndo = json.fromUndo;
+    if(typeof json.filledColor != 'undefined') filledColor = json.filledColor;
+    if(typeof json.unfilledColor != 'undefined') unfilledColor = json.unfilledColor;
+    if(typeof json.highlightColor != 'undefined') highlightColor = json.highlightColor;
+    if(typeof json.clickundo != 'undefined') clickundo = json.clickundo;
+    if(typeof json.undo != 'undefined') undo = json.undo;
+    if(typeof json.textXunicode != 'undefined') textXunicode = json.textXunicode;
+    if(typeof json.textYunicode != 'undefined') textYunicode = json.textYunicode;
+  }
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  _model.getOdes = function() { return []; }
+
+  _model.removeEvents = function(){
+  }
+
+  _model.addToReset(function() {
+    __pagesEnabled['Init Page'] = true;
+    __pagesEnabled['undo'] = true;
+  });
+
+  _model.addToReset(function() { // Reset of Var Table
+    numOfRows = 6; // Model.Variables.Var Table.numOfRows
+    numOfCols = 6; // Model.Variables.Var Table.numOfCols
+    numOfSquares = numOfRows*numOfCols; // Model.Variables.Var Table.numOfSquares
+    numOfStars = 0; // Model.Variables.Var Table.numOfStars
+    squareLength = 1; // Model.Variables.Var Table.squareLength
+    moveCounter = 1; // Model.Variables.Var Table.moveCounter
+    gameOver = false; // Model.Variables.Var Table.gameOver
+    font = "normal normal 2vw"; // Model.Variables.Var Table.font
+    fontSymbol = "normal normal 5vw"; // Model.Variables.Var Table.fontSymbol
+    fromUndo = false; // Model.Variables.Var Table.fromUndo
+  }); // End of reset of Var Table
+
+  _model.addToReset(function() { // Reset of colours
+    filledColor = "rgba(0,255,0,0.5)"; // Model.Variables.colours.filledColor
+    unfilledColor = "rgba(0,0,255,0.5)"; // Model.Variables.colours.unfilledColor
+    highlightColor = "#aed581"; // Model.Variables.colours.highlightColor
+  }); // End of reset of colours
+
+  _model.addToReset(function() { // Reset of lookang
+    clickundo = false; // Model.Variables.lookang.clickundo
+    textXunicode = -1; // Model.Variables.lookang.textXunicode
+    textYunicode = 0; // Model.Variables.lookang.textYunicode
+  }); // End of reset of lookang
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function findPossibleMoves(x, y) { // > Custom code page: findPossibleMoves - line 1
+    // the 8 directions a knight can move on a chess board // > Custom code page: findPossibleMoves - line 2
+    const dx = [-1, 1, 2, 2, -1, 1, -2, -2]; // > Custom code page: findPossibleMoves - line 3
+    const dy = [2, 2, 1, -1, -2, -2, 1, -1]; // > Custom code page: findPossibleMoves - line 4
+   // > Custom code page: findPossibleMoves - line 5
+    var possible = false; // > Custom code page: findPossibleMoves - line 6
+    for(var i = 0; i < 8; i++) { // > Custom code page: findPossibleMoves - line 7
+      var curX = x + dx[i], curY = y + dy[i]; // > Custom code page: findPossibleMoves - line 8
+      if(curX < 0 || curX >= numOfCols || curY < 0 || curY >= numOfRows) { // out of bound and illegal // > Custom code page: findPossibleMoves - line 9
+        continue; // > Custom code page: findPossibleMoves - line 10
+      }  // > Custom code page: findPossibleMoves - line 11
+      var curIdx = posToIdx[curY][curX]; // > Custom code page: findPossibleMoves - line 12
+      if(!squareFilled[curIdx]){ // > Custom code page: findPossibleMoves - line 13
+        possible = true; // > Custom code page: findPossibleMoves - line 14
+        squareHighlighted[curIdx] = 1; // > Custom code page: findPossibleMoves - line 15
+      } // > Custom code page: findPossibleMoves - line 16
+    } // > Custom code page: findPossibleMoves - line 17
+    return possible; // > Custom code page: findPossibleMoves - line 18
+  } // > Custom code page: findPossibleMoves - line 19
+
+  // on clicking of a square // > Custom code page: onClickSquare - line 1
+  function onClickSquare(idx) { // > Custom code page: onClickSquare - line 2
+    if(gameOver) // > Custom code page: onClickSquare - line 3
+      return; // > Custom code page: onClickSquare - line 4
+   // > Custom code page: onClickSquare - line 5
+    var x = idxToPos[idx][0], y = idxToPos[idx][1]; // > Custom code page: onClickSquare - line 6
+     // > Custom code page: onClickSquare - line 7
+    if(!squareHighlighted[idx] && !fromUndo) { // > Custom code page: onClickSquare - line 8
+      _tools.showOkDialog("You cannot move to this square! Click a legal move."); // > Custom code page: onClickSquare - line 9
+      for(var i = 0; i < numOfSquares; i++) { // > Custom code page: onClickSquare - line 10
+        if(squareHighlighted[i]) // > Custom code page: onClickSquare - line 11
+         // squareColor[i] = highlightColor; // was used to highlight hint // > Custom code page: onClickSquare - line 12
+          squareColor[i] = unfilledColor; // turn invisible // > Custom code page: onClickSquare - line 13
+      } // > Custom code page: onClickSquare - line 14
+      return; // > Custom code page: onClickSquare - line 15
+    } // > Custom code page: onClickSquare - line 16
+     // > Custom code page: onClickSquare - line 17
+    // set the current grid square to be filled // > Custom code page: onClickSquare - line 18
+    squareFilled[idx] = 1; // > Custom code page: onClickSquare - line 19
+   // > Custom code page: onClickSquare - line 20
+    for(var i = 0; i < numOfSquares; i++) { // refresh color // > Custom code page: onClickSquare - line 21
+      if(squareColor[i] == highlightColor) { // > Custom code page: onClickSquare - line 22
+        squareColor[i] = unfilledColor; // > Custom code page: onClickSquare - line 23
+      } // > Custom code page: onClickSquare - line 24
+      if(squareHighlighted[i]) // > Custom code page: onClickSquare - line 25
+        squareHighlighted[i] = 0; // > Custom code page: onClickSquare - line 26
+    } // > Custom code page: onClickSquare - line 27
+   // > Custom code page: onClickSquare - line 28
+    squareColor[idx] = filledColor; // > Custom code page: onClickSquare - line 29
+    // textStr.push(moveCounter++); // > Custom code page: onClickSquare - line 30
+    //textX.push(x * squareLength); // > Custom code page: onClickSquare - line 31
+    //textY.push(y * squareLength); // > Custom code page: onClickSquare - line 32
+    if(!fromUndo) textStr.push(moveCounter++); //kyrin // > Custom code page: onClickSquare - line 33
+    if(!fromUndo) textX.push(x * squareLength); //kyrin // > Custom code page: onClickSquare - line 34
+    if(!fromUndo) textY.push(y * squareLength); //kyrin // > Custom code page: onClickSquare - line 35
+     // > Custom code page: onClickSquare - line 36
+     // > Custom code page: onClickSquare - line 37
+    //lookang attempt to add unicode knight position // > Custom code page: onClickSquare - line 38
+    textXunicode=(x * squareLength); // > Custom code page: onClickSquare - line 39
+    textYunicode=(y * squareLength); // > Custom code page: onClickSquare - line 40
+     // > Custom code page: onClickSquare - line 41
+    // updating topScore // > Custom code page: onClickSquare - line 42
+    topScore = Math.max(moveCounter - 1, topScore); // > Custom code page: onClickSquare - line 43
+   // > Custom code page: onClickSquare - line 44
+    // if no more moves // > Custom code page: onClickSquare - line 45
+    if(moveCounter == numOfStars + 1) { // > Custom code page: onClickSquare - line 46
+      _tools.showOkDialog("The whole board has been filled, good job!"); // > Custom code page: onClickSquare - line 47
+      gameOver = true; // > Custom code page: onClickSquare - line 48
+    } else if(!findPossibleMoves(x, y)) { // > Custom code page: onClickSquare - line 49
+      _tools.showOkDialog("There are no more possible moves! Score: " + (moveCounter - 1)); // > Custom code page: onClickSquare - line 50
+      gameOver = true; // > Custom code page: onClickSquare - line 51
+    } // > Custom code page: onClickSquare - line 52
+   // > Custom code page: onClickSquare - line 53
+  } // > Custom code page: onClickSquare - line 54
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['Init Page']) return;
+    var board = [ // > Initialization page: Init Page - line 1
+      "*OO**O", // > Initialization page: Init Page - line 2
+      "O***OO", // > Initialization page: Init Page - line 3
+      "******", // > Initialization page: Init Page - line 4
+      "****O*", // > Initialization page: Init Page - line 5
+      "*O***O", // > Initialization page: Init Page - line 6
+      "O****O" // > Initialization page: Init Page - line 7
+    ]; // > Initialization page: Init Page - line 8
+     // > Initialization page: Init Page - line 9
+    // INITIALISATION // > Initialization page: Init Page - line 10
+    if(topScore == undefined) // > Initialization page: Init Page - line 11
+      topScore = 0; // > Initialization page: Init Page - line 12
+     // > Initialization page: Init Page - line 13
+    textStr = [], textX = [], textY = []; // > Initialization page: Init Page - line 14
+    symbolStr = [], symbolX = [], symbolY = []; // > Initialization page: Init Page - line 15
+     // > Initialization page: Init Page - line 16
+    squareX = [], squareY = [], squareColor = [], squareHighlighted = [], squareFilled = []; // > Initialization page: Init Page - line 17
+    idxToPos = [], posToIdx = []; // > Initialization page: Init Page - line 18
+    numOfSquares = 0; // > Initialization page: Init Page - line 19
+    for(var i = 0; i < numOfRows; i++) { // > Initialization page: Init Page - line 20
+      posToIdx.push([]); // > Initialization page: Init Page - line 21
+      for(var j = 0; j < numOfCols; j++) { // > Initialization page: Init Page - line 22
+        if(board[i][j] == "*"){ // > Initialization page: Init Page - line 23
+          squareFilled.push(0); // > Initialization page: Init Page - line 24
+          squareHighlighted.push(1); // > Initialization page: Init Page - line 25
+          // star emoji // > Initialization page: Init Page - line 26
+          symbolStr.push("⭐"); // > Initialization page: Init Page - line 27
+          symbolX.push(squareLength * j); // > Initialization page: Init Page - line 28
+          symbolY.push(squareLength * i); // > Initialization page: Init Page - line 29
+           // > Initialization page: Init Page - line 30
+          numOfStars++; // > Initialization page: Init Page - line 31
+        } // > Initialization page: Init Page - line 32
+        else{ // > Initialization page: Init Page - line 33
+          squareFilled.push(1); // > Initialization page: Init Page - line 34
+          squareHighlighted.push(0); // > Initialization page: Init Page - line 35
+        } // > Initialization page: Init Page - line 36
+         // > Initialization page: Init Page - line 37
+        squareX.push(squareLength * j); // > Initialization page: Init Page - line 38
+        squareY.push(squareLength * i); // > Initialization page: Init Page - line 39
+     // > Initialization page: Init Page - line 40
+        squareColor.push(unfilledColor); // > Initialization page: Init Page - line 41
+     // > Initialization page: Init Page - line 42
+        idxToPos.push([j, i]); // > Initialization page: Init Page - line 43
+        posToIdx[i].push(numOfSquares++); // > Initialization page: Init Page - line 44
+      } // > Initialization page: Init Page - line 45
+    } // > Initialization page: Init Page - line 46
+     // > Initialization page: Init Page - line 47
+    _tools.showOkDialog("Click on any star to begin!"); // > Initialization page: Init Page - line 48
+     // > Initialization page: Init Page - line 49
+     // > Initialization page: Init Page - line 50
+     // > Initialization page: Init Page - line 51
+     // > Initialization page: Init Page - line 52
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['undo']) return;
+    undo = []; // > Initialization page: undo - line 1
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  // Intentionally repeated
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model._fontResized = function(iBase,iSize,iDelta) {
+    _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _createView() {
+    _view = new _simulationView(_topFrame,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      _view.topScore.linkProperty('Text', function() { return "Top Score: " + topScore; }); // linking Text of topScore
+      _view.topScore.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of topScore
+      _view.score.linkProperty('Text', function() { return "Current Score: " + (moveCounter -1); }); // linking Text of score
+      _view.score.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of score
+      _view.undo.setAction('OnPress', function(_data, _info) { // Action OnPress for element undo
+        var lastitemundo = undo[undo.length-1] // property OnPress of undo: line 1
+        squareColor[lastitemundo] = unfilledColor; // remove color // property OnPress of undo: line 2
+        // set the current grid square to be unfilled // property OnPress of undo: line 3
+        squareFilled[lastitemundo]= 0; // set to not filled // property OnPress of undo: line 4
+        moveCounter = moveCounter-1;  // property OnPress of undo: line 5
+         // property OnPress of undo: line 6
+        textStr.pop(); //remove number text // property OnPress of undo: line 7
+          textX.pop(); // property OnPress of undo: line 8
+          textY.pop(); // property OnPress of undo: line 9
+         // property OnPress of undo: line 10
+         // property OnPress of undo: line 11
+         // property OnPress of undo: line 12
+         // property OnPress of undo: line 13
+         // property OnPress of undo: line 14
+         // property OnPress of undo: line 15
+        undo.pop() // property OnPress of undo: line 16
+        var lastitem  = undo[undo.length-1] // property OnPress of undo: line 17
+        squareFilled[lastitem] = 1; // property OnPress of undo: line 18
+        fromUndo = true; //kyrin // property OnPress of undo: line 19
+        onClickSquare(lastitem) // property OnPress of undo: line 20
+         // property OnPress of undo: line 21
+        fromUndo = false; //kyrin // property OnPress of undo: line 22
+         var x = idxToPos[lastitem][0], y = idxToPos[lastitem][1]; // property OnPress of undo: line 23
+        //lookang attempt to add unicode knight position // property OnPress of undo: line 24
+          textXunicode=(x * squareLength); // property OnPress of undo: line 25
+          textYunicode=(y * squareLength); // property OnPress of undo: line 26
+           // property OnPress of undo: line 27
+          //onClickSquare(lastitem); // property OnPress of undo: line 28
+          //clickundo = true; // property OnPress of undo: line 29
+        findPossibleMoves(x, y) // property OnPress of undo: line 30
+        //clickundo = false; // property OnPress of undo: line 31
+      });
+      _view.undo.linkProperty('Disabled', function() { return textStr.length<=1; }); // linking Disabled of undo
+      _view.undo.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of undo
+      _view.reset.setAction('OnPress', function(_data, _info) { // Action OnPress for element reset
+        _reset() // property OnPress of reset: line 1
+      });
+      _view.reset.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of reset
+      _view.plottingPanel.linkProperty('XTickStep', function() { return numOfRows * squareLength; }); // linking XTickStep of plottingPanel
+      _view.plottingPanel.linkProperty('YTickStep', function() { return numOfCols * squareLength; }); // linking YTickStep of plottingPanel
+      _view.shapeSet.linkProperty('NumberOfElements', function() { return numOfSquares; }, function(_v) { numOfSquares = _v; }); // linking NumberOfElements of shapeSet
+      _view.shapeSet.setAction('OnRelease', function(_data, _info) { // Action OnRelease for element shapeSet
+        undo.push(interact); // property OnRelease of shapeSet: line 1
+      });
+      _view.shapeSet.linkProperty('FillColor', function() { return squareColor; }, function(_v) { squareColor = _v; }); // linking FillColor of shapeSet
+      _view.shapeSet.linkProperty('SizeX', function() { return squareLength; }, function(_v) { squareLength = _v; }); // linking SizeX of shapeSet
+      _view.shapeSet.linkProperty('X', function() { return squareX; }, function(_v) { squareX = _v; }); // linking X of shapeSet
+      _view.shapeSet.linkProperty('Y', function() { return squareY; }, function(_v) { squareY = _v; }); // linking Y of shapeSet
+      _view.shapeSet.setAction('OnPress', function(_data, _info) { // Action OnPress for element shapeSet
+        onClickSquare(interact); // property OnPress of shapeSet: line 1
+      });
+      _view.shapeSet.linkProperty('SizeY', function() { return squareLength; }, function(_v) { squareLength = _v; }); // linking SizeY of shapeSet
+      _view.shapeSet.linkProperty('ElementInteracted', function() { return interact; }, function(_v) { interact = _v; }); // linking ElementInteracted of shapeSet
+      _view.symbolSet.linkProperty('X', function() { return symbolX; }, function(_v) { symbolX = _v; }); // linking X of symbolSet
+      _view.symbolSet.linkProperty('Y', function() { return symbolY; }, function(_v) { symbolY = _v; }); // linking Y of symbolSet
+      _view.symbolSet.linkProperty('Text', function() { return symbolStr; }, function(_v) { symbolStr = _v; }); // linking Text of symbolSet
+      _view.symbolSet.linkProperty('Font', function() { return fontSymbol; }, function(_v) { fontSymbol = _v; }); // linking Font of symbolSet
+      _view.unicodeknight.linkProperty('X', function() { return textXunicode; }, function(_v) { textXunicode = _v; }); // linking X of unicodeknight
+      _view.unicodeknight.linkProperty('Y', function() { return textYunicode; }, function(_v) { textYunicode = _v; }); // linking Y of unicodeknight
+      _view.textSet.linkProperty('NumberOfElements', function() { return textStr.length; }); // linking NumberOfElements of textSet
+      _view.textSet.linkProperty('X', function() { return textX; }, function(_v) { textX = _v; }); // linking X of textSet
+      _view.textSet.linkProperty('Y', function() { return textY; }, function(_v) { textY = _v; }); // linking Y of textSet
+      _view.textSet.linkProperty('Text', function() { return textStr; }, function(_v) { textStr = _v; }); // linking Text of textSet
+      _view.textSet.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of textSet
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _createView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _createView(); // this includes _model.reset()
+  return _model;
+}
+
+function _simulationView (_topFrame,_libraryPath,_codebasePath) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  if (_libraryPath)  _view._setLibraryPath(_libraryPath);
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel, 'topPanel', _view._topFrame)
+      .setProperty("CSS",{   "grid-template-columns": "1fr 1fr 1fr 1fr" })
+      .setProperty("Display","grid")
+      ;
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'topScore', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'score', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.button, 'undo', _view.topPanel)
+      .setProperty("Text","Undo")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'reset', _view.topPanel)
+      .setProperty("Text","↻Reset")
+      ;
+    _view._addElement(EJSS_INTERFACE.panel, 'mainPanel', _view._topFrame);
+    _view._addElement(EJSS_DRAWING2D.plottingPanel, 'plottingPanel', _view.mainPanel)
+      .setProperty("Height","90vh")
+      .setProperty("Width","100%")
+      .setProperty("Gutters",[0, 0, 0, 0])
+      .setProperty("YScalePrecision",0)
+      .setProperty("XFixedTick",-0.5)
+      .setProperty("Enabled",true)
+      .setProperty("SquareAspect",true)
+      .setProperty("YFixedTick",-0.5)
+      .setProperty("YAutoTicks",false)
+      .setProperty("AutoScaleY",true)
+      .setProperty("AutoScaleX",true)
+      .setProperty("CursorTypeForMove","pointer")
+      .setProperty("XAutoTicks",false)
+      .setProperty("XScalePrecision",0)
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'shapeSet', _view.plottingPanel)
+      .setProperty("Sensitivity",0)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      ;
+    _view._addElement(EJSS_DRAWING2D.textSet, 'symbolSet', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.text, 'unicodeknight', _view.plottingPanel)
+      .setProperty("FillColor","Magenta")
+      .setProperty("Text","♞")
+      .setProperty("Font","normal normal 7vw ")
+      ;
+    _view._addElement(EJSS_DRAWING2D.textSet, 'textSet', _view.plottingPanel);
+    _view._addElement(EJSS_INTERFACE.panel, 'html', _view._topFrame)
+      .setProperty("Html","<h2>Knight's Move</h2> <p>The knight (♘, ♞) is a piece in the game of chess and is represented by a horse's head and neck.</p> <p>The knight's movement is unique: it may move two squares vertically and one square horizontally, or two squares horizontally and one square vertically (with both forming the shape of an L). This way, a knight can have a maximum of 8 moves. While moving, the knight can jump over pieces to reach its destination.</p> <h2>Single Player Game</h2> <p>Try to discover the best strategy/pattern to maximise the number of moves by landing on legal squares/stars.</p> <p>Given the current map of stars, try to move the maximum possible number of knight's move possible.</p>   <h2>For more resources</h2>   <ul>     <li>       <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1054-knight-intro\" target=\"_blank\" rel=\"noopener noreferrer\">         Knight — Intro       </a>     </li>     <li>       <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1101-knight-moves-no-hint\" target=\"_blank\" rel=\"noopener noreferrer\">         Knight Moves (No Hint)       </a>     </li>     <li>       <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1057-knight-moves\" target=\"_blank\" rel=\"noopener noreferrer\">         Knight Moves       </a>     </li>     <li>       <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1055-knight-star-to-star\" target=\"_blank\" rel=\"noopener noreferrer\">         Knight: Star to Star       </a>     </li>     <li>       <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1102-knight-star-to-star-no-hint\" target=\"_blank\" rel=\"noopener noreferrer\">         Knight: Star to Star (No Hint)       </a>     </li>     <li>       <a href=\"https://sg.iwant2study.org/ospsg/index.php/events/1106-20210830-digital-e2k-applications-knights-move\" target=\"_blank\" rel=\"noopener noreferrer\">         Digital E2K Applications: Knight’s Move (Event)       </a>     </li>   </ul>")
+      ;
+  }; // end of _view._reset
+  return _view;
+}
+
+    //--><!]]></script>
+
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+    <div id='metadata' class='metadata'>
+      <br />
+      <div id='title_author'>
+        <hr />
+        <b>Title and author:</b>
+        <p>
+          Knight Strategy game to maximise moves landing on stars only<br/>
+          <img alt='Logo' src='./knight_star_to_star/Screenshot 2021-05-05 at 3.53.49 PM (2).png'/>
+        </p>
+        <p>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+Shaun Quek, Loo Kang Wee, Francisco Esquembre, Félix Jesús Garcia Clemente, based on idea by Theresa Heng
+        </p>
+        <hr />
+      </div>
+      <p></p>
+      <div id='copyright_message'>
+        <div class='cc_left'  style='float:left'>
+          &#169;2025, Shaun Quek, Loo Kang Wee, Francisco Esquembre, Félix Jesús Garcia Clemente, based on idea by Theresa Heng. <br />
+          Compiled with <a href='https://t.um.es/webejs' target='_blank'>WebEJS : the web version of Easy JavaScript Simulations</a>.<br />
+          Version 1.0 (240505)
+        </div>
+        <div class='cc_right' style='float:right'>
+          Released under a <a rel='license' target='_blank' href='https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US'>
+          <img alt='Creative Commons Attribution-NonCommercial-ShareAlike' src='./_ejs_library/images/cc_icon.png' />
+          </a> license.
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () {
+          _model = new _simulation("_topFrame","./_ejs_library/",null);
+
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+                _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+                },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

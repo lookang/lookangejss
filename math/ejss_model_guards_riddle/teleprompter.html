@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guards Riddle — Teleprompter</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; color: #eee; font-family: Georgia, serif;
+         font-size: 1.6rem; line-height: 1.8; }
+
+  #header { background: #1a1a2e; padding: 10px 20px; display: flex;
+             align-items: center; gap: 16px; position: sticky; top: 0; z-index: 10; }
+  #clock { font-size: 2.2rem; font-weight: bold; color: #FFD700;
+            font-variant-numeric: tabular-nums; min-width: 90px; }
+  #header button { padding: 8px 18px; font-size: 1rem; cursor: pointer;
+                   border: none; border-radius: 6px; font-weight: bold; }
+  #btnStart  { background: #27ae60; color: #fff; }
+  #btnPause  { background: #e67e22; color: #fff; }
+  #btnReset  { background: #555;    color: #eee; }
+
+  #progress  { height: 6px; background: #333; }
+  #bar       { height: 6px; background: #FFD700; width: 0; transition: width 0.5s linear; }
+
+  #script    { max-width: 820px; margin: 0 auto; padding: 30px 20px 80px; }
+
+  .section   { margin-bottom: 40px; border-left: 5px solid #444; padding-left: 20px; }
+  .section.active { border-left-color: #FFD700; }
+  .section.done   { opacity: 0.35; }
+
+  .section-title { font-size: 1rem; color: #aaa; text-transform: uppercase;
+                   letter-spacing: .1em; margin-bottom: 6px; }
+  .timestamp     { display: inline-block; background: #FFD700; color: #111;
+                   font-size: .85rem; font-weight: bold; border-radius: 4px;
+                   padding: 2px 8px; margin-left: 10px; vertical-align: middle; }
+  .action        { background: #1a3a1a; color: #8f8; font-size: 1rem;
+                   padding: 8px 14px; border-radius: 6px; margin-bottom: 12px;
+                   font-family: monospace; white-space: pre-wrap; }
+  .narration     { color: #f0f0f0; }
+  .narration em  { color: #FFD700; font-style: normal; }
+
+  #jumpNav { position: fixed; right: 10px; top: 80px; display: flex; flex-direction: column; gap: 6px; }
+  #jumpNav a { background: #333; color: #aaa; text-decoration: none; font-size: .78rem;
+               padding: 4px 10px; border-radius: 4px; white-space: nowrap; }
+  #jumpNav a:hover, #jumpNav a.active { background: #FFD700; color: #111; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="clock">0:00</div>
+  <button id="btnStart" onclick="startTimer()">▶ Start</button>
+  <button id="btnPause" onclick="pauseTimer()">⏸ Pause</button>
+  <button id="btnReset" onclick="resetTimer()">↺ Reset</button>
+  <span style="color:#aaa;font-size:.9rem">Total: ~5:00 min</span>
+</div>
+<div id="progress"><div id="bar"></div></div>
+
+<div id="jumpNav">
+  <a href="#s1">Intro</a>
+  <a href="#s2">Puzzle rules</a>
+  <a href="#s3">n=3</a>
+  <a href="#s4">n=4</a>
+  <a href="#s5">n=5</a>
+  <a href="#s6">n=6 &amp; 7</a>
+  <a href="#s7">n=8</a>
+  <a href="#s8">Conclusion</a>
+</div>
+
+<div id="script">
+
+<!-- ============================================================ SECTION 1 -->
+<div class="section" id="s1" data-start="0" data-end="30">
+  <div class="section-title">Section 1 — Introduction <span class="timestamp">0:00 – 0:30</span></div>
+  <div class="action">Screen: Show full simulation, n=3 selected (default)</div>
+  <div class="narration">
+    "Welcome to the <em>Guard's Riddle</em> — an interactive puzzle that teaches one of the
+    most fundamental ideas in computer science: <em>backtracking search</em>.
+    <br><br>
+    In this video, we'll watch a computer solve this puzzle step by step,
+    from the simplest level all the way up to <em>level eight</em>. Along the way,
+    you'll see exactly how a computer thinks when it's tackling a problem
+    that has no obvious shortcut."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 2 -->
+<div class="section" id="s2" data-start="30" data-end="75">
+  <div class="section-title">Section 2 — How the puzzle works <span class="timestamp">0:30 – 1:15</span></div>
+  <div class="action">Screen: Point to guards in top row → yellow boxes → instruction table</div>
+  <div class="narration">
+    "Here's how the puzzle works. The guards standing in the top row are
+    numbered by rank. Each rank appears <em>exactly twice</em>.
+    <br><br>
+    Your goal is to drag them into the yellow boxes at the bottom. But
+    there is one rule — two guards of the same rank must be placed <em>exactly
+    that many boxes apart</em>.
+    <br><br>
+    Rank <em>one</em> guards: one box apart.<br>
+    Rank <em>two</em> guards: two boxes apart.<br>
+    Rank <em>three</em>: three apart. And so on.
+    <br><br>
+    The instruction table here shows a complete solution for n equals four:
+    <em>four, one, one, three, four, two, three, two</em>.<br>
+    Check rank one: positions two and three — gap of one. Correct.<br>
+    Check rank four: positions one and five — gap of four. Correct.<br>
+    Every pair satisfies the rule."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 3 -->
+<div class="section" id="s3" data-start="75" data-end="120">
+  <div class="section-title">Section 3 — n = 3 : No solution <span class="timestamp">1:15 – 2:00</span></div>
+  <div class="action">Screen: n=3 selected → click 🤖 Auto-Solve → watch animation → NO SOLUTION result</div>
+  <div class="narration">
+    "Let's start with n equals three. Three pairs of guards, <em>six boxes</em>.
+    <br><br>
+    I'll click Auto-Solve. Watch the colour coding:<br>
+    <em>green</em> boxes are being tested right now,<br>
+    <em>blue</em> boxes are confirmed placements on the current path,<br>
+    and <em>pink</em> means the computer just backtracked — it gave up on that choice.
+    <br><br>
+    Rank one locks in — green flash. Now rank two tries different
+    positions. Rank three needs to fit... it can't. Pink flash.
+    Backtrack, try the next option. Still can't fit rank three. Pink again.
+    <br><br>
+    After exhausting every possibility — <em>no solution exists for n equals three</em>.
+    The computer didn't just fail to find one; it mathematically <em>proved</em>
+    that none can exist."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 4 -->
+<div class="section" id="s4" data-start="120" data-end="165">
+  <div class="section-title">Section 4 — n = 4 : First solution <span class="timestamp">2:00 – 2:45</span></div>
+  <div class="action">Screen: Dropdown → 4 · Speed → Slow · click 🤖 Auto-Solve · gold boxes on success</div>
+  <div class="narration">
+    "Level four. Eight boxes, <em>four ranks</em>.
+    <br><br>
+    Watch rank one snap in — blue. Rank two tries its first option...
+    works so far. Rank three... rank four is searching...
+    <br><br>
+    There! The board reads <em>four, one, one, three, four, two, three, two</em>.
+    All boxes light up gold. The dialog confirms: <em>solution found</em>.
+    <br><br>
+    Notice the tries and backtracks counters. The computer explored only
+    a small fraction of all possible arrangements before succeeding.
+    That's the power of backtracking — it <em>abandons dead ends early</em>.
+    For eight positions, brute force would require checking over
+    forty thousand combinations. Backtracking finds it in far fewer steps."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 5 -->
+<div class="section" id="s5" data-start="165" data-end="200">
+  <div class="section-title">Section 5 — n = 5 : More complex <span class="timestamp">2:45 – 3:20</span></div>
+  <div class="action">Screen: Dropdown → 5 · Speed → Medium · click 🤖 Auto-Solve · note more pink flashes</div>
+  <div class="narration">
+    "Level five — ten boxes, five ranks. A <em>bigger search space</em>.
+    <br><br>
+    Notice how much more backtracking happens now. The computer places
+    the first few ranks confidently, then hits a wall fitting the next
+    rank, and has to <em>unwind its choices</em> — sometimes several levels back.
+    Each pink flash is the computer saying: this path leads nowhere,
+    I'll try something else.
+    <br><br>
+    The solution: <em>two, three, two, five, three, four, one, one, five, four</em>.<br>
+    Rank five at positions four and nine — gap of five. Verified."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 6 -->
+<div class="section" id="s6" data-start="200" data-end="245">
+  <div class="section-title">Section 6 — n = 6 &amp; n = 7 : No solutions <span class="timestamp">3:20 – 4:05</span></div>
+  <div class="action">Screen: n=6 → Fast → Auto-Solve → NO SOLUTION · then n=7 → Auto-Solve → NO SOLUTION</div>
+  <div class="narration">
+    "For n equals six — <em>no solution</em>. Watch the backtrack counter climb
+    much higher than before. The search space is larger, the computer
+    works harder, but the answer is the same: no valid arrangement exists.
+    <br><br>
+    For n equals seven — no solution again. An even larger search, even
+    more backtracks. The computer <em>proves impossibility</em> by exhaustively
+    checking every branch of the decision tree.
+    <br><br>
+    Here's a pattern worth noticing: solutions at three through eight
+    only appear at <em>n equals four, five, and eight</em>.
+    What do those numbers have in common? <em>Pause the video and think</em>
+    before we reveal it."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 7 -->
+<div class="section" id="s7" data-start="245" data-end="285">
+  <div class="section-title">Section 7 — n = 8 : The hardest level <span class="timestamp">4:05 – 4:45</span></div>
+  <div class="action">Screen: Dropdown → 8 · Speed → Very Fast · click 🤖 Auto-Solve · watch step counter hit hundreds</div>
+  <div class="narration">
+    "Level eight — sixteen boxes, the <em>most complex level</em> in this puzzle.
+    I'll run this at high speed so we can see the full process.
+    <br><br>
+    Watch the step counter. <em>Hundreds of steps</em> — green, blue, pink, green
+    again. The solver is navigating a tree of decisions, <em>pruning branches</em>
+    that can't possibly lead anywhere useful.
+    <br><br>
+    And — <em>solution found!</em> Look at the backtrack count compared to level four.
+    The search was far more expensive, showing how computational cost
+    grows with problem size.
+    <br><br>
+    The full arrangement: <em>one, one, two, eight, two, three, seven,
+    five, three, six, four, five, eight, four, seven, six</em>."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 8 -->
+<div class="section" id="s8" data-start="285" data-end="300">
+  <div class="section-title">Section 8 — Conclusion <span class="timestamp">4:45 – 5:00</span></div>
+  <div class="action">Screen: Show full simulation, dropdown visible</div>
+  <div class="narration">
+    "The solutions appear at n equals <em>four, five, and eight</em> — all leave
+    remainder zero or three when divided by four.
+    <br><br>
+    Backtracking is the same core algorithm that powers <em>Sudoku solvers,
+    chess engines</em>, and constraint-satisfaction problems across computer science.
+    <br><br>
+    Now it's your turn — use <em>One Step</em> to explore each decision by hand,
+    or try dragging the guards yourself. Can you solve level eight
+    before the computer does? <em>Good luck!</em>"
+  </div>
+</div>
+
+</div><!-- #script -->
+
+<script>
+const TOTAL = 300; // 5 minutes in seconds
+let elapsed = 0, running = false, interval = null;
+
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function updateUI() {
+  document.getElementById('clock').textContent = fmt(elapsed);
+  document.getElementById('bar').style.width = (elapsed / TOTAL * 100) + '%';
+
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(sec => {
+    const start = +sec.dataset.start, end = +sec.dataset.end;
+    sec.classList.remove('active', 'done');
+    if (elapsed >= start && elapsed < end) {
+      sec.classList.add('active');
+      sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // highlight jump nav
+      const id = sec.id;
+      document.querySelectorAll('#jumpNav a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    } else if (elapsed >= end) {
+      sec.classList.add('done');
+    }
+  });
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  interval = setInterval(() => {
+    if (elapsed < TOTAL) { elapsed++; updateUI(); }
+    else { clearInterval(interval); running = false; }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(interval);
+  running = false;
+}
+
+function resetTimer() {
+  clearInterval(interval);
+  running = false;
+  elapsed = 0;
+  updateUI();
+  document.querySelectorAll('#jumpNav a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active','done'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+updateUI();
+</script>
+</body>
+</html>

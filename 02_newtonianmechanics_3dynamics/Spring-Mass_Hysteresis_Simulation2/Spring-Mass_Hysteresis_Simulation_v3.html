@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spring-Mass Hysteresis Simulation v3</title>
+    <style>
+        /* ---------- Styles for the Simulation Interface ---------- */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: rgb(110, 100, 100);
+            padding: 20px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .simulation-area {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .left-panel {
+            width: 45%;
+            position: relative;
+        }
+        .right-panel {
+            width: 45%;
+            padding-left: 20px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            width: 100%;
+            height: 60vh;
+            cursor: pointer; /* Change cursor to indicate interaction */
+        }
+        #graphCanvas {
+            border: 1px solid #ddd;
+            width: 100%;
+            height: 60vh;
+        }
+        .controls {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .controls h1 {
+            display: inline-block;
+            margin: 0;
+            margin-right: 20px;
+            font-size: 1.5em;
+            color: white;
+        }
+        .controls button {
+            margin-right: 5px;
+            margin-top: 5px;
+            display: inline-block;
+            width: 150px;
+        }
+        
+        .checkboxes {
+            margin-top: 10px;
+            text-align: center;
+            color: white;
+        }
+        .checkboxes label {
+            margin-right: 20px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .slider-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            margin: 5px 0;
+            text-align: center;
+        }
+        .slider-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 10px;
+        }
+        .slider-item label {
+            margin-right: 5px;
+        }
+        .slider-item input {
+            margin-right: 5px;
+        }
+        .value-display {
+            width: 50px;
+            text-align: left;
+        }
+        #info {
+            position: relative;
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+        }
+        #footer {
+            margin-top: 10px;
+            color: rgb(110, 100, 100);
+            text-align: center;
+        }
+        #description {
+            color: rgb(110, 100, 100);
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .color-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .slider-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .slider-item {
+                margin: 5px 0;
+            }
+            .controls h1 {
+                display: block;
+                margin-bottom: 10px;
+            }
+            .controls button {
+                display: inline-block;
+                margin: 5px;
+            }
+            .simulation-area {
+                flex-direction: column;
+            }
+            .left-panel,
+            .right-panel {
+                width: 100%;
+                padding-left: 0;
+            }
+        }
+        /* Fullscreen button styles */
+        #fullscreenButton {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 1000; /* Ensure the button is on top */
+        }
+
+        #fullscreenButton:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <!-- ---------- Simulation Interface ---------- -->
+    <div class="container" id="simulationContainer">
+        <!-- Control buttons -->
+        <div class="controls">
+            <h1>Spring-Mass Hysteresis Simulation v3</h1>
+            <button id="playPauseBtn">Play</button>
+            <button id="stepBtn">Step</button>
+            <button id="resetBtn">Reset</button>
+            <button id="fullscreenButton">Go Full Screen</button>
+        </div>
+        <!-- Checkboxes for displaying forces -->
+        <div class="checkboxes">
+            <label>
+                <input type="checkbox" id="showSpringForcesCheckbox" checked>
+                <span class="checkbox-label" style="background-color: green; color: white;">
+                    Show Spring Forces (<span id="springForceValue">0.00</span>N)
+                </span>
+            </label>
+            <label>
+                <input type="checkbox" id="showGravityForceCheckbox" checked>
+                <span class="checkbox-label" style="background-color: red; color: white;">
+                    Show Gravity Force (<span id="gravityForceValue">0.00</span>N)
+                </span>
+            </label>
+            <label>
+                <input type="checkbox" id="showExternalForceCheckbox" checked>
+                <span class="checkbox-label" style="background-color: purple; color: white;">
+                    Show External Force (<span id="externalForceValue">0.00</span>N)
+                </span>
+            </label>
+            <label>
+                <input type="checkbox" id="showDampingForceCheckbox" checked>
+                <span class="checkbox-label" style="background-color: cyan; color: black;">
+                    Show Damping Force (<span id="dampingForceValue">0.00</span>N)
+                </span>
+            </label>
+        </div>
+        
+        <!-- Sliders for simulation parameters -->
+        <div class="slider-container">
+            <!-- External Force Slider -->
+            <div class="slider-item">
+                <span class="color-box" style="background-color: purple;"></span>
+                <label for="forceSlider">
+                    <span class="label-bg" style="background-color: purple; color: white; padding: 2px 4px; border-radius: 4px;">
+                        External Force (Upward)
+                    </span>
+                </label>
+                <input type="range" id="forceSlider" min="-40" max="40" step="1" value="0">
+                <span>Force: <span id="forceValue" class="value-display">0</span></span>
+            </div>
+            <!-- Spring Natural Length Slider -->
+            <div class="slider-item">
+                <span class="color-box" style="background-color: orange;"></span>
+                <label for="lengthSlider">
+                    <span class="label-bg" style="background-color: orange; color: white; padding: 2px 4px; border-radius: 4px;">
+                    Spring Natural Length:</span></label>
+                <input type="range" id="lengthSlider" min="50" max="150" step="1" value="150">
+                <span>Length: <span id="lengthValue" class="value-display">150</span></span>
+            </div>
+            <!-- Mass Slider -->
+            <div class="slider-item">
+                <label for="massSlider">Mass:</label>
+                <input type="range" id="massSlider" min="0.5" max="5" step="0.1" value="1">
+                <span>Mass: <span id="massValue" class="value-display">1.0</span></span>
+            </div>
+            <!-- Damping Factor Slider -->
+            <div class="slider-item">
+                <span class="color-box" style="background-color: cyan;"></span>
+                <span class="label-bg" style="background-color: cyan; color: white; padding: 2px 4px; border-radius: 4px;">
+                <label for="dampingSlider">Damping Factor:</span></label>
+                <input type="range" id="dampingSlider" min="0" max="1" step="0.01" value="0.10">
+                <span>Damping: <span id="dampingValue" class="value-display">0.10</span></span>
+            </div>
+            <!-- Gravity Slider -->
+            <div class="slider-item">
+                <span class="color-box" style="background-color: red;"></span>
+                <span class="label-bg" style="background-color: red; color: white; padding: 2px 4px; border-radius: 4px;">
+                <label for="gravitySlider">Gravity:</span></label>
+                <input type="range" id="gravitySlider" min="0" max="19.62" step="0.1" value="9.81">
+                <span>Gravity: <span id="gravityValue" class="value-display">9.81</span></span>
+            </div>
+        </div>
+
+        <!-- Simulation and Graph Area -->
+        <div class="simulation-area">
+            <!-- Left Panel: Simulation Canvas -->
+            <div class="left-panel">
+                <!-- Canvas for drawing the simulation -->
+                <canvas id="simCanvas"></canvas>
+                <!-- Info section to display time, mass position, and equilibrium positions -->
+                <div id="info">Time: 0.00s | Mass Position: (0.00, 0.00)</div>
+            </div>
+            <!-- Right Panel: Hysteresis Loop Graph -->
+            <div class="right-panel">
+                <canvas id="graphCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------- Simulation Description ---------- -->
+    <div id="description">
+        <p>This simulation demonstrates the hysteresis effect in a V-shaped spring-mass system based on the work of Christopher Ong. For more details, you can refer to the <a href="https://pubs.aip.org/aapt/ajp/article-abstract/89/7/663/1056905/Hysteresis-in-a-simple-V-shaped-spring-mass-system?redirectedFrom=fulltext" target="_blank">original paper</a>.</p>
+        <h2>Why a Hysteresis Loop Graph?</h2>
+        <ul>
+            <li><strong>Captures History-Dependent Behavior:</strong> A hysteresis loop effectively visualizes how the displacement depends not just on the instantaneous force but also on the history of the force's variation.</li>
+            <li><strong>Reveals Energy Loss:</strong> The area enclosed by the loop represents energy dissipated (e.g., due to damping or internal friction).</li>
+            <li><strong>Shows Nonlinearity:</strong> It highlights the asymmetry or nonlinearities in the spring system caused by the changing forces.</li>
+        </ul>
+        <h3>Key Elements of the Graph</h3>
+        <ul>
+            <li><strong>X-axis:</strong> Displacement of the mass (position).</li>
+            <li><strong>Y-axis:</strong> Force applied to the mass.</li>
+            <li><strong>Curve Shape:</strong> A loop forms if the motion depends on the history of force changes. For linear springs, this may be subtle unless there's damping or friction involved.</li>
+        </ul>
+        <h3>Enhancements for the Graph</h3>
+        <ul>
+            <li><strong>Dynamic Visualization:</strong> Use an animated graph where the loop is traced as the force changes cyclically over time.</li>
+            <li><strong>Color Coding:</strong> Different segments of the loop (e.g., loading vs. unloading) can be color-coded for clarity.</li>
+            <li><strong>Overlay Conditions:</strong> Include lines or markers showing key thresholds (e.g., points of maximum extension/compression).</li>
+        </ul>
+    </div>
+
+    <!-- ---------- Footer ---------- -->
+    <div id="footer">
+        Created by weelookang@gmail.com using Claude (initial code) and GPT-4 (finishing the code) and GPT-o1 preview (pushing the boundary)
+        Check out the other versions <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/01-foundations-of-physics/motion-forces/02-dynamics/1208-spring-mass-hysteresis-simulation">Spring Mass Hysteresis Simulation</a>
+    </div>
+
+    <!-- ---------- Simulation Script ---------- -->
+    <script>
+        /* ---------- Global Variables and Constants ---------- */
+        // Canvas and context
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        // Get the container element for full-screen toggling
+        const container = document.getElementById('simulationContainer');
+
+        // Control elements
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const showSpringForcesCheckbox = document.getElementById('showSpringForcesCheckbox');
+        const showGravityForceCheckbox = document.getElementById('showGravityForceCheckbox');
+        const showExternalForceCheckbox = document.getElementById('showExternalForceCheckbox');
+        const showDampingForceCheckbox = document.getElementById('showDampingForceCheckbox');
+
+        // Force value elements
+        const springForceValueEl = document.getElementById('springForceValue');
+        const gravityForceValueEl = document.getElementById('gravityForceValue');
+        const externalForceValueEl = document.getElementById('externalForceValue');
+        const dampingForceValueEl = document.getElementById('dampingForceValue');
+
+        // Slider elements
+        const forceSlider = document.getElementById('forceSlider');
+        const forceValue = document.getElementById('forceValue');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const lengthValue = document.getElementById('lengthValue');
+        const massSlider = document.getElementById('massSlider');
+        const massValue = document.getElementById('massValue');
+        const dampingSlider = document.getElementById('dampingSlider');
+        const dampingValue = document.getElementById('dampingValue');
+        const gravitySlider = document.getElementById('gravitySlider');
+        const gravityValue = document.getElementById('gravityValue');
+
+        // Info display
+        const info = document.getElementById('info');
+
+        // Get the fullscreen button
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        fullscreenButton.addEventListener('click', toggleFullScreen);
+
+        // Simulation variables
+        let isPlaying = false; // Simulation play/pause state
+        let externalForce = 0; // External force acting on the mass
+        let massPosition = { x: 0, y: 0 }; // Mass position
+        let massVelocity = { x: 0, y: 0 }; // Mass velocity
+        let time = 0; // Simulation time
+
+        // Physical constants and parameters
+        const k = 0.5; // Spring constant
+        let m = 1; // Mass
+        let L0 = 150; // Natural length of the springs
+        let dampingFactor = 0.1; // Damping factor
+        let gravity = 9.81; // Gravitational acceleration (positive downwards)
+        const dt = 0.1; // Time step
+
+        // Force scaling factor for visualization
+        const forceScale = 8; // Adjust this value as necessary
+
+        // Dragging variables
+        let isDragging = false;
+        let dragStartY = 0;
+        let initialMassPositionY = 0;
+
+        // Variables to track whether to show forces
+        let showSpringForces = true;
+        let showGravityForce = true;
+        let showExternalForce = true;
+        let showDampingForce = true;
+
+        // Full-screen variables
+        let isFullScreen = false;
+
+        // Data for hysteresis loop graph
+        let displacementData = [];
+        let forceData = [];
+
+        // Variables to hold current force values
+        let totalSpringForce = 0;
+        let gravityForce = 0;
+        let dampingForce = 0;
+
+        /* ---------- Initialization Functions ---------- */
+        // Resize canvas to fit container
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            graphCanvas.width = graphCanvas.clientWidth;
+            graphCanvas.height = graphCanvas.clientHeight;
+
+            drawSystem();
+            drawGraph();
+        }
+
+        // Initial setup
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial canvas size
+        reset(); // Initialize simulation
+
+        /* ---------- Drawing Functions ---------- */
+        // Draw the entire system
+        function drawSystem() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Draw springs
+            drawSpring(centerX - 100, centerY, centerX + massPosition.x, centerY - massPosition.y, L0);
+            drawSpring(centerX + 100, centerY, centerX + massPosition.x, centerY - massPosition.y, L0);
+
+            // Draw mass
+            ctx.beginPath();
+            ctx.arc(centerX + massPosition.x, centerY - massPosition.y, 10, 0, 2 * Math.PI);
+            ctx.fillStyle = '#f00';
+            ctx.fill();
+
+            // Draw anchors
+            ctx.beginPath();
+            ctx.arc(centerX - 100, centerY, 5, 0, 2 * Math.PI);
+            ctx.arc(centerX + 100, centerY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#00f';
+            ctx.fill();
+
+            // Draw spring forces if checkbox is checked
+            if (showSpringForces) {
+                drawSpringForces(centerX, centerY);
+            }
+
+            // Draw gravity force if checkbox is checked
+            if (showGravityForce) {
+                drawGravityForce(centerX, centerY);
+            }
+
+            // Draw external force vector if checkbox is checked
+            if (showExternalForce && externalForce !== 0) {
+                drawExternalForce(centerX, centerY);
+            }
+
+            // Draw damping force if checkbox is checked
+            if (showDampingForce) {
+                drawDampingForce(centerX, centerY);
+            }
+        }
+
+        // Function to draw a spring between two points
+        function drawSpring(x1, y1, x2, y2, naturalLength, segments = 20) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            ctx.save();
+            ctx.translate(x1, y1);
+            ctx.rotate(angle);
+
+            const segmentLength = length / segments;
+            const amplitude = segmentLength / 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let i = 1; i <= segments; i++) {
+                const x = i * segmentLength;
+                const y = (i % 2 === 0 ? 1 : -1) * amplitude;
+                ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = length < naturalLength ? 'orange' : 'yellow';
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Draw an arrow (used for force visualization)
+        function drawArrow(fromx, fromy, tox, toy, color) {
+            const headlen = 10;
+            const dx = tox - fromx;
+            const dy = toy - fromy;
+            const angle = Math.atan2(dy, dx);
+            ctx.strokeStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.lineTo(
+                tox - headlen * Math.cos(angle - Math.PI / 6),
+                toy - headlen * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(
+                tox - headlen * Math.cos(angle + Math.PI / 6),
+                toy - headlen * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.stroke();
+        }
+
+        // Function to draw spring forces
+        function drawSpringForces(centerX, centerY) {
+            // Draw individual spring forces
+            const { Fx1, Fy1, Fx2, Fy2 } = calculateSpringForces();
+
+            drawArrow(
+                centerX + massPosition.x,
+                centerY - massPosition.y,
+                centerX + massPosition.x + Fx1 * forceScale,
+                centerY - massPosition.y - Fy1 * forceScale,
+                'green'
+            );
+
+            // Add label for left spring force
+            ctx.fillStyle = 'green';
+            ctx.font = '12px Arial';
+            ctx.fillText(
+                'F_spring',
+                centerX + massPosition.x + Fx1 * forceScale + 5,
+                centerY - massPosition.y - Fy1 * forceScale
+            );
+
+            drawArrow(
+                centerX + massPosition.x,
+                centerY - massPosition.y,
+                centerX + massPosition.x + Fx2 * forceScale,
+                centerY - massPosition.y - Fy2 * forceScale,
+                'blue'
+            );
+
+            // Add label for right spring force
+            ctx.fillStyle = 'blue';
+            ctx.font = '12px Arial';
+            ctx.fillText(
+                'F_spring',
+                centerX + massPosition.x + Fx2 * forceScale + 5,
+                centerY - massPosition.y - Fy2 * forceScale
+            );
+        }
+
+        // Function to draw gravity force
+        function drawGravityForce(centerX, centerY) {
+            const Fy = m * gravity; // Gravity force is positive downward
+
+            drawArrow(
+                centerX + massPosition.x,
+                centerY - massPosition.y,
+                centerX + massPosition.x,
+                centerY - massPosition.y + Fy * forceScale,
+                'red'
+            );
+
+            // Add label
+            ctx.fillStyle = 'red';
+            ctx.font = '12px Arial';
+            ctx.fillText(
+                'F_gravity',
+                centerX + massPosition.x + 5,
+                centerY - massPosition.y + Fy * forceScale
+            );
+        }
+
+        // Function to draw external force
+        function drawExternalForce(centerX, centerY) {
+            drawArrow(
+                centerX + massPosition.x,
+                centerY - massPosition.y,
+                centerX + massPosition.x,
+                centerY - massPosition.y - externalForce * forceScale,
+                'purple'
+            );
+
+            // Add label
+            ctx.fillStyle = 'purple';
+            ctx.font = '12px Arial';
+            ctx.fillText(
+                'F_external',
+                centerX + massPosition.x + 5,
+                centerY - massPosition.y - externalForce * forceScale
+            );
+        }
+
+        // Function to draw damping force
+        function drawDampingForce(centerX, centerY) {
+            const Fx_damping = -dampingFactor * massVelocity.x;
+            const Fy_damping = -dampingFactor * massVelocity.y;
+
+            drawArrow(
+                centerX + massPosition.x,
+                centerY - massPosition.y,
+                centerX + massPosition.x + Fx_damping * forceScale * 1,
+                centerY - massPosition.y - Fy_damping * forceScale * 1,
+                'cyan'
+            );
+
+            // Add label
+            ctx.fillStyle = 'cyan';
+            ctx.font = '12px Arial';
+            ctx.fillText(
+                'F_damping',
+                centerX + massPosition.x + Fx_damping * forceScale * 1 + 5,
+                centerY - massPosition.y - Fy_damping * forceScale * 1
+            );
+        }
+
+        /* ---------- Hysteresis Loop Graph Functions ---------- */
+        function drawGraph() {
+            graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+
+            // Set up axes
+            graphCtx.strokeStyle = 'black';
+            graphCtx.lineWidth = 1;
+
+            const padding = 50;
+            const graphWidth = graphCanvas.width - padding * 2;
+            const graphHeight = graphCanvas.height - padding * 2;
+
+            // Draw X-axis
+            graphCtx.beginPath();
+            graphCtx.moveTo(padding, graphCanvas.height - padding);
+            graphCtx.lineTo(graphCanvas.width - padding, graphCanvas.height - padding);
+            graphCtx.stroke();
+
+            // Draw Y-axis
+            graphCtx.beginPath();
+            graphCtx.moveTo(padding, padding);
+            graphCtx.lineTo(padding, graphCanvas.height - padding);
+            graphCtx.stroke();
+
+            // Labels
+            graphCtx.fillStyle = 'black';
+            graphCtx.font = '12px Arial';
+            graphCtx.fillText('Displacement', graphCanvas.width / 2 - 30, graphCanvas.height - 20);
+            graphCtx.save();
+            graphCtx.translate(20, graphCanvas.height / 2 + 30);
+            graphCtx.rotate(-Math.PI / 2);
+            graphCtx.fillText('Force', 0, 0);
+            graphCtx.restore();
+
+            // Draw grid lines and labels
+            drawGridLines();
+
+            // Plot data
+            if (displacementData.length > 1) {
+                graphCtx.strokeStyle = 'blue';
+                graphCtx.lineWidth = 1.5;
+                graphCtx.beginPath();
+
+                // Fixed scaling
+                const maxDisp = 200;
+                const maxForce = 200;
+
+                for (let i = 0; i < displacementData.length; i++) {
+                    const x = map(displacementData[i], -maxDisp, maxDisp, padding, graphCanvas.width - padding);
+                    const y = map(forceData[i], -maxForce, maxForce, graphCanvas.height - padding, padding);
+
+                    if (i === 0) {
+                        graphCtx.moveTo(x, y);
+                    } else {
+                        graphCtx.lineTo(x, y);
+                    }
+                }
+                graphCtx.stroke();
+            }
+            
+        }
+
+        // Function to draw grid lines and labels
+        function drawGridLines() {
+            const padding = 50;
+            const graphWidth = graphCanvas.width - padding * 2;
+            const graphHeight = graphCanvas.height - padding * 2;
+
+            // Fixed scales
+            const maxDisp = 200;
+            const maxForce = 200;
+
+            const dispStep = 50;
+            const forceStep = 50;
+
+            graphCtx.strokeStyle = '#ccc';
+            graphCtx.fillStyle = 'black';
+            graphCtx.font = '10px Arial';
+
+            // Vertical grid lines (Displacement)
+            for (let disp = -maxDisp; disp <= maxDisp; disp += dispStep) {
+                const x = map(disp, -maxDisp, maxDisp, padding, graphCanvas.width - padding);
+                graphCtx.beginPath();
+                graphCtx.moveTo(x, padding);
+                graphCtx.lineTo(x, graphCanvas.height - padding);
+                graphCtx.stroke();
+
+                graphCtx.fillText(disp.toFixed(0), x - 10, graphCanvas.height - padding + 15);
+            }
+
+            // Horizontal grid lines (Force)
+            for (let force = -maxForce; force <= maxForce; force += forceStep) {
+                const y = map(force, -maxForce, maxForce, graphCanvas.height - padding, padding);
+                graphCtx.beginPath();
+                graphCtx.moveTo(padding, y);
+                graphCtx.lineTo(graphCanvas.width - padding, y);
+                graphCtx.stroke();
+
+                graphCtx.fillText(force.toFixed(0), padding - 35, y + 3);
+            }
+        }
+
+        // Map function to scale data
+        function map(value, inMin, inMax, outMin, outMax) {
+            return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+        }
+
+        /* ---------- Simulation Functions ---------- */
+        // Update mass position and velocity
+        function updatePosition() {
+            if (isDragging) return; // Skip update if dragging
+
+            // Calculate forces from springs
+            const { Fx1, Fy1, Fx2, Fy2 } = calculateSpringForces();
+
+            totalSpringForce = Fy1 + Fy2;
+
+            // Damping forces
+            const Fx_damping = -dampingFactor * massVelocity.x;
+            const Fy_damping = -dampingFactor * massVelocity.y;
+            dampingForce = Math.sqrt(Fx_damping * Fx_damping + Fy_damping * Fy_damping);
+
+            // Total forces
+            const Fx = Fx1 + Fx2 + Fx_damping;
+            // Corrected external force direction:
+            const Fy = Fy1 + Fy2 + Fy_damping + externalForce - m * gravity;
+
+            // Update acceleration, velocity, and position
+            const ax = Fx / m;
+            const ay = Fy / m;
+
+            massVelocity.x += ax * dt;
+            massVelocity.y += ay * dt;
+            massPosition.x += massVelocity.x * dt;
+            massPosition.y += massVelocity.y * dt;
+
+            time += dt;
+
+            drawSystem();
+            updateInfo();
+
+            // Update graph data
+            // Corrected external force in totalForceY:
+            const totalForceY = totalSpringForce - m * gravity + externalForce + Fy_damping;
+            displacementData.push(massPosition.y);
+            forceData.push(totalForceY);
+
+            drawGraph();
+
+            // Update force labels
+            updateForceLabels();
+        }
+
+        // Calculate spring forces
+        function calculateSpringForces() {
+            const dx1 = massPosition.x + 100;
+            const dy1 = massPosition.y;
+            const L1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+            const Fx1 = -k * (L1 - L0) * dx1 / L1;
+            const Fy1 = -k * (L1 - L0) * dy1 / L1;
+
+            const dx2 = massPosition.x - 100;
+            const dy2 = massPosition.y;
+            const L2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+            const Fx2 = -k * (L2 - L0) * dx2 / L2;
+            const Fy2 = -k * (L2 - L0) * dy2 / L2;
+
+            return { Fx1, Fy1, Fx2, Fy2 };
+        }
+
+        // Update force labels
+        function updateForceLabels() {
+            // Update spring force
+            springForceValueEl.textContent = totalSpringForce.toFixed(2);
+            // Update gravity force
+            gravityForceValueEl.textContent = (m * gravity).toFixed(2);
+            // Update external force
+            externalForceValueEl.textContent = externalForce.toFixed(2);
+            // Update damping force
+            dampingForceValueEl.textContent = dampingForce.toFixed(2);
+        }
+
+        // Compute equilibrium positions
+        function computeEquilibriumPositions() {
+            // Corrected external force direction:
+            const F_net = externalForce - m * gravity;
+            const f = function(y) {
+                const L1 = Math.sqrt(10000 + y * y);
+                const L2 = L1; // Symmetry
+                const Fy1 = -k * (L1 - L0) * y / L1;
+                const Fy2 = -k * (L2 - L0) * y / L2;
+                return Fy1 + Fy2 + F_net;
+            };
+
+            const y_min = -500;
+            const y_max = 500;
+            const dy = 1;
+            let roots = [];
+            let f_prev = f(y_min);
+
+            for (let y = y_min + dy; y <= y_max; y += dy) {
+                const f_current = f(y);
+                if (f_prev * f_current <= 0) {
+                    const y1 = y - dy;
+                    const y2 = y;
+                    const root = findRoot(f, y1, y2);
+                    if (root !== null && isValidEquilibrium(root)) {
+                        if (!roots.some(r => Math.abs(r - root) < 1e-2)) {
+                            roots.push(root);
+                        }
+                    }
+                    f_prev = f_current;
+                }
+                f_prev = f_current;
+            }
+            roots.sort((a, b) => a - b);
+
+            // Label roots as y_e1 and y_e3, skipping y_e2 if invalid
+            const labeledRoots = {};
+            if (roots.length >= 1) labeledRoots['y_e1'] = roots[0];
+            if (roots.length >= 2) labeledRoots['y_e3'] = roots[1]; // Assuming y_e2 is invalid
+
+            return labeledRoots;
+        }
+
+        // Validate equilibrium positions
+        function isValidEquilibrium(y) {
+            // For demonstration, assume y_e2 is invalid if y is between -50 and 50
+            return y <= -50 || y >= 50;
+        }
+
+        // Bisection method to find roots
+        function findRoot(f, y1, y2, tol = 1e-6, maxIter = 100) {
+            let f1 = f(y1);
+            let f2 = f(y2);
+            if (f1 * f2 > 0) return null;
+
+            for (let i = 0; i < maxIter; i++) {
+                const ym = (y1 + y2) / 2;
+                const fm = f(ym);
+                if (Math.abs(fm) < tol) return ym;
+                if (f1 * fm < 0) {
+                    y2 = ym;
+                    f2 = fm;
+                } else {
+                    y1 = ym;
+                    f1 = fm;
+                }
+            }
+            return (y1 + y2) / 2;
+        }
+
+        // Update information display
+        function updateInfo() {
+            const equilibria = computeEquilibriumPositions();
+            let equilibriumInfo = '';
+            const labels = Object.keys(equilibria);
+
+            if (labels.length > 0) {
+                equilibriumInfo = ' | Equilibrium Positions: ';
+                labels.forEach(label => {
+                    equilibriumInfo += `${label} = ${equilibria[label].toFixed(2)} `;
+                });
+            } else {
+                equilibriumInfo = ' | No Equilibrium Positions Found';
+            }
+
+            info.textContent = `Time: ${time.toFixed(2)}s | Mass Position: (${massPosition.x.toFixed(2)}, ${massPosition.y.toFixed(2)})${equilibriumInfo}`;
+        }
+
+        /* ---------- Event Handlers ---------- */
+        // Play/Pause button
+        playPauseBtn.addEventListener('click', toggleSimulation);
+
+        // Step button
+        stepBtn.addEventListener('click', step);
+
+        // Reset button
+        resetBtn.addEventListener('click', reset);
+
+        // Slider event listeners
+        forceSlider.addEventListener('input', () => {
+            externalForce = parseFloat(forceSlider.value);
+            forceValue.textContent = externalForce.toFixed(1);
+            updateInfo();
+            drawSystem();
+            updateForceLabels();
+        });
+
+        lengthSlider.addEventListener('input', () => {
+            L0 = parseFloat(lengthSlider.value);
+            lengthValue.textContent = L0.toFixed(0);
+            updateInfo();
+            drawSystem();
+        });
+
+        massSlider.addEventListener('input', () => {
+            m = parseFloat(massSlider.value);
+            massValue.textContent = m.toFixed(1);
+            updateInfo();
+            drawSystem();
+            updateForceLabels();
+        });
+
+        dampingSlider.addEventListener('input', () => {
+            dampingFactor = parseFloat(dampingSlider.value);
+            dampingValue.textContent = dampingFactor.toFixed(2);
+            updateInfo();
+            drawSystem();
+        });
+
+        gravitySlider.addEventListener('input', () => {
+            gravity = parseFloat(gravitySlider.value);
+            gravityValue.textContent = gravity.toFixed(2);
+            updateInfo();
+            drawSystem();
+            updateForceLabels();
+        });
+
+        // Event listeners for checkboxes
+        showSpringForcesCheckbox.addEventListener('change', () => {
+            showSpringForces = showSpringForcesCheckbox.checked;
+            drawSystem();
+        });
+
+        showGravityForceCheckbox.addEventListener('change', () => {
+            showGravityForce = showGravityForceCheckbox.checked;
+            drawSystem();
+        });
+
+        showExternalForceCheckbox.addEventListener('change', () => {
+            showExternalForce = showExternalForceCheckbox.checked;
+            drawSystem();
+        });
+
+        showDampingForceCheckbox.addEventListener('change', () => {
+            showDampingForce = showDampingForceCheckbox.checked;
+            drawSystem();
+        });
+
+        // Mouse events for dragging
+        canvas.addEventListener('mousedown', startDragging);
+        canvas.addEventListener('mousemove', dragMass);
+        canvas.addEventListener('mouseup', stopDragging);
+        canvas.addEventListener('mouseleave', stopDragging); // To stop dragging if mouse leaves canvas
+
+        // Touch events for dragging
+        canvas.addEventListener('touchstart', startDragging);
+        canvas.addEventListener('touchmove', dragMass);
+        canvas.addEventListener('touchend', stopDragging);
+
+        // Double-click event for full-screen toggle on the entire container
+        container.addEventListener('dblclick', toggleFullScreen);
+
+        /* ---------- Simulation Control Functions ---------- */
+        // Toggle simulation play/pause state
+        function toggleSimulation() {
+            isPlaying = !isPlaying;
+            playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) simulationLoop();
+        }
+
+        // Simulation loop
+        function simulationLoop() {
+            if (isPlaying) {
+                updatePosition();
+                requestAnimationFrame(simulationLoop);
+            }
+        }
+
+        // Perform a single simulation step
+        function step() {
+            isPlaying = false;
+            playPauseBtn.textContent = 'Play';
+            updatePosition();
+        }
+
+        // Reset simulation to initial state
+        function reset() {
+            isPlaying = false;
+            playPauseBtn.textContent = 'Play';
+            massPosition = { x: 0, y: 0 };
+            massVelocity = { x: 0, y: 0 };
+            time = 0;
+
+            // Reset data arrays
+            displacementData = [];
+            forceData = [];
+
+            // Reset sliders and values
+            externalForce = parseFloat(forceSlider.value);
+            forceValue.textContent = externalForce.toFixed(1);
+
+            L0 = parseFloat(lengthSlider.value);
+            lengthValue.textContent = L0.toFixed(0);
+
+            m = parseFloat(massSlider.value);
+            massValue.textContent = m.toFixed(1);
+
+            dampingFactor = parseFloat(dampingSlider.value);
+            dampingValue.textContent = dampingFactor.toFixed(2);
+
+            gravity = parseFloat(gravitySlider.value);
+            gravityValue.textContent = gravity.toFixed(2);
+
+            drawSystem();
+            updateInfo();
+            drawGraph();
+            updateForceLabels();
+        }
+
+        /* ---------- Dragging Functions ---------- */
+        function startDragging(event) {
+            event.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const clientX = event.clientX || event.touches[0].clientX;
+            const clientY = event.clientY || event.touches[0].clientY;
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            const massCanvasX = centerX + massPosition.x;
+            const massCanvasY = centerY - massPosition.y;
+            const dx = mouseX - massCanvasX;
+            const dy = mouseY - massCanvasY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 10) {
+                isDragging = true;
+                dragStartY = mouseY;
+                initialMassPositionY = massPosition.y;
+            }
+        }
+
+        function dragMass(event) {
+            if (isDragging) {
+                event.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const clientY = event.clientY || event.touches[0].clientY;
+                const mouseY = clientY - rect.top;
+                const dy = mouseY - dragStartY;
+                massPosition.y = initialMassPositionY - dy;
+                massVelocity.y = 0; // Reset velocity during dragging
+                drawSystem();
+                updateInfo();
+                updateForceLabels();
+            }
+        }
+
+        function stopDragging(event) {
+            if (isDragging) {
+                isDragging = false;
+            }
+        }
+
+        /* ---------- Full-Screen Functions ---------- */
+        function toggleFullScreen() {
+            if (!isFullScreen) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.mozRequestFullScreen) {
+                    container.mozRequestFullScreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+                isFullScreen = true;
+                fullscreenButton.textContent = 'Exit Full Screen';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                isFullScreen = false;
+                fullscreenButton.textContent = 'Go Full Screen';
+            }
+            resizeCanvas(); // Adjust canvas size when entering/exiting full-screen
+        }
+
+        // Handle resizing when entering/exiting full-screen
+        document.addEventListener('fullscreenchange', resizeCanvas);
+        document.addEventListener('webkitfullscreenchange', resizeCanvas);
+        document.addEventListener('mozfullscreenchange', resizeCanvas);
+        document.addEventListener('MSFullscreenChange', resizeCanvas);
+
+    </script>
+</body>
+</html>

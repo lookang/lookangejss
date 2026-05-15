@@ -1,0 +1,550 @@
+<html>
+  <head>
+    <title> ExB_Filter_Exercise_2.py with Bug Fix</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # ExB_Filter_Exercise_2.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file is used to numerically integrate
+    </p>
+    <p style="margin-top: 0">
+      # the second order linear differential equations
+    </p>
+    <p style="margin-top: 0">
+      # that describe the trajectory of a charged particle through
+    </p>
+    <p style="margin-top: 0">
+      # an E x B velocity filter.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Here, it is assumed that the axis of the filter
+    </p>
+    <p style="margin-top: 0">
+      # is aligned with the z-axis, that the magnetic field
+    </p>
+    <p style="margin-top: 0">
+      # is along the +x-direction, and that the electric field
+    </p>
+    <p style="margin-top: 0">
+      # is along the -y-direction.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # The numerical integration is done using the built-in
+    </p>
+    <p style="margin-top: 0">
+      # routine odeint.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # By:
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799 (Office)
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Last updated:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20160624 ERB
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      from pylab import figure,plot,xlim,xlabel,ylim,ylabel,grid,title,show
+    </p>
+    <p style="margin-top: 0">
+      from numpy import sqrt,array,arange
+    </p>
+    <p style="margin-top: 0">
+      from scipy.integrate import odeint
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Initialize parameter values
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      q = 1.60e-19 # particle charge [C]
+    </p>
+    <p style="margin-top: 0">
+      m = 7.0*1.67e-27 # particle mass [kg]
+    </p>
+    <p style="margin-top: 0">
+      KE_eV = 100.0 # particle kinetic energy [eV]
+    </p>
+    <p style="margin-top: 0">
+      Ex = 0.0 # Ex = electric field in the +x direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Ey = -105.0 # Ey = electric field in the +y direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Ez = 0.0 # Ez = electric field in the +z direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Bx = 0.002 # Bx = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      By = 0.0 # By = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      Bz = 0.0 # Bz = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      L = 0.25 # L = length of the crossed field region [mm]
+    </p>
+    <p style="margin-top: 0">
+      u = [1.0,1.0,100.0]/sqrt(10002.0) # direction of the velocity vector
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Derived quantities
+    </p>
+    <p style="margin-top: 0">
+      qoverm = q/m # charge to mass ratio [C/kg]
+    </p>
+    <p style="margin-top: 0">
+      KE = KE_eV*1.602e-19 # particle kinetic energy [J]
+    </p>
+    <p style="margin-top: 0">
+      vmag = sqrt(2.0*KE/m) # particle velocity magnitude [m/s]
+    </p>
+    <p style="margin-top: 0">
+      v1x = vmag*u[0] # v1x = x-component of the initial velocity [m/s]
+    </p>
+    <p style="margin-top: 0">
+      v1y = vmag*u[1] # v1y = y-component of the initial velocity [m/s]
+    </p>
+    <p style="margin-top: 0">
+      v1z = vmag*u[2] # v1z = z-component of the initial velocity [m/s]
+    </p>
+    <p style="margin-top: 0">
+      vzpass = -Ey/Bx # vzpass is the z-velocity required for no deflection 
+      [m/s]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Over what time interval do we integrate?
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      tmax = L/v1z;
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Here are the derivatives of position and velocity
+    </p>
+    <p style="margin-top: 0">
+      def derivs(r,t):
+    </p>
+    <p style="margin-top: 0">
+      # derivatives of position components
+    </p>
+    <p style="margin-top: 0">
+      xp = r[1]
+    </p>
+    <p style="margin-top: 0">
+      yp = r[3]
+    </p>
+    <p style="margin-top: 0">
+      zp = r[5]
+    </p>
+    <p style="margin-top: 0">
+      dx = xp
+    </p>
+    <p style="margin-top: 0">
+      dy = yp
+    </p>
+    <p style="margin-top: 0">
+      dz = zp
+    </p>
+    <p style="margin-top: 0">
+      # derivatives of velocity components
+    </p>
+    <p style="margin-top: 0">
+      ddx = qoverm*(Ex + yp*Bz - zp*By)
+    </p>
+    <p style="margin-top: 0">
+      ddy = qoverm*(Ey + zp*Bx - xp*Bz)
+    </p>
+    <p style="margin-top: 0">
+      ddz = qoverm*(Ez + xp*By - yp*Bx)
+    </p>
+    <p style="margin-top: 0">
+      return array([dx,ddx,dy,ddy,dz,ddz],float)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Specify initial conditions
+    </p>
+    <p style="margin-top: 0">
+      x0 = 0.0 # initial x-coordinate of the charged particle [m]
+    </p>
+    <p style="margin-top: 0">
+      dxdt0 = v1x # initial x-velocity of the charged particle [m/s]
+    </p>
+    <p style="margin-top: 0">
+      y0 = 0.0 # initial y-coordinate of the charged particle [m]
+    </p>
+    <p style="margin-top: 0">
+      dydt0 = v1y # initial y-velocity of the charged particle [m/s]
+    </p>
+    <p style="margin-top: 0">
+      z0 = 0.0 # initial z-coordinate of the charged particle [m]
+    </p>
+    <p style="margin-top: 0">
+      dzdt0 = v1z # initial z-velocity of the charged particle [m/s]
+    </p>
+    <p style="margin-top: 0">
+      r0 = array([x0,dxdt0,y0,dydt0,z0,dzdt0],float)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set up the time interval
+    </p>
+    <p style="margin-top: 0">
+      t1 = 0.0 # initial time
+    </p>
+    <p style="margin-top: 0">
+      t2 = tmax # final scaled time
+    </p>
+    <p style="margin-top: 0">
+      N = 1000 # number of time steps
+    </p>
+    <p style="margin-top: 0">
+      h = (t2-t1)/N # time step size
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # The array of time values at which to store the solution
+    </p>
+    <p style="margin-top: 0">
+      tpoints = arange(t1,t2,h)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the solution using odeint
+    </p>
+    <p style="margin-top: 0">
+      r = odeint(derivs,r0,tpoints)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Extract the 1D matrices of position values
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      position_x = r[:,0]
+    </p>
+    <p style="margin-top: 0">
+      xmin = min(position_x)
+    </p>
+    <p style="margin-top: 0">
+      xmax = max(position_x)
+    </p>
+    <p style="margin-top: 0">
+      position_y = r[:,2]
+    </p>
+    <p style="margin-top: 0">
+      ymin = min(position_y)
+    </p>
+    <p style="margin-top: 0">
+      ymax = max(position_y)
+    </p>
+    <p style="margin-top: 0">
+      position_z = r[:,4]
+    </p>
+    <p style="margin-top: 0">
+      zmin = min(position_z)
+    </p>
+    <p style="margin-top: 0">
+      zmax = max(position_z)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the final velocity
+    </p>
+    <p style="margin-top: 0">
+      vx = r[:,1]
+    </p>
+    <p style="margin-top: 0">
+      vxf = vx[N-1]
+    </p>
+    <p style="margin-top: 0">
+      vy = r[:,3]
+    </p>
+    <p style="margin-top: 0">
+      vyf = vy[N-1]
+    </p>
+    <p style="margin-top: 0">
+      vz = r[:,5]
+    </p>
+    <p style="margin-top: 0">
+      vzf = vz[N-1]
+    </p>
+    <p style="margin-top: 0">
+      vf = sqrt(vxf*vxf+vyf+vyf+vzf*vzf)
+    </p>
+    <p style="margin-top: 0">
+      KEf_eV = 0.5*m*vf*vf/1.60e-19
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The initial x-velocity = %.3e&quot;%v1x,&quot; m/s.&quot;) ##Frem: Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The initial x-velocity = %.3e&quot;%vx[0],&quot; m/s.&quot;)##Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The pass velocity = %.3e&quot;%vzpass,&quot; m/s.&quot;)##Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The magnitude of the initial velocity = %.3e&quot;%vmag,&quot; 
+      m/s.&quot;)##Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The magnitude of the final velocity = %.3e&quot;%vf,&quot; m/s.&quot;)##Added 
+      brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The initial kinetic energy = %.3e&quot;%KE_eV,&quot; eV.&quot;)##Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The final kinetic energy = %.3e&quot;%KEf_eV,&quot; eV.&quot;)##Added brackets
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # start a new figure
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the x-position versus time
+    </p>
+    <p style="margin-top: 0">
+      plot(tpoints,position_x,&quot;b-&quot;)
+    </p>
+    <p style="margin-top: 0">
+      xlim(t1,t2)
+    </p>
+    <p style="margin-top: 0">
+      ylim(xmin,xmax)
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;Time $t$ [s]&quot;,fontsize=16)
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;$x$ [m]&quot;,fontsize=16)
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      title('Wien filter: $v = $%.2e m, length $L = $%.2f m'%(vmag,L))
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # start a new figure
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the y-position versus time
+    </p>
+    <p style="margin-top: 0">
+      plot(tpoints,position_y,&quot;b-&quot;)
+    </p>
+    <p style="margin-top: 0">
+      xlim(t1,t2)
+    </p>
+    <p style="margin-top: 0">
+      ylim(ymin,ymax)
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;Time $t$ [s]&quot;,fontsize=16)
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;$y$ [m]&quot;,fontsize=16)
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      title('Wien filter: $v = $%.2e m/s, length $L = $%.2f m'%(vmag,L))
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # start a new figure
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the z-position versus time
+    </p>
+    <p style="margin-top: 0">
+      plot(tpoints,position_z,&quot;b-&quot;)
+    </p>
+    <p style="margin-top: 0">
+      xlim(t1,t2)
+    </p>
+    <p style="margin-top: 0">
+      ylim(zmin,zmax)
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;Time $t$ [s]&quot;,fontsize=16)
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;$z$ [m]&quot;,fontsize=16)
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      title('Wien filter: $v = $%.2e m/s, length $L = $%.2f m'%(vmag,L))
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # start a new figure
+    </p>
+    <p style="margin-top: 0">
+      plot_trajectory = figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot the trajectory in 3D
+    </p>
+    <p style="margin-top: 0">
+      ax = plot_trajectory.gca(projection='3d')
+    </p>
+    <p style="margin-top: 0">
+      ax.plot(position_x,position_y,position_z,&quot;b-&quot;)
+    </p>
+    <p style="margin-top: 0">
+      ax.set_xlabel(&quot;$x$ [m]&quot;)
+    </p>
+    <p style="margin-top: 0">
+      ax.set_ylabel(&quot;$y$ [m]&quot;)
+    </p>
+    <p style="margin-top: 0">
+      ax.set_zlabel(&quot;$z$ [m]&quot;)
+    </p>
+    <p style="margin-top: 0">
+      ax.set_title(&quot;Wien filter: $v = $%.2e m/s, length $L$ = %s&quot;%(vmag,L))
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensure proper scaling on all devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Metric Prefix Challenge</title>
+  
+  <!-- ===== Google Analytics & Ads ===== -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+  <script data-ad-client="ca-pub-0121577198857509" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  
+  <!-- ===== XAPI Wrapper & Utils ===== -->
+  <script src="xapiwrapper.min.js"></script>
+  <script>
+    // Using a namespace to prevent global variable clashes
+    const XAPIUtils = {
+      parameters: null, // Parameters store
+      getParameters: function () {
+        if (!this.parameters) { // Fetch only once
+          var urlParams = new URLSearchParams(window.location.search);
+          var endpoint = urlParams.get('endpoint');
+          var auth = urlParams.get('auth');
+          var agent = JSON.parse(urlParams.get('agent'));
+          var stateId = urlParams.get('stateId');
+          var activityId = urlParams.get('activityId');
+          ADL.XAPIWrapper.changeConfig({ "endpoint": endpoint + "/", "auth": `Basic ${auth}` });
+          this.parameters = { agent, stateId, activityId };
+        }
+        return this.parameters;
+      }
+    };
+    // Immediately fetch parameters on page load.
+    document.addEventListener("DOMContentLoaded", function() {
+      XAPIUtils.getParameters();
+    });
+  </script>
+  
+  <!-- ===== Styles ===== -->
+  <style>
+    /* ========= Base & Reset Styles ========= */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background-color: #f8f9fa; color: #333; }
+    
+    /* ========= Container & Layout ========= */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    header {
+      text-align: center;
+      padding: 15px;
+      background-color: #007bff;
+      color: #fff;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    header h1 { font-size: 1.5em; }
+    
+    /* Plotting panel (canvas) */
+    .plotting-panel {
+      text-align: center;
+      margin: 10px 0;
+    }
+    /* Ensure the canvas scales for smaller screens */
+    #CanvasOne {
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      border: 1px solid #c3c3c3;
+    }
+    
+    /* Answers & Controls Panel */
+    .controls-panel {
+      background: #fff;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    .controls-panel h2 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    .options button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 1.2em;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      background: #f1f1f1;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .options button.selected {
+      background: #007bff;
+      color: #fff;
+      transform: scale(1.1);
+    }
+    .options button.correct {
+      background: #28a745;
+      color: #fff;
+    }
+    .btn-check {
+      display: block;
+      width: 50%;
+      margin: 0 auto 10px;
+      padding: 10px;
+      font-size: 1.3em;
+      background: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-check:hover { background: #218838; }
+    
+    /* Footer */
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      background: #e9ecef;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    footer .info { font-size: 1.2em; }
+    footer button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    footer button:hover { background: #c82333; }
+    
+    /* End Overlay & Fireworks */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 1000;
+    }
+    .overlay canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .end-message {
+      position: relative;
+      z-index: 1001;
+      text-align: center;
+      color: #fff;
+    }
+    .end-message h2 { font-size: 3em; margin-bottom: 10px; }
+    .end-message p { font-size: 1.5em; margin-bottom: 20px; }
+    .end-message button {
+      padding: 10px 20px;
+      font-size: 1.3em;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    /* ========= Responsive Adjustments ========= */
+    @media (max-width: 768px) {
+      header h1 { font-size: 1em; }
+      .btn-check, footer button { font-size: 1em; padding: 1px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Metric Prefix Challenge</h1>
+    </header>
+    
+    <!-- Plotting Panel: Canvas for drawing the problem & score -->
+    <div class="plotting-panel">
+      <canvas id="CanvasOne" width="900" height="150">
+        Your browser does not support HTML5 Canvas.
+      </canvas>
+    </div>
+    
+    <!-- Controls Panel: Answer selections -->
+    <div class="controls-panel">
+      <h2>Select Answers</h2>
+      <div class="options" id="number-options">
+        <!-- Number buttons inserted dynamically -->
+      </div>
+      <div class="options" id="prefix-options">
+        <!-- Prefix buttons inserted dynamically -->
+      </div>
+      <button id="check-btn" class="btn-check">Check Answer</button>
+    </div>
+    
+    <footer>
+      <div class="info">
+        <span id="timer">Time: 60s</span> | <span id="score">Score: 0</span>
+      </div>
+      <button id="end-btn">End Game</button>
+    </footer>
+  </div>
+  
+  <!-- End Game Overlay with Fireworks Animation -->
+  <div id="end-overlay" class="overlay">
+    <canvas id="fireworks-canvas"></canvas>
+    <div class="end-message">
+      <h2>Congratulations!</h2>
+      <p>Your Score: <span id="final-score"></span></p>
+      <button id="restart-btn">Restart Game</button>
+    </div>
+  </div>
+  
+  <!-- ===== Main Game Script ===== -->
+  <script>
+    "use strict";
+    document.addEventListener("DOMContentLoaded", () => {
+      /* ===== Global Variables ===== */
+      let score = 0;
+      let timeRemaining = 60;
+      let gameTimer;
+      let currentProblem = {};
+      let selectedNumberIndex = null;
+      let selectedPrefixIndex = null;
+      let currentDisplayText = ""; // The problem text to be drawn
+      
+      // Arrays for generating the problem
+      const units = ["m", "V", "W", "A", "J"];
+      // Prefix indices: 0 = p, 1 = n, 2 = µ, 3 = m, 4 = k, 5 = M, 6 = G, 7 = T
+      const prefixLabels = ["p", "n", "µ", "m", "k", "M", "G", "T"];
+      
+      /* ===== DOM Elements ===== */
+      const numberOptionsEl = document.getElementById("number-options");
+      const prefixOptionsEl = document.getElementById("prefix-options");
+      const checkBtn = document.getElementById("check-btn");
+      const timerEl = document.getElementById("timer");
+      const scoreEl = document.getElementById("score");
+      const endBtn = document.getElementById("end-btn");
+      const endOverlay = document.getElementById("end-overlay");
+      const finalScoreEl = document.getElementById("final-score");
+      const restartBtn = document.getElementById("restart-btn");
+      
+      // Canvas for plotting panel
+      const theCanvas = document.getElementById("CanvasOne");
+      const ctx = theCanvas.getContext("2d");
+      
+      /* ===== Initialize Option Buttons ===== */
+      function initNumberOptions() {
+        numberOptionsEl.innerHTML = "";
+        // Create three number buttons (for 3 different formats)
+        for (let i = 0; i < 3; i++) {
+          const btn = document.createElement("button");
+          btn.className = "option-btn";
+          btn.dataset.index = i;
+          btn.addEventListener("click", () => {
+            selectedNumberIndex = i;
+            [...numberOptionsEl.children].forEach(child => child.classList.remove("selected"));
+            btn.classList.add("selected");
+          });
+          numberOptionsEl.appendChild(btn);
+        }
+      }
+      
+      function initPrefixOptions() {
+        prefixOptionsEl.innerHTML = "";
+        // Create eight prefix buttons (displayed from highest to lowest: T, G, M, k, m, µ, n, p)
+        for (let i = 7; i >= 0; i--) {
+          const btn = document.createElement("button");
+          btn.className = "option-btn";
+          btn.dataset.index = i;
+          btn.textContent = prefixLabels[i];
+          btn.addEventListener("click", () => {
+            selectedPrefixIndex = i;
+            [...prefixOptionsEl.children].forEach(child => child.classList.remove("selected"));
+            btn.classList.add("selected");
+          });
+          prefixOptionsEl.appendChild(btn);
+        }
+      }
+      
+      /* ===== Generate a New Problem ===== */
+      function generateProblem() {
+        // Reset selections and button highlights
+        selectedNumberIndex = null;
+        selectedPrefixIndex = null;
+        [...numberOptionsEl.children].forEach(btn => btn.classList.remove("selected", "correct"));
+        [...prefixOptionsEl.children].forEach(btn => btn.classList.remove("selected", "correct"));
+        
+        // Randomly choose problem parameters
+        const typeOfProblem = Math.floor(Math.random() * 8); // 0 to 7 determines prefix and conversion
+        const threeDigit = Math.floor(Math.random() * 899 + 100); // a three-digit number (100–998)
+        const numberPlaces = Math.floor(Math.random() * 3); // 0, 1, or 2 determines correct number format
+        const unitNumber = Math.floor(Math.random() * units.length);
+        
+        // The correct number option is the one corresponding to numberPlaces.
+        const correctNumberIndex = numberPlaces;
+        // For the prefix, we map typeOfProblem to a metric prefix:
+        // 0 -> pico, 1 -> nano, 2 -> micro, 3 -> milli, 4 -> kilo, 5 -> mega, 6 -> giga, 7 -> tera.
+        const correctPrefixIndex = typeOfProblem;
+        
+        // Construct display text based on typeOfProblem:
+        if (typeOfProblem === 0) {
+          // Pico: exponent = 12 - numberPlaces.
+          const frontNumber = (threeDigit / 100).toFixed(2);
+          const exponent = 12 - numberPlaces;
+          currentDisplayText = `${frontNumber}e-${exponent} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 1) {
+          // Nano: exponent = 9 - numberPlaces.
+          const frontNumber = (threeDigit / 100).toFixed(2);
+          const exponent = 9 - numberPlaces;
+          currentDisplayText = `${frontNumber}e-${exponent} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 2) {
+          // Micro: exponent = 6 - numberPlaces.
+          const frontNumber = (threeDigit / 100).toFixed(2);
+          const exponent = 6 - numberPlaces;
+          currentDisplayText = `${frontNumber}e-${exponent} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 3) {
+          // Milli: use decimal representation; divisor = 10^(5 - numberPlaces)
+          const divisor = Math.pow(10, 5 - numberPlaces);
+          const num = (threeDigit / divisor).toFixed(6);
+          currentDisplayText = `${num} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 4) {
+          // Kilo: use decimal representation; multiplier = 10^(1 + numberPlaces)
+          const multiplier = Math.pow(10, 1 + numberPlaces);
+          const num = (threeDigit * multiplier).toFixed(0);
+          currentDisplayText = `${num} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 5) {
+          // Mega: exponent = 6 + numberPlaces.
+          const frontNumber = (threeDigit / 100).toFixed(2);
+          const exponent = 6 + numberPlaces;
+          currentDisplayText = `${frontNumber}e${exponent} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 6) {
+          // Giga: exponent = 9 + numberPlaces.
+          const frontNumber = (threeDigit / 100).toFixed(2);
+          const exponent = 9 + numberPlaces;
+          currentDisplayText = `${frontNumber}e${exponent} ${units[unitNumber]}`;
+        } else if (typeOfProblem === 7) {
+          // Tera: exponent = 12 + numberPlaces.
+          const frontNumber = (threeDigit / 100).toFixed(2);
+          const exponent = 12 + numberPlaces;
+          currentDisplayText = `${frontNumber}e${exponent} ${units[unitNumber]}`;
+        }
+        
+        // Save correct answers for checking
+        currentProblem = {
+          correctNumberIndex: correctNumberIndex,
+          correctPrefixIndex: correctPrefixIndex
+        };
+        
+        // Update the canvas display
+        drawCanvas();
+        
+        // Update number option buttons: three formats
+        const numberOptions = [
+          (threeDigit / 100).toFixed(2),
+          (threeDigit / 10).toFixed(1),
+          threeDigit.toFixed(0)
+        ];
+        [...numberOptionsEl.children].forEach((btn, index) => {
+          btn.textContent = numberOptions[index];
+        });
+      }
+      
+      /* ===== Canvas Drawing Function ===== */
+      function drawCanvas() {
+        // Clear the canvas
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, theCanvas.width, theCanvas.height);
+        
+        // Draw instructions at the top
+        ctx.font = "28px Arial";
+        ctx.fillStyle = "#000000";
+        const instruction = "Convert this number to one with a metric prefix";
+        let textWidth = ctx.measureText(instruction).width;
+        ctx.fillText(instruction, (theCanvas.width - textWidth) / 2, 40);
+        
+        // Draw the problem in red
+        ctx.font = "42px Arial";
+        ctx.fillStyle = "#990000";
+        textWidth = ctx.measureText(currentDisplayText).width;
+        ctx.fillText(currentDisplayText, (theCanvas.width - textWidth) / 2, 120);
+        
+        // Draw the score at the bottom-left
+        ctx.font = "32px Arial";
+        ctx.fillStyle = "#990000";
+        ctx.fillText("Score: " + score, 20, theCanvas.height - 20);
+      }
+      
+      /* ===== Check the User's Answer ===== */
+      function checkAnswer() {
+        if (selectedNumberIndex === null || selectedPrefixIndex === null) {
+          alert("Please select both a number and a prefix option.");
+          return;
+        }
+        if (
+          selectedNumberIndex == currentProblem.correctNumberIndex &&
+          selectedPrefixIndex == currentProblem.correctPrefixIndex
+        ) {
+          score++;
+          scoreEl.textContent = "Score: " + score;
+          generateProblem();
+        } else {
+          // Highlight correct answers for learning purposes
+          [...numberOptionsEl.children].forEach(btn => {
+            if (btn.dataset.index == currentProblem.correctNumberIndex) {
+              btn.classList.add("correct");
+            }
+          });
+          [...prefixOptionsEl.children].forEach(btn => {
+            if (btn.dataset.index == currentProblem.correctPrefixIndex) {
+              btn.classList.add("correct");
+            }
+          });
+          score = 0;
+          scoreEl.textContent = "Score: 0";
+        }
+      }
+      
+      /* ===== Timer & Game End ===== */
+      function startTimer() {
+        timeRemaining = 60;
+        timerEl.textContent = "Time: " + timeRemaining + "s";
+        gameTimer = setInterval(() => {
+          timeRemaining--;
+          timerEl.textContent = "Time: " + timeRemaining + "s";
+          if (timeRemaining <= 0) {
+            clearInterval(gameTimer);
+            endGame();
+          }
+        }, 1000);
+      }
+      
+      function endGame() {
+        clearInterval(gameTimer);
+        finalScoreEl.textContent = score;
+        // Call sendScore with the final score via XAPI.
+        sendScore(score);
+        endOverlay.style.display = "flex";
+        startFireworks();
+      }
+      
+      function restartGame() {
+        endOverlay.style.display = "none";
+        score = 0;
+        scoreEl.textContent = "Score: 0";
+        generateProblem();
+        startTimer();
+      }
+      
+      /* ===== Fireworks Animation on Game End ===== */
+      function startFireworks() {
+        const fwCanvas = document.getElementById("fireworks-canvas");
+        const fwCtx = fwCanvas.getContext("2d");
+        fwCanvas.width = window.innerWidth;
+        fwCanvas.height = window.innerHeight;
+        let particles = [];
+        
+        function createParticle(x, y, color) {
+          return {
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            radius: Math.random() * 3 + 2,
+            alpha: 1,
+            color: color
+          };
+        }
+        
+        function explode(x, y) {
+          const colors = ["#ff0043", "#14fc56", "#1e90ff", "#ffea00", "#ff1493"];
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          for (let i = 0; i < 50; i++) {
+            particles.push(createParticle(x, y, color));
+          }
+        }
+        
+        function animateFireworks() {
+          fwCtx.fillStyle = "rgba(0, 0, 0, 0.2)";
+          fwCtx.fillRect(0, 0, fwCanvas.width, fwCanvas.height);
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= 0.01;
+            if (p.alpha <= 0) {
+              particles.splice(i, 1);
+            } else {
+              fwCtx.save();
+              fwCtx.globalAlpha = p.alpha;
+              fwCtx.beginPath();
+              fwCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+              fwCtx.fillStyle = p.color;
+              fwCtx.fill();
+              fwCtx.restore();
+            }
+          }
+          if (Math.random() < 0.05) {
+            explode(Math.random() * fwCanvas.width, Math.random() * fwCanvas.height / 2);
+          }
+          if (endOverlay.style.display !== "none") {
+            requestAnimationFrame(animateFireworks);
+          } else {
+            fwCtx.clearRect(0, 0, fwCanvas.width, fwCanvas.height);
+          }
+        }
+        animateFireworks();
+      }
+      
+      /* ===== XAPI: sendScore Function ===== */
+      function sendScore(score) {
+        try {
+          const parameters = XAPIUtils.getParameters(); // Retrieve stored parameters
+          const activityid = parameters.activityId;
+          const stateId = parameters.stateId;
+          const agent = parameters.agent;
+          const registration = null;
+          const stateValue = { score: score };
+          ADL.XAPIWrapper.sendState(activityid, agent, stateId, registration, stateValue);
+        } catch (err) {
+          console.error("XAPI Error:", err);
+        }
+      }
+      
+      /* ===== Attach Event Listeners ===== */
+      checkBtn.addEventListener("click", checkAnswer);
+      endBtn.addEventListener("click", endGame);
+      restartBtn.addEventListener("click", restartGame);
+      
+      /* ===== Initialize the Game ===== */
+      initNumberOptions();
+      initPrefixOptions();
+      generateProblem();
+      startTimer();
+    });
+  </script>
+</body>
+</html>

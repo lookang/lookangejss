@@ -1,0 +1,426 @@
+<html>
+
+ <style type='text/css'>
+   p {font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; margin-top: 20px; margin-left:20px;}
+   #mainTable { width: 100%; font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif}
+   #mainTable td { vertical-align:top; font-size: 10pt; }
+   .button { font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; font-size: 120%; padding: 10px; width: 100% }
+   .box { font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; font-size: 100%; padding: 2px; }
+   #titable th { padding: 5px; margin: 5px;}
+   #titable td { text-align : center }
+   .greenbg { background-color:66FF66 }
+   .redbg { background-color:pink }
+   .inputbg { background-color:FFFF00 }
+   .titlebg { background-color:ccddff; font-weight: bold; line-height: 200%; text-align: center; padding: 5px; margin: 5px; width: 500px; text-transform: uppercase;}
+   #fx stop:nth-child(1){
+     stop-color: white;
+   }
+
+   #fx stop:nth-child(2){
+     stop-color: white;
+   }
+
+   #fx stop:nth-child(3){
+     stop-color: white;
+   }
+
+   ul {list-style-type: none;margin: 0;padding: 0;overflow: hidden;background-color: ccddff;}
+   li {font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif; font-size: 80%; float: left;}
+   li a, .dropbtn {
+    display: inline-block;
+    color: black;
+    font-weight: bold;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+   }
+   li a:hover, .dropdown:hover .dropbtn {background-color: 99b3ff;}
+
+	.hover_img a { position:relative;}
+	.hover_img a span { position:absolute; display:none; z-index:99; background-color: ffffff; 
+	width: 300px; padding: 10px;
+        left:50%;
+  	-webkit-transform: translateX(-50%);
+  	-ms-transform: translateX(-50%);
+  	transform: translateX(-50%);}
+	.hover_img a:hover span { display:block; } 
+
+ </style>
+ <link rel="stylesheet" href="css/jquery-ui.css">
+ <script src="js/jquery.min.js"></script>
+ <script src="js/jquery-ui.js"></script>
+ <script src="js/jquery.stickytableheaders.min.js"></script>
+ <script type="text/javascript" src="js/d3.v4.min.js"></script>
+ <script type="text/javascript" src="js/elgo.js"></script>
+ <script type="text/javascript">
+
+  elgo.charts.load('current', {'packages':['corechart']});  // Load the Visualization API and the corechart package.
+  elgo.charts.setOnLoadCallback(firstLoad);                       // Set a callback to run when the Google Visualization API is loaded.
+
+  var buretteVol = 0;
+  var initMol = -1;
+  var totVol = 0;
+  var tooltipChartsHTML = {};
+  var pageLoaded = false;
+  
+  function createSVG(n,a,b){
+   var xmlns = "http://www.w3.org/2000/svg";
+   var e     = document.createElementNS (xmlns, n);
+   for(var k in a){
+     e.setAttributeNS (null, k,a[k]);
+   }
+   for(var k in b){
+     e.setAttribute (k,b[k]);
+   }
+   return e;
+ };
+
+  function firstLoad() {
+   $(document).ready( function() {
+    $("#titable tbody").html( $("#titable tbody").html() + "<tr><td>" + buretteVol.toFixed(2) + "</td><td>" + calculatePH().toFixed(2) + "</td><td>" + totVol.toFixed(2) + "</td></tr>");
+    updateNeutralisation();
+    $('#titable').stickyTableHeaders({ scrollableArea: $('#titable').parent() , fixedOffset:-30 });
+    $( "#acidSlider" ).slider({
+     value:100,
+     min: 5,
+     max: 200,
+     step: 5,
+     slide: function( event, ui ) {
+      setFloat("aconc", ui.value / 100);
+     },
+     stop: function( event, ui ) {
+      updateNeutralisation();
+     }
+    });
+    $( "#baseSlider" ).slider({
+     value:100,
+     min: 5,
+     max: 200,
+     step: 5,
+     slide: function( event, ui ) {
+      setFloat("bconc", ui.value / 100);
+     },
+     stop: function( event, ui ) {
+      updateNeutralisation();
+     }
+     
+    });
+    $( "#stopTSlider" ).slider({
+     value:500,
+     min: 10,
+     max: 500,
+     step: 10,
+     slide: function( event, ui ) {
+      setFloat("stopt", ui.value / 10);
+     }
+    });
+    pageLoaded = true;
+   });
+  }
+
+  function drawChart() {
+   var rows = $("#titable tbody tr");
+   for (i = 0; i < rows.length; i++)
+   if (tooltipChartsHTML[$( rows[i] ).children()[0].innerHTML] == undefined)  // Make sure all tooltips are generated before continuing to draw chart
+   {
+    window.setTimeout("drawChart()", 100); // If not all tooltips are ready, stop function, chill for 100ms, then call drawChart() again.
+    return;
+   }
+
+   // Create the data table.
+   var data = new elgo.visualization.DataTable();
+   data.addColumn('number', 'Volume');
+   data.addColumn('number', 'pH');
+   data.addColumn({
+     type: 'string',
+     label: 'Tooltip Chart',
+     role: 'tooltip',
+     'p': {'html': true}
+   });
+   
+   for (i = 0; i < rows.length; i++)
+    data.addRow([ parseFloat($( rows[i] ).children()[0].innerHTML), parseFloat( $( rows[i] ).children()[1].innerHTML ), tooltipChartsHTML[$( rows[i] ).children()[0].innerHTML] ]);
+ 
+   // Set chart options
+   var options = {
+                  hAxis: { title: 'Volume of strong base added / cm3',
+                  titleTextStyle: {color: '#FF0000', bold: 1, italic: 0, fontSize: 20, fontName: 'Lucida Sans Unicode' },
+                  viewWindow: { min: 0, max: 50 }, ticks: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]},
+                  vAxis: { title: 'pH', titleTextStyle: {color: '#FF0000', bold: 1, italic: 0, fontSize: 20, fontName: 'Lucida Sans Unicode' },
+                  viewWindow: { min: 0, max: 14 }, ticks: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14] },
+                  'chartArea': { top: 20 },
+                  'legend': {position: 'none'},
+                  'tooltip': {isHtml: true}, // This MUST be set to true for your chart to show.
+                  'width':700,
+                  'height':450,
+		  lineWidth: 3,
+          	  colors: ['black']
+                  };
+
+   // Instantiate and draw our chart, passing in some options.
+   var chart = new elgo.visualization.LineChart(document.getElementById('chart_div'));
+
+   elgo.visualization.events.addListener(chart, 'ready', function() {
+    var gradient = createSVG('linearGradient', {x1:0,y1:0, x2:0, y1:1}, {id:'fx'});
+    document.getElementById("chart_div").querySelector('svg>defs').appendChild(gradient);
+    gradient.appendChild(createSVG('stop',{offset:'0%'}));
+    gradient.appendChild(createSVG('stop',{offset:'25%'}));
+    gradient.appendChild(createSVG('stop',{offset:'50%'}));
+    gradient.appendChild(createSVG('stop',{offset:'100%'}));
+    $("svg").find("[clip-path]").parent().find("rect").first().attr("fill", "url(#fx)").attr("fill-opacity", "1");
+    changeChartColor($("#indtype").val());
+   });
+
+   function selectHandler() {
+    var selectedItem = chart.getSelection()[0];
+    if (selectedItem) {
+     var pX = data.getValue(selectedItem.row, 0).toFixed(2);
+     var pY = data.getValue(selectedItem.row, 1).toFixed(2);
+     $("#pX").val(pX);
+     $("#pY").val(pY);
+    }
+   }
+
+   elgo.visualization.events.addListener(chart, 'select', selectHandler);
+   chart.draw(data, options)
+  }
+
+  function getFloat(id) {
+   return parseFloat( $("#"+id).val() );
+  }
+
+  function setFloat(id, v) {
+   $("#"+id).val( parseFloat(v).toFixed(2) ) ;
+  }
+
+  function pHSA(conc) {
+   return -Math.log10(conc);
+  }
+
+  function pHSB(conc) {
+   return 14 + Math.log10(conc)
+  }
+
+  function calculatePH() {
+   if (buretteVol.toFixed(2) == getFloat("bvol").toFixed(2) ) {
+    return 7.0;
+   } else if (buretteVol < getFloat("bvol") ) {
+    return pHSA( ( initMol - buretteVol * getFloat("bconc") * getFloat("btype") ) / (totVol) );
+   } else if (buretteVol > getFloat("bvol") ) {
+    return pHSB( ( (buretteVol*getFloat("bconc")*getFloat("btype")-initMol) ) / (totVol) );
+   }
+  }
+
+  function initVars() {
+   initMol = getFloat("aconc") * getFloat("avol") * getFloat("atype");
+   totVol = getFloat("avol");
+   buretteVol = 0;
+   tooltipChartsHTML = {};
+   generateGraphForCurrentBuretteVolume();
+  }
+
+  function generateGraphForCurrentBuretteVolume() {
+   var totAcidMol = getFloat("aconc") * getFloat("avol") * getFloat("atype") / 1000; 
+   var acidMol = totAcidMol - buretteVol * getFloat("bconc") * getFloat("btype") / 1000;
+   var saltMol = buretteVol * getFloat("bconc") * getFloat("btype") / 1000;
+   if (saltMol > totAcidMol) saltMol = totAcidMol;
+   
+   var data = new elgo.visualization.DataTable();
+   data.addColumn('string', 'Species Type');
+   data.addColumn('number', 'Mols');
+   data.addRows([ 
+                 ["strong acid", acidMol > 0 ? acidMol : 0],
+                 ["salt", saltMol],
+                 ["xs strong base", acidMol < 0 ?  -acidMol : 0]
+                ]);
+
+   var hiddenDiv = document.getElementById('hidden_div');
+   var tooltipChart = new elgo.visualization.ColumnChart(hiddenDiv);
+   var curBuretteVol = buretteVol.toFixed(2); // As the following function is a callback, it means that by the time it is called buretteVol may have changed. So we fixed it in a variable now
+   elgo.visualization.events.addListener(tooltipChart, 'ready', function() {
+    // Get the PNG of the chart and set it as the src of an img tag, to be displayed as HTML
+    tooltipChartsHTML[curBuretteVol] = '<img src="' + tooltipChart.getImageURI() + '">';;
+   });
+   var tooltipOptions = {
+    title: 'Amount of each species present',
+    vAxis: { title: 'Amount / mol', 
+             titleTextStyle: {color: 'black', bold: 1, italic: 0, fontSize: 10, fontName: 'Lucida Sans Unicode' },
+	     viewWindow: { min: 0, max: getFloat("aconc") * getFloat("avol") * getFloat("atype") / 1000 },
+           },
+    legend: {position: 'none'},
+    axes: {
+     y: {
+      0: {label: "Amount / mol"}
+     }
+    }
+   };
+   tooltipChart.draw(data, tooltipOptions);
+  }
+  
+  function titrateStep() {
+   if (pageLoaded == false) {
+    alert("Please wait for a while, page scripts still loading.");
+    return;
+   }
+   if (initMol == -1) initVars();
+   buretteVol += getFloat("inc");
+   totVol += getFloat("inc");
+   generateGraphForCurrentBuretteVolume(  );
+   $("#titable tbody").html( $("#titable tbody").html() + "<tr><td>" + buretteVol.toFixed(2) + "</td><td>" + calculatePH().toFixed(2) + "</td><td>" + totVol.toFixed(2) + "</td></tr>");
+   $("#titable").parent().scrollTop( $("#titable").height() )
+  }
+
+  function updateNeutralisation() {
+   $("#bvol").val( ( ( getFloat("avol") * getFloat("atype") * getFloat("aconc") ) / ( getFloat("btype") * getFloat("bconc") ) ).toFixed(2) );
+   if (getFloat("bvol") > 50)
+	{alert("Titre volume cannot exceed maximum capacity of burette!");}
+   else if (getFloat("bvol") < 15)
+	{alert("Titre volume too small, leads to large percentage error!");}
+   resetTitrate();
+  }
+
+  function autoTitrate() {
+   if (pageLoaded == false) {
+    alert("Please wait for a while, page scripts still loading.");
+    return;
+   }
+   if ( buretteVol < getFloat("stopt")) {
+    titrateStep();
+    window.setTimeout("autoTitrate()", 1); // Set a break before next function call, so that display worker gets a chance to update the display
+   } else {
+    drawChart();
+   }
+  }
+
+  function resetTitrate() {
+   $("#titable tbody").html( "" )
+   drawChart();
+   initVars();
+   $("#titable tbody").html( $("#titable tbody").html() + "<tr><td>" + buretteVol.toFixed(2) + "</td><td>" + calculatePH().toFixed(2) + "</td><td>" + totVol.toFixed(2) + "</td></tr>");
+  }
+
+ var chartCol = {'0': ["white", "white", "white", "white"],
+		 '1': ["red", "orange", "#ffff33", "#ffff33"],
+                 '2': ["#990099", "grey", "#009933", "#009933"],
+                 '3': ["white", "white", "white","fuchsia"],
+                 '4': ["white", "white", "white","#2c5ba5"],
+                 };
+
+  function changeChartColor(indType) {
+   $("#fx stop:nth-child(1)").css("stop-color",chartCol[indType][0])
+   $("#fx stop:nth-child(2)").css("stop-color",chartCol[indType][1])
+   $("#fx stop:nth-child(3)").css("stop-color",chartCol[indType][2])
+   $("#fx stop:nth-child(4)").css("stop-color",chartCol[indType][3])
+  }
+
+	function checkBoxes() {
+	 if (getFloat("pX") < getFloat("bvol") && getFloat("pX") > 0 && $("#SA").prop('checked')==true && $("#NS").prop('checked')==true && $("#SB").prop('checked')==false)
+		{alert("Good job!");}
+	 else if (getFloat("pX") > getFloat("bvol") && $("#SA").prop('checked')==false && $("#NS").prop('checked')==true && $("#SB").prop('checked')==true)
+		{alert("Good job!");}
+	 else if (getFloat("pX") == getFloat("bvol") && $("#SA").prop('checked')==false && $("#NS").prop('checked')==true && $("#SB").prop('checked')==false)
+		{alert("Good job!");}
+	 else if (getFloat("pX") == 0 && $("#SA").prop('checked')==true && $("#NS").prop('checked')==false && $("#SB").prop('checked')==false)
+		{alert("Good job!");}
+	 else
+		{alert("Please try again.");}
+  	}
+
+ </script>
+
+ <body>
+
+<ul>
+  <li><a class="active" a href="index.html">Introduction</a></li>
+  <li><a href="SASB.html">Strong Acid - Strong Base</a></li>
+  <li><a href="SBSA.html">Strong Base - Strong Acid</a></li>
+  <li><a href="WASB.html">Weak Acid - Strong Base</a></li>
+  <li><a href="WBSA.html">Weak Base - Strong Acid</a></li>
+  <li><a href="SBWA.html">Strong Base - Weak Acid</a></li>
+  <li><a href="SAWB.html">Strong Acid - Weak Base</a></li>
+</ul>
+
+<div class="hover_img">
+     <p style="font-size:20px"><b>Titration Curve of Strong Acid against Strong Base</b> 
+     <a href="#">(image)<span><img src="SASB.png" height=500 border=2 ></span></a>
+</div>
+</p>
+
+  <table id='mainTable' border=0 cellspacing=5 cellpadding=5>
+   <tr><td><table cellpadding=5 width="20%">
+    <tr><td colspan=3 class='titlebg'>In the burette</td></tr>
+
+    <tr><td>[base] = </td><td><input type='input' onchange='updateNeutralisation()' class='inputbg box'size="10" id='bconc' value="1.00"/><br /><div id="baseSlider"></td><td>mol dm-3</td></tr>
+    <tr><td>Strong base is</td><td colspan=2><select id='btype' class='inputbg box' onchange='updateNeutralisation()'>
+                                             <option value=1>monoprotic</option>
+                                             <option value=2>diprotic</option></select></td></tr>
+
+    <tr><td colspan=3 class='titlebg'>In the conical flask</td></tr>
+
+    <tr><td width="10%">[acid] = </td><td><input type='input' onchange='updateNeutralisation()' class='inputbg box' size="10" id='aconc' value="1.00" /><br /><div id="acidSlider"></td><td>mol dm-3</td></tr>
+    <tr><td>Strong acid is</td><td colspan=2><select id='atype' class='inputbg box' onchange='updateNeutralisation()'>
+                                             <option value=1>monoprotic</option>
+                                             <option value=2>diprotic</option></select></td></tr>
+
+    <tr><td>Vol of strong acid</td><td><select id='avol' class='inputbg box' onchange="updateNeutralisation();">
+                                                        <option value=25>25.0</option>
+                                                        <option value=10>10.0</option></select></td><td>cm3</td></tr>
+
+    <tr><td>Choice of indicator</td><td colspan=2><select id='indtype' class='inputbg box' onchange='changeChartColor(this.value)'>
+                                                  <option value='0'>no indicator</option>
+                                                  <option value='1'>methyl orange</option>
+						  <option value='2'>screened methyl orange</option>
+                                                  <option value='3'>phenolphthalein</option>
+                                                  <option value='4'>thymolphthalein</option></select></td></tr>
+
+    <tr><td colspan=3 class='titlebg'>Graph</td></tr>
+
+    <tr><td>Vol of strong base req for complete neutralisation</td><td><input type='input'class='box' size="10" id='bvol' value="25.00" disabled /></td><td>cm3</td></tr>
+
+    <tr><td>Data points in increments of</td><td><select id='inc' class='inputbg box' value="1.00">
+						<option value=1.00>1.00</option>                                                        
+						<option value=0.50>0.50</option>
+                                                <option value=0.05>0.05 (1 drop)</option></select></td><td>cm3</td></tr>
+    
+
+    <tr><td colspan=3></td></tr>
+ 
+    <tr><td>Stop titration at (for auto titration only)</td><td><input type='input' onchange='updateNeutralisation()' class='inputbg box' size="10" id='stopt' value="50.00" /><br /><div id="stopTSlider"></td><td>cm3</td></tr>
+ 
+   <tr><td colspan=3></td></tr>
+    <tr>
+     <td><input type='button' class='button greenbg' value="Do Titration Stepwise" onclick='titrateStep(); drawChart()'></input></td>
+     <td><input type='button' class='button redbg' value="Auto Titration" onclick='autoTitrate();'></input></td>
+     <td><input type='button' class='button' value="Reset" onclick='resetTitrate();'></input></td>
+    </tr>
+   </table></td>
+
+   <td align=center><div id="chart_div"></div>
+        <p class='titlebg'>Self Check</p>
+
+    <b>1. Select a point by clicking the graph:</b><br> 
+    Burette Volume <input type='input' class='box' size="6" id='pX' value="0.00" disabled />
+    pH <input type='input' class='box' size="6" id='pY' value="0.00" disabled /><br>
+    <b>2. Identify the species present in the conical flask at that point:</b><br>    
+  <input type="checkbox" id="SA" value="0"> strong acid
+  <input type="checkbox" id="NS" value="0"> neutral salt
+  <input type="checkbox" id="SB" value="0"> strong base
+  <input type="submit" value="Check" onclick='checkBoxes()'>
+
+</b>
+</td>
+
+<td>
+    <div style='overflow:scroll; width: 200px; height:550px'>
+     <table id="titable">
+      <thead><th>Burette Vol</th><th>pH</th><th>Total Vol</th></thead>
+      <tbody></tbody>
+     </table>
+    </div>
+   </td>
+  </tr>
+
+  </table>
+  <div id="hidden_div" style="display:none"></div>
+ </body>
+ </html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P3 WA1 Number Sense — Kid Friendly (One Question • Timer • Instant Check)</title>
+  <link rel="stylesheet" href="styles.css">
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<style id="aiz-footer-style">
+#aiz-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2147483000;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto; /* keep links clickable */
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  color: #222;
+}
+#aiz-footer p {
+  margin: 0;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+#aiz-footer a { color: #0b69ff; text-decoration: underline; }
+</style>
+</head>
+<body>
+  <!-- Decorative background dots -->
+  <div class="dots"></div>
+
+  <!-- Audio element for time-up sound (expects timeup.wav in same folder) -->
+  <audio id="timeupAudio" preload="auto">
+    <source src="timeup.wav" type="audio/mpeg">
+  </audio>
+
+  <div class="app">
+    <!-- Header with branding and progress -->
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div style="min-width:0">
+          <h1>P3 WA1 Number Sense</h1>
+          <div class="sub">One question per screen • Instant check • Teacher timer • Time-up shows answer + sound</div>
+        </div>
+      </div>
+
+      <div class="topRight">
+        <div class="pill" title="Progress">
+          <span class="miniDot"></span>
+          <span>Q <b id="qIndex">1</b>/<b id="qTotal">10</b></span>
+          <span>•</span>
+          <span>Score <b id="scoreNow">0</b></span>
+        </div>
+
+        <button class="btn ghost" id="btnToggleTeacher" title="Show/Hide Teacher Settings">Hide Teacher</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- Teacher panel (left side) -->
+      <aside class="panel" id="teacherPanel">
+        <h2>Teacher Settings</h2>
+        <div class="hint">Hide this panel to make the question screen full screen.</div>
+
+        <div class="field">
+          <label>Total questions</label>
+          <input type="number" id="inpTotal" min="5" max="40" value="10"/>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Number range</label>
+            <select id="selDigits">
+              <option value="3">3-digit (100–999)</option>
+              <option value="4" selected>4-digit (1000–9999)</option>
+              <option value="mix34">Mix 3–4 digit</option>
+              <option value="mix35">Mix 3–5 digit (100–99999)</option>
+            </select>
+            <div class="hint" style="margin-top:6px">
+              ✅ Only <b>Place value / Digit value</b> questions will force <b>unique digits</b> in 4-digit numbers.
+            </div>
+          </div>
+          <div class="field">
+            <label>Ordering direction</label>
+            <select id="selOrderDir">
+              <option value="asc" selected>Smallest → Greatest</option>
+              <option value="desc">Greatest → Smallest</option>
+              <option value="mix">Mix both</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label>Time per question (seconds)</label>
+            <input type="number" id="inpTime" min="0" max="999" value="30"/>
+            <div class="hint" style="margin-top:6px">Set 0 to disable timing.</div>
+          </div>
+          <div class="field">
+            <label>Show countdown timer?</label>
+            <select id="selShowTimer">
+              <option value="show" selected>Show</option>
+              <option value="hide">Hide</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Question types (tick what you want)</label>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" id="ckCount" checked/> Counting (place value discs)</label>
+            <label class="chip"><input type="checkbox" id="ckWords" checked/> Writing in words / number</label>
+            <label class="chip"><input type="checkbox" id="ckValue" checked/> Place value / Digit value</label>
+            <label class="chip"><input type="checkbox" id="ckOrder" checked/> Ordering numbers</label>
+            <label class="chip"><input type="checkbox" id="ckPattern" checked/> Number patterns</label>
+            <label class="chip"><input type="checkbox" id="ckFormDigits" checked/> Form number with digits</label>
+            <label class="chip"><input type="checkbox" id="ckAddSub" checked/> 4-digit addition / subtraction</label>
+          </div>
+        </div>
+
+        <div class="checkrow">
+          <button class="btn primary" id="btnNewSet">New Set</button>
+          <button class="btn ghost" id="btnResetScore">Reset Score</button>
+        </div>
+
+        <div class="hint" style="margin-top:10px">
+          Audio note: browsers usually allow sound only after a user click. Clicking any button unlocks the MP3.
+        </div>
+      </aside>
+
+      <!-- Question screen (right side / full screen when teacher hidden) -->
+      <section class="screen panel">
+        <div class="qHeader">
+          <div class="qTitle">
+            <div class="qBadge" id="qBadge">1</div>
+            <div style="min-width:0">
+              <div class="qName" id="qName">Question</div>
+              <div class="qType" id="qType">Type</div>
+            </div>
+          </div>
+
+          <div class="timerBox" id="timerBox" aria-live="polite">
+            <span class="timerDot"></span>
+            <span class="sr">Time left</span>
+            <span><b id="timeLeft">--</b>s</span>
+          </div>
+        </div>
+
+        <!-- Question body (dynamically filled) -->
+        <div class="qBody" id="qBody"></div>
+
+        <!-- Action buttons -->
+        <div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn good" id="btnCheck">Check ✅</button>
+            <button class="btn warn" id="btnShowAns">Show Answer 👀</button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn ghost" id="btnPrev">◀ Prev</button>
+            <button class="btn primary" id="btnNext">Next ▶</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="credit">Designed by Lim Kim Sze © 2026</div>
+      <div class="hint">Time-up shows answer and plays <b>timeup.mp3</b>.</div>
+    </footer>
+  </div>
+
+  <!-- Confetti container -->
+  <div class="confetti" id="confetti"></div>
+
+  <!-- Time-up overlay modal -->
+  <div class="overlay" id="overlay">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modalTop">
+        <div class="burst" aria-hidden="true"></div>
+        <div>
+          <h3>Time is up!</h3>
+          <p>The answer is shown below.</p>
+        </div>
+      </div>
+      <div class="ans" id="ovAns">Answer: …</div>
+      <div class="actions">
+        <button class="btn ghost" id="btnCloseOverlay">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+<footer id="aiz-footer" role="contentinfo"><p id="generated-footer-credit">Made by lookang, using SLS Claude 4.5. For more resources: <a href="https://sg.iwant2study.org/ospsg/index.php/ai-prompt-library" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/ai-prompt-library</a> and <a href="https://vle.learning.moe.edu.sg/moe-library/module/view/7220d091-0ed9-4a2a-a3b3-50c0a5dff9c8/section/101070882/activity/101070888?pageNo=3" target="_blank" rel="noopener noreferrer">https://vle.learning.moe.edu.sg/moe-library/module/view/7220d091-0ed9-4a2a-a3b3-50c0a5dff9c8/section/101070882/activity/101070888?pageNo=3</a></p></footer>
+</body>
+</html>

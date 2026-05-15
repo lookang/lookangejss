@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index Notation Explorer</title>
+    <link rel="stylesheet" href="styles.css">
+<script>
+      (function() {
+        // --- Stable Scope Identification ---
+        // ALWAYS use the folder path as the unique ID for the activity scope.
+        // This ensures that ALL tabs (SLS frame, tool's new tab, SLS native button)
+        // stay in sync even if URL parameters (like activityId IRI) differ.
+        var getStablePath = function() {
+          try {
+            var p = window.location.pathname;
+            var folder = p.substring(0, p.lastIndexOf('/')) || p;
+            return folder;
+          } catch (e) {
+            return 'default_scope';
+          }
+        };
+        
+        var stableScope = getStablePath();
+        window.ACTIVITY_ID = stableScope; 
+        console.log('[xAPI] Stable Scope ID:', stableScope);
+        
+        // We also keep the original IRI if available for actual xAPI statements.
+        var urlParams = new URLSearchParams(window.location.search);
+        var iri = urlParams.get('activityId');
+        if (iri) {
+          window._SLS_IRI = iri;
+        }
+      })();
+    </script><script src="./lib/xapiwrapper.min.js"></script><script src="./lib/xAPI.js"></script><script>(function (global) {
+      var ACTIVITY_ID = String(global.ACTIVITY_ID || location.href);
+
+      function clearAllForActivity() {
+        try {
+          var prefixes = [
+            ACTIVITY_ID,
+            "sls_scope::" + ACTIVITY_ID,
+            "UFCO-firstSubmit::" + ACTIVITY_ID,
+            "sls_unlike_payload::" + ACTIVITY_ID
+          ];
+
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            var k = localStorage.key(i);
+            if (!k) continue;
+            if (prefixes.some(function(p) { return k === p || k.indexOf(p) === 0; })) {
+              localStorage.removeItem(k);
+            }
+          }
+
+          sessionStorage.removeItem(ACTIVITY_ID + "::locked");
+          sessionStorage.removeItem(ACTIVITY_ID + "::done");
+        } catch (e) {}
+
+        try {
+          var bc = new BroadcastChannel("xapi-state");
+          bc.postMessage({ type: "clear", activityId: ACTIVITY_ID, ts: Date.now() });
+          if (bc.close) bc.close();
+        } catch (e) {}
+      }
+
+      // Run clear on every load
+      clearAllForActivity();
+
+      // Expose for teacher "New Session — Clear"
+      global.__SLS_CLEAR_ACTIVITY__ = clearAllForActivity;
+    })(window);</script><script>var getStablePath = function() {
+      try {
+        var p = window.location.pathname;
+        var folder = p.substring(0, p.lastIndexOf('/')) || p;
+        return folder;
+      } catch (e) {
+        return 'default_scope';
+      }
+    };
+    var APP_SCOPE = getStablePath();
+    var PAYLOAD_KEY = "sls_unlike_payload::" + APP_SCOPE + "::v1";
+    var FIRST_KEY = "UFCO-firstSubmit::" + APP_SCOPE;
+
+    function pushToXAPI(score, feedback) {
+      
+      // Child tab: Send to parent via postMessage
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({
+            type: 'xapi-update',
+            source: 'child',
+            payload: { score: score, feedback: feedback }
+          }, '*');
+          console.log('[Child] Notified parent of score update via postMessage');
+        }
+      } catch (e) {
+        console.warn('[Child] Could not notify parent:', e);
+      }
+      
+    }
+
+    function writePayload(score, feedback, hiddenMarks) {
+      try {
+        var timestamp = Date.now();
+        var obj = { score: score, feedback: feedback, hiddenMarks: hiddenMarks, t: timestamp };
+        localStorage.setItem(PAYLOAD_KEY, JSON.stringify(obj));
+        console.log('[xAPI] Data updated in localStorage at ' + new Date(timestamp).toLocaleTimeString());
+      } catch (e) {
+        console.warn('[xAPI] writePayload failed:', e);
+      }
+    }
+
+    function readPayload() {
+      try {
+        var raw = localStorage.getItem(PAYLOAD_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function hasPostedFirstSubmit() {
+      try {
+        return localStorage.getItem(FIRST_KEY) === "1";
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function lockFirstSubmit() {
+      try {
+        localStorage.setItem(FIRST_KEY, "1");
+      } catch (e) {}
+    }
+
+    function postFirstSubmitIfNeeded(score, feedback, hiddenMarks) {
+      if (hasPostedFirstSubmit()) return false;
+      writePayload(score, feedback, hiddenMarks);
+      pushToXAPI(score, feedback);
+      lockFirstSubmit();
+      return true;
+    }
+
+    window._lastKnownTimestamp = 0;
+
+    function syncFromLocalToXAPI() {
+      var p = readPayload();
+      if (!p) return;
+      
+      // Only sync if the data is newer than what we last processed
+      if (p.t > (window._lastKnownTimestamp || 0)) {
+        console.log('[xAPI] Syncing newer data from localStorage...', p);
+        window._lastKnownTimestamp = p.t;
+        
+        window._isSyncing = true;
+        try {
+          
+          // Child: just update internal state if needed
+          if (typeof window.onXapiSync === 'function') window.onXapiSync(p);
+          
+        } finally {
+          window._isSyncing = false;
+        }
+      }
+    }</script><script>// Cross-tab synchronization: Listen to storage events from other tabs
+    window.addEventListener("load", syncFromLocalToXAPI);
+    window.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncFromLocalToXAPI();
+    });
+    window.addEventListener("focus", syncFromLocalToXAPI);
+    window.addEventListener("storage", (e) => {
+      if (e.key === PAYLOAD_KEY && e.newValue) syncFromLocalToXAPI();
+    });
+
+    // Listen for SLS submit messages from parent window (if launched by SLS)
+    window.addEventListener("message", (event) => {
+      try {
+        const data = event.data;
+        const key = (data && (data.type || data.event || data.action || data.message)) || '';
+        if (typeof key === 'string' && /submit/i.test(key)) {
+          console.log('[xAPI] Received SLS submit signal');
+          syncFromLocalToXAPI();
+        }
+      } catch (e) {}
+    });</script><script>
+        (function() {
+          window.isNewTabChild = true;
+          console.log('[Child] Running in new-tab child mode');
+
+          // Wait for xAPI.js to load, then wrap its storeState
+          function wrapStoreState() {
+            if (typeof window.storeState !== 'function') {
+              // xAPI.js not loaded yet, wait
+              setTimeout(wrapStoreState, 100);
+              return;
+            }
+
+            // Save the original storeState
+            var originalStoreState = window.storeState;
+
+            // Replace with our wrapper
+            window.storeState = function(payload) {
+              var score = payload.score || 0;
+              var feedback = payload.feedback || '';
+              var hiddenMarks = payload.hiddenMarks;
+              
+              // Only write if NOT currently syncing from another tab
+              if (!window._isSyncing) {
+                if (typeof writePayload === 'function') {
+                  writePayload(score, feedback, hiddenMarks);
+                }
+                
+                // Notify parent immediately
+                if (typeof pushToXAPI === 'function') {
+                  pushToXAPI(score, feedback);
+                }
+              }
+              
+              // Also try to call original (will fail gracefully in child mode)
+              try {
+                originalStoreState(payload);
+              } catch(e) {
+                // Expected to fail in child mode - that's ok
+              }
+              
+              console.log('[Child] storeState wrapper called' + (window._isSyncing ? ' (sync-only)' : ' - stored locally'));
+            };
+
+            console.log('[Child] storeState wrapped - syncing via localStorage/postMessage');
+          }
+
+          // Start wrapping after DOM loads
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', wrapStoreState);
+          } else {
+            wrapStoreState();
+          }
+        })();
+      </script></head>
+<body>
+    <!-- Main container that adapts to iframe or standalone mode -->
+    <div id="mainContainer">
+        
+        <!-- Tooltip for header information (appears on hover over info icon) -->
+        <div id="headerTooltip" class="tooltip">
+            Understanding Index Notation as Repeated Multiplication
+        </div>
+
+        <!-- Info icon in top-right corner to show header tooltip -->
+        <div id="infoIcon" title="Show information">ℹ️</div>
+
+        <!-- Main interactive area -->
+        <div id="interactiveArea">
+            
+            <!-- Left panel: Controls for base and index -->
+            <div id="controlPanel">
+                <div class="control-group">
+                    <label for="baseSlider">Base:</label>
+                    <div class="slider-container">
+                        <input type="range" id="baseSlider" min="2" max="10" value="3" step="1">
+                        <input type="number" id="baseInput" min="2" max="10" value="3" step="1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="indexSlider">Index:</label>
+                    <div class="slider-container">
+                        <input type="range" id="indexSlider" min="1" max="6" value="4" step="1">
+                        <input type="number" id="indexInput" min="1" max="6" value="4" step="1">
+                    </div>
+                </div>
+
+                <!-- Display of index notation -->
+                <div id="notationDisplay">
+                    <span id="notationText">3⁴</span>
+                </div>
+
+                <!-- Calculator button to show result -->
+                <button id="calculateBtn">Calculate Result</button>
+                <div id="resultDisplay"></div>
+            </div>
+
+            <!-- Right panel: Visual representation -->
+            <div id="visualPanel">
+                <div id="multiplicationDisplay"></div>
+            </div>
+
+        </div>
+
+        <!-- Question section -->
+        <div id="questionSection">
+            <div id="questionText"></div>
+            <div id="answerOptions"></div>
+            <div id="feedbackMessage"></div>
+        </div>
+
+        <!-- Progress indicator -->
+        <div id="progressSection">
+            <div id="progressText">Questions Attempted: <span id="progressCount">0</span>/5</div>
+            <div id="progressBar">
+                <div id="progressFill"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+
+<script>(function(){
+  if (window.__xapiIntegrator) return;
+  window.__xapiIntegrator = true;
+
+  // Draggable helper for floating UI (panel/button)
+  function makeDraggable(el, opts) {
+    opts = opts || {};
+    const handleSelector = opts.handleSelector || null;
+    const storageKey = opts.storageKey || '';
+    let isDragging = false, started = false;
+    let startX = 0, startY = 0, origLeft = 0, origTop = 0;
+
+    // Restore saved position
+    try {
+      if (storageKey) {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+          el.style.left = saved.left + 'px';
+          el.style.top = saved.top + 'px';
+          el.style.right = 'auto';
+          el.style.bottom = 'auto';
+        }
+      }
+    } catch(e){}
+
+    function onPointerDown(e) {
+      if (handleSelector && !e.target.closest(handleSelector)) return;
+      isDragging = true; started = false;
+      startX = e.clientX; startY = e.clientY;
+      const rect = el.getBoundingClientRect();
+      origLeft = rect.left; origTop = rect.top;
+      el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    }
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!started && Math.hypot(dx, dy) < 4) return;
+      started = true;
+      let left = origLeft + dx;
+      let top = origTop + dy;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const r = el.getBoundingClientRect();
+      left = Math.max(0, Math.min(left, vw - r.width));
+      top = Math.max(0, Math.min(top, vh - r.height));
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+      e.preventDefault();
+    }
+    function onPointerUp() {
+      if (!isDragging) return;
+      isDragging = false;
+      if (started) {
+        try {
+          if (storageKey) {
+            const left = parseInt(el.style.left || '0', 10) || 0;
+            const top = parseInt(el.style.top || '0', 10) || 0;
+            localStorage.setItem(storageKey, JSON.stringify({ left, top }));
+          }
+        } catch(e){}
+      }
+    }
+    function onResize() {
+      // keep element in viewport
+      const r = el.getBoundingClientRect();
+      let left = r.left, top = r.top;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      left = Math.max(0, Math.min(left, vw - r.width));
+      top = Math.max(0, Math.min(top, vh - r.height));
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.right = 'auto';
+      el.style.bottom = 'auto';
+    }
+
+    el.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('resize', onResize);
+  }
+
+  const sessionStart = Date.now();
+  const actionLog = [];
+  const xapi = { score: 0, interactionCount: 0, playStart: null, totalPlayMs: 0 };
+
+  // Pending payload that always reflects the latest feedback/score (for auto-send hooks)
+  window.__xapiPending = null;
+
+  function tSeconds() { return Math.round((Date.now() - sessionStart)/1000); }
+  function flushPlayTime() {
+    if (xapi.playStart) { xapi.totalPlayMs += (Date.now() - xapi.playStart); xapi.playStart = null; }
+  }
+  function logAction(message) {
+    const t = tSeconds();
+    actionLog.push({ t, message });
+    try { console.log('[xAPI Integrator]', 't=' + t + ',', message); } catch(e){}
+    updateFeedbackPanel();
+    setPending('live');
+  }
+
+  // Live feedback builder
+  function buildFeedback() {
+    const elapsedSeconds = tSeconds();
+    const actionsHtml = actionLog.map(a => 't = ' + a.t + ', ' + a.message).join('<br>');
+    return '<div><div>'
+      + 'Interactions: ' + xapi.interactionCount + '<br>'
+      + 'Total Play Time: ' + elapsedSeconds + 's<br>'
+      + 'Score: ' + (xapi.score || 0) + '<br><br>'
+      + 'Action Log:<br>' + actionsHtml
+      + '</div></div>';
+  }
+
+  // Floating live feedback panel
+  const panel = document.createElement('div');
+  Object.assign(panel.style, {
+    position: 'fixed', right: '12px', bottom: '56px',
+    minWidth: '240px', maxWidth: '320px',
+    background: 'rgba(17,24,39,0.9)', color: '#e5e7eb',
+    border: '1px solid #374151', borderRadius: '8px',
+    padding: '8px 10px', zIndex: 999998, fontSize: '12px', lineHeight: '1.3'
+  });
+  panel.setAttribute('id', 'xapiLiveFeedback');
+  makeDraggable(panel, { handleSelector: '#xapiLiveFeedbackHeader', storageKey: 'xapiPos:livePanel' });
+  document.addEventListener('DOMContentLoaded', () => {
+    // Append panel near the end so the Save button remains on top
+    try { document.body.appendChild(panel); } catch(e){}
+    updateFeedbackPanel();
+  });
+
+  function updateFeedbackPanel() {
+    try {
+      const elapsedSeconds = tSeconds();
+      panel.innerHTML = ''
+        + '<div id="xapiLiveFeedbackHeader" style="font-weight:600;margin-bottom:6px;cursor:move;user-select:none;touch-action:none;">Live Feedback</div>'
+        + '<div>Interactions: ' + xapi.interactionCount + '</div>'
+        + '<div>Total Play Time: ' + elapsedSeconds + 's</div>'
+        + '<div>Score: ' + (xapi.score || 0) + '</div>';
+    } catch(e){}
+  }
+
+  // Keep play time ticking in panel while playing
+  setInterval(() => {
+    if (xapi.playStart) updateFeedbackPanel();
+  }, 1000);
+
+  // Keep a pending payload up to date for auto-send triggers
+  function setPending(reason) {
+    try {
+      const feedback = buildFeedback();
+      window.__xapiPending = { score: xapi.score, feedback, reason, actions: actionLog };
+    } catch(e){}
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target;
+    let label = '';
+    if (el && el.tagName === 'BUTTON') {
+      label = el.innerText.trim() || el.id || 'button';
+      logAction('click "' + label + '"');
+      xapi.interactionCount++;
+    } else if (el && el.tagName === 'INPUT') {
+      label = (el.value || el.name || el.id || 'input').toString();
+      logAction('click input "' + label + '"');
+      xapi.interactionCount++;
+    }
+  }, true);
+
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el && el.tagName === 'SELECT') {
+      const val = el.value;
+      const label = val ? (val.charAt(0).toUpperCase() + val.slice(1)) : 'Select';
+      logAction('click "' + label + '"');
+      xapi.interactionCount++;
+    }
+  }, true);
+
+  let dragStart = null;
+  document.addEventListener('mousedown', (e) => {
+    if (e.target && e.target.tagName === 'CANVAS') {
+      dragStart = { x: e.offsetX, y: e.offsetY, canvas: e.target };
+    }
+  }, true);
+  document.addEventListener('mouseup', (e) => {
+    if (dragStart && dragStart.canvas === e.target) {
+      const name = 'canvas';
+      logAction('drag ' + name + ' to position ' + Math.round(e.offsetX) + ',' + Math.round(e.offsetY) + '.');
+      xapi.interactionCount++;
+    }
+    dragStart = null;
+  }, true);
+
+  function hookById(id, message, after) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', () => {
+      logAction(message);
+      if (typeof after === 'function') after();
+    }, true);
+  }
+
+  hookById('playBtn', 'clicked "Play"', () => {
+    if (!xapi.playStart) xapi.playStart = Date.now();
+    setPending('play');
+  });
+
+  hookById('pauseBtn', 'click "Pause"', () => {
+    flushPlayTime();
+    setPending('pause'); // keep pending updated
+    // Auto-save on pause remains as a convenience
+    if (typeof window.storeState === 'function') {
+      try {
+        const feedback = buildFeedback();
+        const payload = { score: xapi.score, feedback, reason: 'pause', actions: actionLog };
+        window.storeState(payload);
+        logAction('auto-save (pause)');
+      } catch(e) { console.warn('xAPI sendState failed:', e); }
+    }
+  });
+
+  hookById('resetBtn', 'click "Reset"', () => {
+    xapi.score = (typeof xapi.score === 'number') ? xapi.score + 1 : 1;
+    logAction('awarded 1 mark. total score = ' + xapi.score + '.');
+    setPending('reset');
+  });
+
+  // Dedup-safe sender used by auto hooks (including SLS submit via postMessage)
+  let lastSignature = null;
+  function signatureOf(p) {
+    try { return JSON.stringify({ s: p.score, a: (p.actions ? p.actions.length : 0), f: (p.feedback || '').length }); }
+    catch { return String(Date.now()); }
+  }
+  function sendState(reason) {
+    try {
+      flushPlayTime();
+      const feedback = buildFeedback();
+      const payload = { score: xapi.score, feedback, reason, actions: actionLog };
+      const sig = signatureOf(payload);
+      if (sig && sig === lastSignature) return; // avoid duplicate identical sends
+      lastSignature = sig;
+
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+        logAction('auto-save (' + reason + ')');
+      } else {
+        console.warn('storeState not available; ensure xAPI scripts are loaded and platform URL params are present.');
+      }
+      // keep pending in sync
+      setPending(reason);
+    } catch(e) {
+      console.warn('xAPI sendState failed:', e);
+    }
+  }
+
+  // Floating "Save to SLS" button (kept as required user action)
+  const btn = document.createElement('button');
+  btn.textContent = 'Save to SLS';
+  Object.assign(btn.style, {
+    position: 'fixed', right: '12px', bottom: '12px',
+    padding: '8px 12px', background: '#1976d2', color: '#fff',
+    border: 'none', borderRadius: '6px', zIndex: 999999, cursor: 'pointer'
+  });
+  makeDraggable(btn, { storageKey: 'xapiPos:timelineSaveBtn' });
+  btn.addEventListener('click', () => {
+    flushPlayTime();
+    if (typeof window.storeState === 'function') {
+      try {
+        const feedback = buildFeedback();
+        const payload = { score: xapi.score, feedback, reason: 'manual-save', actions: actionLog };
+        window.storeState(payload);
+        lastSignature = signatureOf(payload); // dedup against autos
+        logAction('manual save triggered');
+      } catch(e) { console.warn('xAPI sendState failed:', e); }
+    } else {
+      console.warn('storeState not available; ensure xAPI scripts are loaded and platform URL params are present.');
+    }
+    setPending('manual-save');
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    try { document.body.appendChild(btn); } catch(e){}
+  });
+
+  // Auto-send hooks:
+  // 1) When content is being hidden or navigated away
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sendState('visibility-hidden');
+  }, true);
+  window.addEventListener('pagehide', () => {
+    sendState('pagehide');
+  }, { capture: true });
+
+  // 2) Listen for parent window messages indicating "submit" (SLS submit button)
+  //    If SLS can postMessage({ type: 'submit' }) on submit, this will auto-send.
+  window.addEventListener('message', (event) => {
+    try {
+      const data = event.data;
+      const key = (data && (data.type || data.event || data.action || data.message)) || '';
+      if (typeof key === 'string' && /submit/i.test(key)) {
+        sendState('sls-submit');
+      }
+    } catch(e){}
+  }, false);
+
+  // Initialize pending once
+  setPending('init');
+})();</script></body></html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 1rem;
+            color: #333;
+            background: linear-gradient(-45deg, #e0f7fa, #b2ebf2, #80deea, #4dd0e1);
+            background-size: 400% 400%;
+            animation: springGradient 25s ease infinite;
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        @keyframes springGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh; /* Default for standalone view */
+            margin: 0 auto;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.65);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
+        body.in-iframe .container {
+            height: 450px;
+            padding: 0.5rem;
+        }
+        h2 { 
+            color: #00796b; 
+            font-weight: 700; 
+            font-size: 1.2rem; 
+            border-bottom: 2px solid rgba(0, 121, 107, 0.2); 
+            padding-bottom: 0.5rem; 
+            margin: 0.5rem 0;
+        }
+        .controls {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button, .button {
+            padding: 8px 16px;
+            border: none;
+            background-color: #26a69a;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(38, 166, 154, 0.2);
+            flex-shrink: 0;
+        }
+        button:hover, .button:hover {
+            background-color: #00897b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(38, 166, 154, 0.3);
+        }
+        select {
+            padding: 7px;
+            border-radius: 5px;
+            border: 1px solid #b0bec5;
+            font-size: 0.9rem;
+            background-color: #ffffff;
+            color: #333;
+        }
+        #simulationCanvas {
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+            min-height: 0;
+            background-color: #f0f8ff;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 121, 107, 0.3);
+            cursor: grab;
+        }
+        #simulationCanvas.grabbing {
+            cursor: grabbing;
+        }
+        .explanation-text {
+            display: none;
+        }
+        .credits {
+            font-size: 0.75rem;
+            color: #555;
+            margin-top: 10px;
+        }
+        .credits a {
+            color: #00796b;
+            text-decoration: none;
+        }
+        .credits a:hover {
+            text-decoration: underline;
+        }
+        </style>
+<script  async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script> <script>   window.dataLayer = window.dataLayer || [];   function gtag(){dataLayer.push(arguments);}   gtag('js', new Date());    gtag('config', 'G-S9EWRY1CPJ'); </script>  <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script></head>
+<body>
+<div class="container" title="Interactive Light and Shadow Lab: Drag elements to see how shadows change.">
+    
+    
+    <div class="controls">
+        <label for="shapeSelector">Object Shape:</label>
+        <select id="shapeSelector">
+            <option value="sphere">Sphere</option>
+            <option value="cube">Cube</option>
+        </select>
+        <button id="playBtn" class="button">Play</button>
+        <button id="pauseBtn" class="button">Pause</button>
+        <button id="resetBtn" class="button">Reset</button>
+    </div>
+
+    <canvas id="simulationCanvas" width="800" height="400"></canvas>
+
+    <div class="explanation-text">
+        <h2>How it Works</h2>
+        <p>This simulation shows that light travels in straight lines. The light source sends out rays of light. When an opaque object blocks these rays, it creates a dark area behind it called a shadow. The size and shape of the shadow depend on the object's shape and the positions of the light, object, and screen.</p>
+    </div>
+    <div class="credits">
+        made by lookang, using Gemini 2.5 Pro using <a href="https://hongdousg.netlify.app/" target="_blank">https://hongdousg.netlify.app/</a> for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light" target="_blank">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light</a>
+    </div>
+</div>
+
+
+
+<script>
+    if (window.self !== window.top) { document.body.classList.add('in-iframe'); }
+
+    const canvas = document.getElementById('simulationCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Controls
+    const shapeSelector = document.getElementById('shapeSelector');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let animationFrameId;
+    let isPlaying = false;
+    let lightDirection = 1;
+
+    let elements = {}; // Will be populated by setupPositions
+    let initialPositions = {}; // Will be populated by setupPositions
+
+    function setupPositions() {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        initialPositions = {
+            light: { x: w * 0.15, y: h * 0.5, radius: 10, color: '#FFD700', isDragging: false },
+            object: { x: w * 0.45, y: h * 0.5, size: 50, type: 'sphere', color: '#8B4513', isDragging: false },
+            screen: { x: w * 0.85, width: 10, color: '#A9A9A9', isDragging: false }
+        };
+        elements = JSON.parse(JSON.stringify(initialPositions));
+        // Ensure the dropdown selection is respected
+        elements.object.type = shapeSelector.value;
+    }
+
+    function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        if (canvas.width !== rect.width || canvas.height !== rect.height) {
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            setupPositions(); // Recalculate positions on resize
+        }
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function drawLightSource() {
+        ctx.beginPath();
+        ctx.arc(elements.light.x, elements.light.y, elements.light.radius, 0, Math.PI * 2);
+        ctx.fillStyle = elements.light.color;
+        ctx.fill();
+        ctx.strokeStyle = 'orange';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    function drawObject() {
+        ctx.fillStyle = elements.object.color;
+        if (elements.object.type === 'sphere') {
+            ctx.beginPath();
+            ctx.arc(elements.object.x, elements.object.y, elements.object.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else { // cube
+            ctx.fillRect(elements.object.x - elements.object.size / 2, elements.object.y - elements.object.size / 2, elements.object.size, elements.object.size);
+        }
+    }
+
+    function drawScreen() {
+        ctx.fillStyle = elements.screen.color;
+        ctx.fillRect(elements.screen.x - elements.screen.width / 2, 0, elements.screen.width, canvas.height);
+    }
+
+    function drawLightRaysAndShadow() {
+        const light = elements.light;
+        const obj = elements.object;
+        const screenX = elements.screen.x;
+
+        let topTangent = { x: 0, y: 0 };
+        let bottomTangent = { x: 0, y: 0 };
+
+        if (obj.type === 'sphere') {
+            const dx = obj.x - light.x;
+            const dy = obj.y - light.y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            const radius = obj.size / 2;
+            if (d <= radius) return; // Light is inside the sphere
+
+            const theta = Math.atan2(dy, dx);
+            const alpha = Math.asin(radius / d);
+
+            // Top tangent point
+            topTangent.x = obj.x + radius * Math.sin(theta - alpha);
+            topTangent.y = obj.y - radius * Math.cos(theta - alpha);
+
+            // Bottom tangent point
+            bottomTangent.x = obj.x - radius * Math.sin(theta + alpha);
+            bottomTangent.y = obj.y + radius * Math.cos(theta + alpha);
+
+        } else { // cube
+            topTangent = { x: obj.x - obj.size / 2, y: obj.y - obj.size / 2 };
+            bottomTangent = { x: obj.x - obj.size / 2, y: obj.y + obj.size / 2 };
+             if(light.x < obj.x) {
+                 topTangent.x = obj.x - obj.size / 2
+                 bottomTangent.x = obj.x - obj.size/2
+             } else {
+                 topTangent.x = obj.x + obj.size / 2
+                 bottomTangent.x = obj.x + obj.size/2
+             }
+        }
+
+        // Calculate where rays hit the screen
+        const topRaySlope = (topTangent.y - light.y) / (topTangent.x - light.x);
+        const topScreenY = light.y + topRaySlope * (screenX - light.x);
+
+        const bottomRaySlope = (bottomTangent.y - light.y) / (bottomTangent.x - light.x);
+        const bottomScreenY = light.y + bottomRaySlope * (screenX - light.x);
+
+        // Draw Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.beginPath();
+        ctx.moveTo(screenX - elements.screen.width/2, topScreenY);
+        ctx.lineTo(screenX + elements.screen.width/2, topScreenY);
+        ctx.lineTo(screenX + elements.screen.width/2, bottomScreenY);
+        ctx.lineTo(screenX - elements.screen.width/2, bottomScreenY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Draw Light Rays
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+        ctx.lineWidth = 1.5;
+        // Top ray
+        ctx.moveTo(light.x, light.y);
+        ctx.lineTo(topTangent.x, topTangent.y);
+        ctx.lineTo(screenX, topScreenY);
+        // Bottom ray
+        ctx.moveTo(light.x, light.y);
+        ctx.lineTo(bottomTangent.x, bottomTangent.y);
+        ctx.lineTo(screenX, bottomScreenY);
+        ctx.stroke();
+    }
+
+    function mainLoop() {
+        if (isPlaying) {
+            const objectEdge = elements.object.x - elements.object.size / 2;
+            elements.light.x += 1 * lightDirection;
+            if (elements.light.x > objectEdge - 20) {
+                lightDirection = -1;
+            }
+            if (elements.light.x < 20) {
+                lightDirection = 1;
+            }
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawLightRaysAndShadow();
+        drawLightSource();
+        drawObject();
+        drawScreen();
+        animationFrameId = requestAnimationFrame(mainLoop);
+    }
+
+    function reset() {
+        setupPositions();
+        pause();
+    }
+
+    function play() {
+        isPlaying = true;
+    }
+
+    function pause() {
+        isPlaying = false;
+    }
+
+    // Event Listeners
+    shapeSelector.addEventListener('change', (e) => {
+        elements.object.type = e.target.value;
+    });
+    
+    playBtn.addEventListener('click', play);
+    pauseBtn.addEventListener('click', pause);
+    resetBtn.addEventListener('click', reset);
+
+    let activeElement = null;
+    let offsetX = 0;
+
+    canvas.addEventListener('mousedown', (e) => {
+        const mouseX = e.offsetX;
+        const mouseY = e.offsetY;
+        canvas.classList.add('grabbing');
+
+        // Check light source
+        if (Math.sqrt((mouseX - elements.light.x)**2 + (mouseY - elements.light.y)**2) < elements.light.radius + 5) {
+            activeElement = elements.light;
+        }
+        // Check object
+        else if (mouseX > elements.object.x - elements.object.size / 2 && mouseX < elements.object.x + elements.object.size / 2 &&
+                 mouseY > elements.object.y - elements.object.size / 2 && mouseY < elements.object.y + elements.object.size / 2) {
+            activeElement = elements.object;
+        }
+        // Check screen
+        else if (mouseX > elements.screen.x - elements.screen.width / 2 - 5 && mouseX < elements.screen.x + elements.screen.width / 2 + 5) {
+            activeElement = elements.screen;
+        }
+        
+        if (activeElement) {
+            activeElement.isDragging = true;
+            offsetX = mouseX - activeElement.x;
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!activeElement || !activeElement.isDragging) return;
+        const mouseX = e.offsetX;
+        const newX = mouseX - offsetX;
+
+        const objHalfWidth = elements.object.size / 2;
+        const lightRadius = elements.light.radius;
+
+        if (activeElement === elements.light) {
+            if (newX < elements.object.x - objHalfWidth - lightRadius) {
+                elements.light.x = Math.max(lightRadius, newX);
+            }
+        } else if (activeElement === elements.object) {
+            if (newX > elements.light.x + lightRadius + objHalfWidth && newX < elements.screen.x - objHalfWidth) {
+                elements.object.x = newX;
+            }
+        } else if (activeElement === elements.screen) {
+            if (newX > elements.object.x + objHalfWidth) {
+                elements.screen.x = Math.min(canvas.width - elements.screen.width / 2, newX);
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        if (activeElement) {
+            activeElement.isDragging = false;
+            activeElement = null;
+        }
+        canvas.classList.remove('grabbing');
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        if (activeElement) {
+            activeElement.isDragging = false;
+            activeElement = null;
+        }
+        canvas.classList.remove('grabbing');
+    });
+
+    resizeCanvas(); // Initialize
+    mainLoop(); // Start drawing
+
+</script>
+</body>
+</html>

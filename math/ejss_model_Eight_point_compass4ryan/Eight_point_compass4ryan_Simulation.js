@@ -1,0 +1,766 @@
+function Eight_point_compass4ryan(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = EJSS_CORE.Tools;
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var clicked; // EjsS Model.Variables.Var Table.clicked
+  var t; // EjsS Model.Variables.Var Table.t
+  var dt; // EjsS Model.Variables.Var Table.dt
+  var numberofdots; // EjsS Model.Variables.Var Table.numberofdots
+  var n; // EjsS Model.Variables.Var Table.n
+  var xo; // EjsS Model.Variables.Var Table.xo
+  var yo; // EjsS Model.Variables.Var Table.yo
+  var x; // EjsS Model.Variables.Var Table.x
+  var y; // EjsS Model.Variables.Var Table.y
+  var textSet; // EjsS Model.Variables.Var Table.textSet
+  var elementinteracted; // EjsS Model.Variables.Var Table.elementinteracted
+  var font; // EjsS Model.Variables.Var Table.font
+  var enabledposition; // EjsS Model.Variables.Var Table.enabledposition
+
+  var question; // EjsS Model.Variables.question.question
+  var questionbank; // EjsS Model.Variables.question.questionbank
+  var tol; // EjsS Model.Variables.question.tol
+  var counter; // EjsS Model.Variables.question.counter
+  var visible; // EjsS Model.Variables.question.visible
+  var sound; // EjsS Model.Variables.question.sound
+  var text; // EjsS Model.Variables.question.text
+  var questionCount; // EjsS Model.Variables.question.questionCount
+  var targetX; // EjsS Model.Variables.question.targetX
+  var targetY; // EjsS Model.Variables.question.targetY
+  var directionNames; // EjsS Model.Variables.question.directionNames
+
+  var log; // EjsS Model.Variables.game.log
+
+  var once; // EjsS Model.Variables.moodle.once
+  var isQuestionAnswered; // EjsS Model.Variables.moodle.isQuestionAnswered
+  var isFirstTry; // EjsS Model.Variables.moodle.isFirstTry
+  var runOnce; // EjsS Model.Variables.moodle.runOnce
+
+  _model.getOdes = function() { return []; };
+
+  _model.removeEvents = function(){
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      clicked : clicked,
+      t : t,
+      dt : dt,
+      numberofdots : numberofdots,
+      n : n,
+      xo : xo,
+      yo : yo,
+      x : x,
+      y : y,
+      textSet : textSet,
+      elementinteracted : elementinteracted,
+      font : font,
+      enabledposition : enabledposition,
+      question : question,
+      questionbank : questionbank,
+      tol : tol,
+      counter : counter,
+      visible : visible,
+      sound : sound,
+      text : text,
+      questionCount : questionCount,
+      targetX : targetX,
+      targetY : targetY,
+      directionNames : directionNames,
+      log : log,
+      once : once,
+      isQuestionAnswered : isQuestionAnswered,
+      isFirstTry : isFirstTry,
+      runOnce : runOnce
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.clicked != "undefined") clicked = json.clicked;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.numberofdots != "undefined") numberofdots = json.numberofdots;
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.xo != "undefined") xo = json.xo;
+    if(typeof json.yo != "undefined") yo = json.yo;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.textSet != "undefined") textSet = json.textSet;
+    if(typeof json.elementinteracted != "undefined") elementinteracted = json.elementinteracted;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.enabledposition != "undefined") enabledposition = json.enabledposition;
+    if(typeof json.question != "undefined") question = json.question;
+    if(typeof json.questionbank != "undefined") questionbank = json.questionbank;
+    if(typeof json.tol != "undefined") tol = json.tol;
+    if(typeof json.counter != "undefined") counter = json.counter;
+    if(typeof json.visible != "undefined") visible = json.visible;
+    if(typeof json.sound != "undefined") sound = json.sound;
+    if(typeof json.text != "undefined") text = json.text;
+    if(typeof json.questionCount != "undefined") questionCount = json.questionCount;
+    if(typeof json.targetX != "undefined") targetX = json.targetX;
+    if(typeof json.targetY != "undefined") targetY = json.targetY;
+    if(typeof json.directionNames != "undefined") directionNames = json.directionNames;
+    if(typeof json.log != "undefined") log = json.log;
+    if(typeof json.once != "undefined") once = json.once;
+    if(typeof json.isQuestionAnswered != "undefined") isQuestionAnswered = json.isQuestionAnswered;
+    if(typeof json.isFirstTry != "undefined") isFirstTry = json.isFirstTry;
+    if(typeof json.runOnce != "undefined") runOnce = json.runOnce;
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model.addToReset(function() {
+    __pagesEnabled["Init Page 2"] = false;
+    __pagesEnabled["Init Page"] = true;
+    __pagesEnabled["undefined"] = true;
+    __pagesEnabled["question"] = true;
+    __pagesEnabled["visible"] = true;
+  });
+
+  _model.addToReset(function() {
+    t = 0; // EjsS Model.Variables.Var Table.t
+    dt = 0.05; // EjsS Model.Variables.Var Table.dt
+    numberofdots = 10; // EjsS Model.Variables.Var Table.numberofdots
+    n = numberofdots; // EjsS Model.Variables.Var Table.n
+    xo = 0; // EjsS Model.Variables.Var Table.xo
+    yo = 0; // EjsS Model.Variables.Var Table.yo
+    x = new Array(n); // EjsS Model.Variables.Var Table.x
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Var Table.x
+        x[_i0] = 0;  // EjsS Model.Variables.Var Table.x
+      }
+    }());
+    y = new Array(n); // EjsS Model.Variables.Var Table.y
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Var Table.y
+        y[_i0] = 0;  // EjsS Model.Variables.Var Table.y
+      }
+    }());
+    textSet = []; // EjsS Model.Variables.Var Table.textSet
+    elementinteracted = -1; // EjsS Model.Variables.Var Table.elementinteracted
+    font = "normal normal 4vh "; // EjsS Model.Variables.Var Table.font
+    enabledposition = new Array(n); // EjsS Model.Variables.Var Table.enabledposition
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Var Table.enabledposition
+        enabledposition[_i0] = "ENABLED_ANY";  // EjsS Model.Variables.Var Table.enabledposition
+      }
+    }());
+  });
+
+  _model.addToReset(function() {
+    question = ""; // EjsS Model.Variables.question.question
+    questionbank = new Array(n); // EjsS Model.Variables.question.questionbank
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.question.questionbank
+        questionbank[_i0] = "";  // EjsS Model.Variables.question.questionbank
+      }
+    }());
+    tol = 0.2; // EjsS Model.Variables.question.tol
+    counter = 0; // EjsS Model.Variables.question.counter
+    visible = [true,false,false,false,false,false,false,false,false,false]; // EjsS Model.Variables.question.visible
+    text = ""; // EjsS Model.Variables.question.text
+    questionCount = 10; // EjsS Model.Variables.question.questionCount
+    targetX = []; // EjsS Model.Variables.question.targetX
+    targetY = []; // EjsS Model.Variables.question.targetY
+    directionNames = ["east", "north-east", "north", "north-west", "west", "south-west", "south", "south-east"]; // EjsS Model.Variables.question.directionNames
+  });
+
+  _model.addToReset(function() {
+  });
+
+  _model.addToReset(function() {
+    once = true; // EjsS Model.Variables.moodle.once
+    isQuestionAnswered = false; // EjsS Model.Variables.moodle.isQuestionAnswered
+    isFirstTry = true; // EjsS Model.Variables.moodle.isFirstTry
+    runOnce = false; // EjsS Model.Variables.moodle.runOnce
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  // copy this custom function  // > CustomCode.Lib Page:1
+  // in iOS need to add speech to the play button as On iOS the API works but must be triggered by a user action callback, like a response to a tap event, to provide a better experience to users and avoid unexpected sounds out of your phone  // > CustomCode.Lib Page:2
+  function speech(option) {  // > CustomCode.Lib Page:3
+    try { // allow code to run in Student Learning Space   // > CustomCode.Lib Page:4
+      var isCordova = (!!this.parent.cordova || !!window.cordova);  // > CustomCode.Lib Page:5
+      if (isCordova) { // check it is running in Android or iOS  // > CustomCode.Lib Page:6
+        // parent.TTS.speak({text:option,locale:'zh-CN'});  // > CustomCode.Lib Page:7
+        parent.TTS.speak({ text: option, locale: 'us-EN' });  // > CustomCode.Lib Page:8
+        // parent.TTS.speak({text:option,locale:'en-US'});  // > CustomCode.Lib Page:9
+        // parent.TTS.speak({text:option,locale:'id-ID'});  // > CustomCode.Lib Page:10
+      }  // > CustomCode.Lib Page:11
+    }  // > CustomCode.Lib Page:12
+    catch (e) {  // > CustomCode.Lib Page:13
+      var isCordova = false;  // > CustomCode.Lib Page:14
+    }  // > CustomCode.Lib Page:15
+    var msg = new SpeechSynthesisUtterance(option);  // > CustomCode.Lib Page:16
+    //https://stackoverflow.com/questions/43983845/speechsynthesis-api-for-chinese-firefox  // > CustomCode.Lib Page:17
+    // Set the text.  // > CustomCode.Lib Page:18
+    //msg.text = option;   // > CustomCode.Lib Page:19
+    //https://forums.developer.apple.com/message/323564#323564  // > CustomCode.Lib Page:20
+    // comment out the next 2 lines for english  // > CustomCode.Lib Page:21
+    //msg.voice = speechSynthesis.getVoices().filter(function(voice) { return voice.name == 'Ting-Ting'; })[0];  // > CustomCode.Lib Page:22
+    //msg.lang = 'zh-CH'; // need for android?  // > CustomCode.Lib Page:23
+    //msg.lang = 'id-ID'; // need for android?  // > CustomCode.Lib Page:24
+    msg.lang = 'us-EN'; // need for android?  // > CustomCode.Lib Page:25
+    //https://flaviocopes.com/speech-synthesis-api/  // > CustomCode.Lib Page:26
+    //debug  // > CustomCode.Lib Page:27
+    //console.log(`Voices #: ${speechSynthesis.getVoices().length}`)  // > CustomCode.Lib Page:28
+    //speechSynthesis.getVoices().forEach(voice => {  // > CustomCode.Lib Page:29
+    // console.log(voice.name, voice.lang)  // > CustomCode.Lib Page:30
+    //})  // > CustomCode.Lib Page:31
+    //debug  // > CustomCode.Lib Page:32
+    // Queue this utterance.  // > CustomCode.Lib Page:33
+    window.speechSynthesis.speak(msg);  // > CustomCode.Lib Page:34
+  }  // > CustomCode.Lib Page:35
+
+  // Assume ECMAScript 6; Chrome >=49, Edge >=14, Firefox >=41, Opera >=36, Safari >=8  // > CustomCode.Library:1
+  const debugMode = true;  // > CustomCode.Library:2
+  const _questionLib = {};  // > CustomCode.Library:3
+  _questionLib.stack = [];  // > CustomCode.Library:4
+  _questionLib.history = Object.create(null);  // > CustomCode.Library:5
+  _questionLib.questionMarksAwarded = Object.create(null);  // > CustomCode.Library:6
+  const _nullFunction = debugMode ?  // > CustomCode.Library:7
+    console.log  // > CustomCode.Library:8
+    :  // > CustomCode.Library:9
+    function(){};  // > CustomCode.Library:10
+  function _debugPrint(msg) {  // > CustomCode.Library:11
+    if (debugMode) {  // > CustomCode.Library:12
+      console.log(msg);  // > CustomCode.Library:13
+    }  // > CustomCode.Library:14
+  }  // > CustomCode.Library:15
+  function _getCurrentQuestion() {  // > CustomCode.Library:16
+    if (!isQuestionStarted()) {  // > CustomCode.Library:17
+      return null;  // > CustomCode.Library:18
+    }  // > CustomCode.Library:19
+    return _questionLib.stack[_questionLib.stack.length - 1];  // > CustomCode.Library:20
+  }  // > CustomCode.Library:21
+  function isQuestionStarted() {  // > CustomCode.Library:22
+    return _questionLib.stack.length > 0;  // > CustomCode.Library:23
+  }  // > CustomCode.Library:24
+  // for assessment.json event - start  // > CustomCode.Library:25
+  function startQuestion(questionName) {  // > CustomCode.Library:26
+    _view._addInteraction(_nullFunction, {action:"questionStart", name:questionName}, {element:"questionLib", property:"value"});  // > CustomCode.Library:27
+    _debugPrint("Start question: " + questionName);  // > CustomCode.Library:28
+      // > CustomCode.Library:29
+    _questionLib.stack.push(questionName);  // > CustomCode.Library:30
+  }  // > CustomCode.Library:31
+  // for assessment.json history  // > CustomCode.Library:32
+  function addQuestionHistory(history, questionName=null) {  // > CustomCode.Library:33
+    if (questionName === null && isQuestionStarted()) {  // > CustomCode.Library:34
+      questionName = _getCurrentQuestion();  // > CustomCode.Library:35
+    }  // > CustomCode.Library:36
+      // > CustomCode.Library:37
+    if (!(questionName in _questionLib.history)) {  // > CustomCode.Library:38
+      _debugPrint("Create question history for " + questionName);  // > CustomCode.Library:39
+        // > CustomCode.Library:40
+      _questionLib.history[questionName] = [];  // > CustomCode.Library:41
+    }  // > CustomCode.Library:42
+    if (debugMode) {  // > CustomCode.Library:43
+      console.log("Push \"" + history + "\" to question history for " + questionName);  // > CustomCode.Library:44
+    }  // > CustomCode.Library:45
+    _questionLib.history[questionName].push(history);  // > CustomCode.Library:46
+    _flushQuestionHistory(questionName);  // > CustomCode.Library:47
+  }  // > CustomCode.Library:48
+  function _flushQuestionHistory(questionName) {  // > CustomCode.Library:49
+    // TODO: check if need to flush  // > CustomCode.Library:50
+    if (questionName === _getCurrentQuestion()) {  // > CustomCode.Library:51
+      const outputHistory = _getQuestionHistory(questionName);  // > CustomCode.Library:52
+      _view._addInteraction(_nullFunction, outputHistory, {property: "historyFor" + questionName, element: "questionLib"});  // > CustomCode.Library:53
+    }  // > CustomCode.Library:54
+  }  // > CustomCode.Library:55
+  function _getQuestionHistory(questionName) {  // > CustomCode.Library:56
+    if (questionName in _questionLib.history) {  // > CustomCode.Library:57
+      return _questionLib.history[questionName].join("\n");  // > CustomCode.Library:58
+    } else {  // > CustomCode.Library:59
+      _debugPrint("No question \"" + questionName + "\" exists");  // > CustomCode.Library:60
+      return "";  // > CustomCode.Library:61
+    }  // > CustomCode.Library:62
+  }  // > CustomCode.Library:63
+  // for assessment.json event - states  // > CustomCode.Library:64
+  function onAnswer(answer, isCorrect=false, history=answer, questionName=null) {  // > CustomCode.Library:65
+    if (questionName === null && isQuestionStarted()) {  // > CustomCode.Library:66
+      questionName = _questionLib.stack[_questionLib.stack.length - 1];  // > CustomCode.Library:67
+    }  // > CustomCode.Library:68
+    if (questionName !== null) {  // > CustomCode.Library:69
+      const explainer = Object.create(null);  // > CustomCode.Library:70
+      explainer[true] = " ✅";  // > CustomCode.Library:71
+      explainer[false] = " ❌";  // > CustomCode.Library:72
+      addQuestionHistory(history + explainer[isCorrect], questionName);  // > CustomCode.Library:73
+      if (questionName === _getCurrentQuestion()) {  // > CustomCode.Library:74
+        _view._addInteraction(_nullFunction, {name:questionName, answer:answer, isCorrect:isCorrect, action:"questionAnswer"}, {property: "answer", element:"questionLib"});  // > CustomCode.Library:75
+      }  // > CustomCode.Library:76
+    }  // > CustomCode.Library:77
+  }  // > CustomCode.Library:78
+  // for assessment.json event - end  // > CustomCode.Library:79
+  function endQuestion() {  // > CustomCode.Library:80
+    if (_questionLib.stack.length > 0) {  // > CustomCode.Library:81
+      const questionName = _questionLib.stack.pop();  // > CustomCode.Library:82
+      _debugPrint("End question: " + questionName);  // > CustomCode.Library:83
+      _view._addInteraction(_nullFunction, {action:"questionEnd", name:questionName}, {element: "questionLib", property: "value"});  // > CustomCode.Library:84
+    }  // > CustomCode.Library:85
+  }  // > CustomCode.Library:86
+  // for assessment.json marks  // > CustomCode.Library:87
+  function awardQuestionMarks(marks=1) {  // > CustomCode.Library:88
+    if (isQuestionStarted()) {  // > CustomCode.Library:89
+      const questionName = _getCurrentQuestion();  // > CustomCode.Library:90
+      _questionLib.questionMarksAwarded[questionName] = 1;  // > CustomCode.Library:91
+        // > CustomCode.Library:92
+      for (; _questionLib.questionMarksAwarded[questionName] < marks + 1; _questionLib.questionMarksAwarded[questionName]++) {  // > CustomCode.Library:93
+        _view._addInteraction(_nullFunction, _questionLib.questionMarksAwarded[questionName], {element:"questionLib", property:"awardMarkFor"+questionName});  // > CustomCode.Library:94
+      }  // > CustomCode.Library:95
+    }  // > CustomCode.Library:96
+  }  // > CustomCode.Library:97
+  function resetQuestionMarks(questionName) {  // > CustomCode.Library:98
+    _questionLib.questionMarksAwarded[questionName] = 0;  // > CustomCode.Library:99
+  }  // > CustomCode.Library:100
+  function questionInstantMark(questionName, message) {  // > CustomCode.Library:101
+    startQuestion(questionName);  // > CustomCode.Library:102
+    _debugPrint("" + message);  // > CustomCode.Library:103
+    if (message) {  // > CustomCode.Library:104
+      addQuestionHistory(message);  // > CustomCode.Library:105
+    } else {  // > CustomCode.Library:106
+      _flushQuestionHistory(questionName);  // > CustomCode.Library:107
+    }  // > CustomCode.Library:108
+    awardQuestionMarks();  // > CustomCode.Library:109
+    endQuestion();  // > CustomCode.Library:110
+  }  // > CustomCode.Library:111
+  function questionAppendHistory(questionName, message) {  // > CustomCode.Library:112
+    if (!(questionName in _questionLib.questionMarksAwarded)) {  // > CustomCode.Library:113
+      _questionLib.questionMarksAwarded[questionName] = 0;  // > CustomCode.Library:114
+    }  // > CustomCode.Library:115
+    let shouldPushQuestion = _getCurrentQuestion() !== questionName;  // > CustomCode.Library:116
+    if (shouldPushQuestion) {  // > CustomCode.Library:117
+      startQuestion(questionName);  // > CustomCode.Library:118
+    }  // > CustomCode.Library:119
+    awardQuestionMarks(_questionLib.questionMarksAwarded[questionName])  // > CustomCode.Library:120
+    addQuestionHistory(message);  // > CustomCode.Library:121
+    if (shouldPushQuestion) {  // > CustomCode.Library:122
+      endQuestion();  // > CustomCode.Library:123
+    }  // > CustomCode.Library:124
+  }  // > CustomCode.Library:125
+  function resetQuestionHistory(questionName) {  // > CustomCode.Library:126
+    _questionLib.history[questionName] = [];  // > CustomCode.Library:127
+  }  // > CustomCode.Library:128
+  function resetQuestion(questionName) {  // > CustomCode.Library:129
+    resetQuestionHistory(questionName);  // > CustomCode.Library:130
+    resetQuestionMarks(questionName);  // > CustomCode.Library:131
+  }  // > CustomCode.Library:132
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page 2"]) return;
+    for (var i=0; i<n /* Iterations */ ; i++) {  // > Initialization.Init Page 2:1
+      x[i]=i;  // > Initialization.Init Page 2:2
+    }  // > Initialization.Init Page 2:3
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    textSet[0] = "🐁";  // > Initialization.Init Page:1
+    textSet[1] = "🐄";  // > Initialization.Init Page:2
+    textSet[2] = "🐈";  // > Initialization.Init Page:3
+    textSet[3] = "🐇";  // > Initialization.Init Page:4
+    textSet[4] = "🐏";  // > Initialization.Init Page:5
+    textSet[5] = "🐓";  // > Initialization.Init Page:6
+    textSet[6] = "🐘";  // > Initialization.Init Page:7
+    textSet[7] = "🐢";  // > Initialization.Init Page:8
+    textSet[8] = "🐜";  // > Initialization.Init Page:9
+    textSet[9] = "🐠";  // > Initialization.Init Page:10
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["undefined"]) return;
+    if(log==undefined){  // > Initialization.undefined:1
+      log="";  // > Initialization.undefined:2
+      }  // > Initialization.undefined:3
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["question"]) return;
+    // Cosine/sine analogues, but for Chebyshev distance and in intervals of 1/8 turns  // > Initialization.question:1
+    let cosChebyshev = [1, 1, 0, -1, -1, -1, 0, 1];  // > Initialization.question:2
+    let sinChebyshev = [0, 1, 1, 1, 0, -1, -1, -1];  // > Initialization.question:3
+    let animalList = ["mouse", "cow", "cat", "rabbit", "ram", "rooster", "elephant", "turtle", "ant", "fish"];  // > Initialization.question:4
+    const angleList = [];  // > Initialization.question:5
+    for (let i = 0; i < 8; i++) {  // > Initialization.question:6
+      angleList[i] = i;  // > Initialization.question:7
+    }  // > Initialization.question:8
+    while (angleList.length < questionCount) {  // > Initialization.question:9
+      angleList.push(Math.floor(Math.random() * 8));  // > Initialization.question:10
+    }  // > Initialization.question:11
+    for (let i = angleList.length - 1; i >= 1; i--) {  // > Initialization.question:12
+      let index = Math.floor(Math.random() * (i + 1));  // > Initialization.question:13
+      let swp = angleList[index];  // > Initialization.question:14
+      angleList[index] = angleList[i];  // > Initialization.question:15
+      angleList[i] = swp;  // > Initialization.question:16
+    }  // > Initialization.question:17
+    const distanceList = [];  // > Initialization.question:18
+    for (let i = 0; i < questionCount; i++) {  // > Initialization.question:19
+      distanceList.push(Math.floor(Math.random() * 5) + 1); // appends an integer in [1..5] to the list  // > Initialization.question:20
+    }  // > Initialization.question:21
+    for (let i = 0; i < questionCount; i++) {  // > Initialization.question:22
+      questionbank[i] = `move the ${animalList[i]} ${distanceList[i]} square${distanceList[i] > 1 ? "s" : ""} ${directionNames[angleList[i]]}.`  // > Initialization.question:23
+      targetX[i] = distanceList[i] * cosChebyshev[angleList[i]];  // > Initialization.question:24
+      targetY[i] = distanceList[i] * sinChebyshev[angleList[i]];  // > Initialization.question:25
+    }  // > Initialization.question:26
+    question = questionbank[0];  // > Initialization.question:27
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["visible"]) return;
+    // new way to make Moodle slow down to reset afrer 500 ms then run the code _reset  // > Initialization.visible:1
+    // 500 is decided after testing on moodle, as an acceptable delay  // > Initialization.visible:2
+    if (!clicked){  // > Initialization.visible:3
+      window.setTimeout(_reset,500)  // > Initialization.visible:4
+      clicked=true;  // > Initialization.visible:5
+    }  // > Initialization.visible:6
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "food web", width : null, height : null };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new Eight_point_compass4ryan_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.question.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // food web linking property 'Font' for element 'question'
+          _view.question2.linkProperty("Text",  function() { return question; }, function(_v) { question = _v; } ); // food web linking property 'Text' for element 'question2'
+          _view.sound.linkProperty("Checked",  function() { return sound; }, function(_v) { sound = _v; } ); // food web linking property 'Checked' for element 'sound'
+          _view.sound.setAction("OnCheckOff", function(_data,_info) {
+  //speech("speech is deactivated now.");
+
+}); // food web setting action 'OnCheckOff' for element 'sound'
+          _view.sound.setAction("OnCheckOn", function(_data,_info) {
+  //speech("speech is activated now.");
+
+}); // food web setting action 'OnCheckOn' for element 'sound'
+          _view.twoStateButton.linkProperty("State",  function() { return sound; }, function(_v) { sound = _v; } ); // food web linking property 'State' for element 'twoStateButton'
+          _view.twoStateButton.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // food web linking property 'Font' for element 'twoStateButton'
+          _view.reset.setAction("OnClick", function(_data,_info) {
+  _reset();
+
+}); // food web setting action 'OnClick' for element 'reset'
+          _view.reset.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // food web linking property 'Font' for element 'reset'
+          _view.plottingPanel.linkProperty("Height",  function() { return ""+window.innerHeight*0.8; } ); // food web linking property 'Height' for element 'plottingPanel'
+          _view.plottingPanel.setAction("OnResize", function(_data,_info) {
+  _update();
+
+}); // food web setting action 'OnResize' for element 'plottingPanel'
+          _view.plottingPanel.linkProperty("TRMessage",  function() { return "log="+log; } ); // food web linking property 'TRMessage' for element 'plottingPanel'
+          _view.textSet.linkProperty("NumberOfElements",  function() { return n; }, function(_v) { n = _v; } ); // food web linking property 'NumberOfElements' for element 'textSet'
+          _view.textSet.setAction("OnRelease", function(_data,_info) {
+  x[elementinteracted] = Math.round(x[elementinteracted]);
+  y[elementinteracted] = Math.round(y[elementinteracted]);
+  var coordinates = " ( "+x[elementinteracted]+" ,"+y[elementinteracted]+" ) "
+  var questionNumber = counter +1
+  //var once = true // to use to display the question string once
+  if (counter < questionCount) {
+    startQuestion("Q"+questionNumber) //moodle start regardless of correct or wrong
+    if (x[elementinteracted] === targetX[counter] && y[elementinteracted] === targetY[counter]) {
+      // Answer is correct
+      //moodle
+      // appear once
+      if (once) {
+        addQuestionHistory(`$ {
+          questionNumber
+        } = $ {
+          question
+        } `); //moodle part of the history
+        once=false
+      }
+      onAnswer(coordinates,true)
+      if (isFirstTry) {
+        awardQuestionMarks(2);
+        once=true // set back to true to prepare for next q
+      }
+      else {
+        awardQuestionMarks(1);
+        isFirstTry =true //reset
+        once=true // set back to true to prepare for next q
+      }
+      endQuestion("Q"+questionNumber)
+      //sim
+      //questionCount = 10
+      // counter is 0 to 9
+      var isNotLastQuestion = counter < questionCount - 1; // change ryan code
+      console.log (isNotLastQuestion)
+      const nextText = "You are ready for the next challenge! <br />🙌 <br />";
+      const endText = "You have gained mastery of this topic! <br />😎 <br />";
+      const text = isNotLastQuestion ? nextText : endText;
+      _tools.showOkDialog(text);
+      //change dialog propoerties
+      //document.getElementById(".myBoxPanelOk").style.fontSize = "2vw";
+      //document.getElementById(".myBoxPanelOk").style.background = "white";
+      //document.getElementById(".myBoxPanelOk").style.border = "black";
+      enabledposition[elementinteracted] = "ENABLED_NONE";
+      // Add to log
+      if (log !== "") {
+        log += "\n";
+      }
+      log += "✔️" + question + coordinates
+      //visible[counter]=false;
+      //prepare next question
+      counter += 1;
+      question = questionbank[counter];
+      visible[counter] = true; // for the next animal text
+    }
+    else {
+      // Answer is wrong
+      if (once) {
+        addQuestionHistory(`$ {
+          questionNumber
+        } = $ {
+          question
+        } `); //moodle part of the history
+        once=false
+      }
+      onAnswer(coordinates,false)
+      isFirstTry =false // to allow running of 2nd try
+      endQuestion("Q"+questionNumber)
+      _tools.showOkDialog("What went wrong? <br />Try again. <br />🤔<br /> ");
+      if (log !== "") {
+        log += "\n";
+      }
+      log += "❌" + question + coordinates
+    }
+    //document.getElementById(".myBoxPanelOk").style.fontSize = "2vw";
+    //document.getElementById(".myBoxPanelOk").style.background = "white";
+    //document.getElementById(".myBoxPanelOk").style.border = "black";
+  }
+
+}); // food web setting action 'OnRelease' for element 'textSet'
+          _view.textSet.linkProperty("X",  function() { return x; }, function(_v) { x = _v; } ); // food web linking property 'X' for element 'textSet'
+          _view.textSet.setAction("OnEnter", function(_data,_info) {
+  if (sound==true&&x[elementinteracted]==0&&y[elementinteracted]==0){
+    
+    speech(question);
+  }
+
+}); // food web setting action 'OnEnter' for element 'textSet'
+          _view.textSet.linkProperty("Y",  function() { return y; }, function(_v) { y = _v; } ); // food web linking property 'Y' for element 'textSet'
+          _view.textSet.linkProperty("Text",  function() { return textSet; }, function(_v) { textSet = _v; } ); // food web linking property 'Text' for element 'textSet'
+          _view.textSet.linkProperty("Visibility",  function() { return visible; }, function(_v) { visible = _v; } ); // food web linking property 'Visibility' for element 'textSet'
+          _view.textSet.linkProperty("EnabledPosition",  function() { return enabledposition; }, function(_v) { enabledposition = _v; } ); // food web linking property 'EnabledPosition' for element 'textSet'
+          _view.textSet.linkProperty("ElementInteracted",  function() { return elementinteracted; }, function(_v) { elementinteracted = _v; } ); // food web linking property 'ElementInteracted' for element 'textSet'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+function Eight_point_compass4ryan_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = Eight_point_compass4ryan_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+
+  return _view;
+} // end of main function
+
+function Eight_point_compass4ryan_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"singlePlotPanel", _view._topFrame) // EJsS HtmlView.food web: declaration of element 'singlePlotPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"question", _view.singlePlotPanel) // EJsS HtmlView.food web: declaration of element 'question'
+      .setProperty("Width","100%") // EJsS HtmlView.food web: setting property 'Width' for element 'question'
+      .setProperty("Display","inline-block") // EJsS HtmlView.food web: setting property 'Display' for element 'question'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"label2", _view.question) // EJsS HtmlView.food web: declaration of element 'label2'
+      .setProperty("Text","From the green square,") // EJsS HtmlView.food web: setting property 'Text' for element 'label2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.food web: setting property 'Display' for element 'label2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"question2", _view.question) // EJsS HtmlView.food web: declaration of element 'question2'
+      .setProperty("Display","inline-block") // EJsS HtmlView.food web: setting property 'Display' for element 'question2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"sound", _view.question) // EJsS HtmlView.food web: declaration of element 'sound'
+      .setProperty("Text","sound") // EJsS HtmlView.food web: setting property 'Text' for element 'sound'
+      .setProperty("Display","none") // EJsS HtmlView.food web: setting property 'Display' for element 'sound'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"twoStateButton", _view.question) // EJsS HtmlView.food web: declaration of element 'twoStateButton'
+      .setProperty("Width","15vw") // EJsS HtmlView.food web: setting property 'Width' for element 'twoStateButton'
+      .setProperty("TextOn","🔊Sound on") // EJsS HtmlView.food web: setting property 'TextOn' for element 'twoStateButton'
+      .setProperty("TextOff","🔈Sound off") // EJsS HtmlView.food web: setting property 'TextOff' for element 'twoStateButton'
+      .setProperty("Display","inline-block") // EJsS HtmlView.food web: setting property 'Display' for element 'twoStateButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"reset", _view.question) // EJsS HtmlView.food web: declaration of element 'reset'
+      .setProperty("Width","15vw") // EJsS HtmlView.food web: setting property 'Width' for element 'reset'
+      .setProperty("Text","↻Reset") // EJsS HtmlView.food web: setting property 'Text' for element 'reset'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view.singlePlotPanel) // EJsS HtmlView.food web: declaration of element 'panel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.plottingPanel,"plottingPanel", _view.panel) // EJsS HtmlView.food web: declaration of element 'plottingPanel'
+      .setProperty("Width","100%") // EJsS HtmlView.food web: setting property 'Width' for element 'plottingPanel'
+      .setProperty("Gutters",[0,0,0,0]) // EJsS HtmlView.food web: setting property 'Gutters' for element 'plottingPanel'
+      .setProperty("YScalePrecision",1) // EJsS HtmlView.food web: setting property 'YScalePrecision' for element 'plottingPanel'
+      .setProperty("XFixedTick",0.5) // EJsS HtmlView.food web: setting property 'XFixedTick' for element 'plottingPanel'
+      .setProperty("Enabled",true) // EJsS HtmlView.food web: setting property 'Enabled' for element 'plottingPanel'
+      .setProperty("SquareAspect",true) // EJsS HtmlView.food web: setting property 'SquareAspect' for element 'plottingPanel'
+      .setProperty("MaximumY",6) // EJsS HtmlView.food web: setting property 'MaximumY' for element 'plottingPanel'
+      .setProperty("MaximumX",9) // EJsS HtmlView.food web: setting property 'MaximumX' for element 'plottingPanel'
+      .setProperty("EnabledDragging","ENABLED_Y") // EJsS HtmlView.food web: setting property 'EnabledDragging' for element 'plottingPanel'
+      .setProperty("YFixedTick",0.5) // EJsS HtmlView.food web: setting property 'YFixedTick' for element 'plottingPanel'
+      .setProperty("YAutoTicks",false) // EJsS HtmlView.food web: setting property 'YAutoTicks' for element 'plottingPanel'
+      .setProperty("GridYShow",true) // EJsS HtmlView.food web: setting property 'GridYShow' for element 'plottingPanel'
+      .setProperty("MinimumX",-6) // EJsS HtmlView.food web: setting property 'MinimumX' for element 'plottingPanel'
+      .setProperty("GridYLineColor","Gray") // EJsS HtmlView.food web: setting property 'GridYLineColor' for element 'plottingPanel'
+      .setProperty("XTickStep",1) // EJsS HtmlView.food web: setting property 'XTickStep' for element 'plottingPanel'
+      .setProperty("MinimumY",-6) // EJsS HtmlView.food web: setting property 'MinimumY' for element 'plottingPanel'
+      .setProperty("YTickStep",1) // EJsS HtmlView.food web: setting property 'YTickStep' for element 'plottingPanel'
+      .setProperty("XAutoTicks",false) // EJsS HtmlView.food web: setting property 'XAutoTicks' for element 'plottingPanel'
+      .setProperty("GridXLineColor","Gray") // EJsS HtmlView.food web: setting property 'GridXLineColor' for element 'plottingPanel'
+      .setProperty("GridXShow",true) // EJsS HtmlView.food web: setting property 'GridXShow' for element 'plottingPanel'
+      .setProperty("XScalePrecision",1) // EJsS HtmlView.food web: setting property 'XScalePrecision' for element 'plottingPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.shape,"home", _view.plottingPanel) // EJsS HtmlView.food web: declaration of element 'home'
+      .setProperty("FillColor","rgba(0,192,64,1)") // EJsS HtmlView.food web: setting property 'FillColor' for element 'home'
+      .setProperty("SizeX",1) // EJsS HtmlView.food web: setting property 'SizeX' for element 'home'
+      .setProperty("ShapeType","RECTANGLE") // EJsS HtmlView.food web: setting property 'ShapeType' for element 'home'
+      .setProperty("X",0) // EJsS HtmlView.food web: setting property 'X' for element 'home'
+      .setProperty("LineColor","White") // EJsS HtmlView.food web: setting property 'LineColor' for element 'home'
+      .setProperty("Y",0) // EJsS HtmlView.food web: setting property 'Y' for element 'home'
+      .setProperty("SizeY",1) // EJsS HtmlView.food web: setting property 'SizeY' for element 'home'
+      .setProperty("LineWidth",0) // EJsS HtmlView.food web: setting property 'LineWidth' for element 'home'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.textSet,"textSet", _view.plottingPanel) // EJsS HtmlView.food web: declaration of element 'textSet'
+      .setProperty("FontSize","3vw") // EJsS HtmlView.food web: setting property 'FontSize' for element 'textSet'
+      ;
+
+    _view._addElement(EJSS_DRAWING2D.image,"image", _view.plottingPanel) // EJsS HtmlView.food web: declaration of element 'image'
+      .setProperty("SizeX",2.5) // EJsS HtmlView.food web: setting property 'SizeX' for element 'image'
+      .setProperty("X",4) // EJsS HtmlView.food web: setting property 'X' for element 'image'
+      .setProperty("Y",4) // EJsS HtmlView.food web: setting property 'Y' for element 'image'
+      .setProperty("ImageUrl","./compass_template/Picture1.png") // EJsS HtmlView.food web: setting property 'ImageUrl' for element 'image'
+      .setProperty("SizeY",2.5) // EJsS HtmlView.food web: setting property 'SizeY' for element 'image'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"html", _view.singlePlotPanel) // EJsS HtmlView.food web: declaration of element 'html'
+      .setProperty("Html","<h2>this</h2> is a") // EJsS HtmlView.food web: setting property 'Html' for element 'html'
+      .setProperty("Visibility",false) // EJsS HtmlView.food web: setting property 'Visibility' for element 'html'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new Eight_point_compass4ryan("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);

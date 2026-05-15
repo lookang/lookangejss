@@ -1,0 +1,402 @@
+// Check if running standalone or in iframe and adjust height
+if (window.self === window.top) {
+    document.body.classList.add('standalone');
+}
+
+// State management
+let packedItems = [];
+let draggedElement = null;
+
+// Essential items data structure
+// MODIFIED: Changed 'Insect Repellant' to 'Mosquito Repellent' in weather array
+const essentialItems = {
+    weather: ['Hat', 'Sunscreen', 'Raincoat', 'Umbrella', 'Mosquito Repellent'],
+    food: ['Water Bottle', 'Sandwich', 'Fruits']
+};
+
+// DOM elements
+const itemsContainer = document.getElementById('itemsContainer');
+const backpack = document.getElementById('backpack');
+const packedItemsContainer = document.getElementById('packedItems');
+const checkBtn = document.getElementById('checkBtn');
+const resetBtn = document.getElementById('resetBtn');
+const feedbackContent = document.getElementById('feedbackContent');
+const weatherCount = document.getElementById('weatherCount');
+const foodCount = document.getElementById('foodCount');
+
+// Initialize drag and drop functionality
+function initializeDragAndDrop() {
+    const items = document.querySelectorAll('.item');
+    
+    items.forEach(item => {
+        // Mouse/Desktop drag events
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        
+        // Touch events for mobile
+        item.addEventListener('touchstart', handleTouchStart, { passive: false });
+        item.addEventListener('touchmove', handleTouchMove, { passive: false });
+        item.addEventListener('touchend', handleTouchEnd);
+    });
+    
+    // Backpack drop zone events
+    backpack.addEventListener('dragover', handleDragOver);
+    backpack.addEventListener('drop', handleDrop);
+    backpack.addEventListener('dragleave', handleDragLeave);
+}
+
+// Drag start handler
+function handleDragStart(e) {
+    if (this.classList.contains('packed')) return;
+    
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+// Drag end handler
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+}
+
+// Drag over handler for drop zone
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    backpack.classList.add('drag-over');
+    return false;
+}
+
+// Drag leave handler
+function handleDragLeave(e) {
+    backpack.classList.remove('drag-over');
+}
+
+// Drop handler
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    e.preventDefault();
+    
+    backpack.classList.remove('drag-over');
+    
+    if (draggedElement && !draggedElement.classList.contains('packed')) {
+        addItemToBackpack(draggedElement);
+    }
+    
+    return false;
+}
+
+// Touch event handlers for mobile support
+let touchStartX, touchStartY;
+let clonedElement = null;
+
+function handleTouchStart(e) {
+    if (this.classList.contains('packed')) return;
+    
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    draggedElement = this;
+    
+    // Create a clone for visual feedback
+    clonedElement = this.cloneNode(true);
+    clonedElement.style.position = 'fixed';
+    clonedElement.style.zIndex = '10000';
+    clonedElement.style.pointerEvents = 'none';
+    clonedElement.style.opacity = '0.8';
+    clonedElement.style.width = this.offsetWidth + 'px';
+    clonedElement.style.left = touch.clientX - (this.offsetWidth / 2) + 'px';
+    clonedElement.style.top = touch.clientY - (this.offsetHeight / 2) + 'px';
+    document.body.appendChild(clonedElement);
+    
+    this.classList.add('dragging');
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    
+    if (!clonedElement) return;
+    
+    const touch = e.touches[0];
+    clonedElement.style.left = touch.clientX - (clonedElement.offsetWidth / 2) + 'px';
+    clonedElement.style.top = touch.clientY - (clonedElement.offsetHeight / 2) + 'px';
+    
+    // Check if over backpack
+    const backpackRect = backpack.getBoundingClientRect();
+    if (touch.clientX >= backpackRect.left && touch.clientX <= backpackRect.right &&
+        touch.clientY >= backpackRect.top && touch.clientY <= backpackRect.bottom) {
+        backpack.classList.add('drag-over');
+    } else {
+        backpack.classList.remove('drag-over');
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!clonedElement) return;
+    
+    const touch = e.changedTouches[0];
+    const backpackRect = backpack.getBoundingClientRect();
+    
+    // Check if dropped on backpack
+    if (touch.clientX >= backpackRect.left && touch.clientX <= backpackRect.right &&
+        touch.clientY >= backpackRect.top && touch.clientY <= backpackRect.bottom) {
+        addItemToBackpack(draggedElement);
+    }
+    
+    // Cleanup
+    if (clonedElement && clonedElement.parentNode) {
+        clonedElement.parentNode.removeChild(clonedElement);
+    }
+    clonedElement = null;
+    
+    if (draggedElement) {
+        draggedElement.classList.remove('dragging');
+    }
+    
+    backpack.classList.remove('drag-over');
+    draggedElement = null;
+}
+
+// Add item to backpack
+function addItemToBackpack(itemElement) {
+    const itemName = itemElement.querySelector('.item-name').textContent;
+    const itemIcon = itemElement.querySelector('.item-icon').textContent;
+    const itemType = itemElement.dataset.type;
+    const itemCategory = itemElement.dataset.category;
+    
+    // Check if item already packed
+    if (packedItems.some(item => item.name === itemName)) {
+        return;
+    }
+    
+    // Add to packed items array
+    packedItems.push({
+        name: itemName,
+        icon: itemIcon,
+        type: itemType,
+        category: itemCategory,
+        element: itemElement
+    });
+    
+    // Mark original item as packed
+    itemElement.classList.add('packed');
+    
+    // Create packed item visual
+    createPackedItemElement(itemName, itemIcon, itemType);
+    
+    // Update progress
+    updateProgress();
+    
+    // Clear previous feedback
+    clearFeedback();
+}
+
+// Create visual representation of packed item
+function createPackedItemElement(name, icon, type) {
+    const packedItem = document.createElement('div');
+    packedItem.className = 'packed-item';
+    packedItem.dataset.name = name;
+    
+    packedItem.innerHTML = `
+        <span class="packed-item-icon">${icon}</span>
+        <span class="packed-item-name">${name}</span>
+        <button class="remove-btn" onclick="removeItem('${name}')">×</button>
+    `;
+    
+    packedItemsContainer.appendChild(packedItem);
+}
+
+// Remove item from backpack
+function removeItem(itemName) {
+    // Find and remove from packed items array
+    const index = packedItems.findIndex(item => item.name === itemName);
+    if (index > -1) {
+        const item = packedItems[index];
+        
+        // Remove packed class from original item
+        item.element.classList.remove('packed');
+        
+        // Remove from array
+        packedItems.splice(index, 1);
+        
+        // Remove visual element
+        const packedItemElement = packedItemsContainer.querySelector(`[data-name="${itemName}"]`);
+        if (packedItemElement) {
+            packedItemElement.remove();
+        }
+        
+        // Update progress
+        updateProgress();
+        
+        // Clear feedback
+        clearFeedback();
+    }
+}
+
+// Update progress counters
+// MODIFIED: Weather count now shows x/5 instead of x/4 to include Mosquito Repellent
+function updateProgress() {
+    const weatherItems = packedItems.filter(item => item.category === 'weather');
+    const foodItems = packedItems.filter(item => item.category === 'food');
+    
+    weatherCount.textContent = `${weatherItems.length}/5`;
+    foodCount.textContent = `${foodItems.length}/3`;
+}
+
+// Check packed items
+function checkPackedItems() {
+    if (packedItems.length === 0) {
+        showFeedback('error', 'Your backpack is empty! Start packing items for your outdoor trip.');
+        return;
+    }
+    
+    // Separate essential and distractor items
+    const packedEssential = packedItems.filter(item => item.type === 'essential');
+    const packedDistractors = packedItems.filter(item => item.type === 'distractor');
+    
+    // Get all essential items
+    const allEssentialItems = [...essentialItems.weather, ...essentialItems.food];
+    const packedEssentialNames = packedEssential.map(item => item.name);
+    const missingEssential = allEssentialItems.filter(item => !packedEssentialNames.includes(item));
+    
+    // Highlight incorrect items (distractors)
+    packedDistractors.forEach(item => {
+        const element = packedItemsContainer.querySelector(`[data-name="${item.name}"]`);
+        if (element) {
+            element.classList.add('incorrect');
+        }
+    });
+    
+    // Generate feedback
+    let feedbackHTML = '';
+    
+    if (packedDistractors.length === 0 && missingEssential.length === 0) {
+        // Perfect score
+        feedbackHTML = `
+            <div class="feedback-message success">
+                🎉 Excellent! You've packed all the essential items correctly!
+            </div>
+            <div class="feedback-list">
+                <h4>✓ Weather Protection Items:</h4>
+                <ul>
+                    ${essentialItems.weather.map(item => `<li class="correct">✓ ${item}</li>`).join('')}
+                </ul>
+                <h4>✓ Food & Drink Items:</h4>
+                <ul>
+                    ${essentialItems.food.map(item => `<li class="correct">✓ ${item}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    } else {
+        // Partial or needs improvement
+        const messageType = packedDistractors.length > 0 ? 'error' : 'partial';
+        const messageText = packedDistractors.length > 0 
+            ? '⚠️ Some items in your bag are not essential for an outdoor trip!'
+            : '📝 Good start! But you\'re missing some essential items.';
+        
+        feedbackHTML = `<div class="feedback-message ${messageType}">${messageText}</div>`;
+        
+        // Show incorrect items
+        if (packedDistractors.length > 0) {
+            feedbackHTML += `
+                <div class="feedback-list">
+                    <h4>✗ Items to Remove:</h4>
+                    <ul>
+                        ${packedDistractors.map(item => `<li class="incorrect">✗ ${item.name} - Not essential</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Show missing items
+        if (missingEssential.length > 0) {
+            feedbackHTML += `
+                <div class="feedback-list">
+                    <h4>Missing Essential Items:</h4>
+                    <ul>
+                        ${missingEssential.map(item => {
+                            const category = essentialItems.weather.includes(item) ? 'Weather' : 'Food/Drink';
+                            return `<li class="missing">○ ${item} (${category})</li>`;
+                        }).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Show correct items
+        if (packedEssential.length > 0) {
+            feedbackHTML += `
+                <div class="feedback-list">
+                    <h4>✓ Correct Items:</h4>
+                    <ul>
+                        ${packedEssential.map(item => `<li class="correct">✓ ${item.name}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+    }
+    
+    feedbackContent.innerHTML = feedbackHTML;
+}
+
+// Show feedback message
+function showFeedback(type, message) {
+    feedbackContent.innerHTML = `<div class="feedback-message ${type}">${message}</div>`;
+}
+
+// Clear feedback
+function clearFeedback() {
+    feedbackContent.innerHTML = `
+        <p class="instruction-text">👆 Drag essential items into the backpack for your outdoor day trip!</p>
+        <div class="categories-info">
+            <div class="category-box">
+                <strong>Weather Protection</strong>
+                <p>Items to protect you from sun and rain</p>
+            </div>
+            <div class="category-box">
+                <strong>Food & Drink</strong>
+                <p>Healthy food and drinks to keep you energized</p>
+            </div>
+        </div>
+    `;
+}
+
+// Reset everything
+function resetActivity() {
+    // Clear packed items array
+    packedItems = [];
+    
+    // Remove all packed item visuals
+    packedItemsContainer.innerHTML = '';
+    
+    // Remove packed class from all items
+    const allItems = document.querySelectorAll('.item');
+    allItems.forEach(item => {
+        item.classList.remove('packed');
+    });
+    
+    // Reset progress
+    updateProgress();
+    
+    // Clear feedback
+    clearFeedback();
+    
+    // Remove incorrect highlighting
+    const incorrectItems = document.querySelectorAll('.packed-item.incorrect');
+    incorrectItems.forEach(item => item.classList.remove('incorrect'));
+}
+
+// Event listeners
+checkBtn.addEventListener('click', checkPackedItems);
+resetBtn.addEventListener('click', resetActivity);
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDragAndDrop();
+    updateProgress();
+});

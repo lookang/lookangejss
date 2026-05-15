@@ -1,0 +1,129 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Chinese Coffee Culture Matching Game”** where students learn Chinese coffee-culture collocations by catching falling words (saucers) and matching them to the correct base words (coffee cups).
+
+TARGET AUDIENCE:
+- Junior College / Upper Secondary Chinese Language (vocabulary & collocations)
+
+INTERACTIVE REQUIREMENTS:
+- A game layout themed around **coffee cups and saucers**:
+  - Bottom row: 5 labelled **coffee cups**, each showing the **first word** of a collocation (e.g., 浓郁, 传统, 文化, 社交, 多元) with English glosses (Rich, Tradition, Culture, Social, Diverse).
+  - Top area: **falling saucers** that carry the **second word** of each collocation (e.g., 香味, 工艺, 传承, 场所, 融合).
+- Students interact by:
+  1. Tapping/clicking a falling saucer to “catch” it.
+  2. Then tapping/clicking a coffee cup; if the collocation pair is correct, it counts as a match.
+- A simple **score** display (e.g., `Score: X/5`).
+- A **Restart** button to reset the game.
+- A **completion modal** showing final score and a “Play again” button.
+- An **instructions tooltip** explaining game rules (tap saucers → match to cups → learn collocations).
+- Self-contained HTML, CSS, JavaScript; no external frameworks.
+
+SPECIFIC REQUIREMENTS:
+
+Vocabulary & collocations
+- Use 5 Chinese collocation pairs relevant to coffee culture:
+  - 浓郁 + 香味 (rich aroma).
+  - 传统 + 工艺 (traditional craftsmanship).
+  - 文化 + 传承 (cultural heritage).
+  - 社交 + 场所 (social venue).
+  - 多元 + 融合 (multicultural integration).
+- Each pair has:
+  - `first`: first word (cup label).
+  - `second`: second word (saucer label).
+  - `translation`: short English gloss.
+- Cups display the **first word** plus an English hint in the title attribute.
+- Saucers display the **second word** and show the full pair + translation in their `title`.
+
+Game mechanics
+- **Game state**:
+  - `score` (0–5).
+  - `totalPairs` = 5.
+  - `completedPairs`: indices of pairs already correctly matched.
+  - `usedWords`: list of `second` words already spawned to ensure each appears only once.
+  - `activeSaucers`: array of saucers currently falling.
+  - `gameActive` flag to stop loop once complete.
+  - `caughtSaucer`: the currently selected saucer awaiting cup match.
+- **Falling saucers**:
+  - Use `fallSpeed` (e.g., 1 px/frame) and `spawnRate` (e.g., 0.01 per frame) and `maxSaucers` to control difficulty.
+  - In each animation frame:
+    - Possibly spawn a new saucer if fewer than `maxSaucers` active and random < `spawnRate`.
+    - Update each saucer’s `y` position by `fallSpeed`.
+    - Remove saucers that fall off the bottom and **release** their word back into `usedWords` so it can be respawned.
+- **Spawning logic**:
+  - Only spawn saucers for pairs where:
+    - The pair index is not in `completedPairs`.
+    - `second` is not in `usedWords`.
+  - Choose one available pair at random.
+  - Create a `.saucer` element with `data-pair-index` and `data-word` set to the `second` word.
+  - Position the saucer at the top, with a random `left` within the game area.
+
+Interaction
+- **Catching a saucer**:
+  - When a saucer is clicked/touched:
+    - Prevent default and stop propagation.
+    - Mark it as caught (e.g., add `caught` CSS class for animation).
+    - Store its data in `caughtSaucer` (pairIndex + word).
+    - Remove it from `activeSaucers` and stop it falling.
+    - Show an info feedback message (Chinese) such as “已接住！点击匹配的咖啡杯” (“Caught! Click the matching coffee cup”).
+    - Highlight the matching cup (via `.highlight` class) to support learners.
+- **Clicking a cup**:
+  - Only if `caughtSaucer` exists and `gameActive` is true.
+  - If cup’s `data-pair-index` equals `caughtSaucer.pairIndex`, treat as **correct match**:
+    - Increment `score`.
+    - Add pair index to `completedPairs`.
+    - Update score display.
+    - Add `.correct` styling to the cup briefly and show ✓ feedback overlay.
+    - Check if all 5 pairs are completed; if so, end game.
+  - If wrong cup:
+    - Treat as **incorrect match**:
+      - Add `.incorrect` styling briefly and show ✗ feedback overlay.
+      - Return the `caughtSaucer.word` to `usedWords` so it can respawn later.
+- After each cup click, remove the caught saucer element and clear `caughtSaucer`. Always clear `.highlight` from cups.
+
+Feedback & completion
+- **Score display**:
+  - Show `score` (0–5). Optionally show as `score/totalPairs`.
+- **Feedback overlay**:
+  - A small overlay `#feedbackOverlay` shows short feedback messages or symbols (✓ / ✗) for ~1 second.
+- **Game complete modal**:
+  - When `score >= totalPairs`:
+    - Set `gameActive = false`.
+    - Show a centered modal with:
+      - “恭喜完成！” / “Congratulations on completing this!”
+      - Final score (e.g., `5/5`).
+      - A **Play again** button that calls `resetGame()`.
+
+Reset & replay
+- `resetGame()`:
+  - Reset `score`, `completedPairs`, `usedWords`, `caughtSaucer`, `gameActive`.
+  - Remove all active saucer elements and clear `activeSaucers`.
+  - Reset cup classes (remove `correct`, `incorrect`, `highlight`).
+  - Hide completion modal.
+  - Restart the game loop.
+
+Instructions & tooltips
+- A persistent **instructions tooltip** (e.g., bottom or corner) explaining in Chinese + simple English:
+  - “1. Tap falling saucers to catch them.”
+  - “2. Match saucer with correct coffee cup.”
+  - “3. Learn Chinese vocabulary collocations!”
+- Tooltip is shown on game start for a short duration, and when hovering the container.
+
+Performance considerations
+- A simple performance monitor may adjust `fallSpeed`/`spawnRate` downward if FPS drops below a threshold, to keep the game playable.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Recognise and recall Chinese collocations related to **coffee culture** (e.g., 浓郁香味, 传统工艺, 文化传承, 社交场所, 多元融合).
+  - Link Chinese collocations to English glosses and coffee-culture concepts.
+  - Practise vocabulary in a light, game-based context that encourages repeated exposure.
+- The game should emphasise **meaningful collocational pairs** rather than isolated words.
+
+INTERACTION FEATURES TO INCLUDE:
+- Continuous falling-word mechanic with controlled difficulty.
+- Catch-then-match interaction pattern reinforcing pairings.
+- Immediate visual feedback for correct/incorrect matches.
+- Clear final summary and option to replay.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

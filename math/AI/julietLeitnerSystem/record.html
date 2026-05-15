@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Record Sheet — Leitner Maths</title>
+<link rel="stylesheet" href="styles.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-S9EWRY1CPJ');</script>
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    body { padding: 0; font-size: 11px; }
+    h1 { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header no-print">
+    <a href="index.html" class="back-btn" aria-label="Back to home">🏠</a>
+    <div style="flex:1">
+      <h1>📋 Student Record Sheet</h1>
+      <div style="font-size:.8rem;color:var(--muted)">Track daily Pack A / B / C card counts · 5 weeks</div>
+    </div>
+    <button class="btn btn-outline btn-sm" id="btnPrint">🖨️ Print</button>
+  </div>
+
+  <!-- Print header (only visible when printing) -->
+  <div style="display:none" class="print-only" id="printHeader">
+    <h2 style="text-align:center;margin-bottom:4px">Leitner System — Factual Fluency Record Sheet</h2>
+    <p style="text-align:center;font-size:.85rem;margin-bottom:12px">Name: _____________________________________________ &nbsp; Class: _______________</p>
+  </div>
+
+  <!-- Legend -->
+  <div style="background:var(--surface);border-radius:var(--radius);padding:14px 18px;margin-bottom:14px;box-shadow:var(--shadow)">
+    <div style="font-size:.85rem;font-weight:600;margin-bottom:8px">How to use this record sheet:</div>
+    <div style="font-size:.82rem;color:var(--muted);line-height:1.8">
+      After each session, write the <strong>number of cards in each pack</strong> and the <strong>card colour</strong> if it changed.<br>
+      <span style="display:inline-flex;align-items:center;gap:6px;margin-top:4px">
+        <span style="background:var(--pack-a);color:white;border-radius:6px;padding:1px 8px;font-size:.78rem;font-weight:700">Pack A</span> Every day &nbsp;
+        <span style="background:var(--pack-b);color:white;border-radius:6px;padding:1px 8px;font-size:.78rem;font-weight:700">Pack B</span> Tue &amp; Thu &nbsp;
+        <span style="background:var(--pack-c);color:white;border-radius:6px;padding:1px 8px;font-size:.78rem;font-weight:700">Pack C</span> Friday
+      </span>
+    </div>
+  </div>
+
+  <!-- 5-week table -->
+  <div class="record-overflow" id="recordTableWrap"></div>
+
+  <!-- Save reminder -->
+  <div class="no-print" style="margin-top:12px;padding:12px 16px;background:#f0fdf4;border-radius:10px;font-size:.82rem;color:#15803d;border:1px solid #86efac">
+    ✅ Your entries are saved automatically in your browser.
+  </div>
+
+  <div class="footer no-print">
+    credit: <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using Claude Sonnet 4.6 &nbsp;|&nbsp;
+    <a href="https://sg.iwant2study.org" target="_blank" rel="noopener">iwant2study.org</a>
+  </div>
+</div>
+
+<script src="leitner-engine.js"></script>
+<script>
+(function () {
+  const engine = LeitnerEngine.init();
+  const WEEKS  = 5;
+  const DAYS   = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const DAY_PACKS = {
+    Monday: ['A'], Tuesday: ['A','B'], Wednesday: ['A'],
+    Thursday: ['A','B'], Friday: ['A','B','C'],
+  };
+
+  // ── Build table ────────────────────────────────────────────
+  const wrap = document.getElementById('recordTableWrap');
+  const table = document.createElement('table');
+  table.className = 'record-table';
+
+  // Header row
+  const thead = document.createElement('thead');
+  thead.innerHTML = `<tr>
+    <th class="day-cell">Day / Date</th>
+    <th style="color:var(--pack-a)">Pack A<br><small>Count</small></th>
+    <th style="color:var(--pack-b)">Pack B<br><small>Count</small></th>
+    <th style="color:var(--pack-c)">Pack C<br><small>Count</small></th>
+    <th>Card Colour<br><small>if changed</small></th>
+  </tr>`;
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  // Get base date: start of the most recent Monday
+  function getMondayOfWeek(offset) {
+    const today = new Date();
+    const day = today.getDay(); // 0=Sun
+    const diff = (day === 0 ? -6 : 1 - day); // days to last Monday
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + diff + offset * 7);
+    return monday;
+  }
+
+  // Build week offset labels: weeks[-2..0] = past 2 weeks + current
+  for (let w = -(WEEKS - 1); w <= 0; w++) {
+    const monday = getMondayOfWeek(w);
+    const weekLabel = 'Week of ' + monday.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+    const weekIdx   = w + (WEEKS - 1); // 0-based storage index
+
+    // Week header
+    const whr = document.createElement('tr');
+    whr.innerHTML = `<td colspan="5" class="week-header" style="text-align:left;padding:8px 12px;font-size:.82rem">📅 ${weekLabel}</td>`;
+    tbody.appendChild(whr);
+
+    DAYS.forEach((day, di) => {
+      const dateObj = new Date(monday);
+      dateObj.setDate(monday.getDate() + di);
+      const dateStr = dateObj.toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+      const activePacks = DAY_PACKS[day];
+      const isToday = dateObj.toDateString() === new Date().toDateString();
+
+      const tr = document.createElement('tr');
+      if (isToday) tr.style.background = '#eff6ff';
+
+      const dayCell = document.createElement('td');
+      dayCell.className = 'day-cell';
+      dayCell.innerHTML = `<strong>${day}</strong><br><small style="color:var(--muted)">${dateStr}${isToday ? ' 📍' : ''}</small>`;
+
+      const makePackCell = (pack) => {
+        const td = document.createElement('td');
+        if (!activePacks.includes(pack)) {
+          td.style.background = '#f8fafc';
+          td.style.color = '#cbd5e1';
+          td.textContent = '—';
+          return td;
+        }
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min  = 0; input.max = 99;
+        input.placeholder = '0';
+        input.setAttribute('aria-label', `${day} Pack ${pack} count`);
+        input.style.userSelect = 'text';
+        input.style.webkitUserSelect = 'text';
+
+        // Load saved value
+        const saved = engine.getRecords();
+        if (saved[weekIdx] && saved[weekIdx][di] && saved[weekIdx][di]['pack' + pack] !== undefined) {
+          input.value = saved[weekIdx][di]['pack' + pack];
+        }
+
+        input.addEventListener('change', () => {
+          const obj = {}; obj['pack' + pack] = input.value === '' ? '' : parseInt(input.value, 10);
+          engine.updateRecord(weekIdx, di, obj);
+        });
+        td.appendChild(input);
+        return td;
+      };
+
+      const colourCell = document.createElement('td');
+      const colourInput = document.createElement('input');
+      colourInput.type = 'text';
+      colourInput.placeholder = 'e.g. Red';
+      colourInput.maxLength = 20;
+      colourInput.setAttribute('aria-label', day + ' card colour');
+      colourInput.style.userSelect = 'text';
+      colourInput.style.webkitUserSelect = 'text';
+      const saved = engine.getRecords();
+      if (saved[weekIdx] && saved[weekIdx][di] && saved[weekIdx][di].colour) {
+        colourInput.value = saved[weekIdx][di].colour;
+      }
+      colourInput.addEventListener('change', () => {
+        engine.updateRecord(weekIdx, di, { colour: colourInput.value });
+      });
+      colourCell.appendChild(colourInput);
+
+      tr.appendChild(dayCell);
+      tr.appendChild(makePackCell('A'));
+      tr.appendChild(makePackCell('B'));
+      tr.appendChild(makePackCell('C'));
+      tr.appendChild(colourCell);
+      tbody.appendChild(tr);
+    });
+
+    // Weekly totals row
+    const totalRow = document.createElement('tr');
+    totalRow.className = 'total-row';
+    totalRow.innerHTML = `<td class="day-cell" style="font-size:.82rem;color:var(--muted)">Week total</td>
+      <td id="totA-${weekIdx}">—</td>
+      <td id="totB-${weekIdx}">—</td>
+      <td id="totC-${weekIdx}">—</td>
+      <td></td>`;
+    tbody.appendChild(totalRow);
+  }
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+
+  // ── Compute weekly totals ──────────────────────────────────
+  function updateTotals() {
+    const records = engine.getRecords();
+    for (let w = 0; w < WEEKS; w++) {
+      let tA = 0, tB = 0, tC = 0, hasData = false;
+      for (let d = 0; d < 5; d++) {
+        if (records[w] && records[w][d]) {
+          if (records[w][d].packA !== undefined && records[w][d].packA !== '') { tA += Number(records[w][d].packA) || 0; hasData = true; }
+          if (records[w][d].packB !== undefined && records[w][d].packB !== '') { tB += Number(records[w][d].packB) || 0; hasData = true; }
+          if (records[w][d].packC !== undefined && records[w][d].packC !== '') { tC += Number(records[w][d].packC) || 0; hasData = true; }
+        }
+      }
+      const elA = document.getElementById('totA-' + w);
+      const elB = document.getElementById('totB-' + w);
+      const elC = document.getElementById('totC-' + w);
+      if (elA) elA.textContent = hasData ? tA : '—';
+      if (elB) elB.textContent = hasData ? tB : '—';
+      if (elC) elC.textContent = hasData ? tC : '—';
+    }
+  }
+
+  // Recalculate totals whenever any input changes
+  wrap.addEventListener('change', updateTotals);
+  updateTotals();
+
+  // ── Print ──────────────────────────────────────────────────
+  document.getElementById('btnPrint').addEventListener('click', () => {
+    document.getElementById('printHeader').style.display = 'block';
+    window.print();
+    document.getElementById('printHeader').style.display = 'none';
+  });
+
+  // Show print header only during print
+  window.addEventListener('beforeprint', () => { document.getElementById('printHeader').style.display = 'block'; });
+  window.addEventListener('afterprint',  () => { document.getElementById('printHeader').style.display = 'none'; });
+})();
+</script>
+</body>
+</html>

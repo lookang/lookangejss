@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- SLS Ready Metadata -->
+<meta name="application-name" content="P5 Area of Triangle Mastery Game">
+<meta name="description" content="Interactive exploration of triangle area using grid models.">
+<meta name="author" content="MOE SLS Compatible Package">
+<meta name="activity-type" content="Interactive Response">
+<meta name="learning-objective" content="Generalise formula Area = 1/2 × base × height">
+
+<title>P5 Triangle Master Pro v2</title>
+
+<script src="xapiwrapper.min.js"></script>
+
+<style>
+body { font-family: Arial; text-align:center; background:#f4f6f9; }
+canvas { border:1px solid #ccc; background:#fff; }
+input { width:80px; padding:4px; margin:5px; }
+button { padding:8px 12px; margin:6px; }
+#info { margin-top:12px; font-weight:bold; }
+.unitLabel { font-size:14px; }
+</style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+
+<body>
+
+<h2>P5 Area of Triangle – Multi-Type Exploration</h2>
+<p>Identify Base & Height. Enter values with units (grid units).</p>
+
+<canvas id="canvas" width="720" height="480"></canvas><br>
+
+Base: <input type="number" id="baseInput"> <span class="unitLabel">units</span>
+Height: <input type="number" id="heightInput"> <span class="unitLabel">units</span>
+Area: <input type="number" id="areaInput"> <span class="unitLabel">square units</span><br>
+
+<button onclick="checkAnswers()">Submit</button>
+<button onclick="nextTriangle()">Next Triangle</button>
+
+<div id="info"></div>
+
+<script>
+
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+
+var gridSize = 32;   // Larger for accuracy
+var types = ["right","acute","obtuse","inverted"];
+var currentType = 0;
+
+var baseStart, baseEnd, apex;
+var score = 0;
+var total = 0;
+
+function snap(v){ return Math.round(v/gridSize)*gridSize; }
+
+function randomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+function generateTriangle(){
+
+    var baseUnits = randomInt(4,10);
+    var heightUnits = randomInt(3,8);
+
+    baseStart = {x: gridSize*4, y: gridSize*14};
+    baseEnd   = {x: baseStart.x + baseUnits*gridSize, y: baseStart.y};
+
+    var midX = baseStart.x + (baseUnits*gridSize)/2;
+
+    var type = types[currentType % types.length];
+
+    if(type === "right"){
+        apex = {x: baseStart.x, y: baseStart.y - heightUnits*gridSize};
+    }
+    else if(type === "acute"){
+        apex = {x: midX, y: baseStart.y - heightUnits*gridSize};
+    }
+    else if(type === "obtuse"){
+        apex = {x: baseStart.x - gridSize*2, y: baseStart.y - heightUnits*gridSize};
+    }
+    else if(type === "inverted"){
+        apex = {x: midX, y: baseStart.y + heightUnits*gridSize};
+    }
+
+}
+
+function drawGrid(){
+    ctx.strokeStyle="#e0e0e0";
+    for(var x=0;x<=canvas.width;x+=gridSize){
+        ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+    }
+    for(var y=0;y<=canvas.height;y+=gridSize){
+        ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+    }
+}
+
+function drawUnitCounters(){
+    ctx.fillStyle="black";
+    ctx.font="12px Arial";
+    for(var x=0;x<=canvas.width;x+=gridSize){
+        ctx.fillText(x/gridSize, x+2, 12);
+    }
+    for(var y=0;y<=canvas.height;y+=gridSize){
+        ctx.fillText(y/gridSize, 2, y-2);
+    }
+}
+
+function drawTriangle(){
+
+    ctx.lineWidth=2;
+    ctx.strokeStyle="blue";
+
+    ctx.beginPath();
+    ctx.moveTo(baseStart.x, baseStart.y);
+    ctx.lineTo(baseEnd.x, baseEnd.y);
+    ctx.lineTo(apex.x, apex.y);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.setLineDash([5,5]);
+    ctx.strokeStyle="red";
+
+    // Height projection
+    ctx.beginPath();
+    ctx.moveTo(apex.x, apex.y);
+    ctx.lineTo(apex.x, baseStart.y);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+
+}
+
+function render(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawGrid();
+    drawUnitCounters();
+    drawTriangle();
+}
+
+function calculateBase(){
+    return Math.abs(baseEnd.x-baseStart.x)/gridSize;
+}
+
+function calculateHeight(){
+    return Math.abs(baseStart.y-apex.y)/gridSize;
+}
+
+function calculateArea(){
+    return 0.5*calculateBase()*calculateHeight();
+}
+
+function checkAnswers(){
+
+    total += 3;
+
+    var b = Number(document.getElementById("baseInput").value);
+    var h = Number(document.getElementById("heightInput").value);
+    var a = Number(document.getElementById("areaInput").value);
+
+    var correctB = calculateBase();
+    var correctH = calculateHeight();
+    var correctA = calculateArea();
+
+    var msg = "";
+
+    if(b === correctB){ score++; msg += "Base correct. "; }
+    if(h === correctH){ score++; msg += "Height correct. "; }
+    if(a === correctA){ score++; msg += "Area correct. "; }
+
+    document.getElementById("info").innerHTML =
+        msg + "<br>Score: " + score + " / " + total;
+}
+
+function nextTriangle(){
+    currentType++;
+    generateTriangle();
+    render();
+    document.getElementById("info").innerHTML =
+        "Triangle Type: " + types[currentType % types.length];
+}
+
+generateTriangle();
+render();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disease Spread & Dice Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            height: 450px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        /* Control Panel */
+        .controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        button {
+            background: linear-gradient(45deg, #0f3460, #16537e);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #16537e, #0f3460);
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="range"] {
+            width: 80px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #0f3460;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        label {
+            font-size: 11px;
+            color: #a0a0a0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        /* Variables Panel */
+        .variables-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            min-width: 200px;
+            font-size: 12px;
+            z-index: 100;
+        }
+
+        .variable-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Simulation Area */
+        .simulation-area {
+            flex: 2;
+            position: relative;
+            background: radial-gradient(circle at center, #0f3460 0%, #1a1a2e 100%);
+            overflow: hidden;
+        }
+
+        /* Chart Area */
+        .chart-area {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-left: 2px solid #0f3460;
+        }
+
+        .chart-title {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+
+        .chart-container {
+            height: 200px;
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .bar {
+            background: linear-gradient(to top, #ff6b6b, #ee5a52);
+            width: 25px;
+            border-radius: 3px 3px 0 0;
+            position: relative;
+            transition: height 0.3s ease;
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #a0a0a0;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: white;
+        }
+
+        /* Student Dots */
+        .student {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .student.healthy {
+            background: #4ecdc4;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        }
+
+        .student.infected {
+            background: #ff6b6b;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.7);
+            animation: pulse 1s infinite;
+        }
+
+        .student.recovered {
+            background: #45b7d1;
+            box-shadow: 0 0 10px rgba(69, 183, 209, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Dice */
+        .dice-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .dice {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #333;
+            font-weight: bold;
+            transition: transform 0.5s ease;
+        }
+
+        .dice.rolling {
+            animation: roll 0.5s ease-in-out;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+
+        /* Infection Radius Visualization */
+        .infection-radius {
+            position: absolute;
+            border: 2px dashed rgba(255, 107, 107, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .chart-area {
+                border-left: none;
+                border-top: 2px solid #0f3460;
+            }
+            
+            .variables-panel {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin: 10px;
+            }
+        }
+
+        /* Toggle Checkboxes */
+        .toggle-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        input[type="checkbox"] {
+            accent-color: #0f3460;
+        }
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="controls">
+            <div class="control-group">
+                <button id="playBtn">▶ Play</button>
+                <button id="pauseBtn">⏸ Pause</button>
+                <button id="stepBtn">⏭ Step</button>
+                <button id="resetBtn">↻ Reset</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Population:</label>
+                <input type="number" id="populationInput" value="50" min="10" max="200">
+            </div>
+            
+            <div class="control-group">
+                <label>Dice Transmission:</label>
+                <span id="diceTransmissionMode">Auto</span>
+                <button id="manualRollBtn">Manual Roll</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Recovery Time:</label>
+                <input type="range" id="recoveryTime" min="50" max="500" step="10" value="200">
+                <span id="recoveryTimeValue">200</span>
+            </div>
+            
+            <div class="control-group">
+                <button id="rollDiceBtn">🎲 Roll Dice</button>
+            </div>
+            
+            <div class="toggle-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showRadius" checked>
+                    <label>Infection Radius</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showVectors" checked>
+                    <label>Movement Vectors</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showStats" checked>
+                    <label>Statistics</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Variables Panel -->
+            <div class="variables-panel" id="variablesPanel">
+                <h3 style="margin-bottom: 10px; color: #4ecdc4;">Live Variables</h3>
+                <div class="variable-item">
+                    <span>Time:</span>
+                    <span id="timeVar">0s</span>
+                </div>
+                <div class="variable-item">
+                    <span>Healthy:</span>
+                    <span id="healthyVar">0</span>
+                </div>
+                <div class="variable-item">
+                    <span>Infected:</span>
+                    <span id="infectedVar">0</span>
+                </div>
+                <div class="variable-item">
+                    <span>Recovered:</span>
+                    <span id="recoveredVar">0</span>
+                </div>
+                <div class="variable-item">
+                    <span>Last Dice Roll:</span>
+                    <span id="diceSumVar">-</span>
+                </div>
+                <div class="variable-item">
+                    <span>Transmission %:</span>
+                    <span id="transmissionPercent">-</span>
+                </div>
+                <div class="variable-item">
+                    <span>Contacts:</span>
+                    <span id="contactsVar">0</span>
+                </div>
+                <div class="variable-item">
+                    <span>Transmissions:</span>
+                    <span id="transmissionsVar">0</span>
+                </div>
+                <div class="variable-item">
+                    <span>Success Rate:</span>
+                    <span id="successRateVar">-</span>
+                </div>
+            </div>
+
+            <!-- Simulation Area -->
+            <div class="simulation-area" id="simulationArea">
+                <!-- Students will be dynamically added here -->
+                
+                <!-- Dice Container -->
+                <div class="dice-container">
+                    <div class="dice" id="dice1">1</div>
+                    <div class="dice" id="dice2">1</div>
+                </div>
+            </div>
+
+            <!-- Chart Area -->
+            <div class="chart-area">
+                <div class="chart-title">Dice Sum Distribution</div>
+                <div class="chart-container" id="diceChart">
+                    <!-- Bars will be dynamically generated -->
+                </div>
+                
+                <div class="chart-title">Disease Progression</div>
+                <div class="chart-container" id="diseaseChart" style="height: 120px;">
+                    <!-- Disease progression bars -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DiseaseSimulation {
+            constructor() {
+                this.students = [];
+                this.isRunning = false;
+                this.time = 0;
+                this.infectionRadius = 30;
+                this.diceRolls = {};
+                this.rollCount = 0;
+                this.animationId = null;
+                this.contacts = 0;
+                this.transmissions = 0;
+                this.lastDiceSum = 0;
+                this.currentTransmissionPercent = 0;
+                
+                // Initialize dice roll tracking
+                for (let i = 2; i <= 12; i++) {
+                    this.diceRolls[i] = 0;
+                }
+                
+                this.initializeElements();
+                this.setupEventListeners();
+                this.createDiceChart();
+                this.createDiseaseChart();
+                this.reset();
+            }
+            
+            initializeElements() {
+                this.simulationArea = document.getElementById('simulationArea');
+                this.playBtn = document.getElementById('playBtn');
+                this.pauseBtn = document.getElementById('pauseBtn');
+                this.stepBtn = document.getElementById('stepBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.rollDiceBtn = document.getElementById('rollDiceBtn');
+                this.manualRollBtn = document.getElementById('manualRollBtn');
+                this.populationInput = document.getElementById('populationInput');
+                this.recoveryTimeSlider = document.getElementById('recoveryTime');
+            }
+            
+            setupEventListeners() {
+                this.playBtn.addEventListener('click', () => this.play());
+                this.pauseBtn.addEventListener('click', () => this.pause());
+                this.stepBtn.addEventListener('click', () => this.step());
+                this.resetBtn.addEventListener('click', () => this.reset());
+                this.rollDiceBtn.addEventListener('click', () => this.rollDice());
+                this.manualRollBtn.addEventListener('click', () => this.rollDice());
+                
+                this.recoveryTimeSlider.addEventListener('input', (e) => {
+                    document.getElementById('recoveryTimeValue').textContent = e.target.value;
+                });
+                
+                // Toggle checkboxes
+                document.getElementById('showRadius').addEventListener('change', (e) => {
+                    this.toggleInfectionRadius(e.target.checked);
+                });
+                
+                document.getElementById('showStats').addEventListener('change', (e) => {
+                    document.getElementById('variablesPanel').style.display = 
+                        e.target.checked ? 'block' : 'none';
+                });
+            }
+            
+            createStudent(x, y, status = 'healthy') {
+                const student = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    status: status,
+                    infectionTime: 0,
+                    element: null
+                };
+                
+                const element = document.createElement('div');
+                element.className = `student ${status}`;
+                element.style.left = x + 'px';
+                element.style.top = y + 'px';
+                element.title = `Student ${student.id} - ${status}`;
+                
+                student.element = element;
+                this.simulationArea.appendChild(element);
+                
+                return student;
+            }
+            
+            reset() {
+                this.pause();
+                this.time = 0;
+                this.students = [];
+                this.contacts = 0;
+                this.transmissions = 0;
+                this.lastDiceSum = 0;
+                this.currentTransmissionPercent = 0;
+                
+                // Clear existing students
+                const existingStudents = this.simulationArea.querySelectorAll('.student');
+                existingStudents.forEach(student => student.remove());
+                
+                // Clear infection radius visualizations
+                const radiusElements = this.simulationArea.querySelectorAll('.infection-radius');
+                radiusElements.forEach(radius => radius.remove());
+                
+                // Create new population
+                const population = parseInt(this.populationInput.value);
+                const bounds = this.simulationArea.getBoundingClientRect();
+                
+                for (let i = 0; i < population; i++) {
+                    const x = Math.random() * (bounds.width - 100) + 50;
+                    const y = Math.random() * (bounds.height - 100) + 50;
+                    const student = this.createStudent(x, y, 'healthy');
+                    this.students.push(student);
+                }
+                
+                // Infect patient zero
+                if (this.students.length > 0) {
+                    this.students[0].status = 'infected';
+                    this.students[0].element.className = 'student infected';
+                }
+                
+                this.updateVariables();
+                this.updateDiseaseChart();
+            }
+            
+            play() {
+                if (!this.isRunning) {
+                    this.isRunning = true;
+                    this.playBtn.disabled = true;
+                    this.pauseBtn.disabled = false;
+                    this.animate();
+                }
+            }
+            
+            pause() {
+                this.isRunning = false;
+                this.playBtn.disabled = false;
+                this.pauseBtn.disabled = true;
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+            
+            step() {
+                this.updateSimulation();
+            }
+            
+            animate() {
+                if (this.isRunning) {
+                    this.updateSimulation();
+                    this.animationId = requestAnimationFrame(() => this.animate());
+                }
+            }
+            
+            // Roll dice and return the sum
+            rollDiceForTransmission() {
+                const value1 = Math.floor(Math.random() * 6) + 1;
+                const value2 = Math.floor(Math.random() * 6) + 1;
+                const sum = value1 + value2;
+                
+                // Update dice display
+                document.getElementById('dice1').textContent = value1;
+                document.getElementById('dice2').textContent = value2;
+                
+                // Update statistics
+                this.diceRolls[sum]++;
+                this.rollCount++;
+                this.lastDiceSum = sum;
+                this.currentTransmissionPercent = Math.round((sum / 12) * 100);
+                
+                this.updateDiceChart();
+                return sum;
+            }
+            
+            updateSimulation() {
+                this.time += 0.1;
+                const bounds = this.simulationArea.getBoundingClientRect();
+                const recoveryTime = parseInt(this.recoveryTimeSlider.value);
+                
+                this.students.forEach(student => {
+                    // Update position
+                    student.x += student.vx;
+                    student.y += student.vy;
+                    
+                    // Boundary collision
+                    if (student.x <= 0 || student.x >= bounds.width - 10) {
+                        student.vx *= -1;
+                        student.x = Math.max(0, Math.min(bounds.width - 10, student.x));
+                    }
+                    if (student.y <= 0 || student.y >= bounds.height - 10) {
+                        student.vy *= -1;
+                        student.y = Math.max(0, Math.min(bounds.height - 10, student.y));
+                    }
+                    
+                    // Update visual position
+                    student.element.style.left = student.x + 'px';
+                    student.element.style.top = student.y + 'px';
+                    
+                    // Disease progression
+                    if (student.status === 'infected') {
+                        student.infectionTime++;
+                        
+                        // Recovery
+                        if (student.infectionTime > recoveryTime) {
+                            student.status = 'recovered';
+                            student.element.className = 'student recovered';
+                        }
+                        
+                        // Spread infection using dice-based transmission
+                        this.students.forEach(other => {
+                            if (other.status === 'healthy') {
+                                const distance = Math.sqrt(
+                                    Math.pow(student.x - other.x, 2) + 
+                                    Math.pow(student.y - other.y, 2)
+                                );
+                                
+                                if (distance < this.infectionRadius) {
+                                    this.contacts++;
+                                    
+                                    // Roll dice to determine transmission
+                                    const diceSum = this.rollDiceForTransmission();
+                                    const transmissionProbability = diceSum / 12;
+                                    
+                                    if (Math.random() < transmissionProbability) {
+                                        other.status = 'infected';
+                                        other.element.className = 'student infected';
+                                        other.infectionTime = 0;
+                                        this.transmissions++;
+                                        
+                                        // Visual feedback for successful transmission
+                                        other.element.style.transform = 'scale(1.5)';
+                                        setTimeout(() => {
+                                            other.element.style.transform = 'scale(1)';
+                                        }, 200);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                this.updateVariables();
+                this.updateDiseaseChart();
+                this.updateInfectionRadius();
+            }
+            
+            updateInfectionRadius() {
+                // Clear existing radius visualizations
+                const existingRadius = this.simulationArea.querySelectorAll('.infection-radius');
+                existingRadius.forEach(radius => radius.remove());
+                
+                if (document.getElementById('showRadius').checked) {
+                    this.students.forEach(student => {
+                        if (student.status === 'infected') {
+                            const radiusElement = document.createElement('div');
+                            radiusElement.className = 'infection-radius';
+                            radiusElement.style.left = (student.x - this.infectionRadius) + 'px';
+                            radiusElement.style.top = (student.y - this.infectionRadius) + 'px';
+                            radiusElement.style.width = (this.infectionRadius * 2) + 'px';
+                            radiusElement.style.height = (this.infectionRadius * 2) + 'px';
+                            this.simulationArea.appendChild(radiusElement);
+                        }
+                    });
+                }
+            }
+            
+            toggleInfectionRadius(show) {
+                const radiusElements = this.simulationArea.querySelectorAll('.infection-radius');
+                radiusElements.forEach(radius => {
+                    radius.style.display = show ? 'block' : 'none';
+                });
+            }
+            
+            updateVariables() {
+                const healthy = this.students.filter(s => s.status === 'healthy').length;
+                const infected = this.students.filter(s => s.status === 'infected').length;
+                const recovered = this.students.filter(s => s.status === 'recovered').length;
+                const successRate = this.contacts > 0 ? Math.round((this.transmissions / this.contacts) * 100) : 0;
+                
+                document.getElementById('timeVar').textContent = this.time.toFixed(1) + 's';
+                document.getElementById('healthyVar').textContent = healthy;
+                document.getElementById('infectedVar').textContent = infected;
+                document.getElementById('recoveredVar').textContent = recovered;
+                document.getElementById('diceSumVar').textContent = this.lastDiceSum || '-';
+                document.getElementById('transmissionPercent').textContent = this.currentTransmissionPercent + '%';
+                document.getElementById('contactsVar').textContent = this.contacts;
+                document.getElementById('transmissionsVar').textContent = this.transmissions;
+                document.getElementById('successRateVar').textContent = successRate + '%';
+            }
+            
+            rollDice() {
+                const dice1 = document.getElementById('dice1');
+                const dice2 = document.getElementById('dice2');
+                
+                // Add rolling animation
+                dice1.classList.add('rolling');
+                dice2.classList.add('rolling');
+                
+                setTimeout(() => {
+                    const value1 = Math.floor(Math.random() * 6) + 1;
+                    const value2 = Math.floor(Math.random() * 6) + 1;
+                    const sum = value1 + value2;
+                    
+                    dice1.textContent = value1;
+                    dice2.textContent = value2;
+                    
+                    dice1.classList.remove('rolling');
+                    dice2.classList.remove('rolling');
+                    
+                    // Update statistics
+                    this.diceRolls[sum]++;
+                    this.rollCount++;
+                    this.lastDiceSum = sum;
+                    this.currentTransmissionPercent = Math.round((sum / 12) * 100);
+                    
+                    this.updateDiceChart();
+                    this.updateVariables();
+                }, 500);
+            }
+            
+            createDiceChart() {
+                const chartContainer = document.getElementById('diceChart');
+                chartContainer.innerHTML = '';
+                
+                for (let i = 2; i <= 12; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'bar';
+                    bar.id = `bar-${i}`;
+                    bar.style.height = '0px';
+                    
+                    const label = document.createElement('div');
+                    label.className = 'bar-label';
+                    label.textContent = i;
+                    
+                    const value = document.createElement('div');
+                    value.className = 'bar-value';
+                    value.textContent = '0';
+                    
+                    bar.appendChild(label);
+                    bar.appendChild(value);
+                    chartContainer.appendChild(bar);
+                }
+            }
+            
+            updateDiceChart() {
+                const maxCount = Math.max(...Object.values(this.diceRolls));
+                const maxHeight = 160;
+                
+                for (let i = 2; i <= 12; i++) {
+                    const bar = document.getElementById(`bar-${i}`);
+                    const count = this.diceRolls[i];
+                    const height = maxCount > 0 ? (count / maxCount) * maxHeight : 0;
+                    
+                    bar.style.height = height + 'px';
+                    bar.querySelector('.bar-value').textContent = count;
+                }
+            }
+            
+            createDiseaseChart() {
+                const chartContainer = document.getElementById('diseaseChart');
+                chartContainer.innerHTML = '';
+                
+                const categories = ['Healthy', 'Infected', 'Recovered'];
+                const colors = ['#4ecdc4', '#ff6b6b', '#45b7d1'];
+                
+                categories.forEach((category, index) => {
+                    const bar = document.createElement('div');
+                    bar.className = 'bar';
+                    bar.id = `disease-bar-${index}`;
+                    bar.style.background = `linear-gradient(to top, ${colors[index]}, ${colors[index]}dd)`;
+                    bar.style.height = '0px';
+                    
+                    const label = document.createElement('div');
+                    label.className = 'bar-label';
+                    label.textContent = category.substr(0, 3);
+                    
+                    const value = document.createElement('div');
+                    value.className = 'bar-value';
+                    value.textContent = '0';
+                    
+                    bar.appendChild(label);
+                    bar.appendChild(value);
+                    chartContainer.appendChild(bar);
+                });
+            }
+            
+            updateDiseaseChart() {
+                const healthy = this.students.filter(s => s.status === 'healthy').length;
+                const infected = this.students.filter(s => s.status === 'infected').length;
+                const recovered = this.students.filter(s => s.status === 'recovered').length;
+                const total = this.students.length;
+                const maxHeight = 80;
+                
+                const values = [healthy, infected, recovered];
+                
+                values.forEach((value, index) => {
+                    const bar = document.getElementById(`disease-bar-${index}`);
+                    const height = total > 0 ? (value / total) * maxHeight : 0;
+                    
+                    bar.style.height = height + 'px';
+                    bar.querySelector('.bar-value').textContent = value;
+                });
+            }
+        }
+        
+        // Initialize simulation when page loads
+        window.addEventListener('load', () => {
+            new DiseaseSimulation();
+        });
+    </script>
+</body>
+</html>

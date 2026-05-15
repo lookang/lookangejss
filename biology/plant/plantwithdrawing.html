@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Growth Simulation</title>
+    <style>
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .slider, .combobox {
+            width: 80%;
+            max-width: 600px;
+            margin: 10px auto;
+        }
+        .display {
+            font-size: 1.5em;
+            margin: 10px;
+        }
+        .plotting-panel {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            border: 1px solid #000;
+            margin: 20px auto;
+        }
+        .plant {
+            position: absolute;
+            bottom: 0;
+        }
+        .stem, .leaf {
+            background-color: green;
+        }
+        .stem {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .leaf {
+            width: 20px;
+            height: 10px;
+            border-radius: 10px 10px 0 0;
+            transform-origin: bottom center;
+        }
+        #soilAPlant {
+            left: 30%;
+        }
+        #soilBPlant {
+            left: 60%;
+        }
+        .time-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 1em;
+        }
+    </style>
+    <script src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Plant Growth Simulation</h1>
+        <label for="soilSelect">Select Soil: </label>
+        <select id="soilSelect" class="combobox">
+            <option value="A">Soil A</option>
+            <option value="B">Soil B</option>
+        </select>
+        <br>
+        <label for="timeSlider">Time (weeks): </label>
+        <input type="range" id="timeSlider" min="0" max="6" step="1" value="0" class="slider">
+        <div id="timeDisplay" class="display">Time: 0 weeks</div>
+        <div id="soilDisplay" class="display">Soil A Plant Height: 0.00 cm</div>
+        <div class="plotting-panel">
+            <div id="soilAPlant" class="plant"></div>
+            <div id="soilBPlant" class="plant"></div>
+            <div id="timeIndicator" class="time-indicator">Time: 0.00 weeks</div>
+        </div>
+    </div>
+
+    <script>
+        const data = {
+            soilA: [0.00, 0.80, 1.60, 2.20, 3.40, 3.75, 4.50],
+            soilB: [0.00, 0.45, 0.80, 1.00, 1.60, 2.20, 2.50]
+        };
+
+        function updateValues() {
+            const timeSlider = document.getElementById("timeSlider");
+            const soilSelect = document.getElementById("soilSelect");
+            const time = timeSlider.value;
+            const selectedSoil = soilSelect.value;
+
+            document.getElementById("timeDisplay").innerText = `Time: ${time} weeks`;
+            document.getElementById("timeIndicator").innerText = `Time: ${time}.00 weeks`;
+
+            let plantHeightA = data.soilA[time];
+            let plantHeightB = data.soilB[time];
+
+            document.getElementById("soilDisplay").innerText = `${selectedSoil === "A" ? 'Soil A' : 'Soil B'} Plant Height: ${selectedSoil === "A" ? plantHeightA.toFixed(2) : plantHeightB.toFixed(2)} cm`;
+
+            // Update plant heights in the plotting panel
+            updatePlant("soilAPlant", plantHeightA);
+            updatePlant("soilBPlant", plantHeightB);
+        }
+
+        function updatePlant(plantId, height) {
+            const plantElement = document.getElementById(plantId);
+            plantElement.innerHTML = ''; // Clear previous plant drawings
+            const stemHeight = height * 80; // Scale height for visualization
+            const numberOfNodes = Math.floor(stemHeight / 20);
+
+            for (let i = 0; i <= numberOfNodes; i++) {
+                const stem = document.createElement("div");
+                stem.classList.add("stem");
+                stem.style.bottom = `${i * 20}px`;
+                plantElement.appendChild(stem);
+
+                if (i > 0) {
+                    const leaf = document.createElement("div");
+                    leaf.classList.add("leaf");
+                    leaf.style.bottom = `${i * 20}px`;
+                    leaf.style.left = `${Math.random() < 0.5 ? -10 : 10}px`; // Alternate leaves on both sides
+                    leaf.style.transform = `rotate(${Math.random() < 0.5 ? -45 : 45}deg)`;
+                    plantElement.appendChild(leaf);
+                }
+            }
+        }
+
+        // Initialize the values when the page is ready
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("soilSelect").addEventListener("change", updateValues);
+            document.getElementById("timeSlider").addEventListener("input", updateValues);
+            updateValues(); // Initialize values
+        });
+    </script>
+</body>
+</html>

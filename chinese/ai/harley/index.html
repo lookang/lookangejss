@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptation Safari: Catch the Animal!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --arctic: #e0f2fe;
+            --desert: #fef3c7;
+            --grassland: #dcfce7;
+            --forest: #166534;
+            --pond: #0ea5e9;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            user-select: none;
+            margin: 0;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: #222;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .btn-primary {
+            background: #f59e0b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-weight: bold;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 0 #b45309;
+            text-align: center;
+        }
+
+        .btn-primary:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #b45309;
+        }
+
+        #joypad {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(2, 60px);
+            gap: 8px;
+            z-index: 40;
+        }
+
+        .joy-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            backdrop-filter: blur(4px);
+            touch-action: none;
+        }
+
+        .joy-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .card-pop {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .progress-bar-fill {
+            transition: width 0.5s ease-out;
+        }
+
+        .animal-img-container {
+            width: 100%;
+            height: 200px;
+            background: #f3f4f6;
+            border-radius: 1rem;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .animal-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .fallback-emoji {
+            font-size: 5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- Exploration UI Layer -->
+    <div id="explore-ui" class="absolute top-0 left-0 w-full h-full pointer-events-none z-10 p-4 hidden">
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="bg-white/95 rounded-2xl p-4 shadow-xl border-b-4 border-gray-200 backdrop-blur-sm">
+                <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Explorer Progress</div>
+                <div class="flex items-center gap-3">
+                    <div class="w-32 md:w-48 h-4 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="progress-bar-fill h-full bg-green-500" style="width: 0%"></div>
+                    </div>
+                    <span id="progress-text" class="font-bold text-gray-700 tabular-nums">0/12</span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleJournal()" class="bg-blue-600 text-white px-5 py-3 rounded-2xl border-b-4 border-blue-800 font-bold pointer-events-auto active:translate-y-1 active:border-b-0 transition-all shadow-lg">📖 Journal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Game World -->
+    <canvas id="worldCanvas"></canvas>
+
+    <!-- Overlay Screens -->
+    <!-- 1. Opening Screen -->
+    <div id="screen-start" class="screen">
+        <div class="bg-white rounded-3xl p-8 max-w-md text-center shadow-2xl card-pop border-b-8 border-orange-100">
+            <div class="text-7xl mb-6">🦁</div>
+            <h1 class="text-3xl text-orange-600 mb-3 leading-tight">Adaptation Safari:<br>Catch the Animal!</h1>
+            <p class="text-gray-600 mb-8 font-medium">Welcome, Explorer! Animals survive in amazing ways. Move around the habitats, find hidden animals, and identify their adaptations correctly to catch them!</p>
+            <button onclick="showTutorial()" class="btn-primary w-full text-xl py-4">Start Mission!</button>
+        </div>
+    </div>
+
+    <!-- 2. Teaching/Tutorial Screen -->
+    <div id="screen-tutorial" class="screen hidden">
+        <div class="bg-white rounded-3xl p-8 max-w-lg text-center shadow-2xl card-pop border-b-8 border-blue-100">
+            <h2 class="text-2xl text-blue-600 mb-6">Mission Briefing</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                <div class="bg-orange-50 p-5 rounded-3xl border-2 border-orange-200">
+                    <div class="text-4xl mb-2">🦴</div>
+                    <div class="font-black text-orange-800 text-lg">Structural</div>
+                    <p class="text-sm text-orange-600 mt-1">What the animal <strong>HAS</strong> (Physical feature)</p>
+                    <div class="mt-3 text-[10px] bg-white rounded px-2 py-1 text-orange-400 font-bold">Example: Webbed Feet</div>
+                </div>
+                <div class="bg-blue-50 p-5 rounded-3xl border-2 border-blue-200">
+                    <div class="text-4xl mb-2">🏃</div>
+                    <div class="font-black text-blue-800 text-lg">Behavioural</div>
+                    <p class="text-sm text-blue-600 mt-1">What the animal <strong>DOES</strong> (Action)</p>
+                    <div class="mt-3 text-[10px] bg-white rounded px-2 py-1 text-blue-400 font-bold">Example: Huddling</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-100 p-4 rounded-2xl mb-8 text-sm flex items-center gap-4 text-left border-l-4 border-gray-400">
+                <div class="text-3xl">⌨️</div>
+                <p class="font-medium text-gray-700">Use <strong>Arrow Keys</strong> to move the boy explorer. Walk to a <strong>question mark</strong> to discover an animal!</p>
+            </div>
+
+            <button onclick="startGame()" class="btn-primary w-full text-xl py-4">Let's Explore!</button>
+        </div>
+    </div>
+
+    <!-- 3. Encounter Screen -->
+    <div id="screen-encounter" class="screen hidden">
+        <div id="encounter-card" class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl card-pop relative overflow-hidden border-b-8 border-gray-200">
+            <div id="encounter-zone-tag" class="absolute top-4 right-4 bg-gray-100 px-3 py-1 rounded-full text-[10px] font-black text-gray-500 uppercase tracking-tighter">ZONE: ARCTIC</div>
+            
+            <div class="flex flex-col items-center">
+                <div class="animal-img-container mb-4 border-2 border-gray-100 shadow-inner">
+                    <img id="animal-img" src="" alt="Animal" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden')">
+                    <div id="animal-emoji" class="fallback-emoji hidden"></div>
+                </div>
+
+                <h2 id="animal-name" class="text-3xl font-black mb-1 text-gray-800">Polar Bear</h2>
+                
+                <div class="bg-blue-50 text-blue-900 p-4 rounded-2xl mb-6 w-full text-center border border-blue-100">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1">Observation Clue</p>
+                    <p id="encounter-clue" class="text-lg italic font-semibold leading-snug">"A polar bear has thick fur to keep warm."</p>
+                </div>
+                
+                <p class="font-bold text-gray-400 text-sm mb-4">Choose the type of adaptation:</p>
+                
+                <div class="grid grid-cols-1 gap-3 w-full">
+                    <button onclick="checkAnswer('Structural')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-black transition-all shadow-lg border-b-4 border-orange-800 active:translate-y-1 active:border-b-0">Structural (What it HAS)</button>
+                    <button onclick="checkAnswer('Behavioural')" class="bg-blue-500 hover:bg-blue-600 text-white py-5 rounded-2xl font-black transition-all shadow-lg border-b-4 border-blue-800 active:translate-y-1 active:border-b-0">Behavioural (What it DOES)</button>
+                </div>
+
+                <button onclick="showHint()" class="mt-5 text-gray-400 text-sm font-bold hover:text-blue-500 transition-colors">💡 Need a Hint?</button>
+            </div>
+        </div>
+
+        <!-- Feedback UI Overlay -->
+        <div id="feedback-overlay" class="absolute inset-0 bg-white z-20 hidden flex flex-col items-center justify-center p-8 text-center rounded-3xl m-4">
+            <div id="feedback-icon" class="text-8xl mb-4">🌟</div>
+            <h2 id="feedback-title" class="text-3xl font-black mb-4">You Caught It!</h2>
+            <div class="bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-200">
+                <p id="feedback-text" class="text-gray-700 leading-relaxed font-medium"></p>
+            </div>
+            <button id="feedback-btn" class="btn-primary w-full max-w-xs text-xl py-4">Continue Safari</button>
+        </div>
+    </div>
+
+    <!-- 4. Journal Screen -->
+    <div id="screen-journal" class="screen hidden">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-2xl h-[85vh] shadow-2xl flex flex-col border-b-8 border-blue-100">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-3xl text-blue-600">Adaptation Journal</h2>
+                    <p class="text-xs font-bold text-gray-400">RECORDED DISCOVERIES</p>
+                </div>
+                <button onclick="toggleJournal()" class="bg-gray-100 w-10 h-10 flex items-center justify-center rounded-full text-xl hover:bg-red-100 hover:text-red-500 transition-colors">✕</button>
+            </div>
+            
+            <div id="journal-list" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
+                <!-- Journal Items -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. End Screen -->
+    <div id="screen-end" class="screen hidden">
+        <div class="bg-white rounded-3xl p-10 max-w-lg text-center shadow-2xl card-pop border-b-8 border-green-100">
+            <div class="text-8xl mb-4 animate-bounce">🏆</div>
+            <h2 class="text-4xl mb-2 text-green-600">Mission Complete!</h2>
+            <p id="final-stats" class="text-xl text-gray-500 mb-8 font-medium">You identified all 12 animals!</p>
+            
+            <div id="badge-display" class="bg-yellow-50 p-6 rounded-3xl mb-8 border-4 border-yellow-200 relative overflow-hidden">
+                <div class="text-6xl mb-2">🏅</div>
+                <div class="text-xs font-black uppercase text-yellow-500 tracking-widest">Mastery Level</div>
+                <div class="text-3xl font-black text-yellow-900 tracking-tight">ADAPTATION MASTER</div>
+            </div>
+
+            <div class="text-left bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-200 text-sm leading-relaxed">
+                <p class="font-black text-gray-800 mb-3 uppercase text-[10px] tracking-wider">Scientific Summary</p>
+                <p class="text-gray-600 mb-2"><strong>Structural adaptations</strong> are physical characteristics an animal possesses.</p>
+                <p class="text-gray-600 mb-4"><strong>Behavioural adaptations</strong> are specific actions or ways an organism behaves to survive.</p>
+                <div class="bg-white p-4 rounded-xl border border-gray-100 italic">
+                    "How did you decide whether the adaptation was something the animal HAS or something it DOES?"
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="btn-primary w-full text-xl py-4">Restart Adventure</button>
+        </div>
+    </div>
+
+    <!-- On-screen Controls (Touch Only) -->
+    <div id="joypad">
+        <div></div><button class="joy-btn" ontouchstart="handleTouch('ArrowUp')" ontouchend="stopTouch()">▲</button><div></div>
+        <button class="joy-btn" ontouchstart="handleTouch('ArrowLeft')" ontouchend="stopTouch()">◀</button>
+        <button class="joy-btn" ontouchstart="handleTouch('ArrowDown')" ontouchend="stopTouch()">▼</button>
+        <button class="joy-btn" ontouchstart="handleTouch('ArrowRight')" ontouchend="stopTouch()">▶</button>
+    </div>
+</div>
+
+<script>
+    const ANIMALS = [
+        { id: 1, name: "Polar Bear", zone: "Arctic", emoji: "🐻‍❄️", image: "https://images.unsplash.com/photo-1589656966895-2f33e7653819?w=400&q=80", clue: "A polar bear has thick fur to keep warm.", type: "Structural", expl: "Thick fur is a physical characteristic (what it has) that helps the polar bear survive in extreme cold." },
+        { id: 2, name: "Penguin", zone: "Arctic", emoji: "🐧", image: "https://images.unsplash.com/photo-1517783999520-f068d7431a60?w=400&q=80", clue: "Penguins huddle together to keep warm.", type: "Behavioural", expl: "Huddling is an action (what it does) to reduce heat loss and stay warm in freezing winds." },
+        { id: 3, name: "Camel", zone: "Desert", emoji: "🐪", image: "https://images.unsplash.com/photo-1454433140182-359f1396a802?w=400&q=80", clue: "A camel has long eyelashes to keep sand out of its eyes.", type: "Structural", expl: "Long eyelashes are a physical body feature (what it has) that protects eyes from desert sandstorms." },
+        { id: 4, name: "Lizard", zone: "Desert", emoji: "🦎", image: "https://images.unsplash.com/photo-1545286733-1496391a92e5?w=400&q=80", clue: "A lizard basks in the sun to warm its body.", type: "Behavioural", expl: "Basking is an action (what it does) to absorb heat from the sun and regulate body temperature." },
+        { id: 5, name: "Giraffe", zone: "Grassland", emoji: "🦒", image: "https://images.unsplash.com/photo-1547721064-362726618170?w=400&q=80", clue: "A giraffe has a long neck to reach leaves on tall trees.", type: "Structural", expl: "A long neck is a physical characteristic (what it has) that helps the giraffe reach food higher than others." },
+        { id: 6, name: "Meerkat", zone: "Grassland", emoji: "🦦", image: "https://images.unsplash.com/photo-1591161100575-41892efe424e?w=400&q=80", clue: "A meerkat stands on its hind legs to look out for predators.", type: "Behavioural", expl: "Standing up to keep watch is an action (what it does) that protects the group from danger." },
+        { id: 7, name: "Wolf", zone: "Forest", emoji: "🐺", image: "https://images.unsplash.com/photo-1590420485404-f86d22b8abf8?w=400&q=80", clue: "A wolf hunts in a pack.", type: "Behavioural", expl: "Cooperating in a group is an action (what it does) to improve the success rate of catching prey." },
+        { id: 8, name: "Hedgehog", zone: "Forest", emoji: "🦔", image: "https://images.unsplash.com/photo-1534361960057-19889db9621e?w=400&q=80", clue: "A hedgehog curls into a ball when threatened.", type: "Behavioural", expl: "Curling into a ball is an action (what it does) to protect its soft belly with sharp spines." },
+        { id: 9, name: "Bird", zone: "Forest", emoji: "🐦", image: "https://images.unsplash.com/photo-1444464666168-49d633b867ad?w=400&q=80", clue: "A bird migrates to warmer places during winter.", type: "Behavioural", expl: "Migration is a long-distance movement (what it does) to find food and warmth during winter." },
+        { id: 10, name: "Stick Insect", zone: "Forest", emoji: "🎋", image: "https://images.unsplash.com/photo-1626012674991-628d712030d5?w=400&q=80", clue: "A stick insect has a body shape that looks like a twig.", type: "Structural", expl: "A twig-like body is a physical feature (what it has) that helps it blend into the environment." },
+        { id: 11, name: "Duck", zone: "Pond", emoji: "🦆", image: "https://images.unsplash.com/photo-1459156212016-c812468e2115?w=400&q=80", clue: "A duck has webbed feet to help it swim.", type: "Structural", expl: "Webbed feet are physical characteristics (what it has) that act like paddles in the water." },
+        { id: 12, name: "Fish", zone: "Pond", emoji: "🐟", image: "https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?w=400&q=80", clue: "A fish has gills to breathe underwater.", type: "Structural", expl: "Gills are physical body parts (what it has) that allow the fish to take in oxygen from water." }
+    ];
+
+    const ZONES = {
+        Arctic: { x: 0, y: 0, w: 0.5, h: 0.5, color: '#e0f2fe', label: 'Arctic Zone' },
+        Desert: { x: 0.5, y: 0, w: 0.5, h: 0.5, color: '#fef3c7', label: 'Desert Zone' },
+        Forest: { x: 0.5, y: 0.5, w: 0.5, h: 0.5, color: '#166534', label: 'Forest Zone' },
+        Grassland: { x: 0, y: 0.5, w: 0.5, h: 0.25, color: '#dcfce7', label: 'Grassland' },
+        Pond: { x: 0, y: 0.75, w: 0.5, h: 0.25, color: '#0ea5e9', label: 'Pond Zone' }
+    };
+
+    let canvas, ctx;
+    let player = { x: 0, y: 0, speed: 6 };
+    let keys = {};
+    let activeEncounters = [];
+    let currentEncounter = null;
+    let caughtAnimals = [];
+    let isGameOver = false;
+
+    function init() {
+        canvas = document.getElementById('worldCanvas');
+        ctx = canvas.getContext('2d');
+        resize();
+        window.addEventListener('resize', resize);
+        
+        player.x = canvas.width / 2;
+        player.y = canvas.height / 2;
+
+        ANIMALS.forEach(animal => {
+            const zone = ZONES[animal.zone];
+            activeEncounters.push({
+                ...animal,
+                x: (zone.x * canvas.width) + Math.random() * (zone.w * canvas.width * 0.7) + (zone.w * canvas.width * 0.15),
+                y: (zone.y * canvas.height) + Math.random() * (zone.h * canvas.height * 0.7) + (zone.h * canvas.height * 0.15),
+                caught: false
+            });
+        });
+
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        document.getElementById('explore-ui').classList.remove('hidden');
+        requestAnimationFrame(gameLoop);
+    }
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update() {
+        if (currentEncounter || isGameOver || !document.getElementById('screen-journal').classList.contains('hidden')) return;
+
+        let nextX = player.x;
+        let nextY = player.y;
+
+        if (keys['ArrowUp']) nextY -= player.speed;
+        if (keys['ArrowDown']) nextY += player.speed;
+        if (keys['ArrowLeft']) nextX -= player.speed;
+        if (keys['ArrowRight']) nextX += player.speed;
+
+        player.x = Math.max(25, Math.min(canvas.width - 25, nextX));
+        player.y = Math.max(25, Math.min(canvas.height - 25, nextY));
+
+        activeEncounters.forEach(e => {
+            if (!e.caught) {
+                const dist = Math.hypot(player.x - e.x, player.y - e.y);
+                if (dist < 40) triggerEncounter(e);
+            }
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        Object.values(ZONES).forEach(z => {
+            ctx.fillStyle = z.color;
+            ctx.fillRect(z.x * canvas.width, z.y * canvas.height, z.w * canvas.width, z.h * canvas.height);
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.08)';
+            ctx.font = '800 28px Inter';
+            ctx.textAlign = 'left';
+            ctx.fillText(z.label.toUpperCase(), (z.x * canvas.width) + 20, (z.y * canvas.height) + 45);
+        });
+
+        activeEncounters.forEach(e => {
+            if (!e.caught) {
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = 'rgba(255,255,255,0.5)';
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                ctx.fillStyle = '#3b82f6';
+                ctx.font = 'bold 22px Fredoka One';
+                ctx.textAlign = 'center';
+                ctx.fillText('?', e.x, e.y + 8);
+            }
+        });
+
+        // Player (Boy Explorer)
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        
+        // Shirt
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(-15, -10, 30, 25);
+        // Head
+        ctx.fillStyle = '#fce7f3';
+        ctx.beginPath();
+        ctx.arc(0, -22, 14, 0, Math.PI * 2);
+        ctx.fill();
+        // Hair
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(-14, -36, 28, 12);
+        // Eyes
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-6, -24, 3, 3);
+        ctx.fillRect(3, -24, 3, 3);
+        // Feet
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-15, 15, 10, 5);
+        ctx.fillRect(5, 15, 10, 5);
+        
+        ctx.restore();
+    }
+
+    function showTutorial() {
+        document.getElementById('screen-start').classList.add('hidden');
+        document.getElementById('screen-tutorial').classList.remove('hidden');
+    }
+
+    function startGame() {
+        document.getElementById('screen-tutorial').classList.add('hidden');
+        init();
+    }
+
+    function triggerEncounter(animal) {
+        currentEncounter = animal;
+        const screen = document.getElementById('screen-encounter');
+        const img = document.getElementById('animal-img');
+        const emojiDiv = document.getElementById('animal-emoji');
+        const name = document.getElementById('animal-name');
+        const tag = document.getElementById('encounter-zone-tag');
+        const clue = document.getElementById('encounter-clue');
+        
+        img.src = animal.image;
+        img.style.display = 'block';
+        emojiDiv.innerText = animal.emoji;
+        emojiDiv.classList.add('hidden');
+        
+        name.innerText = animal.name;
+        tag.innerText = `ZONE: ${animal.zone.toUpperCase()}`;
+        clue.innerText = `"${animal.clue}"`;
+        
+        screen.classList.remove('hidden');
+        document.getElementById('feedback-overlay').classList.add('hidden');
+    }
+
+    function checkAnswer(choice) {
+        const overlay = document.getElementById('feedback-overlay');
+        const title = document.getElementById('feedback-title');
+        const text = document.getElementById('feedback-text');
+        const icon = document.getElementById('feedback-icon');
+        const btn = document.getElementById('feedback-btn');
+
+        if (choice === currentEncounter.type) {
+            icon.innerText = "⭐";
+            title.innerText = "You caught it!";
+            title.className = "text-3xl font-black mb-4 text-green-500";
+            text.innerHTML = `Great job, Explorer! That is a <strong>${currentEncounter.type}</strong> adaptation.<br><br>${currentEncounter.expl}`;
+            btn.innerText = "Awesome!";
+            btn.onclick = () => {
+                currentEncounter.caught = true;
+                caughtAnimals.push({...currentEncounter});
+                updateProgress();
+                closeEncounter();
+            };
+        } else {
+            icon.innerText = "💨";
+            title.innerText = "Oops! It escaped!";
+            title.className = "text-3xl font-black mb-4 text-red-500";
+            text.innerHTML = `Incorrect choice. The animal ran to another spot in the <strong>${currentEncounter.zone}</strong>.<br><br><strong>Remember:</strong> Structural is what it HAS (physical), Behavioural is what it DOES (action).`;
+            btn.innerText = "Find it again!";
+            btn.onclick = () => {
+                const zone = ZONES[currentEncounter.zone];
+                currentEncounter.x = (zone.x * canvas.width) + Math.random() * (zone.w * canvas.width * 0.7) + (zone.w * canvas.width * 0.15);
+                currentEncounter.y = (zone.y * canvas.height) + Math.random() * (zone.h * canvas.height * 0.7) + (zone.h * canvas.height * 0.15);
+                closeEncounter();
+            };
+        }
+        overlay.classList.remove('hidden');
+    }
+
+    function showHint() {
+        document.getElementById('encounter-clue').innerText = "Ask yourself: Is this something the animal has (a body feature), or something the animal does (an action)?";
+    }
+
+    function closeEncounter() {
+        document.getElementById('screen-encounter').classList.add('hidden');
+        currentEncounter = null;
+        if (caughtAnimals.length === 12) showEndScreen();
+    }
+
+    function updateProgress() {
+        const count = caughtAnimals.length;
+        document.getElementById('progress-text').innerText = `${count}/12`;
+        document.getElementById('progress-bar').style.width = `${(count/12)*100}%`;
+    }
+
+    function toggleJournal() {
+        const journal = document.getElementById('screen-journal');
+        if (journal.classList.contains('hidden')) {
+            renderJournal();
+            journal.classList.remove('hidden');
+        } else {
+            journal.classList.add('hidden');
+        }
+    }
+
+    function renderJournal() {
+        const list = document.getElementById('journal-list');
+        list.innerHTML = '';
+        
+        if (caughtAnimals.length === 0) {
+            list.innerHTML = '<div class="col-span-full text-center py-20 text-gray-400 font-bold uppercase tracking-widest opacity-50">Journal is empty.<br>Start exploring!</div>';
+            return;
+        }
+
+        caughtAnimals.forEach(a => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-4 rounded-3xl border-2 border-gray-100 flex gap-4 items-center shadow-sm";
+            card.innerHTML = `
+                <div class="text-4xl bg-gray-50 w-20 h-20 rounded-2xl flex items-center justify-center shadow-inner shrink-0">${a.emoji}</div>
+                <div>
+                    <h3 class="font-black text-lg text-gray-800 leading-none mb-1">${a.name}</h3>
+                    <p class="text-[9px] font-black text-blue-500 uppercase tracking-widest">${a.zone} • ${a.type}</p>
+                    <p class="text-[11px] text-gray-500 mt-2 leading-tight font-medium">${a.clue}</p>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function showEndScreen() {
+        isGameOver = true;
+        document.getElementById('explore-ui').classList.add('hidden');
+        document.getElementById('screen-end').classList.remove('hidden');
+    }
+
+    function handleTouch(code) { keys[code] = true; }
+    function stopTouch() { keys = {}; }
+</script>
+</body>
+</html>

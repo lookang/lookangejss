@@ -1,0 +1,663 @@
+// ============================================
+// HARMONY HEROES: SINGAPORE'S UNITY QUEST
+// Educational game about racial harmony in Singapore
+// ============================================
+
+// Global State Management
+const gameState = {
+    currentScene: 0,
+    score: 0,
+    choices: [],
+    audioEnabled: true,
+    timerInterval: null,
+    timeRemaining: 30,
+    selectedMatch: null,
+    matchedPairs: []
+};
+
+// Audio Context for sound effects and music
+const audioContext = {
+    bgMusic: null,
+    isMuted: false
+};
+
+// Game Scenes - Adventure storyline with choices
+const scenes = [
+    {
+        type: 'narrative',
+        avatar: '🧑',
+        text: "Welcome, Harmony Hero! You're a new student at Unity Secondary School in Singapore. Your mission is to help build bridges between different communities. Are you ready?",
+        choices: [
+            { text: "Yes! Let's promote harmony!", next: 1 },
+            { text: "Tell me more about Singapore's diversity", next: 1 }
+        ],
+        timer: 30
+    },
+    {
+        type: 'matching',
+        avatar: '📚',
+        text: "First challenge! Match each ethnic group with their traditional festival celebrated in Singapore. You have 30 seconds!",
+        timer: 30,
+        matches: [
+            { id: 1, left: 'Chinese 🏮', right: 'Chinese New Year', pair: 1 },
+            { id: 2, left: 'Malay 🕌', right: 'Hari Raya Puasa', pair: 2 },
+            { id: 3, left: 'Indian 🪔', right: 'Deepavali', pair: 3 },
+            { id: 4, left: 'Eurasian 🎄', right: 'Christmas', pair: 4 }
+        ],
+        correctScore: 40,
+        next: 2
+    },
+    {
+        type: 'narrative',
+        avatar: '🎉',
+        text: "Excellent! You've learned about Singapore's multicultural celebrations. At lunch, you notice a new student sitting alone. She's wearing a hijab and looks nervous.",
+        choices: [
+            { text: "Invite her to join your group for lunch", next: 3, score: 10 },
+            { text: "Smile and wave, but stay with your friends", next: 3, score: 5 }
+        ],
+        timer: 25
+    },
+    {
+        type: 'narrative',
+        avatar: '👥',
+        text: "Her name is Aisha! She shares that she's worried about fitting in. You remember that Racial Harmony Day is coming up. What do you suggest?",
+        choices: [
+            { text: "Organize a cultural showcase where everyone shares their heritage", next: 4, score: 15 },
+            { text: "Invite her to join the school's diversity club", next: 4, score: 10 }
+        ],
+        timer: 25
+    },
+    {
+        type: 'matching',
+        avatar: '🏛️',
+        text: "Time to learn about Singapore's harmony! Match these important concepts with their meanings. Quick, time is ticking!",
+        timer: 35,
+        matches: [
+            { id: 1, left: 'Racial Harmony 🤝', right: 'Living peacefully together', pair: 1 },
+            { id: 2, left: 'Mutual Respect 🙏', right: 'Valuing all cultures equally', pair: 2 },
+            { id: 3, left: 'Integration 🌈', right: 'Coming together as one', pair: 3 },
+            { id: 4, left: 'Tolerance 💝', right: 'Accepting differences', pair: 4 }
+        ],
+        correctScore: 40,
+        next: 5
+    },
+    {
+        type: 'narrative',
+        avatar: '🎭',
+        text: "The cultural showcase is a success! Students are sharing food, performances, and stories. But you overhear someone making an insensitive joke about another culture.",
+        choices: [
+            { text: "Politely explain why the joke is hurtful and educate them", next: 6, score: 20 },
+            { text: "Report it to a teacher immediately", next: 6, score: 15 },
+            { text: "Ignore it to avoid confrontation", next: 6, score: 0 }
+        ],
+        timer: 25
+    },
+    {
+        type: 'matching',
+        avatar: '🏠',
+        text: "Final challenge! Match these Singlish phrases that show how languages blend in Singapore's harmony. Be quick!",
+        timer: 30,
+        matches: [
+            { id: 1, left: 'Lah 😄', right: 'Common emphasis particle', pair: 1 },
+            { id: 2, left: 'Shiok 😋', right: 'Delicious or great (Malay)', pair: 2 },
+            { id: 3, left: 'Paiseh 😊', right: 'Embarrassed (Hokkien)', pair: 3 },
+            { id: 4, left: 'Lepak 😌', right: 'Relax or hang out (Malay)', pair: 4 }
+        ],
+        correctScore: 40,
+        next: 7
+    },
+    {
+        type: 'result',
+        avatar: '🏆',
+        text: "Congratulations, Harmony Hero! You've completed your journey in promoting racial harmony at Unity Secondary School!"
+    }
+];
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+// Detect if running in iframe
+function detectIframe() {
+    if (window.self !== window.top) {
+        document.body.classList.add('in-iframe');
+    }
+}
+
+// Initialize the game when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    detectIframe();
+    initializeAudio();
+    setupEventListeners();
+    startScene(0);
+});
+
+// ============================================
+// AUDIO MANAGEMENT
+// ============================================
+
+// Initialize audio system
+function initializeAudio() {
+    // Create background music using Web Audio API
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            playBackgroundMusic();
+        }
+    } catch (e) {
+        console.log('Web Audio API not supported');
+    }
+}
+
+// Play background music using oscillators (no external files needed)
+function playBackgroundMusic() {
+    if (audioContext.isMuted) return;
+    
+    // Simple cheerful melody using Web Audio API
+    // This creates a pleasant background ambience without external files
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [261.63, 293.66, 329.63, 349.23, 392.00]; // C, D, E, F, G
+    let noteIndex = 0;
+    
+    function playNote() {
+        if (audioContext.isMuted) return;
+        
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        
+        oscillator.frequency.value = notes[noteIndex % notes.length];
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.1, context.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.5);
+        
+        oscillator.start(context.currentTime);
+        oscillator.stop(context.currentTime + 0.5);
+        
+        noteIndex++;
+        setTimeout(playNote, 800);
+    }
+    
+    playNote();
+}
+
+// Play sound effect for interactions
+function playSound(type) {
+    if (audioContext.isMuted) return;
+    
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    // Different sounds for different interactions
+    switch(type) {
+        case 'correct':
+            oscillator.frequency.value = 523.25; // C5
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.3);
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.3);
+            break;
+        case 'incorrect':
+            oscillator.frequency.value = 200;
+            oscillator.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.2, context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.2);
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.2);
+            break;
+        case 'click':
+            oscillator.frequency.value = 400;
+            oscillator.type = 'square';
+            gainNode.gain.setValueAtTime(0.1, context.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.1);
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.1);
+            break;
+        case 'complete':
+            // Victory fanfare
+            [523.25, 587.33, 659.25, 783.99].forEach((freq, i) => {
+                const osc = context.createOscillator();
+                const gain = context.createGain();
+                osc.connect(gain);
+                gain.connect(context.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.2, context.currentTime + i * 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + i * 0.15 + 0.3);
+                osc.start(context.currentTime + i * 0.15);
+                osc.stop(context.currentTime + i * 0.15 + 0.3);
+            });
+            break;
+    }
+}
+
+// Toggle audio on/off
+function toggleAudio() {
+    audioContext.isMuted = !audioContext.isMuted;
+    const audioBtn = document.getElementById('audio-toggle');
+    audioBtn.textContent = audioContext.isMuted ? '🔇' : '🔊';
+    audioBtn.classList.toggle('muted', audioContext.isMuted);
+    playSound('click');
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
+function setupEventListeners() {
+    // Audio toggle
+    document.getElementById('audio-toggle').addEventListener('click', toggleAudio);
+    
+    // Restart button
+    document.getElementById('restart-btn').addEventListener('click', restartGame);
+    
+    // Tooltip on audio button hover
+    const audioBtn = document.getElementById('audio-toggle');
+    audioBtn.addEventListener('mouseenter', () => showTooltip('Toggle sound effects and music'));
+    audioBtn.addEventListener('mouseleave', hideTooltip);
+}
+
+// ============================================
+// TOOLTIP SYSTEM
+// ============================================
+
+function showTooltip(text) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = text;
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.classList.remove('show');
+}
+
+// ============================================
+// SCENE MANAGEMENT
+// ============================================
+
+function startScene(sceneIndex) {
+    const scene = scenes[sceneIndex];
+    gameState.currentScene = sceneIndex;
+    
+    // Update progress bar
+    updateProgress();
+    
+    // Clear previous content
+    clearScene();
+    
+    // Update avatar
+    document.querySelector('.avatar-emoji').textContent = scene.avatar;
+    
+    if (scene.type === 'narrative') {
+        displayNarrative(scene);
+    } else if (scene.type === 'matching') {
+        displayMatching(scene);
+    } else if (scene.type === 'result') {
+        displayResult(scene);
+    }
+}
+
+function clearScene() {
+    // Stop timer
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+    
+    // Clear areas
+    document.getElementById('choices-area').innerHTML = '';
+    document.getElementById('matching-area').classList.remove('active');
+    document.getElementById('left-column').innerHTML = '';
+    document.getElementById('right-column').innerHTML = '';
+    
+    // Reset matching state
+    gameState.selectedMatch = null;
+    gameState.matchedPairs = [];
+}
+
+// ============================================
+// NARRATIVE SCENES
+// ============================================
+
+function displayNarrative(scene) {
+    const storyText = document.getElementById('story-text');
+    storyText.textContent = scene.text;
+    
+    // Display choices
+    const choicesArea = document.getElementById('choices-area');
+    scene.choices.forEach((choice, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = choice.text;
+        btn.addEventListener('click', () => handleChoice(choice));
+        choicesArea.appendChild(btn);
+    });
+    
+    // Start timer
+    startTimer(scene.timer);
+}
+
+function handleChoice(choice) {
+    playSound('click');
+    
+    // Add score if applicable
+    if (choice.score) {
+        addScore(choice.score);
+        showTooltip(`+${choice.score} points for making a great choice!`);
+        setTimeout(hideTooltip, 2000);
+    }
+    
+    // Record choice
+    gameState.choices.push(choice.text);
+    
+    // Move to next scene
+    setTimeout(() => {
+        startScene(choice.next);
+    }, 500);
+}
+
+// ============================================
+// MATCHING GAME MECHANICS
+// ============================================
+
+function displayMatching(scene) {
+    const storyText = document.getElementById('story-text');
+    storyText.textContent = scene.text;
+    
+    const matchingArea = document.getElementById('matching-area');
+    matchingArea.classList.add('active');
+    
+    const leftColumn = document.getElementById('left-column');
+    const rightColumn = document.getElementById('right-column');
+    
+    // Shuffle right column for challenge
+    const leftItems = scene.matches.map(m => ({ text: m.left, pair: m.pair, id: m.id }));
+    const rightItems = scene.matches.map(m => ({ text: m.right, pair: m.pair, id: m.id }));
+    shuffleArray(rightItems);
+    
+    // Create left items
+    leftItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'match-item';
+        div.textContent = item.text;
+        div.dataset.pair = item.pair;
+        div.dataset.side = 'left';
+        div.addEventListener('click', () => handleMatchClick(div, scene));
+        leftColumn.appendChild(div);
+    });
+    
+    // Create right items
+    rightItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'match-item';
+        div.textContent = item.text;
+        div.dataset.pair = item.pair;
+        div.dataset.side = 'right';
+        div.addEventListener('click', () => handleMatchClick(div, scene));
+        rightColumn.appendChild(div);
+    });
+    
+    // Start timer
+    startTimer(scene.timer, () => {
+        // Time's up - check completion
+        checkMatchingCompletion(scene);
+    });
+}
+
+function handleMatchClick(element, scene) {
+    // Ignore if already matched
+    if (element.classList.contains('matched')) return;
+    
+    playSound('click');
+    
+    // If no selection, select this one
+    if (!gameState.selectedMatch) {
+        gameState.selectedMatch = element;
+        element.classList.add('selected');
+        return;
+    }
+    
+    // If same element clicked, deselect
+    if (gameState.selectedMatch === element) {
+        element.classList.remove('selected');
+        gameState.selectedMatch = null;
+        return;
+    }
+    
+    // If same side, switch selection
+    if (gameState.selectedMatch.dataset.side === element.dataset.side) {
+        gameState.selectedMatch.classList.remove('selected');
+        gameState.selectedMatch = element;
+        element.classList.add('selected');
+        return;
+    }
+    
+    // Check if match is correct
+    const pair1 = gameState.selectedMatch.dataset.pair;
+    const pair2 = element.dataset.pair;
+    
+    if (pair1 === pair2) {
+        // Correct match!
+        playSound('correct');
+        gameState.selectedMatch.classList.remove('selected');
+        gameState.selectedMatch.classList.add('correct', 'matched');
+        element.classList.add('correct', 'matched');
+        
+        gameState.matchedPairs.push(pair1);
+        gameState.selectedMatch = null;
+        
+        // Add score for correct match
+        const scorePerMatch = scene.correctScore / scene.matches.length;
+        addScore(Math.round(scorePerMatch));
+        
+        // Check if all matched
+        if (gameState.matchedPairs.length === scene.matches.length) {
+            setTimeout(() => {
+                playSound('complete');
+                showTooltip('Perfect! All matched correctly! 🎉');
+                setTimeout(() => {
+                    hideTooltip();
+                    startScene(scene.next);
+                }, 2000);
+            }, 500);
+        }
+    } else {
+        // Incorrect match
+        playSound('incorrect');
+        gameState.selectedMatch.classList.remove('selected');
+        gameState.selectedMatch.classList.add('incorrect');
+        element.classList.add('incorrect');
+        
+        const elem1 = gameState.selectedMatch;
+        const elem2 = element;
+        
+        setTimeout(() => {
+            elem1.classList.remove('incorrect');
+            elem2.classList.remove('incorrect');
+        }, 600);
+        
+        gameState.selectedMatch = null;
+        
+        // Immediate feedback
+        showTooltip('Not quite! Try again! 🤔');
+        setTimeout(hideTooltip, 1500);
+    }
+}
+
+function checkMatchingCompletion(scene) {
+    if (gameState.matchedPairs.length === scene.matches.length) {
+        // Already completed
+        return;
+    }
+    
+    // Time's up, move to next scene anyway
+    showTooltip("Time's up! Let's continue the journey!");
+    setTimeout(() => {
+        hideTooltip();
+        startScene(scene.next);
+    }, 2000);
+}
+
+// ============================================
+// TIMER SYSTEM (Time Pressure)
+// ============================================
+
+function startTimer(seconds, onComplete) {
+    gameState.timeRemaining = seconds;
+    updateTimerDisplay();
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeRemaining--;
+        updateTimerDisplay();
+        
+        if (gameState.timeRemaining <= 0) {
+            clearInterval(gameState.timerInterval);
+            if (onComplete) onComplete();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const timerFill = document.getElementById('timer-fill');
+    const timerText = document.getElementById('timer-text');
+    const scene = scenes[gameState.currentScene];
+    
+    const percentage = (gameState.timeRemaining / scene.timer) * 100;
+    timerFill.style.width = percentage + '%';
+    timerText.textContent = gameState.timeRemaining + 's';
+    
+    // Change color when time is running out
+    if (percentage < 30) {
+        timerFill.style.background = 'linear-gradient(90deg, #ff6b6b 0%, #ee5a6f 100%)';
+    } else {
+        timerFill.style.background = 'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)';
+    }
+}
+
+// ============================================
+// SCORE MANAGEMENT
+// ============================================
+
+function addScore(points) {
+    gameState.score += points;
+    updateScoreDisplay();
+    
+    // Animate score
+    const scoreDisplay = document.getElementById('score-display');
+    scoreDisplay.style.transform = 'scale(1.2)';
+    setTimeout(() => {
+        scoreDisplay.style.transform = 'scale(1)';
+    }, 300);
+}
+
+function updateScoreDisplay() {
+    document.getElementById('score-value').textContent = gameState.score;
+}
+
+// ============================================
+// PROGRESS TRACKING
+// ============================================
+
+function updateProgress() {
+    const progress = ((gameState.currentScene + 1) / scenes.length) * 100;
+    document.getElementById('progress-fill').style.width = progress + '%';
+}
+
+// ============================================
+// RESULT SCREEN
+// ============================================
+
+function displayResult(scene) {
+    // Hide game screen, show result screen
+    document.getElementById('game-screen').classList.remove('active');
+    document.getElementById('result-screen').classList.add('active');
+    
+    playSound('complete');
+    
+    // Determine result based on score
+    let emoji, title, message;
+    
+    if (gameState.score >= 120) {
+        emoji = '🏆';
+        title = 'Outstanding Harmony Hero!';
+        message = 'You\'ve shown exceptional understanding of racial harmony and made excellent choices to promote unity in Singapore. You\'re a true champion of diversity!';
+    } else if (gameState.score >= 80) {
+        emoji = '⭐';
+        title = 'Great Job, Harmony Hero!';
+        message = 'You\'ve demonstrated good knowledge of racial harmony and made positive choices. Keep promoting understanding and respect in your community!';
+    } else {
+        emoji = '🌟';
+        title = 'Well Done, Harmony Hero!';
+        message = 'You\'ve completed the journey and learned valuable lessons about racial harmony. Every step towards understanding makes Singapore stronger!';
+    }
+    
+    document.getElementById('result-emoji').textContent = emoji;
+    document.getElementById('result-title').textContent = title;
+    document.getElementById('result-message').textContent = message;
+    document.getElementById('final-score').textContent = `Final Score: ${gameState.score} points`;
+}
+
+// ============================================
+// GAME CONTROL
+// ============================================
+
+function restartGame() {
+    playSound('click');
+    
+    // Reset game state
+    gameState.currentScene = 0;
+    gameState.score = 0;
+    gameState.choices = [];
+    gameState.selectedMatch = null;
+    gameState.matchedPairs = [];
+    
+    // Reset displays
+    updateScoreDisplay();
+    updateProgress();
+    
+    // Show game screen
+    document.getElementById('result-screen').classList.remove('active');
+    document.getElementById('game-screen').classList.add('active');
+    
+    // Start from beginning
+    startScene(0);
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+// Fisher-Yates shuffle algorithm
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// ============================================
+// COGNITIVE LOAD OPTIMIZATION
+// Following Mayer's principles:
+// 1. Multimedia Principle: Text + visual emojis
+// 2. Coherence Principle: No extraneous content
+// 3. Signaling Principle: Clear visual cues for interactions
+// 4. Redundancy Principle: Avoided redundant text
+// 5. Spatial Contiguity: Related items placed together
+// 6. Temporal Contiguity: Immediate feedback on actions
+// 7. Segmenting Principle: Content broken into scenes
+// 8. Pre-training Principle: Introduction scene explains context
+// 9. Modality Principle: Visual and audio channels used
+// 10. Personalization Principle: Direct address ("You")
+// 11. Voice Principle: Friendly, conversational tone
+// 12. Image Principle: Cute emojis as visual representations
+// ============================================

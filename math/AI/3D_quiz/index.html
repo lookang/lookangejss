@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Interactive 3D Shapes for Primary Math</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    
+    <!-- Google Analytics -->
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            overflow: hidden;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display:block;
+            color: #333;
+            font-size: 24px;
+        }
+        #buttons {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        #shapeName {
+            font-weight: bold;
+        }
+        #gamePanel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            font-size: 14px;
+            z-index: 200;
+        }
+        #gamePanel h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .challenge-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .challenge-btn:hover {
+            background: linear-gradient(45deg, #2980b9, #1f618d);
+        }
+        .correct {
+            background: linear-gradient(45deg, #27ae60, #229954) !important;
+        }
+        .incorrect {
+            background: linear-gradient(45deg, #e74c3c, #c0392b) !important;
+        }
+        #score {
+            font-weight: bold;
+            color: #e67e22;
+            font-size: 16px;
+        }
+        #questionArea {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            min-height: 100px;
+        }
+        .option-btn {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 8px;
+            background: #bdc3c7;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .option-btn:hover {
+            background: #95a5a6;
+        }
+        #hint {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-style: italic;
+            display: none;
+        }
+        #progress {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        #progressBar {
+            height: 100%;
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        #footer {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #666;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 150;
+        }
+        #footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        #footer a:hover {
+            text-decoration: underline;
+        }
+</style>
+</head>
+<body>
+
+<div id="info">
+    <h1>Explore 3D Shapes!</h1>
+    <p>Now showing: <span id="shapeName">Cube</span></p>
+</div>
+
+<div id="gamePanel">
+    <h3>🎮 Shape Detective Challenge</h3>
+    <div id="score">Score: 0 | Level: 1</div>
+    <div id="progress">
+        <div id="progressBar"></div>
+    </div>
+    
+    <div>
+        <button class="challenge-btn" onclick="startChallenge('properties')">Shape Properties</button>
+        <button class="challenge-btn" onclick="startChallenge('realworld')">Real World Hunt</button>
+        <button class="challenge-btn" onclick="startChallenge('compare')">Compare & Contrast</button>
+        <button class="challenge-btn" onclick="startChallenge('spatial')">Spatial Thinking</button>
+    </div>
+    
+    <div id="questionArea">
+        <p>🌟 Welcome, Shape Detective! Choose a challenge above to start your mathematical adventure!</p>
+        <p>💡 <strong>Tip:</strong> Rotate the shapes with your mouse to explore them from all angles!</p>
+    </div>
+    
+    <div id="hint"></div>
+    
+    <button id="hintBtn" class="challenge-btn" onclick="showHint()" style="display:none;">💡 Need a Hint?</button>
+    <button id="nextBtn" class="challenge-btn" onclick="nextQuestion()" style="display:none;">Next Challenge →</button>
+</div>
+
+<div id="footer">
+    <div>Made by <strong>lookang</strong>, using <strong>Claude 4</strong></div>
+    <div>More resources: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/measurement-and-geometry/geometry/2-3d-shapes" target="_blank">3D Shapes Collection</a></div>
+</div>
+
+<div id="buttons">
+    <button onclick="showShape('cube')">Cube</button>
+    <button onclick="showShape('sphere')">Sphere</button>
+    <button onclick="showShape('cone')">Cone</button>
+    <button onclick="showShape('cylinder')">Cylinder</button>
+    <button onclick="showShape('pyramid')">Pyramid</button>
+</div>
+
+<!-- This importmap now points to your local JS files -->
+<script type="importmap">
+    {
+        "imports": {
+            "three": "./js/three.module.js",
+            "three/addons/": "./js/"
+        }
+    }
+</script>
+
+<script type="module">
+
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/OrbitControls.js';
+
+    let camera, scene, renderer;
+    let mesh;
+
+    function showShape(shape) { // Move this function before init()
+        // Remove previous mesh
+        if (mesh) {
+            scene.remove(mesh);
+            mesh.geometry.dispose();
+            mesh.material.dispose();
+        }
+
+        const shapeNameElement = document.getElementById('shapeName');
+        let geometry;
+        const material = new THREE.MeshStandardMaterial({ color: 0xffa500, metalness: 0.2, roughness: 0.5 });
+
+        switch (shape) {
+            case 'cube':
+                geometry = new THREE.BoxGeometry(2, 2, 2);
+                shapeNameElement.innerText = 'Cube';
+                break;
+            case 'sphere':
+                geometry = new THREE.SphereGeometry(1.5, 32, 32);
+                shapeNameElement.innerText = 'Sphere';
+                break;
+            case 'cone':
+                geometry = new THREE.ConeGeometry(1.5, 3, 32);
+                shapeNameElement.innerText = 'Cone';
+                break;
+            case 'cylinder':
+                geometry = new THREE.CylinderGeometry(1.2, 1.2, 3, 32);
+                shapeNameElement.innerText = 'Cylinder';
+                break;
+            case 'pyramid':
+                geometry = new THREE.ConeGeometry(2, 2.5, 4);
+                shapeNameElement.innerText = 'Pyramid';
+                break;
+        }
+
+        mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+    }
+
+    // Game State Variables
+    let gameState = {
+        score: 0,
+        level: 1,
+        currentChallenge: null,
+        currentQuestion: null,
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        challengeType: null
+    };
+
+    // Question Banks for Different Challenge Types
+    const challenges = {
+        properties: [
+            {
+                shape: 'cube',
+                question: 'How many faces does a cube have?',
+                options: ['4 faces', '6 faces', '8 faces', '12 faces'],
+                correct: 1,
+                hint: 'Think about each side of a dice! Count the top, bottom, front, back, left, and right.',
+                explanation: 'A cube has 6 square faces - just like a dice!'
+            },
+            {
+                shape: 'sphere',
+                question: 'What makes a sphere special compared to other shapes?',
+                options: ['It has corners', 'It has flat surfaces', 'It has no edges or corners', 'It has 4 sides'],
+                correct: 2,
+                hint: 'Think about a ball - can you find any sharp edges or corners on it?',
+                explanation: 'A sphere is perfectly round with no edges, corners, or flat faces!'
+            },
+            {
+                shape: 'pyramid',
+                question: 'How many triangular faces does this pyramid have?',
+                options: ['2 triangular faces', '3 triangular faces', '4 triangular faces', '5 triangular faces'],
+                correct: 2,
+                hint: 'Look at the pyramid from different angles. The bottom is square, but count the triangular sides.',
+                explanation: 'This square pyramid has 4 triangular faces that meet at the top point!'
+            },
+            {
+                shape: 'cylinder',
+                question: 'What shapes can you find on a cylinder?',
+                options: ['Only rectangles', 'Only circles', 'Circles and rectangles', 'Only triangles'],
+                correct: 2,
+                hint: 'Look at the top and bottom, then look at the curved side. What shapes do you see?',
+                explanation: 'A cylinder has 2 circular faces (top and bottom) and 1 curved rectangular surface!'
+            }
+        ],
+        realworld: [
+            {
+                shape: 'cube',
+                question: 'Which of these real-world objects is shaped like a cube?',
+                options: ['A ball', 'A dice', 'A cone ice cream', 'A can of soda'],
+                correct: 1,
+                hint: 'Think about objects that have 6 equal square sides.',
+                explanation: 'A dice is a perfect example of a cube - it has 6 equal square faces!'
+            },
+            {
+                shape: 'sphere',
+                question: 'Where would you most likely find sphere shapes in sports?',
+                options: ['Basketball and soccer ball', 'Hockey stick', 'Tennis court', 'Swimming pool'],
+                correct: 0,
+                hint: 'Think about balls used in different sports.',
+                explanation: 'Basketballs and soccer balls are spheres - perfect for rolling and bouncing!'
+            },
+            {
+                shape: 'cone',
+                question: 'Which everyday object has a cone shape?',
+                options: ['A book', 'An ice cream cone', 'A plate', 'A window'],
+                correct: 1,
+                hint: 'Think about something that starts wide at the bottom and comes to a point at the top.',
+                explanation: 'Ice cream cones are perfect examples of cones - wide at the top, pointed at the bottom!'
+            },
+            {
+                shape: 'cylinder',
+                question: 'What makes cylinders useful for storing liquids?',
+                options: ['They have corners', 'They roll easily and hold volume well', 'They are flat', 'They have sharp edges'],
+                correct: 1,
+                hint: 'Think about cans and bottles. Why are they shaped this way?',
+                explanation: 'Cylinders are great for storage because they hold lots of liquid and are easy to manufacture!'
+            }
+        ],
+        compare: [
+            {
+                shape: 'cube',
+                question: 'What do a cube and pyramid have in common?',
+                options: ['Same number of faces', 'Both have square bases', 'Both have curved surfaces', 'Both have the same height'],
+                correct: 1,
+                hint: 'Look at the bottom of both shapes. What do you notice?',
+                explanation: 'Both a cube and a square pyramid have square bases, but they differ in their other faces!'
+            },
+            {
+                shape: 'sphere',
+                question: 'How is a sphere different from all other shapes here?',
+                options: ['It has more faces', 'It has no flat surfaces', 'It has more corners', 'It is smaller'],
+                correct: 1,
+                hint: 'Run your hand over a ball versus a box. What feels different?',
+                explanation: 'A sphere is the only shape with no flat surfaces, edges, or corners - it\'s completely curved!'
+            },
+            {
+                shape: 'cylinder',
+                question: 'What do a cylinder and cone have in common?',
+                options: ['Both have circular bases', 'Both have the same height', 'Both have square faces', 'Both have the same number of faces'],
+                correct: 0,
+                hint: 'Look at the bottom of both shapes. What shape do you see?',
+                explanation: 'Both cylinders and cones have circular bases, but cones come to a point while cylinders have two circular ends!'
+            }
+        ],
+        spatial: [
+            {
+                shape: 'cube',
+                question: 'If you unfold a cube, how many squares would you see?',
+                options: ['4 squares', '6 squares', '8 squares', '10 squares'],
+                correct: 1,
+                hint: 'Think about unfolding a cardboard box. How many flat pieces would there be?',
+                explanation: 'When unfolded, a cube becomes a net of 6 connected squares!'
+            },
+            {
+                shape: 'pyramid',
+                question: 'If you look at this pyramid from directly above, what shape would you see?',
+                options: ['A triangle', 'A circle', 'A square', 'A rectangle'],
+                correct: 2,
+                hint: 'Imagine you\'re flying over the pyramid in a helicopter. What would the base look like?',
+                explanation: 'From above, you\'d see the square base of the pyramid!'
+            },
+            {
+                shape: 'cone',
+                question: 'If you slice a cone horizontally (across), what shape would the cross-section be?',
+                options: ['A triangle', 'A circle', 'A square', 'A rectangle'],
+                correct: 1,
+                hint: 'Think about cutting through a cone with a knife. What shape would the cut surface be?',
+                explanation: 'Slicing a cone horizontally always creates a circular cross-section!'
+            }
+        ]
+    };
+
+    // Make showShape available globally for HTML onclick handlers
+    window.showShape = showShape;
+
+    // Game Functions
+    window.startChallenge = function(type) {
+        gameState.challengeType = type;
+        gameState.currentQuestion = 0;
+        gameState.questionsAnswered = 0;
+        gameState.correctAnswers = 0;
+        
+        document.getElementById('hint').style.display = 'none';
+        document.getElementById('hintBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        
+        loadQuestion();
+    };
+
+    function loadQuestion() {
+        const questions = challenges[gameState.challengeType];
+        if (gameState.currentQuestion >= questions.length) {
+            endChallenge();
+            return;
+        }
+        
+        const question = questions[gameState.currentQuestion];
+        gameState.currentChallenge = question;
+        
+        // Show the relevant shape
+        showShape(question.shape);
+        
+        // Update question area
+        const questionArea = document.getElementById('questionArea');
+        questionArea.innerHTML = `
+            <p><strong>Question ${gameState.currentQuestion + 1}:</strong> ${question.question}</p>
+            ${question.options.map((option, index) => 
+                `<button class="option-btn" onclick="selectAnswer(${index})">${option}</button>`
+            ).join('')}
+        `;
+        
+        document.getElementById('hintBtn').style.display = 'inline-block';
+        document.getElementById('hint').style.display = 'none';
+    }
+
+    window.selectAnswer = function(selectedIndex) {
+        const question = gameState.currentChallenge;
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        // Disable all buttons
+        buttons.forEach(btn => btn.disabled = true);
+        
+        // Show correct/incorrect feedback
+        buttons[selectedIndex].classList.add(selectedIndex === question.correct ? 'correct' : 'incorrect');
+        if (selectedIndex !== question.correct) {
+            buttons[question.correct].classList.add('correct');
+        }
+        
+        // Update score and progress
+        if (selectedIndex === question.correct) {
+            gameState.correctAnswers++;
+            gameState.score += 10 * gameState.level;
+        }
+        gameState.questionsAnswered++;
+        
+        updateScore();
+        updateProgress();
+        
+        // Show explanation
+        const questionArea = document.getElementById('questionArea');
+        questionArea.innerHTML += `
+            <div style="margin-top: 15px; padding: 10px; background: ${selectedIndex === question.correct ? '#d4edda' : '#f8d7da'}; border-radius: 5px;">
+                <strong>${selectedIndex === question.correct ? '🎉 Correct!' : '🤔 Not quite!'}</strong><br>
+                ${question.explanation}
+            </div>
+        `;
+        
+        document.getElementById('hintBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    };
+
+    window.showHint = function() {
+        const hint = document.getElementById('hint');
+        hint.innerHTML = gameState.currentChallenge.hint;
+        hint.style.display = 'block';
+        document.getElementById('hintBtn').style.display = 'none';
+    };
+
+    window.nextQuestion = function() {
+        gameState.currentQuestion++;
+        loadQuestion();
+    };
+
+    function endChallenge() {
+        const accuracy = Math.round((gameState.correctAnswers / gameState.questionsAnswered) * 100);
+        let message = '';
+        
+        if (accuracy >= 80) {
+            message = '🌟 Excellent work, Shape Detective! You\'ve mastered this challenge!';
+            gameState.level = Math.min(gameState.level + 1, 5);
+        } else if (accuracy >= 60) {
+            message = '👍 Good job! You\'re getting better at understanding shapes!';
+        } else {
+            message = '💪 Keep practicing! Every mistake helps you learn something new!';
+        }
+        
+        document.getElementById('questionArea').innerHTML = `
+            <h4>Challenge Complete!</h4>
+            <p>${message}</p>
+            <p><strong>Your Results:</strong></p>
+            <p>✅ Correct: ${gameState.correctAnswers}/${gameState.questionsAnswered}</p>
+            <p>📊 Accuracy: ${accuracy}%</p>
+            <p>🎯 Points Earned: ${gameState.correctAnswers * 10 * gameState.level}</p>
+            <br>
+            <p>🚀 Ready for another challenge? Choose a different category above!</p>
+        `;
+        
+        document.getElementById('nextBtn').style.display = 'none';
+        updateScore();
+    }
+
+    function updateScore() {
+        document.getElementById('score').textContent = `Score: ${gameState.score} | Level: ${gameState.level}`;
+    }
+
+    function updateProgress() {
+        if (gameState.challengeType && challenges[gameState.challengeType]) {
+            const progress = (gameState.questionsAnswered / challenges[gameState.challengeType].length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+    }
+
+    init();
+
+    function init() {
+
+        // Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+
+        // Camera
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 0.7);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 3;
+        controls.maxDistance = 20;
+
+        // Initial Shape
+        showShape('cube');
+
+        window.addEventListener('resize', onWindowResize);
+        // Start the animation loop after everything is set up
+        animate();
+    }
+
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Auto-rotation of the shape
+        if (mesh) {
+            mesh.rotation.y += 0.005;
+        }
+
+        // Required if controls.enableDamping is true
+        // controls.update(); 
+
+        renderer.render(scene, camera);
+    }
+
+</script>
+
+</body>
+</html>

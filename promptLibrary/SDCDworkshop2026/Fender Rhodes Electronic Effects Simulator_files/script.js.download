@@ -1,0 +1,724 @@
+// ===========================
+// FENDER RHODES EFFECTS SIMULATOR
+// Educational interactive for Junior College Music students
+// ===========================
+
+// Global variables
+let audioContext;
+let masterGain;
+let analyser;
+let animationId;
+let startTime = Date.now();
+let currentlyPlayingNotes = new Map();
+
+// Effect nodes
+let tremoloLFO, tremoloGain;
+let chorusDelay, chorusLFO, chorusGain;
+let reverbNode, reverbGain;
+let distortionNode;
+
+// Canvas for waveform
+let canvas, canvasCtx;
+
+// Analytics
+let actionLog = [];
+
+// ===========================
+// INITIALIZATION
+// ===========================
+document.addEventListener('DOMContentLoaded', () => {
+    initializeAudio();
+    initializeCanvas();
+    initializeKeyboard();
+    initializeControls();
+    initializeAnalytics();
+    initializeTooltips();
+    startWaveformAnimation();
+    logAction('System', 'Interactive loaded and ready');
+});
+
+// ===========================
+// AUDIO CONTEXT SETUP
+// ===========================
+function initializeAudio() {
+    // Create audio context on user interaction (browser requirement)
+    document.addEventListener('click', () => {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            setupAudioNodes();
+            logAction('Audio', 'Audio system initialized');
+        }
+    }, { once: true });
+}
+
+function setupAudioNodes() {
+    // Master gain (volume control)
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = 0.3;
+
+    // Analyser for waveform visualization
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+
+    // Tremolo effect (amplitude modulation)
+    tremoloLFO = audioContext.createOscillator();
+    tremoloLFO.frequency.value = 5; // Hz
+    tremoloGain = audioContext.createGain();
+    tremoloGain.gain.value = 0; // Depth
+    tremoloLFO.connect(tremoloGain);
+    tremoloLFO.start();
+
+    // Chorus effect (delay with LFO modulation)
+    chorusDelay = audioContext.createDelay();
+    chorusDelay.delayTime.value = 0.03;
+    chorusLFO = audioContext.createOscillator();
+    chorusLFO.frequency.value = 2;
+    chorusGain = audioContext.createGain();
+    chorusGain.gain.value = 0.003;
+    chorusLFO.connect(chorusGain);
+    chorusGain.connect(chorusDelay.delayTime);
+    chorusLFO.start();
+
+    // Reverb (using convolver with impulse response)
+    reverbNode = audioContext.createConvolver();
+    reverbGain = audioContext.createGain();
+    reverbGain.gain.value = 0;
+    createReverbImpulse(2, 0.5);
+
+    // Distortion (waveshaper)
+    distortionNode = audioContext.createWaveShaper();
+    distortionNode.curve = makeDistortionCurve(0);
+    distortionNode.oversample = '4x';
+
+    // Connect effects chain
+    masterGain.connect(distortionNode);
+    distortionNode.connect(chorusDelay);
+    chorusDelay.connect(reverbNode);
+    reverbNode.connect(reverbGain);
+    reverbGain.connect(analyser);
+    analyser.connect(audioContext.destination);
+}
+
+// Create reverb impulse response
+function createReverbImpulse(duration, decay) {
+    const sampleRate = audioContext.sampleRate;
+    const length = sampleRate * duration;
+    const impulse = audioContext.createBuffer(2, length, sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        }
+    }
+    
+    reverbNode.buffer = impulse;
+}
+
+// Create distortion curve
+function makeDistortionCurve(amount) {
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const deg = Math.PI / 180;
+    const k = amount * 100;
+    
+    for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    
+    return curve;
+}
+
+// ===========================
+// CANVAS SETUP
+// ===========================
+function initializeCanvas() {
+    canvas = document.getElementById('waveformCanvas');
+    canvasCtx = canvas.getContext('2d');
+    
+    // Set canvas size
+    const resizeCanvas = () => {
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+        canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    };
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+}
+
+// ===========================
+// KEYBOARD GENERATION
+// ===========================
+function initializeKeyboard() {
+    const svg = document.getElementById('keyboardSVG');
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    const blackKeys = ['C#', 'D#', 'F#', 'G#', 'A#'];
+    
+    const whiteKeyWidth = 800 / 14; // 2 octaves of white keys
+    const blackKeyWidth = whiteKeyWidth * 0.6;
+    const whiteKeyHeight = 100;
+    const blackKeyHeight = 60;
+    
+    let whiteKeyIndex = 0;
+    
+    // Draw white keys first
+    for (let octave = 4; octave <= 5; octave++) {
+        for (let note of whiteKeys) {
+            const x = whiteKeyIndex * whiteKeyWidth;
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', 0);
+            rect.setAttribute('width', whiteKeyWidth - 2);
+            rect.setAttribute('height', whiteKeyHeight);
+            rect.setAttribute('class', 'piano-key white');
+            rect.setAttribute('data-note', note + octave);
+            rect.setAttribute('data-freq', noteToFrequency(note + octave));
+            
+            // Add event listeners
+            addKeyListeners(rect);
+            
+            svg.appendChild(rect);
+            whiteKeyIndex++;
+        }
+    }
+    
+    // Draw black keys on top
+    whiteKeyIndex = 0;
+    for (let octave = 4; octave <= 5; octave++) {
+        for (let i = 0; i < notes.length; i++) {
+            const note = notes[i];
+            
+            if (blackKeys.includes(note)) {
+                const x = (whiteKeyIndex * whiteKeyWidth) - (blackKeyWidth / 2);
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', 0);
+                rect.setAttribute('width', blackKeyWidth);
+                rect.setAttribute('height', blackKeyHeight);
+                rect.setAttribute('class', 'piano-key black');
+                rect.setAttribute('data-note', note + octave);
+                rect.setAttribute('data-freq', noteToFrequency(note + octave));
+                
+                // Add event listeners
+                addKeyListeners(rect);
+                
+                svg.appendChild(rect);
+            }
+            
+            if (whiteKeys.includes(note)) {
+                whiteKeyIndex++;
+            }
+        }
+    }
+}
+
+// Add mouse and touch listeners to keys
+function addKeyListeners(keyElement) {
+    // Mouse events
+    keyElement.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        playNote(keyElement);
+    });
+    
+    keyElement.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        stopNote(keyElement);
+    });
+    
+    keyElement.addEventListener('mouseleave', (e) => {
+        stopNote(keyElement);
+    });
+    
+    // Touch events
+    keyElement.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        playNote(keyElement);
+    });
+    
+    keyElement.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopNote(keyElement);
+    });
+    
+    keyElement.addEventListener('touchcancel', (e) => {
+        stopNote(keyElement);
+    });
+}
+
+// Convert note name to frequency
+function noteToFrequency(note) {
+    const noteMap = {
+        'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5,
+        'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+    };
+    
+    const noteName = note.slice(0, -1);
+    const octave = parseInt(note.slice(-1));
+    const semitone = noteMap[noteName];
+    
+    // A4 = 440 Hz
+    const A4 = 440;
+    const A4_OCTAVE = 4;
+    const A4_SEMITONE = 9;
+    
+    const semitonesFromA4 = (octave - A4_OCTAVE) * 12 + (semitone - A4_SEMITONE);
+    return A4 * Math.pow(2, semitonesFromA4 / 12);
+}
+
+// ===========================
+// SOUND SYNTHESIS
+// ===========================
+function playNote(keyElement) {
+    if (!audioContext) return;
+    
+    const freq = parseFloat(keyElement.getAttribute('data-freq'));
+    const note = keyElement.getAttribute('data-note');
+    
+    // Visual feedback
+    keyElement.classList.add('active');
+    
+    // Create Rhodes-like sound (tine + bell)
+    const now = audioContext.currentTime;
+    
+    // Oscillators for Rhodes character
+    const osc1 = audioContext.createOscillator();
+    const osc2 = audioContext.createOscillator();
+    const osc3 = audioContext.createOscillator();
+    
+    osc1.type = 'sine';
+    osc1.frequency.value = freq;
+    
+    osc2.type = 'sine';
+    osc2.frequency.value = freq * 2.01; // Slightly detuned harmonic
+    
+    osc3.type = 'triangle';
+    osc3.frequency.value = freq * 4; // Bell-like overtone
+    
+    // Gain envelopes
+    const gain1 = audioContext.createGain();
+    const gain2 = audioContext.createGain();
+    const gain3 = audioContext.createGain();
+    
+    gain1.gain.value = 0;
+    gain2.gain.value = 0;
+    gain3.gain.value = 0;
+    
+    // Attack
+    gain1.gain.linearRampToValueAtTime(0.4, now + 0.01);
+    gain2.gain.linearRampToValueAtTime(0.2, now + 0.01);
+    gain3.gain.linearRampToValueAtTime(0.1, now + 0.005);
+    
+    // Decay
+    gain1.gain.exponentialRampToValueAtTime(0.3, now + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.15, now + 0.1);
+    gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    
+    // Connect oscillators
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    osc3.connect(gain3);
+    
+    // Apply tremolo if enabled
+    if (document.getElementById('tremoloToggle').checked) {
+        const tremoloDepth = audioContext.createGain();
+        tremoloDepth.gain.value = 1;
+        tremoloGain.connect(tremoloDepth.gain);
+        
+        gain1.connect(tremoloDepth);
+        gain2.connect(tremoloDepth);
+        gain3.connect(tremoloDepth);
+        tremoloDepth.connect(masterGain);
+    } else {
+        gain1.connect(masterGain);
+        gain2.connect(masterGain);
+        gain3.connect(masterGain);
+    }
+    
+    // Start oscillators
+    osc1.start(now);
+    osc2.start(now);
+    osc3.start(now);
+    
+    // Store for stopping later
+    currentlyPlayingNotes.set(note, {
+        oscillators: [osc1, osc2, osc3],
+        gains: [gain1, gain2, gain3]
+    });
+    
+    logAction('🎹 Note', `Played ${note} (${freq.toFixed(1)} Hz)`);
+}
+
+function stopNote(keyElement) {
+    if (!audioContext) return;
+    
+    const note = keyElement.getAttribute('data-note');
+    
+    // Visual feedback
+    keyElement.classList.remove('active');
+    
+    if (currentlyPlayingNotes.has(note)) {
+        const noteData = currentlyPlayingNotes.get(note);
+        const now = audioContext.currentTime;
+        
+        // Release envelope
+        noteData.gains.forEach(gain => {
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.setValueAtTime(gain.gain.value, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        });
+        
+        // Stop oscillators after release
+        setTimeout(() => {
+            noteData.oscillators.forEach(osc => osc.stop());
+            currentlyPlayingNotes.delete(note);
+        }, 350);
+    }
+}
+
+// ===========================
+// CONTROLS INITIALIZATION
+// ===========================
+function initializeControls() {
+    // Tremolo controls
+    const tremoloToggle = document.getElementById('tremoloToggle');
+    const tremoloRate = document.getElementById('tremoloRate');
+    const tremoloDepth = document.getElementById('tremoloDepth');
+    
+    tremoloToggle.addEventListener('change', (e) => {
+        logAction('🔘 Toggle', `Tremolo ${e.target.checked ? 'ON' : 'OFF'}`);
+    });
+    
+    tremoloRate.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('tremoloRateValue').textContent = value;
+        if (audioContext && tremoloLFO) {
+            tremoloLFO.frequency.value = value;
+        }
+        logAction('🎚️ Slider', `Tremolo Rate: ${value} Hz`);
+    });
+    
+    tremoloDepth.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('tremoloDepthValue').textContent = value;
+        if (audioContext && tremoloGain) {
+            tremoloGain.gain.value = value / 100;
+        }
+        logAction('🎚️ Slider', `Tremolo Depth: ${value}%`);
+    });
+    
+    // Chorus controls
+    const chorusToggle = document.getElementById('chorusToggle');
+    const chorusRate = document.getElementById('chorusRate');
+    const chorusDepth = document.getElementById('chorusDepth');
+    
+    chorusToggle.addEventListener('change', (e) => {
+        if (audioContext && chorusDelay) {
+            // Toggle chorus by adjusting mix
+            const mix = e.target.checked ? 0.5 : 0;
+            // Note: In a full implementation, you'd use a wet/dry mixer
+        }
+        logAction('🔘 Toggle', `Chorus ${e.target.checked ? 'ON' : 'OFF'}`);
+    });
+    
+    chorusRate.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('chorusRateValue').textContent = value;
+        if (audioContext && chorusLFO) {
+            chorusLFO.frequency.value = value;
+        }
+        logAction('🎚️ Slider', `Chorus Rate: ${value} Hz`);
+    });
+    
+    chorusDepth.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('chorusDepthValue').textContent = value;
+        if (audioContext && chorusGain) {
+            chorusGain.gain.value = value / 10000;
+        }
+        logAction('🎚️ Slider', `Chorus Depth: ${value}%`);
+    });
+    
+    // Reverb controls
+    const reverbToggle = document.getElementById('reverbToggle');
+    const reverbSize = document.getElementById('reverbSize');
+    const reverbMix = document.getElementById('reverbMix');
+    
+    reverbToggle.addEventListener('change', (e) => {
+        if (audioContext && reverbGain) {
+            const mix = e.target.checked ? parseFloat(reverbMix.value) / 100 : 0;
+            reverbGain.gain.value = mix;
+        }
+        logAction('🔘 Toggle', `Reverb ${e.target.checked ? 'ON' : 'OFF'}`);
+    });
+    
+    reverbSize.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('reverbSizeValue').textContent = value;
+        if (audioContext) {
+            createReverbImpulse(2 + value / 50, 0.5 + value / 200);
+        }
+        logAction('🎚️ Slider', `Reverb Size: ${value}%`);
+    });
+    
+    reverbMix.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('reverbMixValue').textContent = value;
+        if (audioContext && reverbGain && reverbToggle.checked) {
+            reverbGain.gain.value = value / 100;
+        }
+        logAction('🎚️ Slider', `Reverb Mix: ${value}%`);
+    });
+    
+    // Distortion controls
+    const distortionToggle = document.getElementById('distortionToggle');
+    const distortionDrive = document.getElementById('distortionDrive');
+    
+    distortionToggle.addEventListener('change', (e) => {
+        if (audioContext && distortionNode) {
+            const amount = e.target.checked ? parseFloat(distortionDrive.value) / 100 : 0;
+            distortionNode.curve = makeDistortionCurve(amount);
+        }
+        logAction('🔘 Toggle', `Distortion ${e.target.checked ? 'ON' : 'OFF'}`);
+    });
+    
+    distortionDrive.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('distortionDriveValue').textContent = value;
+        if (audioContext && distortionNode && distortionToggle.checked) {
+            distortionNode.curve = makeDistortionCurve(value / 100);
+        }
+        logAction('🎚️ Slider', `Distortion Drive: ${value}%`);
+    });
+    
+    // Action buttons
+    document.getElementById('playDemoBtn').addEventListener('click', playDemoChord);
+    document.getElementById('resetBtn').addEventListener('click', resetAllEffects);
+}
+
+// ===========================
+// ACTION FUNCTIONS
+// ===========================
+function playDemoChord() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        setupAudioNodes();
+    }
+    
+    // Play C major chord (C4, E4, G4)
+    const chordNotes = ['C4', 'E4', 'G4'];
+    const keys = document.querySelectorAll('.piano-key');
+    
+    chordNotes.forEach((note, index) => {
+        setTimeout(() => {
+            const key = Array.from(keys).find(k => k.getAttribute('data-note') === note);
+            if (key) {
+                playNote(key);
+                setTimeout(() => stopNote(key), 1000);
+            }
+        }, index * 50);
+    });
+    
+    logAction('🎵 Demo', 'Played C major chord');
+}
+
+function resetAllEffects() {
+    // Reset all toggles
+    document.getElementById('tremoloToggle').checked = false;
+    document.getElementById('chorusToggle').checked = false;
+    document.getElementById('reverbToggle').checked = false;
+    document.getElementById('distortionToggle').checked = false;
+    
+    // Reset all sliders
+    document.getElementById('tremoloRate').value = 5;
+    document.getElementById('tremoloRateValue').textContent = 5;
+    document.getElementById('tremoloDepth').value = 50;
+    document.getElementById('tremoloDepthValue').textContent = 50;
+    
+    document.getElementById('chorusRate').value = 2;
+    document.getElementById('chorusRateValue').textContent = 2;
+    document.getElementById('chorusDepth').value = 30;
+    document.getElementById('chorusDepthValue').textContent = 30;
+    
+    document.getElementById('reverbSize').value = 50;
+    document.getElementById('reverbSizeValue').textContent = 50;
+    document.getElementById('reverbMix').value = 40;
+    document.getElementById('reverbMixValue').textContent = 40;
+    
+    document.getElementById('distortionDrive').value = 30;
+    document.getElementById('distortionDriveValue').textContent = 30;
+    
+    // Reset audio nodes
+    if (audioContext) {
+        if (tremoloLFO) tremoloLFO.frequency.value = 5;
+        if (tremoloGain) tremoloGain.gain.value = 0.5;
+        if (chorusLFO) chorusLFO.frequency.value = 2;
+        if (chorusGain) chorusGain.gain.value = 0.003;
+        if (reverbGain) reverbGain.gain.value = 0;
+        if (distortionNode) distortionNode.curve = makeDistortionCurve(0);
+        createReverbImpulse(2, 0.5);
+    }
+    
+    logAction('🔄 Reset', 'All effects reset to default');
+}
+
+// ===========================
+// WAVEFORM VISUALIZATION
+// ===========================
+function startWaveformAnimation() {
+    drawWaveform();
+}
+
+function drawWaveform() {
+    animationId = requestAnimationFrame(drawWaveform);
+    
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    
+    canvasCtx.fillStyle = '#1a1a2e';
+    canvasCtx.fillRect(0, 0, width, height);
+    
+    if (!analyser) {
+        // Draw idle waveform
+        canvasCtx.strokeStyle = '#667eea';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, height / 2);
+        canvasCtx.lineTo(width, height / 2);
+        canvasCtx.stroke();
+        return;
+    }
+    
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    analyser.getByteTimeDomainData(dataArray);
+    
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeStyle = '#4CAF50';
+    canvasCtx.beginPath();
+    
+    const sliceWidth = width / bufferLength;
+    let x = 0;
+    
+    for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * height) / 2;
+        
+        if (i === 0) {
+            canvasCtx.moveTo(x, y);
+        } else {
+            canvasCtx.lineTo(x, y);
+        }
+        
+        x += sliceWidth;
+    }
+    
+    canvasCtx.lineTo(width, height / 2);
+    canvasCtx.stroke();
+}
+
+// ===========================
+// ANALYTICS SYSTEM
+// ===========================
+function initializeAnalytics() {
+    const toggleBtn = document.getElementById('toggleAnalyticsBtn');
+    const clearBtn = document.getElementById('clearLogBtn');
+    const panel = document.getElementById('analyticsPanel');
+    
+    toggleBtn.addEventListener('click', () => {
+        panel.classList.toggle('collapsed');
+        toggleBtn.textContent = panel.classList.contains('collapsed') ? '▲' : '▼';
+    });
+    
+    clearBtn.addEventListener('click', () => {
+        actionLog = [];
+        document.getElementById('actionLog').innerHTML = '';
+        startTime = Date.now();
+        logAction('System', 'Log cleared');
+    });
+}
+
+function logAction(type, description, value = '') {
+    const timestamp = ((Date.now() - startTime) / 1000).toFixed(1);
+    const entry = {
+        time: timestamp,
+        type: type,
+        description: description,
+        value: value
+    };
+    
+    actionLog.push(entry);
+    
+    // Add to display
+    const logDiv = document.getElementById('actionLog');
+    const entryDiv = document.createElement('div');
+    entryDiv.className = 'log-entry';
+    entryDiv.innerHTML = `
+        <span class="log-timestamp">t=${timestamp}s</span> 
+        <span class="log-action">${type}: ${description}</span>
+        ${value ? `<span class="log-value">${value}</span>` : ''}
+    `;
+    
+    logDiv.appendChild(entryDiv);
+    logDiv.scrollTop = logDiv.scrollHeight;
+    
+    // Limit log entries to 50
+    if (actionLog.length > 50) {
+        actionLog.shift();
+        logDiv.removeChild(logDiv.firstChild);
+    }
+}
+
+// ===========================
+// TOOLTIP SYSTEM
+// ===========================
+function initializeTooltips() {
+    const mainPanel = document.getElementById('interactivePanel');
+    const headerTooltip = document.getElementById('headerTooltip');
+    const infoTooltip = document.getElementById('infoTooltip');
+    
+    // Header tooltip on main panel hover
+    mainPanel.addEventListener('mouseenter', () => {
+        headerTooltip.classList.add('show');
+    });
+    
+    mainPanel.addEventListener('mouseleave', () => {
+        headerTooltip.classList.remove('show');
+    });
+    
+    // Info icon tooltips
+    const infoIcons = document.querySelectorAll('.info-icon');
+    infoIcons.forEach(icon => {
+        icon.addEventListener('mouseenter', (e) => {
+            const text = icon.getAttribute('data-tooltip');
+            infoTooltip.textContent = text;
+            infoTooltip.classList.add('show');
+            
+            const rect = icon.getBoundingClientRect();
+            infoTooltip.style.top = (rect.bottom + 5) + 'px';
+            infoTooltip.style.left = (rect.left + rect.width / 2) + 'px';
+            infoTooltip.style.transform = 'translateX(-50%)';
+        });
+        
+        icon.addEventListener('mouseleave', () => {
+            infoTooltip.classList.remove('show');
+        });
+    });
+}
+
+// ===========================
+// RESPONSIVE HEIGHT DETECTION
+// ===========================
+(function detectIframe() {
+    try {
+        if (window.self !== window.top) {
+            // In iframe
+            document.body.classList.add('in-iframe');
+        }
+    } catch (e) {
+        // Cross-origin iframe
+        document.body.classList.add('in-iframe');
+    }
+})();

@@ -1,0 +1,447 @@
+// Literary Detective Game - Main Script
+// This game teaches literary devices through a mystery-solving narrative
+
+// ============================================
+// GAME DATA AND CONFIGURATION
+// ============================================
+
+// Literary device definitions for tooltips
+const deviceInfo = {
+    metaphor: "A figure of speech that directly compares two unlike things without using 'like' or 'as'. Example: 'Time is a thief.'",
+    simile: "A figure of speech that compares two unlike things using 'like' or 'as'. Example: 'Her smile was like sunshine.'",
+    imagery: "Descriptive language that appeals to the senses (sight, sound, smell, taste, touch) to create vivid mental pictures."
+};
+
+// Story dialogues for narrative progression
+const storyDialogues = [
+    "Welcome, Detective! A mysterious manuscript has been discovered, but its secrets are locked behind literary clues. Your mission: identify and categorize each literary device to unlock the mystery. Are you ready to begin?",
+    "Excellent work, Detective! You're making progress. The manuscript reveals more secrets with each correct identification...",
+    "Outstanding! Your literary detective skills are impressive. Keep analyzing the evidence...",
+    "Brilliant deduction! The mystery deepens as you uncover more literary devices...",
+    "Remarkable! You're close to solving the case. Just a few more clues to analyze...",
+    "Incredible work, Detective! The final pieces of the puzzle are falling into place..."
+];
+
+// Clues with literary device examples
+const clues = [
+    { text: "The night sky was a velvet blanket studded with diamonds.", answer: "metaphor", hint: "Look for a direct comparison without 'like' or 'as'" },
+    { text: "Her laughter rang through the halls like wind chimes in a summer breeze.", answer: "simile", hint: "Notice the word 'like' making a comparison" },
+    { text: "The old library smelled of aged paper and leather, with dust motes dancing in golden shafts of afternoon sunlight.", answer: "imagery", hint: "This appeals to multiple senses: smell and sight" },
+    { text: "His words were daggers piercing her heart.", answer: "metaphor", hint: "Words are directly compared to daggers" },
+    { text: "The thunder roared as loud as a lion defending its territory.", answer: "simile", hint: "The comparison uses 'as...as'" },
+    { text: "The bitter coffee scorched her tongue while the aroma of fresh pastries wafted from the kitchen.", answer: "imagery", hint: "Notice the sensory details: taste, temperature, and smell" },
+    { text: "Hope is a bird that perches in the soul.", answer: "metaphor", hint: "Hope is directly stated to be a bird" },
+    { text: "The city streets were as busy as a beehive at noon.", answer: "simile", hint: "Streets compared to beehive using 'as'" },
+    { text: "The rough bark scratched against her palm as she climbed, the earthy scent of pine filling her nostrils.", answer: "imagery", hint: "Touch and smell senses are vividly described" }
+];
+
+// ============================================
+// GAME STATE MANAGEMENT
+// ============================================
+
+let gameState = {
+    currentClueIndex: 0,
+    score: 0,
+    streak: 0,
+    correctAnswers: 0,
+    totalAttempts: 0,
+    categoryCounts: { metaphor: 0, simile: 0, imagery: 0 },
+    selectedCategory: null,
+    isAnswered: false
+};
+
+// ============================================
+// AUDIO MANAGEMENT
+// ============================================
+
+// Create audio context for sound effects
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Function to play success sound
+function playSuccessSound() {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+}
+
+// Function to play error sound
+function playErrorSound() {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(150, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+}
+
+// Function to play background ambient music
+function playAmbientMusic() {
+    // Simple ambient tone for mystery atmosphere
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(110, audioContext.currentTime); // A2
+    
+    gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 2);
+}
+
+// ============================================
+// DOM ELEMENTS
+// ============================================
+
+const elements = {
+    storyPanel: document.getElementById('story-panel'),
+    gameArea: document.getElementById('game-area'),
+    completionPanel: document.getElementById('completion-panel'),
+    dialogueText: document.getElementById('dialogue-text'),
+    startBtn: document.getElementById('start-btn'),
+    clueText: document.getElementById('clue-text'),
+    caseNum: document.getElementById('case-num'),
+    scoreDisplay: document.getElementById('score'),
+    streakDisplay: document.getElementById('streak'),
+    submitBtn: document.getElementById('submit-btn'),
+    nextBtn: document.getElementById('next-btn'),
+    hintBtn: document.getElementById('hint-btn'),
+    restartBtn: document.getElementById('restart-btn'),
+    feedbackOverlay: document.getElementById('feedback-overlay'),
+    feedbackIcon: document.getElementById('feedback-icon'),
+    feedbackText: document.getElementById('feedback-text'),
+    tooltip: document.getElementById('tooltip'),
+    finalScore: document.getElementById('final-score'),
+    accuracy: document.getElementById('accuracy'),
+    finalMessage: document.getElementById('final-message')
+};
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+function init() {
+    // Display initial story dialogue
+    elements.dialogueText.textContent = storyDialogues[0];
+    
+    // Set up event listeners
+    elements.startBtn.addEventListener('click', startGame);
+    elements.submitBtn.addEventListener('click', submitAnswer);
+    elements.nextBtn.addEventListener('click', nextClue);
+    elements.hintBtn.addEventListener('click', showHint);
+    elements.restartBtn.addEventListener('click', restartGame);
+    
+    // Set up category bin interactions
+    setupCategoryBins();
+    
+    // Set up info icon tooltips
+    setupInfoIcons();
+}
+
+// ============================================
+// GAME FLOW FUNCTIONS
+// ============================================
+
+function startGame() {
+    playAmbientMusic();
+    elements.storyPanel.classList.add('hidden');
+    elements.gameArea.classList.remove('hidden');
+    loadClue();
+}
+
+function loadClue() {
+    const clue = clues[gameState.currentClueIndex];
+    elements.clueText.textContent = `"${clue.text}"`;
+    elements.caseNum.textContent = String(gameState.currentClueIndex + 1).padStart(3, '0');
+    
+    // Reset selection state
+    gameState.selectedCategory = null;
+    gameState.isAnswered = false;
+    elements.submitBtn.disabled = true;
+    elements.nextBtn.classList.add('hidden');
+    
+    // Clear all selections
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.classList.remove('selected');
+    });
+}
+
+function submitAnswer() {
+    if (!gameState.selectedCategory || gameState.isAnswered) return;
+    
+    gameState.isAnswered = true;
+    gameState.totalAttempts++;
+    
+    const clue = clues[gameState.currentClueIndex];
+    const isCorrect = gameState.selectedCategory === clue.answer;
+    
+    if (isCorrect) {
+        handleCorrectAnswer(clue);
+    } else {
+        handleIncorrectAnswer(clue);
+    }
+}
+
+function handleCorrectAnswer(clue) {
+    playSuccessSound();
+    gameState.score++;
+    gameState.streak++;
+    gameState.correctAnswers++;
+    gameState.categoryCounts[clue.answer]++;
+    
+    // Update displays
+    updateScoreDisplay();
+    updateCategoryCount(clue.answer);
+    
+    // Show feedback
+    showFeedback(
+        '✅',
+        `Excellent detective work! This is indeed a ${clue.answer}. ${getExplanation(clue.answer, clue.text)}`
+    );
+    
+    // Show next button after delay
+    setTimeout(() => {
+        elements.feedbackOverlay.classList.add('hidden');
+        elements.submitBtn.classList.add('hidden');
+        elements.nextBtn.classList.remove('hidden');
+    }, 3000);
+}
+
+function handleIncorrectAnswer(clue) {
+    playErrorSound();
+    gameState.streak = 0;
+    
+    // Update displays
+    updateScoreDisplay();
+    
+    // Show feedback
+    showFeedback(
+        '❌',
+        `Not quite, Detective. This is actually a ${clue.answer}. ${getExplanation(clue.answer, clue.text)} Try to spot the pattern in the next clue!`
+    );
+    
+    // Show next button after delay
+    setTimeout(() => {
+        elements.feedbackOverlay.classList.add('hidden');
+        elements.submitBtn.classList.add('hidden');
+        elements.nextBtn.classList.remove('hidden');
+    }, 4000);
+}
+
+function nextClue() {
+    gameState.currentClueIndex++;
+    
+    if (gameState.currentClueIndex >= clues.length) {
+        showCompletion();
+    } else {
+        // Show story dialogue periodically
+        if (gameState.currentClueIndex % 2 === 0 && gameState.currentClueIndex < storyDialogues.length) {
+            showStoryInterlude();
+        } else {
+            loadClue();
+        }
+    }
+}
+
+function showStoryInterlude() {
+    const dialogueIndex = Math.min(Math.floor(gameState.currentClueIndex / 2), storyDialogues.length - 1);
+    elements.dialogueText.textContent = storyDialogues[dialogueIndex];
+    elements.startBtn.textContent = "Continue Investigation";
+    
+    elements.gameArea.classList.add('hidden');
+    elements.storyPanel.classList.remove('hidden');
+    
+    elements.startBtn.onclick = () => {
+        elements.storyPanel.classList.add('hidden');
+        elements.gameArea.classList.remove('hidden');
+        loadClue();
+    };
+}
+
+function showCompletion() {
+    elements.gameArea.classList.add('hidden');
+    elements.completionPanel.classList.remove('hidden');
+    
+    const accuracy = Math.round((gameState.correctAnswers / gameState.totalAttempts) * 100);
+    
+    elements.finalScore.textContent = gameState.score;
+    elements.accuracy.textContent = accuracy;
+    
+    let message = '';
+    if (accuracy >= 90) {
+        message = "🌟 Master Detective! You've brilliantly identified all the literary devices. The manuscript's secrets are now revealed!";
+    } else if (accuracy >= 70) {
+        message = "🎖️ Skilled Detective! You've done well in uncovering the literary devices. The mystery is mostly solved!";
+    } else {
+        message = "📚 Apprentice Detective! You're learning the craft. Keep practicing to sharpen your literary analysis skills!";
+    }
+    
+    elements.finalMessage.textContent = message;
+    playSuccessSound();
+}
+
+function restartGame() {
+    // Reset game state
+    gameState = {
+        currentClueIndex: 0,
+        score: 0,
+        streak: 0,
+        correctAnswers: 0,
+        totalAttempts: 0,
+        categoryCounts: { metaphor: 0, simile: 0, imagery: 0 },
+        selectedCategory: null,
+        isAnswered: false
+    };
+    
+    // Reset UI
+    updateScoreDisplay();
+    document.querySelectorAll('.collected-count .count').forEach(count => {
+        count.textContent = '0';
+    });
+    
+    elements.completionPanel.classList.add('hidden');
+    elements.storyPanel.classList.remove('hidden');
+    elements.dialogueText.textContent = storyDialogues[0];
+    elements.startBtn.textContent = "Begin Investigation";
+    elements.startBtn.onclick = startGame;
+}
+
+// ============================================
+// UI INTERACTION FUNCTIONS
+// ============================================
+
+function setupCategoryBins() {
+    const dropZones = document.querySelectorAll('.drop-zone');
+    
+    dropZones.forEach(zone => {
+        // Click/tap to select
+        zone.addEventListener('click', () => {
+            if (gameState.isAnswered) return;
+            
+            // Clear previous selections
+            dropZones.forEach(z => z.classList.remove('selected'));
+            
+            // Select this zone
+            zone.classList.add('selected');
+            gameState.selectedCategory = zone.dataset.category;
+            elements.submitBtn.disabled = false;
+        });
+        
+        // Hover effects
+        zone.addEventListener('mouseenter', () => {
+            if (!gameState.isAnswered) {
+                zone.classList.add('drag-over');
+            }
+        });
+        
+        zone.addEventListener('mouseleave', () => {
+            zone.classList.remove('drag-over');
+        });
+    });
+}
+
+function setupInfoIcons() {
+    const infoIcons = document.querySelectorAll('.info-icon');
+    
+    infoIcons.forEach(icon => {
+        icon.addEventListener('mouseenter', (e) => {
+            const category = icon.dataset.info;
+            showTooltip(deviceInfo[category]);
+        });
+        
+        icon.addEventListener('mouseleave', () => {
+            hideTooltip();
+        });
+        
+        // Touch support
+        icon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const category = icon.dataset.info;
+            showTooltip(deviceInfo[category]);
+            setTimeout(hideTooltip, 3000);
+        });
+    });
+}
+
+function showHint() {
+    const clue = clues[gameState.currentClueIndex];
+    showTooltip(clue.hint);
+    setTimeout(hideTooltip, 3000);
+}
+
+function showTooltip(text) {
+    elements.tooltip.textContent = text;
+    elements.tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    elements.tooltip.classList.remove('show');
+}
+
+function showFeedback(icon, text) {
+    elements.feedbackIcon.textContent = icon;
+    elements.feedbackText.textContent = text;
+    elements.feedbackOverlay.classList.remove('hidden');
+}
+
+function updateScoreDisplay() {
+    elements.scoreDisplay.textContent = gameState.score;
+    elements.streakDisplay.textContent = gameState.streak;
+}
+
+function updateCategoryCount(category) {
+    const bin = document.querySelector(`.category-bin[data-category="${category}"]`);
+    const countDisplay = bin.querySelector('.collected-count .count');
+    countDisplay.textContent = gameState.categoryCounts[category];
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function getExplanation(device, text) {
+    switch(device) {
+        case 'metaphor':
+            return "Notice how two things are compared directly without using 'like' or 'as'.";
+        case 'simile':
+            return "The comparison uses 'like' or 'as' to connect two different things.";
+        case 'imagery':
+            return "The language appeals to your senses, helping you see, hear, smell, taste, or feel what's described.";
+        default:
+            return "";
+    }
+}
+
+// ============================================
+// START THE APPLICATION
+// ============================================
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

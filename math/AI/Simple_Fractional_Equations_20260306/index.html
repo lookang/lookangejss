@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- CRITICAL: Viewport meta tag for mobile responsiveness and preventing unwanted pinch-zoom -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simple Fractional Equations</title>
+    <style>
+        /* ==========================================================================
+           CSS VARIABLES & RESET
+           ========================================================================== */
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #10B981;
+            --secondary-hover: #059669;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+            --background: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --border-color: #E5E7EB;
+            --bar-unshaded: #E0E7FF;
+            --bar-shaded-top: #818CF8;
+            --bar-shaded-bottom: #34D399;
+            --handle-color: #F59E0B;
+            
+            --font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* Prevent text selection to improve app-like feel on touch devices */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 16px; /* No tiny text */
+        }
+
+        /* ==========================================================================
+           LAYOUT & CONTAINERS
+           ========================================================================== */
+        .app-container {
+            display: flex;
+            flex: 1;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            overflow-y: auto;
+            align-items: center;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ==========================================================================
+           CUSTOM MATH & EQUATION STYLES (NO EXTERNAL LIBRARIES)
+           ========================================================================== */
+        .equation-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 0.5rem;
+        }
+
+        .numerator {
+            padding: 0.2rem 0.5rem;
+            border-bottom: 3px solid var(--text-main);
+            min-width: 2rem;
+            text-align: center;
+        }
+
+        .denominator {
+            padding: 0.2rem 0.5rem;
+            min-width: 2rem;
+            text-align: center;
+        }
+
+        .equals {
+            margin: 0 0.5rem;
+            color: var(--text-muted);
+        }
+
+        /* The input box representing the unknown variable */
+        .unknown-box {
+            display: inline-block;
+            width: 3rem;
+            height: 3rem;
+            border: 3px dashed var(--primary);
+            border-radius: 8px;
+            text-align: center;
+            line-height: 2.5rem;
+            color: var(--primary);
+            background-color: #EEF2FF;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .unknown-box.active {
+            border-style: solid;
+            background-color: #E0E7FF;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+        }
+
+        /* ==========================================================================
+           VISUAL DIAGRAMS (BAR MODELS)
+           ========================================================================== */
+        .visual-container {
+            width: 100%;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+        }
+
+        /* Interactive handle for dragging */
+        .drag-handle {
+            cursor: grab;
+            touch-action: none; /* CRITICAL for mobile drag */
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* ==========================================================================
+           ON-SCREEN KEYBOARD
+           ========================================================================== */
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            width: 100%;
+            max-width: 300px;
+            margin: 1rem 0;
+        }
+
+        .key-btn {
+            background-color: var(--background);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-main);
+            /* CRITICAL: Minimum touch target size 44x44px */
+            height: 50px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        .key-btn:active {
+            background-color: var(--border-color);
+        }
+
+        .key-btn.action-key {
+            background-color: #E5E7EB;
+        }
+
+        /* ==========================================================================
+           CONTROLS & FEEDBACK
+           ========================================================================== */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            min-height: 44px; /* Touch friendly */
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        
+        .btn-success { background-color: var(--secondary); }
+        .btn-success:hover { background-color: var(--secondary-hover); }
+        
+        .btn-hint { background-color: var(--warning); color: #FFF; }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .feedback-panel {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .feedback-panel.error {
+            display: block;
+            background-color: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+        }
+
+        .feedback-panel.success {
+            display: block;
+            background-color: #ECFDF5;
+            border: 1px solid #A7F3D0;
+            color: #065F46;
+        }
+
+        .feedback-panel.hint {
+            display: block;
+            background-color: #FFFBEB;
+            border: 1px solid #FDE68A;
+            color: #92400E;
+        }
+
+        .why-text {
+            margin-top: 0.5rem;
+            font-weight: bold;
+            padding-top: 0.5rem;
+            border-top: 1px dashed currentColor;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================================================
+           REAL-TIME ANALYTICS PANEL
+           ========================================================================== */
+        .analytics-toggle {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--text-main);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .analytics-panel {
+            position: absolute;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 350px;
+            height: 100%;
+            background: white;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 99;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .analytics-panel.open {
+            right: 0;
+        }
+
+        .analytics-header {
+            padding: 1rem;
+            background: var(--text-main);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #F9FAFB;
+        }
+
+        .log-entry {
+            font-family: monospace;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #E5E7EB;
+            color: #374151;
+            word-wrap: break-word;
+        }
+
+        .log-time { color: var(--primary); font-weight: bold; }
+        .log-icon { margin-right: 0.3rem; }
+
+        /* Mobile specific adjustments */
+        @media (max-width: 600px) {
+            .equation-container { font-size: 1.5rem; }
+            .unknown-box { width: 2.5rem; height: 2.5rem; line-height: 2rem; }
+        }
+
+    </style>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<style id="aiz-footer-style">
+#aiz-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  z-index: 2147483000;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto; /* keep links clickable */
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  color: #222;
+}
+#aiz-footer p {
+  margin: 0;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+#aiz-footer a { color: #0b69ff; text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- MAIN INTERACTIVE AREA -->
+    <div class="main-content">
+        <div class="card">
+            <h2 style="font-size: 1.2rem; color: var(--text-muted); margin-bottom: 1rem; text-align: center;">
+                Make Equivalent Fractions
+            </h2>
+
+            <!-- The Math Equation -->
+            <div class="equation-container" id="equation-display">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Visual Bar Models (SVG) -->
+            <div class="visual-container">
+                <svg id="bar-diagram" viewBox="0 0 400 160">
+                    <defs>
+                        <pattern id="diagonalHatch" patternUnits="userSpaceOnUse" width="10" height="10">
+                            <path d="M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2" style="stroke:rgba(255,255,255,0.5); stroke-width:2;" />
+                        </pattern>
+                        <!-- Filters for subtle shadows -->
+                        <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+                        </filter>
+                    </defs>
+
+                    <!-- Top Bar (Fixed, Target Fraction) -->
+                    <g id="top-bar-group" transform="translate(10, 10)">
+                        <text x="0" y="-5" font-size="12" fill="#6B7280" font-family="sans-serif">Target Fraction</text>
+                        <!-- Rectangles generated by JS -->
+                    </g>
+
+                    <!-- Bottom Bar (Interactive, Student manipulates) -->
+                    <g id="bottom-bar-group" transform="translate(10, 90)">
+                        <text x="0" y="-5" font-size="12" fill="#6B7280" font-family="sans-serif">Your Fraction (Drag handle to shade)</text>
+                        <!-- Rectangles and Draggable Handle generated by JS -->
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Feedback Panel -->
+            <div id="feedback" class="feedback-panel"></div>
+
+            <!-- Custom Keyboard -->
+            <div class="keyboard" id="numpad">
+                <button class="key-btn" onclick="inputNumber(1)">1</button>
+                <button class="key-btn" onclick="inputNumber(2)">2</button>
+                <button class="key-btn" onclick="inputNumber(3)">3</button>
+                <button class="key-btn" onclick="inputNumber(4)">4</button>
+                <button class="key-btn" onclick="inputNumber(5)">5</button>
+                <button class="key-btn" onclick="inputNumber(6)">6</button>
+                <button class="key-btn" onclick="inputNumber(7)">7</button>
+                <button class="key-btn" onclick="inputNumber(8)">8</button>
+                <button class="key-btn" onclick="inputNumber(9)">9</button>
+                <button class="key-btn action-key" onclick="clearInput()">C</button>
+                <button class="key-btn" onclick="inputNumber(0)">0</button>
+                <button class="key-btn action-key" onclick="deleteNumber()">⌫</button>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="controls">
+                <button class="btn btn-hint" id="hint-btn" onclick="showHint()">💡 Hint</button>
+                <button class="btn btn-primary" id="check-btn" onclick="checkAnswer()">✅ Check Answer</button>
+                <button class="btn btn-success" id="next-btn" onclick="nextProblem()" style="display: none;">➡️ Next Problem</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Analytics Button -->
+    <button class="analytics-toggle" onclick="toggleAnalytics()" aria-label="Toggle Analytics">
+        📊
+    </button>
+
+    <!-- REAL-TIME ANALYTICS PANEL -->
+    <div class="analytics-panel" id="analytics-drawer">
+        <div class="analytics-header">
+            <h3>Teacher Analytics</h3>
+            <button class="close-btn" onclick="toggleAnalytics()">✖</button>
+        </div>
+        <div style="padding: 0.5rem 1rem; background: #E5E7EB; border-bottom: 1px solid #D1D5DB;">
+            <button onclick="clearLogs()" style="padding: 0.2rem 0.5rem; cursor: pointer;">Clear Log</button>
+        </div>
+        <div class="log-container" id="log-output">
+            <!-- Logs injected here -->
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* ==========================================================================
+       STATE MANAGEMENT
+       ========================================================================== */
+    const state = {
+        problemIndex: 0,
+        baseNum: 1,
+        baseDen: 2,
+        multiplier: 2,
+        targetNum: 2,
+        targetDen: 4,
+        
+        studentShaded: 0,
+        inputValue: "",
+        
+        attempts: 0,
+        hintsUsed: 0,
+        isSolved: false,
+        
+        startTime: Date.now()
+    };
+
+    // Problem Bank (Primary 3-4 appropriate)
+    const problems = [
+        { num: 1, den: 2, mult: 2 }, // 1/2 = 2/4
+        { num: 1, den: 2, mult: 3 }, // 1/2 = 3/6
+        { num: 1, den: 3, mult: 2 }, // 1/3 = 2/6
+        { num: 2, den: 3, mult: 2 }, // 2/3 = 4/6
+        { num: 1, den: 4, mult: 2 }, // 1/4 = 2/8
+        { num: 3, den: 4, mult: 2 }, // 3/4 = 6/8
+        { num: 1, den: 2, mult: 4 }, // 1/2 = 4/8
+        { num: 1, den: 5, mult: 2 }  // 1/5 = 2/10
+    ];
+
+    /* ==========================================================================
+       ANALYTICS ENGINE
+       ========================================================================== */
+    const logOutput = document.getElementById('log-output');
+    
+    function getRelativeTime() {
+        const diff = Math.floor((Date.now() - state.startTime) / 1000);
+        const mins = Math.floor(diff / 60);
+        const secs = diff % 60;
+        return `${mins}m ${secs}s`;
+    }
+
+    function logAction(type, message, details = "") {
+        let icon = "🔹";
+        if (type === "SYSTEM") icon = "⚙️";
+        if (type === "QUIZ_CORRECT") icon = "✅";
+        if (type === "QUIZ_WRONG") icon = "❌";
+        if (type === "HINT") icon = "💡";
+        if (type === "INPUT") icon = "⌨️";
+        if (type === "DRAG") icon = "🖐️";
+
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        
+        logEntry.innerHTML = `
+            <span class="log-time">[${getRelativeTime()}]</span> 
+            <span class="log-icon">${icon}</span>
+            <strong>${message}</strong>
+            ${details ? `<br><span style="color: #6B7280; font-size: 0.8rem;">↳ ${details}</span>` : ""}
+        `;
+        
+        logOutput.appendChild(logEntry);
+        // Auto-scroll to bottom
+        logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    function toggleAnalytics() {
+        const panel = document.getElementById('analytics-drawer');
+        panel.classList.toggle('open');
+        if(panel.classList.contains('open')) {
+            logAction("SYSTEM", "Teacher viewed analytics panel");
+        }
+    }
+
+    function clearLogs() {
+        logOutput.innerHTML = "";
+        state.startTime = Date.now();
+        logAction("SYSTEM", "Analytics log cleared, timer reset.");
+    }
+
+    /* ==========================================================================
+       CORE GAME LOGIC & RENDERING
+       ========================================================================== */
+    function initGame() {
+        logAction("SYSTEM", "Game Initialized");
+        generateProblem();
+    }
+
+    function generateProblem() {
+        // Shuffle/pick next problem
+        const p = problems[state.problemIndex % problems.length];
+        
+        state.baseNum = p.num;
+        state.baseDen = p.den;
+        state.multiplier = p.mult;
+        state.targetNum = p.num * p.mult;
+        state.targetDen = p.den * p.mult;
+        
+        state.studentShaded = 0;
+        state.inputValue = "";
+        state.attempts = 0;
+        state.hintsUsed = 0;
+        state.isSolved = false;
+
+        logAction("SYSTEM", "New Problem Generated", `Equation: ${state.baseNum}/${state.baseDen} = ?/${state.targetDen}`);
+
+        resetUI();
+        renderEquation();
+        renderVisuals();
+    }
+
+    function nextProblem() {
+        state.problemIndex++;
+        generateProblem();
+    }
+
+    function resetUI() {
+        document.getElementById('feedback').className = "feedback-panel";
+        document.getElementById('check-btn').style.display = "inline-flex";
+        document.getElementById('hint-btn').style.display = "inline-flex";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('check-btn').disabled = false;
+    }
+
+    function renderEquation() {
+        const container = document.getElementById('equation-display');
+        container.innerHTML = `
+            <div class="fraction">
+                <span class="numerator">${state.baseNum}</span>
+                <span class="denominator">${state.baseDen}</span>
+            </div>
+            <span class="equals">=</span>
+            <div class="fraction">
+                <div id="input-box" class="unknown-box active">${state.inputValue || "?"}</div>
+                <span class="denominator">${state.targetDen}</span>
+            </div>
+        `;
+    }
+
+    /* ==========================================================================
+       SVG VISUAL RENDERING (BAR MODELS)
+       ========================================================================== */
+    const SVG_WIDTH = 380;
+    const BAR_HEIGHT = 40;
+
+    function renderVisuals() {
+        renderTopBar();
+        renderBottomBar();
+    }
+
+    function renderTopBar() {
+        const group = document.getElementById('top-bar-group');
+        // Clear previous rects (keep text)
+        Array.from(group.children).forEach(c => { if(c.tagName !== 'text') c.remove() });
+
+        const partWidth = SVG_WIDTH / state.baseDen;
+
+        for (let i = 0; i < state.baseDen; i++) {
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", i * partWidth);
+            rect.setAttribute("y", 5);
+            rect.setAttribute("width", partWidth);
+            rect.setAttribute("height", BAR_HEIGHT);
+            rect.setAttribute("fill", i < state.baseNum ? "var(--bar-shaded-top)" : "var(--bar-unshaded)");
+            rect.setAttribute("stroke", "#9CA3AF");
+            rect.setAttribute("stroke-width", "2");
+            group.appendChild(rect);
+        }
+    }
+
+    function renderBottomBar() {
+        const group = document.getElementById('bottom-bar-group');
+        // Clear previous rects (keep text)
+        Array.from(group.children).forEach(c => { if(c.tagName !== 'text') c.remove() });
+
+        const partWidth = SVG_WIDTH / state.targetDen;
+
+        // Draw background/divisions
+        for (let i = 0; i < state.targetDen; i++) {
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", i * partWidth);
+            rect.setAttribute("y", 5);
+            rect.setAttribute("width", partWidth);
+            rect.setAttribute("height", BAR_HEIGHT);
+            rect.setAttribute("fill", i < state.studentShaded ? "var(--bar-shaded-bottom)" : "var(--bar-unshaded)");
+            if(i < state.studentShaded) {
+                rect.setAttribute("fill", "url(#diagonalHatch)");
+                rect.style.fill = "var(--bar-shaded-bottom)";
+            }
+            rect.setAttribute("stroke", "#9CA3AF");
+            rect.setAttribute("stroke-width", "2");
+            group.appendChild(rect);
+        }
+
+        // Add Draggable Handle if not solved
+        if (!state.isSolved) {
+            const handleX = state.studentShaded * partWidth;
+            const handleGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            handleGroup.setAttribute("class", "drag-handle");
+            handleGroup.setAttribute("transform", `translate(${handleX}, 0)`);
+            
+            // Handle shape
+            const handleRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            handleRect.setAttribute("x", -10);
+            handleRect.setAttribute("y", -5);
+            handleRect.setAttribute("width", 20);
+            handleRect.setAttribute("height", BAR_HEIGHT + 20);
+            handleRect.setAttribute("fill", "var(--handle-color)");
+            handleRect.setAttribute("rx", "5");
+            handleRect.setAttribute("filter", "url(#shadow)");
+
+            const handleIcon = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            handleIcon.setAttribute("d", "M -3 10 L -3 40 M 3 10 L 3 40");
+            handleIcon.setAttribute("stroke", "white");
+            handleIcon.setAttribute("stroke-width", "2");
+
+            handleGroup.appendChild(handleRect);
+            handleGroup.appendChild(handleIcon);
+            group.appendChild(handleGroup);
+
+            // Attach touch/mouse events for drag
+            setupDragEvents(handleGroup, partWidth);
+        }
+    }
+
+    /* ==========================================================================
+       DRAG AND DROP IMPLEMENTATION (TOUCH + MOUSE)
+       ========================================================================== */
+    let isDragging = false;
+    let svgContainer = null;
+
+    function setupDragEvents(handleGroup, partWidth) {
+        svgContainer = document.getElementById('bar-diagram');
+
+        const startDrag = (e) => {
+            if(state.isSolved) return;
+            e.preventDefault(); // Prevent scroll on mobile
+            isDragging = true;
+            logAction("DRAG", "Started dragging shading slider");
+        };
+
+        handleGroup.addEventListener('mousedown', startDrag);
+        handleGroup.addEventListener('touchstart', startDrag, {passive: false});
+    }
+
+    // Global drag handlers to track movement outside the handle
+    const handleMove = (e) => {
+        if (!isDragging || state.isSolved) return;
+        e.preventDefault();
+
+        // Support both touch and mouse
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        
+        // Get relative position within SVG
+        const pt = svgContainer.createSVGPoint();
+        pt.x = clientX;
+        const svgP = pt.matrixTransform(svgContainer.getScreenCTM().inverse());
+        
+        // Offset for transformation group (translate X by 10)
+        let localX = svgP.x - 10;
+        
+        // Clamp bounds
+        localX = Math.max(0, Math.min(localX, SVG_WIDTH));
+        
+        // Snap to nearest division
+        const partWidth = SVG_WIDTH / state.targetDen;
+        let newShaded = Math.round(localX / partWidth);
+        
+        if (newShaded !== state.studentShaded) {
+            state.studentShaded = newShaded;
+            renderBottomBar();
+        }
+    };
+
+    const handleEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        logAction("DRAG", `Stopped dragging`, `Visual parts shaded: ${state.studentShaded}/${state.targetDen}`);
+        
+        // Mini feedback
+        if (state.studentShaded === state.targetNum && state.inputValue === "") {
+            showFeedback("hint", "Great! The bars match. Now count the shaded parts and type the number into the box.");
+        }
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove, {passive: false});
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchend', handleEnd);
+
+
+    /* ==========================================================================
+       KEYBOARD INPUT LOGIC
+       ========================================================================== */
+    function inputNumber(num) {
+        if (state.isSolved) return;
+        // Limit to 2 digits
+        if (state.inputValue.length < 2) {
+            state.inputValue += num.toString();
+            updateInputDisplay();
+            logAction("INPUT", `Typed number: ${num}`, `Current input: ${state.inputValue}`);
+        }
+    }
+
+    function deleteNumber() {
+        if (state.isSolved || state.inputValue.length === 0) return;
+        state.inputValue = state.inputValue.slice(0, -1);
+        updateInputDisplay();
+        logAction("INPUT", `Deleted last digit`, `Current input: ${state.inputValue}`);
+    }
+
+    function clearInput() {
+        if (state.isSolved) return;
+        state.inputValue = "";
+        updateInputDisplay();
+        logAction("INPUT", `Cleared input box`);
+    }
+
+    function updateInputDisplay() {
+        const box = document.getElementById('input-box');
+        if (box) {
+            box.innerText = state.inputValue === "" ? "?" : state.inputValue;
+            box.style.color = state.inputValue === "" ? "var(--primary)" : "var(--text-main)";
+        }
+    }
+
+    /* ==========================================================================
+       PEDAGOGICAL FEEDBACK & EVALUATION
+       ========================================================================== */
+    function showFeedback(type, message, whyText = "") {
+        const fb = document.getElementById('feedback');
+        fb.className = `feedback-panel ${type}`;
+        
+        let html = `<strong>${message}</strong>`;
+        if (whyText) {
+            html += `<div class="why-text">💡 <strong>Why?</strong> ${whyText}</div>`;
+        }
+        fb.innerHTML = html;
+    }
+
+    function checkAnswer() {
+        state.attempts++;
+        const parsedInput = parseInt(state.inputValue);
+
+        if (isNaN(parsedInput)) {
+            logAction("QUIZ_WRONG", "Check Answer clicked - Empty Input", `Attempt ${state.attempts}`);
+            showFeedback("error", "Please use the keypad to enter a number in the box.");
+            return;
+        }
+
+        if (parsedInput === state.targetNum) {
+            // Correct!
+            state.isSolved = true;
+            logAction("QUIZ_CORRECT", `Answer correct! Input: ${parsedInput}`, `Attempts: ${state.attempts}, Hints: ${state.hintsUsed}`);
+            
+            const whyHTML = `
+                To get an equivalent fraction, multiply the top and bottom by the same number.<br>
+                ${state.baseDen} × <strong>${state.multiplier}</strong> = ${state.targetDen} <br>
+                So, ${state.baseNum} × <strong>${state.multiplier}</strong> = <strong>${state.targetNum}</strong>.
+            `;
+            
+            showFeedback("success", "🎉 Correct! The fractions are equivalent.", whyHTML);
+            
+            // Force visual to match correct answer perfectly
+            state.studentShaded = state.targetNum;
+            renderVisuals();
+            
+            // Update UI buttons
+            document.getElementById('input-box').classList.remove('active');
+            document.getElementById('input-box').style.borderColor = "var(--secondary)";
+            document.getElementById('input-box').style.backgroundColor = "#D1FAE5";
+            
+            document.getElementById('check-btn').style.display = "none";
+            document.getElementById('hint-btn').style.display = "none";
+            document.getElementById('next-btn').style.display = "inline-flex";
+        } else {
+            // Wrong
+            logAction("QUIZ_WRONG", `Incorrect answer: ${parsedInput}`, `Attempt ${state.attempts}`);
+            
+            // Validate against common mistakes
+            if (parsedInput === state.studentShaded && state.studentShaded !== state.targetNum) {
+                showFeedback("error", `You typed ${parsedInput}, but look at the visual bars. They don't match exactly yet. Try dragging the slider.`);
+            } else if (state.studentShaded === state.targetNum && parsedInput !== state.targetNum) {
+                 showFeedback("error", `Your visual bar looks perfect! But your number is ${parsedInput}. Count the shaded blocks carefully.`);
+            } else if (parsedInput === state.baseNum + state.multiplier) {
+                 showFeedback("error", "Careful! You added the numbers. To find equivalent fractions, we must multiply (or divide).");
+            } else {
+                 showFeedback("error", "Not quite right. Try looking at the hint!");
+            }
+        }
+    }
+
+    function showHint() {
+        state.hintsUsed++;
+        logAction("HINT", `Hint ${state.hintsUsed} requested`);
+        
+        if (state.hintsUsed === 1) {
+            showFeedback("hint", "Hint 1: Drag the orange slider on the bottom bar left or right. Try to make the green shaded area exactly match the blue area above it.");
+        } else if (state.hintsUsed === 2) {
+            showFeedback("hint", `Hint 2: Look at the denominators. How do we get from ${state.baseDen} to ${state.targetDen}? We multiply by ${state.multiplier}!`);
+        } else {
+            const whyHTML = `Multiply the top and bottom by the same number. Since ${state.baseDen} × ${state.multiplier} = ${state.targetDen}, try doing ${state.baseNum} × ${state.multiplier}.`;
+            showFeedback("hint", "Hint 3: Do the same to the top as you did to the bottom.", whyHTML);
+        }
+    }
+
+    // Initialize the app on load
+    window.onload = initGame;
+
+</script>
+<footer id="aiz-footer" role="contentinfo"><p id="generated-footer-credit">Made by lookang, using Gemini 3 Pro. For more resources: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics</a></p></footer>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Elkonin Box Spelling Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f8f8ff;
+      padding: 20px;
+    }
+    .box-container, .counter-container {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .box, .counter-slot {
+      width: 70px;
+      height: 70px;
+      border: 2px solid #000;
+      margin: 0 10px;
+      font-size: 36px;
+      text-align: center;
+      line-height: 70px;
+      background-color: #ffffff;
+    }
+    .counter {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: red;
+      margin: 10px;
+      cursor: grab;
+    }
+    button {
+      margin: 15px 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+    #instruction {
+      font-size: 20px;
+      margin-top: 20px;
+      min-height: 60px;
+    }
+  </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+  <h1>Let’s Spell Together!</h1>
+  <p>Turn to your Spelling worksheet so we can do it together.</p>
+
+  <div id="instruction">Click "Next Step" to begin.</div>
+  <div>
+    <button id="backBtn" onclick="previousStep()" disabled>Back</button>
+    <button id="nextBtn" onclick="nextStep()">Next Step</button>
+  </div>
+
+  <h3>Sound Boxes (Drag counters here)</h3>
+  <div class="counter-container" id="counters">
+    <div class="counter" id="counter0" draggable="true" ondragstart="drag(event)"></div>
+    <div class="counter" id="counter1" draggable="true" ondragstart="drag(event)"></div>
+    <div class="counter" id="counter2" draggable="true" ondragstart="drag(event)"></div>
+  </div>
+
+  <div class="box-container">
+    <div class="counter-slot" id="slot0" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="counter-slot" id="slot1" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+    <div class="counter-slot" id="slot2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+  </div>
+
+  <h3>Letter Spelling Boxes</h3>
+  <div class="box-container">
+    <div class="box" id="letter0"></div>
+    <div class="box" id="letter1"></div>
+    <div class="box" id="letter2"></div>
+  </div>
+
+  <script>
+    const words = [
+      {
+        word: "bag",
+        meaning: "I carry books in a bag.",
+        sounds: ["/b/", "/a/", "/g/"],
+        letters: ["b", "a", "g"]
+      },
+      {
+        word: "fix",
+        meaning: "I fix my broken toy.",
+        sounds: ["/f/", "/i/", "/x/"],
+        letters: ["f", "i", "x"]
+      },
+      {
+        word: "sun",
+        meaning: "The sun is bright.",
+        sounds: ["/s/", "/u/", "/n/"],
+        letters: ["s", "u", "n"]
+      }
+    ];
+
+    let stepIndex = 0;
+    let wordIndex = 0;
+
+    const steps = [
+      () => speak(`The word is ${words[wordIndex].word}. ${words[wordIndex].meaning}`),
+      () => speak(`Say it again: ${words[wordIndex].word}`),
+      () => speak("Track the sounds. Place counters in the boxes. First sound? " + words[wordIndex].sounds[0]),
+      () => speak("Second sound? " + words[wordIndex].sounds[1]),
+      () => speak("Third sound? " + words[wordIndex].sounds[2]),
+      () => speak("Now let's spell the sounds. First sound? " + words[wordIndex].sounds[0] + ". Letter? " + words[wordIndex].letters[0]),
+      () => spellBox(0, words[wordIndex].letters[0]),
+      () => speak("Second sound? " + words[wordIndex].sounds[1] + ". Letter? " + words[wordIndex].letters[1]),
+      () => spellBox(1, words[wordIndex].letters[1]),
+      () => speak("Third sound? " + words[wordIndex].sounds[2] + ". Letter? " + words[wordIndex].letters[2]),
+      () => spellBox(2, words[wordIndex].letters[2]),
+      () => speak("Let’s blend the sounds and read the word. Is this the word you want to spell? " + words[wordIndex].word),
+      () => speak("Spell the word in the syllable cell: " + words[wordIndex].word),
+      () => {
+        wordIndex++;
+        stepIndex = -1;
+        if (wordIndex >= words.length) {
+          document.getElementById("instruction").innerText = "✅ All words completed!";
+          speak("Great job spelling all the words!");
+          disableButtons(true);
+        } else {
+          resetGameBoard();
+          speak("Let's do the next word: " + words[wordIndex].word);
+          disableButtons(false);
+        }
+      }
+    ];
+
+    function nextStep() {
+      if (wordIndex < words.length && stepIndex < steps.length) {
+        document.getElementById("instruction").innerText = `Step ${stepIndex + 1}`;
+        steps[stepIndex]();
+        stepIndex++;
+        updateButtons();
+      }
+    }
+
+    function previousStep() {
+      if (stepIndex > 0) {
+        stepIndex--;
+        if (stepIndex === 0 && wordIndex === 0) {
+          document.getElementById("instruction").innerText = 'Click "Next Step" to begin.';
+          clearSpellBoxes();
+          resetGameBoard();
+          disableButtons(false);
+          updateButtons();
+          return;
+        }
+        // If going back to previous word last step, adjust indices
+        if (stepIndex < 0 && wordIndex > 0) {
+          wordIndex--;
+          stepIndex = steps.length - 1;
+          resetGameBoard();
+        }
+        document.getElementById("instruction").innerText = `Step ${stepIndex + 1}`;
+        steps[stepIndex]();
+        clearSpellBoxesToStep(stepIndex);
+        updateButtons();
+      }
+    }
+
+    function spellBox(index, letter) {
+      document.getElementById("letter" + index).innerText = letter.toUpperCase();
+    }
+
+    function clearSpellBoxes() {
+      for (let i = 0; i < 3; i++) {
+        document.getElementById("letter" + i).innerText = "";
+      }
+    }
+
+    function clearSpellBoxesToStep(step) {
+      // Clear spelling boxes depending on step index (to reflect back navigation)
+      if (step < 6) clearSpellBoxes();
+      else if (step < 8) {
+        document.getElementById("letter0").innerText = words[wordIndex].letters[0].toUpperCase();
+        document.getElementById("letter1").innerText = "";
+        document.getElementById("letter2").innerText = "";
+      } else if (step < 10) {
+        document.getElementById("letter0").innerText = words[wordIndex].letters[0].toUpperCase();
+        document.getElementById("letter1").innerText = words[wordIndex].letters[1].toUpperCase();
+        document.getElementById("letter2").innerText = "";
+      } else {
+        document.getElementById("letter0").innerText = words[wordIndex].letters[0].toUpperCase();
+        document.getElementById("letter1").innerText = words[wordIndex].letters[1].toUpperCase();
+        document.getElementById("letter2").innerText = words[wordIndex].letters[2].toUpperCase();
+      }
+    }
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      speechSynthesis.speak(utter);
+    }
+
+    function allowDrop(ev) {
+      ev.preventDefault();
+    }
+
+    function drag(ev) {
+      ev.dataTransfer.setData("text", ev.target.id);
+    }
+
+    function drop(ev) {
+      ev.preventDefault();
+      const counterId = ev.dataTransfer.getData("text");
+      const counter = document.getElementById(counterId);
+      if (ev.target.classList.contains("counter-slot") && ev.target.childElementCount === 0) {
+        ev.target.appendChild(counter);
+      }
+    }
+
+    function resetGameBoard() {
+      // Reset counters to original container
+      const container = document.getElementById("counters");
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById("slot" + i);
+        const counter = slot.querySelector(".counter");
+        if (counter) container.appendChild(counter);
+      }
+      clearSpellBoxes();
+    }
+
+    function disableButtons(disable) {
+      document.getElementById("nextBtn").disabled = disable;
+      document.getElementById("backBtn").disabled = disable && (wordIndex === 0 && stepIndex === 0);
+    }
+
+    function updateButtons() {
+      document.getElementById("backBtn").disabled = (stepIndex === 0 && wordIndex === 0);
+      document.getElementById("nextBtn").disabled = (wordIndex >= words.length);
+    }
+  </script>
+</body>
+</html>

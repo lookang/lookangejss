@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Water Absorption Virtual Lab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            min-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 0.8em;
+            margin-bottom: 0px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .lab-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .experiment-setup {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .setup-title {
+            color: #2e7d32;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative; /* Needed for tooltip positioning */
+            display: inline-block; /* Needed for tooltip positioning */
+        }
+
+        .setup-title .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position the tooltip above the text */
+            left: 50%;
+            margin-left: -110px; /* Use half of the width to center the tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8em; /* Smaller font for tooltip */
+            line-height: 1.4;
+        }
+
+        .setup-title:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .beaker-container {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            margin: 20px auto;
+        }
+
+        .beaker {
+            width: 200px;
+            height: 300px;
+            border: 4px solid #333;
+            border-radius: 0 0 40px 40px;
+            position: absolute;
+            left: 50px;
+            top: 80px;
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .oil-layer {
+            position: absolute;
+            bottom: 62.5%;
+            left: 0;
+            right: 0;
+            height: 15px;
+            background: #ffd700;
+            opacity: 0.8;
+            transition: all 0.1s ease;
+        }
+
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to bottom, #87ceeb, #4682b4);
+            transition: height 0.1s ease;
+            height: 62.5%;
+        }
+
+        .plant {
+            position: absolute;
+            left: 80px;
+            top: -20px;
+            width: 40px;
+            height: 385px; /* Positioned roots slightly above beaker bottom */
+            z-index: 10;
+        }
+
+        .plant-stem {
+            width: 4px;
+            height: 375px; /* Positioned roots slightly above beaker bottom */
+            background: #2e7d32;
+            margin: 0 auto;
+            border-radius: 2px;
+        }
+
+        .plant-leaves {
+            position: absolute;
+            top: 10px;
+            left: -15px;
+            width: 30px;
+            height: 20px;
+            background: #4caf50;
+            border-radius: 50% 10px;
+            transform: rotate(-20deg);
+        }
+
+        .plant-leaves:after {
+            content: '';
+            position: absolute;
+            right: -20px;
+            top: 5px;
+            width: 25px;
+            height: 15px;
+            background: #4caf50;
+            border-radius: 10px 50%;
+            transform: rotate(40deg);
+        }
+
+        .plant-roots {
+            position: absolute;
+            bottom: 0px; /* Position roots at the very bottom of the plant div */
+            left: 16px;
+            width: 16px;
+            height: 20px;
+        }
+
+        .root {
+            width: 2px;
+            background: #8d6e63;
+            border-radius: 1px;
+            position: absolute;
+            bottom: 0;
+        }
+
+        .root:nth-child(1) { height: 15px; left: 3px; transform: rotate(180deg); }
+        .root:nth-child(2) { height: 12px; left: 1px; transform: rotate(145deg); transform-origin: bottom; }
+        .root:nth-child(3) { height: 10px; left: 5px; transform: rotate(215deg); transform-origin: bottom; }
+        .root:nth-child(4) { height: 8px; left: -1px; transform: rotate(130deg); transform-origin: bottom; }
+        .root:nth-child(5) { height: 8px; left: 7px; transform: rotate(230deg); transform-origin: bottom; }
+
+        .measurement-scale {
+            position: absolute;
+            left: 10px;
+            top: 80px;
+            height: 300px;
+            width: 30px;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .scale-marks {
+            height: 100%;
+            position: relative;
+        }
+
+        .scale-mark {
+            position: absolute;
+            right: 0;
+            width: 15px;
+            height: 1px;
+            background: #666;
+        }
+
+        .scale-label {
+            position: absolute;
+            right: 20px;
+            font-size: 10px;
+            color: #666;
+            transform: translateY(-50%);
+        }
+
+        .controls {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2e7d32;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            border-color: #4caf50;
+            outline: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .data-section {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .data-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .data-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .data-table th {
+            background: #4caf50;
+            color: white;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-display {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+            color: #2e7d32;
+        }
+
+        .timer-display {
+            font-size: 1.5em;
+            color: #2e7d32;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        @keyframes bubble {
+            0% { transform: translateY(0px) scale(0.8); opacity: 0.7; }
+            50% { transform: translateY(-10px) scale(1); opacity: 1; }
+            100% { transform: translateY(-20px) scale(0.6); opacity: 0; }
+        }
+
+        .bubble {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            animation: bubble 2s infinite;
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+            color: #856404;
+        }
+
+        @media (max-width: 768px) {
+            .lab-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .beaker-container {
+                width: 250px;
+                height: 350px;
+            }
+            
+            .beaker {
+                width: 150px;
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Plant Water Absorption Lab - Design and conduct your investigation to discover what affects water absorption by plants</h1>
+        </div>
+
+        <div class="lab-content">
+            <div class="experiment-setup">
+                <h2 class="setup-title">Experimental Setup<span class="tooltiptext">Investigation Planning:<br>- Choose variables to test water absorption<br>- Run the experiment and collect data<br>- Analyze your results<br>- Draw conclusions about plant water absorption</span></h2>
+                
+                <div class="beaker-container">
+                    <div class="measurement-scale">
+                        <div class="scale-marks" id="scaleMarks"></div>
+                    </div>
+                    
+                    <div class="beaker">
+                        <div class="oil-layer" id="oilLayer"></div>
+                        <div class="water-level" id="waterLevel"></div>
+                    </div>
+                    
+                    <div class="plant">
+                        <div class="plant-leaves"></div>
+                        <div class="plant-stem"></div>
+                        <div class="plant-roots">
+                            <div class="root"></div>
+                            <div class="root"></div>
+                            <div class="root"></div>
+                            <div class="root"></div>
+                            <div class="root"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timer-display" id="timer">Time: 00:00</div>
+                <div class="status-display" id="status">Ready to start experiment</div>
+            </div>
+
+            <div class="controls">
+                <h2 class="setup-title">Investigation Variables</h2>
+                
+
+                <div class="control-group">
+                    <label for="plantType">Plant Type (Variable to Change):</label>
+                    <select id="plantType">
+                        <option value="small">Small Plant (Fast absorption)</option>
+                        <option value="medium" selected>Medium Plant (Normal absorption)</option>
+                        <option value="large">Large Plant (Slow absorption)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="temperature">Temperature (°C):</label>
+                    <select id="temperature">
+                        <option value="10">10°C (Cold)</option>
+                        <option value="20" selected>20°C (Room temperature)</option>
+                        <option value="30">30°C (Warm)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="lightLevel">Light Level:</label>
+                    <select id="lightLevel">
+                        <option value="low">Low Light</option>
+                        <option value="medium" selected>Medium Light</option>
+                        <option value="high">High Light</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="initialWater">Initial Water Volume (ml):</label>
+                    <input type="number" id="initialWater" value="500" min="200" max="800" step="50">
+                </div>
+
+                <div class="control-group">
+                    <label for="experimentDuration">Experiment Duration (hours):</label>
+                    <input type="number" id="experimentDuration" value="24" min="1" max="72" step="1">
+                </div>
+
+                <button class="btn" onclick="startExperiment()" id="startBtn">Start Experiment</button>
+                <button class="btn" onclick="resetExperiment()" id="resetBtn">Reset</button>
+                <button class="btn" onclick="pauseExperiment()" id="pauseBtn" disabled>Pause</button>
+            </div>
+        </div>
+
+        <div class="data-section">
+            <h2 style="color: #2e7d32; margin-bottom: 20px;">📊 Data Collection & Results</h2>
+            
+            <div class="data-display">
+                <div class="data-table">
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #2e7d32;">Measurement Data</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time (hrs)</th>
+                                <th>Water Level (ml)</th>
+                                <th>Water Absorbed (ml)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <tr>
+                                <td>0</td>
+                                <td>500</td>
+                                <td>0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container">
+                    <h3 style="text-align: center; margin-bottom: 15px; color: #2e7d32;">Absorption Rate Chart</h3>
+                    <canvas id="absorptionChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3 style="color: #2e7d32;">Investigation Conclusion:</h3>
+                <div id="conclusion" style="background: white; padding: 15px; border-radius: 10px; margin-top: 10px; border: 2px solid #e9ecef;">
+                    Run the experiment to generate conclusions about water absorption factors.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let experimentTimer;
+        let currentTime = 0;
+        let isRunning = false;
+        let isPaused = false;
+        let experimentData = [];
+        let bubbleInterval;
+
+        // Initialize scale marks
+        function initializeScale() {
+            const scaleMarks = document.getElementById('scaleMarks');
+            for (let i = 0; i <= 8; i++) {
+                const mark = document.createElement('div');
+                mark.className = 'scale-mark';
+                mark.style.bottom = (i * 12.5) + '%';
+                
+                const label = document.createElement('div');
+                label.className = 'scale-label';
+                label.textContent = (i * 100) + 'ml';
+                label.style.bottom = (i * 12.5) + '%';
+                
+                scaleMarks.appendChild(mark);
+                scaleMarks.appendChild(label);
+            }
+        }
+
+        function startExperiment() {
+            if (isPaused) {
+                resumeExperiment();
+                return;
+            }
+
+            isRunning = true;
+            currentTime = 0;
+            const startingWaterLevel = parseInt(document.getElementById('initialWater').value);
+            experimentData = [{time: 0, waterLevel: startingWaterLevel, absorbed: 0}];
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('resetBtn').disabled = true;
+            document.getElementById('status').textContent = 'Experiment running...';
+
+            // Disable controls during experiment
+            const controls = document.querySelectorAll('select, input');
+            controls.forEach(control => control.disabled = true);
+
+            startBubbles();
+            runExperiment();
+        }
+
+        function pauseExperiment() {
+            if (isRunning && !isPaused) {
+                clearInterval(experimentTimer);
+                clearInterval(bubbleInterval);
+                isPaused = true;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtn').textContent = 'Resume';
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('status').textContent = 'Experiment paused';
+            }
+        }
+
+        function resumeExperiment() {
+            if (isPaused) {
+                isPaused = false;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('startBtn').textContent = 'Start Experiment';
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('status').textContent = 'Experiment running...';
+                startBubbles();
+                runExperiment();
+            }
+        }
+
+        function resetExperiment() {
+            clearInterval(experimentTimer);
+            clearInterval(bubbleInterval);
+            isRunning = false;
+            isPaused = false;
+            currentTime = 0;
+            experimentData = [];
+
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').textContent = 'Start Experiment';
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = false;
+            document.getElementById('status').textContent = 'Ready to start experiment';
+            document.getElementById('timer').textContent = 'Time: 00:00';
+
+            // Re-enable controls
+            const controls = document.querySelectorAll('select, input');
+            controls.forEach(control => control.disabled = false);
+
+            // Reset water level to initial volume
+            const currentInitialWater = parseInt(document.getElementById('initialWater').value);
+            updateWaterLevel(currentInitialWater);
+            
+            // Clear data table and set initial reading
+            const tableBody = document.getElementById('dataTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td>0</td>
+                    <td>${currentInitialWater}</td>
+                    <td>0</td>
+                </tr>
+            `;
+
+            // Clear chart
+            clearChart();
+
+            // Reset conclusion
+            document.getElementById('conclusion').textContent = 'Run the experiment to generate conclusions about water absorption factors.';
+
+            // Remove bubbles
+            const bubbles = document.querySelectorAll('.bubble');
+            bubbles.forEach(bubble => bubble.remove());
+        }
+
+        function runExperiment() {
+            const duration = parseInt(document.getElementById('experimentDuration').value);
+            const intervalTime = 100; // Update every 100ms for smooth animation
+            const hoursPerUpdate = 1; // Each update represents 1 hour
+
+            experimentTimer = setInterval(() => {
+                currentTime += hoursPerUpdate;
+                updateTimer();
+                
+                if (currentTime >= duration) {
+                    finishExperiment();
+                    return;
+                }
+
+                // Update experiment every hour (simulated)
+                updateExperiment();
+            }, intervalTime);
+        }
+
+        function updateTimer() {
+            const hours = Math.floor(currentTime);
+            const minutes = Math.floor((currentTime - hours) * 60);
+            document.getElementById('timer').textContent = 
+                `Time: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        function updateExperiment() {
+            const plantType = document.getElementById('plantType').value;
+            const temperature = parseInt(document.getElementById('temperature').value);
+            const lightLevel = document.getElementById('lightLevel').value;
+            
+            // Calculate absorption rate based on variables
+            let baseAbsorption = 15; // ml per hour base rate
+            
+            // Plant type effect
+            if (plantType === 'small') baseAbsorption *= 1.5;
+            else if (plantType === 'large') baseAbsorption *= 0.7;
+            
+            // Temperature effect
+            if (temperature === 10) baseAbsorption *= 0.6;
+            else if (temperature === 30) baseAbsorption *= 1.3;
+            
+            // Light level effect
+            if (lightLevel === 'low') baseAbsorption *= 0.8;
+            else if (lightLevel === 'high') baseAbsorption *= 1.2;
+            
+            // Add some randomness
+            baseAbsorption += (Math.random() - 0.5) * 4;
+            baseAbsorption = Math.max(0, baseAbsorption);
+
+            const lastData = experimentData[experimentData.length - 1];
+            const newWaterLevel = Math.max(0, lastData.waterLevel - baseAbsorption);
+            const totalAbsorbed = lastData.absorbed + (lastData.waterLevel - newWaterLevel);
+            
+            experimentData.push({
+                time: Math.floor(currentTime),
+                waterLevel: Math.round(newWaterLevel),
+                absorbed: Math.round(totalAbsorbed)
+            });
+
+            updateWaterLevel(newWaterLevel);
+            updateDataTable();
+            updateChart();
+        }
+
+        function updateWaterLevel(waterLevel) {
+            // Scale goes from 0ml (bottom) to 800ml (top)
+            // Water level height should correspond to the actual volume
+            const percentage = (waterLevel / 800) * 100;
+            document.getElementById('waterLevel').style.height = Math.max(1, percentage) + '%';
+            
+            // Position oil layer just above water level
+            document.getElementById('oilLayer').style.bottom = Math.max(1, percentage) + '%';
+        }
+
+        function updateDataTable() {
+            const tableBody = document.getElementById('dataTableBody');
+            const lastRow = experimentData[experimentData.length - 1];
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${lastRow.time}</td>
+                <td>${lastRow.waterLevel}</td>
+                <td>${lastRow.absorbed}</td>
+            `;
+            tableBody.appendChild(row);
+            
+            // Keep only last 10 rows visible
+            if (tableBody.children.length > 10) {
+                tableBody.removeChild(tableBody.firstChild);
+            }
+        }
+
+        function updateChart() {
+            const canvas = document.getElementById('absorptionChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (experimentData.length < 2) return;
+            
+            // Set up chart dimensions
+            const padding = 40;
+            const chartWidth = canvas.width - 2 * padding;
+            const chartHeight = canvas.height - 2 * padding;
+            
+            // Find max values for scaling
+            const maxTime = Math.max(...experimentData.map(d => d.time));
+            const maxAbsorbed = Math.max(...experimentData.map(d => d.absorbed));
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.stroke();
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= 5; i++) {
+                const y = padding + (chartHeight * i / 5);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(canvas.width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Draw data line
+            ctx.strokeStyle = '#4caf50';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            experimentData.forEach((data, index) => {
+                const x = padding + (data.time / maxTime) * chartWidth;
+                const y = canvas.height - padding - (data.absorbed / maxAbsorbed) * chartHeight;
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Draw data points
+            ctx.fillStyle = '#2e7d32';
+            experimentData.forEach(data => {
+                const x = padding + (data.time / maxTime) * chartWidth;
+                const y = canvas.height - padding - (data.absorbed / maxAbsorbed) * chartHeight;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.fillText('Time (hours)', canvas.width / 2 - 30, canvas.height - 10);
+            
+            ctx.save();
+            ctx.translate(15, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Water Absorbed (ml)', -50, 0);
+            ctx.restore();
+        }
+
+        function clearChart() {
+            const canvas = document.getElementById('absorptionChart');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function finishExperiment() {
+            clearInterval(experimentTimer);
+            clearInterval(bubbleInterval);
+            isRunning = false;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('resetBtn').disabled = false;
+            document.getElementById('status').textContent = 'Experiment completed!';
+            
+            // Re-enable controls
+            const controls = document.querySelectorAll('select, input');
+            controls.forEach(control => control.disabled = false);
+            
+            generateConclusion();
+        }
+
+        function generateConclusion() {
+            const plantType = document.getElementById('plantType').value;
+            const temperature = parseInt(document.getElementById('temperature').value);
+            const lightLevel = document.getElementById('lightLevel').value;
+            const totalAbsorbed = experimentData[experimentData.length - 1].absorbed;
+            const duration = parseInt(document.getElementById('experimentDuration').value);
+            const avgRate = (totalAbsorbed / duration).toFixed(1);
+            
+            let conclusion = `Based on our investigation, the plant absorbed ${totalAbsorbed}ml of water over ${duration} hours, `;
+            conclusion += `averaging ${avgRate}ml per hour. `;
+            
+            conclusion += `We tested a ${plantType} plant at ${temperature}°C with ${lightLevel} light. `;
+            
+            if (plantType === 'small') {
+                conclusion += "Smaller plants showed faster absorption rates due to higher surface area to volume ratio. ";
+            } else if (plantType === 'large') {
+                conclusion += "Larger plants showed slower absorption rates relative to their size. ";
+            }
+            
+            if (temperature === 30) {
+                conclusion += "Higher temperature increased absorption rate due to faster transpiration. ";
+            } else if (temperature === 10) {
+                conclusion += "Lower temperature decreased absorption rate due to slower metabolic processes. ";
+            }
+            
+            if (lightLevel === 'high') {
+                conclusion += "High light levels increased water absorption through enhanced photosynthesis and transpiration. ";
+            } else if (lightLevel === 'low') {
+                conclusion += "Low light levels reduced water absorption due to decreased photosynthetic activity. ";
+            }
+            
+            conclusion += "This demonstrates that plant water absorption is affected by plant size, temperature, and light conditions.";
+            
+            document.getElementById('conclusion').textContent = conclusion;
+        }
+
+        function startBubbles() {
+            bubbleInterval = setInterval(() => {
+                if (!isRunning || isPaused) return;
+                
+                const beaker = document.querySelector('.beaker');
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = Math.random() * 180 + 10 + 'px';
+                bubble.style.bottom = '20px';
+                bubble.style.animationDelay = Math.random() * 2 + 's';
+                
+                beaker.appendChild(bubble);
+                
+                setTimeout(() => {
+                    if (bubble.parentNode) {
+                        bubble.parentNode.removeChild(bubble);
+                    }
+                }, 2000);
+            }, 800);
+        }
+
+        // Initialize the lab
+        function initializeLab() {
+            initializeScale();
+            // Set initial water level to match the default value
+            const defaultWater = parseInt(document.getElementById('initialWater').value);
+            updateWaterLevel(defaultWater);
+            
+            // Update water level when initial volume changes
+            document.getElementById('initialWater').addEventListener('input', function() {
+                if (!isRunning) {
+                    const newWaterLevel = parseInt(this.value);
+                    updateWaterLevel(newWaterLevel);
+                }
+            });
+        }
+
+        // Initialize when page loads
+        initializeLab();
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <script data-ad-client="ca-pub-0121577198857509" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <div style="margin-top:24px;font-size:0.95em;color:#555;">
+      add credit: made by lookang, using Claude 4<br>
+      for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/biology" target="_blank">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/biology</a>
+    </div>
+</body>
+</html>

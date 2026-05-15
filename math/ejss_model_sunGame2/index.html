@@ -1,0 +1,1211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>ejss_model_sunGame2 Strategy Math Sun Game</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <link rel="stylesheet"  type="text/css" href="./_ejs_library/css/ejss.css" />
+
+    <script type='text/javascript'><!--//--><![CDATA[//><!--
+      var gOldOnError = window.onerror;
+      window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+        console.log(errorMsg + " (at " + url.toString() + " => line:" + lineNumber + ")" );
+        if (gOldOnError) return gOldOnError(errorMsg, url, lineNumber);
+        return false;
+      }
+    //--><!]]></script>
+    <script src="./_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="./_ejs_library/ejsS.v1.min.js"></script>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+function _simulation (_topFrame, _libraryPath, _codebasePath, _inputParameters) {
+
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isEPub = false;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+  var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+  // Is this still needed if we don't have locales???
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var numOfRows; // Model.Variables.Var Table.numOfRows
+  var numOfCols; // Model.Variables.Var Table.numOfCols
+  var numOfNodes; // Model.Variables.Var Table.numOfNodes
+  var grid; // Model.Variables.Var Table.grid
+  var nodeVal; // Model.Variables.Var Table.nodeVal
+  var initClickEvent; // Model.Variables.Var Table.initClickEvent
+  var font; // Model.Variables.Var Table.font
+  var numCorrect; // Model.Variables.Var Table.numCorrect
+  var gameOver; // Model.Variables.Var Table.gameOver
+
+  var linesLength; // Model.Variables.lines.linesLength
+  var linesColor; // Model.Variables.lines.linesColor
+  var linesColorInactive; // Model.Variables.lines.linesColorInactive
+  var linesColorActive; // Model.Variables.lines.linesColorActive
+  var linesColorFlagged; // Model.Variables.lines.linesColorFlagged
+  var linesX; // Model.Variables.lines.linesX
+  var linesY; // Model.Variables.lines.linesY
+  var linesXSize; // Model.Variables.lines.linesXSize
+  var linesYSize; // Model.Variables.lines.linesYSize
+  var linesActive; // Model.Variables.lines.linesActive
+  var linesInteract; // Model.Variables.lines.linesInteract
+  var linesAttribute; // Model.Variables.lines.linesAttribute
+  var edgeList; // Model.Variables.lines.edgeList
+
+  var circleLength; // Model.Variables.circles.circleLength
+  var circleX; // Model.Variables.circles.circleX
+  var circleY; // Model.Variables.circles.circleY
+  var circleColor; // Model.Variables.circles.circleColor
+  var colorValid; // Model.Variables.circles.colorValid
+  var colorInvalid; // Model.Variables.circles.colorInvalid
+  var colorNormal; // Model.Variables.circles.colorNormal
+
+  var textX; // Model.Variables.text.textX
+  var textY; // Model.Variables.text.textY
+
+  var textdebug; // Model.Variables.lookang.textdebug
+  var n; // Model.Variables.lookang.n
+  var linesXoffset1; // Model.Variables.lookang.linesXoffset1
+  var linesYoffset1; // Model.Variables.lookang.linesYoffset1
+  var linesXoffset2; // Model.Variables.lookang.linesXoffset2
+  var linesYoffset2; // Model.Variables.lookang.linesYoffset2
+  var offset; // Model.Variables.lookang.offset
+  var t; // Model.Variables.lookang.t
+  var dt; // Model.Variables.lookang.dt
+  var playing; // Model.Variables.lookang.playing
+  var showAutoSolve; // Model.Variables.lookang.showAutoSolve
+  var currentPuzzleName; // Model.Variables.lookang.currentPuzzleName
+  var teacherMode; // Model.Variables.lookang.teacherMode
+  var teacherStatusHtml; // Model.Variables.lookang.teacherStatusHtml
+  var teacherFocusNodes; // Model.Variables.lookang.teacherFocusNodes
+  var teacherFocusColor; // Model.Variables.lookang.teacherFocusColor
+  var autoPlayTimer; // Model.Variables.lookang.autoPlayTimer
+  var autoPlayRunning; // Model.Variables.lookang.autoPlayRunning
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return { numOfRows : numOfRows, numOfCols : numOfCols, numOfNodes : numOfNodes, grid : grid, nodeVal : nodeVal, initClickEvent : initClickEvent, font : font, numCorrect : numCorrect, gameOver : gameOver, linesLength : linesLength, linesColor : linesColor, linesColorInactive : linesColorInactive, linesColorActive : linesColorActive, linesColorFlagged : linesColorFlagged, linesX : linesX, linesY : linesY, linesXSize : linesXSize, linesYSize : linesYSize, linesActive : linesActive, linesInteract : linesInteract, linesAttribute : linesAttribute, edgeList : edgeList, circleLength : circleLength, circleX : circleX, circleY : circleY, circleColor : circleColor, colorValid : colorValid, colorInvalid : colorInvalid, colorNormal : colorNormal, textX : textX, textY : textY, textdebug : textdebug, n : n, linesXoffset1 : linesXoffset1, linesYoffset1 : linesYoffset1, linesXoffset2 : linesXoffset2, linesYoffset2 : linesYoffset2, offset : offset, t : t, dt : dt, playing : playing, showAutoSolve : showAutoSolve, currentPuzzleName : currentPuzzleName, teacherMode : teacherMode, teacherStatusHtml : teacherStatusHtml, teacherFocusNodes : teacherFocusNodes, teacherFocusColor : teacherFocusColor, autoPlayTimer : autoPlayTimer, autoPlayRunning : autoPlayRunning };
+  }
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return { numOfRows : numOfRows, numOfCols : numOfCols, numOfNodes : numOfNodes, grid : grid, nodeVal : nodeVal, initClickEvent : initClickEvent, font : font, numCorrect : numCorrect, gameOver : gameOver, linesLength : linesLength, linesColor : linesColor, linesColorInactive : linesColorInactive, linesColorActive : linesColorActive, linesColorFlagged : linesColorFlagged, linesX : linesX, linesY : linesY, linesXSize : linesXSize, linesYSize : linesYSize, linesActive : linesActive, linesInteract : linesInteract, linesAttribute : linesAttribute, edgeList : edgeList, circleLength : circleLength, circleX : circleX, circleY : circleY, circleColor : circleColor, colorValid : colorValid, colorInvalid : colorInvalid, colorNormal : colorNormal, textX : textX, textY : textY, textdebug : textdebug, n : n, linesXoffset1 : linesXoffset1, linesYoffset1 : linesYoffset1, linesXoffset2 : linesXoffset2, linesYoffset2 : linesYoffset2, offset : offset, t : t, dt : dt, playing : playing, showAutoSolve : showAutoSolve, currentPuzzleName : currentPuzzleName, teacherMode : teacherMode, teacherStatusHtml : teacherStatusHtml, teacherFocusNodes : teacherFocusNodes, teacherFocusColor : teacherFocusColor, autoPlayTimer : autoPlayTimer, autoPlayRunning : autoPlayRunning };
+  }
+
+  _model._readParameters = function(json) {
+    if(typeof json.numOfRows != 'undefined') numOfRows = json.numOfRows;
+    if(typeof json.numOfCols != 'undefined') numOfCols = json.numOfCols;
+    if(typeof json.numOfNodes != 'undefined') numOfNodes = json.numOfNodes;
+    if(typeof json.grid != 'undefined') grid = json.grid;
+    if(typeof json.nodeVal != 'undefined') nodeVal = json.nodeVal;
+    if(typeof json.initClickEvent != 'undefined') initClickEvent = json.initClickEvent;
+    if(typeof json.font != 'undefined') font = json.font;
+    if(typeof json.numCorrect != 'undefined') numCorrect = json.numCorrect;
+    if(typeof json.gameOver != 'undefined') gameOver = json.gameOver;
+    if(typeof json.linesLength != 'undefined') linesLength = json.linesLength;
+    if(typeof json.linesColor != 'undefined') linesColor = json.linesColor;
+    if(typeof json.linesColorInactive != 'undefined') linesColorInactive = json.linesColorInactive;
+    if(typeof json.linesColorActive != 'undefined') linesColorActive = json.linesColorActive;
+    if(typeof json.linesColorFlagged != 'undefined') linesColorFlagged = json.linesColorFlagged;
+    if(typeof json.linesX != 'undefined') linesX = json.linesX;
+    if(typeof json.linesY != 'undefined') linesY = json.linesY;
+    if(typeof json.linesXSize != 'undefined') linesXSize = json.linesXSize;
+    if(typeof json.linesYSize != 'undefined') linesYSize = json.linesYSize;
+    if(typeof json.linesActive != 'undefined') linesActive = json.linesActive;
+    if(typeof json.linesInteract != 'undefined') linesInteract = json.linesInteract;
+    if(typeof json.linesAttribute != 'undefined') linesAttribute = json.linesAttribute;
+    if(typeof json.edgeList != 'undefined') edgeList = json.edgeList;
+    if(typeof json.circleLength != 'undefined') circleLength = json.circleLength;
+    if(typeof json.circleX != 'undefined') circleX = json.circleX;
+    if(typeof json.circleY != 'undefined') circleY = json.circleY;
+    if(typeof json.circleColor != 'undefined') circleColor = json.circleColor;
+    if(typeof json.colorValid != 'undefined') colorValid = json.colorValid;
+    if(typeof json.colorInvalid != 'undefined') colorInvalid = json.colorInvalid;
+    if(typeof json.colorNormal != 'undefined') colorNormal = json.colorNormal;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.textdebug != 'undefined') textdebug = json.textdebug;
+    if(typeof json.n != 'undefined') n = json.n;
+    if(typeof json.linesXoffset1 != 'undefined') linesXoffset1 = json.linesXoffset1;
+    if(typeof json.linesYoffset1 != 'undefined') linesYoffset1 = json.linesYoffset1;
+    if(typeof json.linesXoffset2 != 'undefined') linesXoffset2 = json.linesXoffset2;
+    if(typeof json.linesYoffset2 != 'undefined') linesYoffset2 = json.linesYoffset2;
+    if(typeof json.offset != 'undefined') offset = json.offset;
+    if(typeof json.t != 'undefined') t = json.t;
+    if(typeof json.dt != 'undefined') dt = json.dt;
+    if(typeof json.playing != 'undefined') playing = json.playing;
+    if(typeof json.showAutoSolve != 'undefined') showAutoSolve = json.showAutoSolve;
+    if(typeof json.currentPuzzleName != 'undefined') currentPuzzleName = json.currentPuzzleName;
+    if(typeof json.teacherMode != 'undefined') teacherMode = json.teacherMode;
+    if(typeof json.teacherStatusHtml != 'undefined') teacherStatusHtml = json.teacherStatusHtml;
+    if(typeof json.teacherFocusNodes != 'undefined') teacherFocusNodes = json.teacherFocusNodes;
+    if(typeof json.teacherFocusColor != 'undefined') teacherFocusColor = json.teacherFocusColor;
+    if(typeof json.autoPlayTimer != 'undefined') autoPlayTimer = json.autoPlayTimer;
+    if(typeof json.autoPlayRunning != 'undefined') autoPlayRunning = json.autoPlayRunning;
+  }
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.numOfRows != 'undefined') numOfRows = json.numOfRows;
+    if(typeof json.numOfCols != 'undefined') numOfCols = json.numOfCols;
+    if(typeof json.numOfNodes != 'undefined') numOfNodes = json.numOfNodes;
+    if(typeof json.grid != 'undefined') grid = json.grid;
+    if(typeof json.nodeVal != 'undefined') nodeVal = json.nodeVal;
+    if(typeof json.initClickEvent != 'undefined') initClickEvent = json.initClickEvent;
+    if(typeof json.font != 'undefined') font = json.font;
+    if(typeof json.numCorrect != 'undefined') numCorrect = json.numCorrect;
+    if(typeof json.gameOver != 'undefined') gameOver = json.gameOver;
+    if(typeof json.linesLength != 'undefined') linesLength = json.linesLength;
+    if(typeof json.linesColor != 'undefined') linesColor = json.linesColor;
+    if(typeof json.linesColorInactive != 'undefined') linesColorInactive = json.linesColorInactive;
+    if(typeof json.linesColorActive != 'undefined') linesColorActive = json.linesColorActive;
+    if(typeof json.linesColorFlagged != 'undefined') linesColorFlagged = json.linesColorFlagged;
+    if(typeof json.linesX != 'undefined') linesX = json.linesX;
+    if(typeof json.linesY != 'undefined') linesY = json.linesY;
+    if(typeof json.linesXSize != 'undefined') linesXSize = json.linesXSize;
+    if(typeof json.linesYSize != 'undefined') linesYSize = json.linesYSize;
+    if(typeof json.linesActive != 'undefined') linesActive = json.linesActive;
+    if(typeof json.linesInteract != 'undefined') linesInteract = json.linesInteract;
+    if(typeof json.linesAttribute != 'undefined') linesAttribute = json.linesAttribute;
+    if(typeof json.edgeList != 'undefined') edgeList = json.edgeList;
+    if(typeof json.circleLength != 'undefined') circleLength = json.circleLength;
+    if(typeof json.circleX != 'undefined') circleX = json.circleX;
+    if(typeof json.circleY != 'undefined') circleY = json.circleY;
+    if(typeof json.circleColor != 'undefined') circleColor = json.circleColor;
+    if(typeof json.colorValid != 'undefined') colorValid = json.colorValid;
+    if(typeof json.colorInvalid != 'undefined') colorInvalid = json.colorInvalid;
+    if(typeof json.colorNormal != 'undefined') colorNormal = json.colorNormal;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.textdebug != 'undefined') textdebug = json.textdebug;
+    if(typeof json.n != 'undefined') n = json.n;
+    if(typeof json.linesXoffset1 != 'undefined') linesXoffset1 = json.linesXoffset1;
+    if(typeof json.linesYoffset1 != 'undefined') linesYoffset1 = json.linesYoffset1;
+    if(typeof json.linesXoffset2 != 'undefined') linesXoffset2 = json.linesXoffset2;
+    if(typeof json.linesYoffset2 != 'undefined') linesYoffset2 = json.linesYoffset2;
+    if(typeof json.offset != 'undefined') offset = json.offset;
+    if(typeof json.t != 'undefined') t = json.t;
+    if(typeof json.dt != 'undefined') dt = json.dt;
+    if(typeof json.playing != 'undefined') playing = json.playing;
+    if(typeof json.showAutoSolve != 'undefined') showAutoSolve = json.showAutoSolve;
+    if(typeof json.currentPuzzleName != 'undefined') currentPuzzleName = json.currentPuzzleName;
+    if(typeof json.teacherMode != 'undefined') teacherMode = json.teacherMode;
+    if(typeof json.teacherStatusHtml != 'undefined') teacherStatusHtml = json.teacherStatusHtml;
+    if(typeof json.teacherFocusNodes != 'undefined') teacherFocusNodes = json.teacherFocusNodes;
+    if(typeof json.teacherFocusColor != 'undefined') teacherFocusColor = json.teacherFocusColor;
+    if(typeof json.autoPlayTimer != 'undefined') autoPlayTimer = json.autoPlayTimer;
+    if(typeof json.autoPlayRunning != 'undefined') autoPlayRunning = json.autoPlayRunning;
+  }
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  _model.getOdes = function() { return []; }
+
+  _model.removeEvents = function(){
+  }
+
+  _model.addToReset(function() {
+    __pagesEnabled['Init Page'] = true;
+    __pagesEnabled['debug'] = true;
+    __pagesEnabled['esc'] = true;
+    __pagesEnabled['FixRel Page 1'] = true;
+  });
+
+  _model.addToReset(function() { // Reset of Var Table
+    numOfRows = 5; // Model.Variables.Var Table.numOfRows
+    numOfCols = 5; // Model.Variables.Var Table.numOfCols
+    numOfNodes = numOfRows * numOfCols; // Model.Variables.Var Table.numOfNodes
+    nodeVal = 0; // Model.Variables.Var Table.nodeVal
+    initClickEvent = 0; // Model.Variables.Var Table.initClickEvent
+    font = "normal normal 2.5vw"; // Model.Variables.Var Table.font
+    numCorrect = 0; // Model.Variables.Var Table.numCorrect
+    gameOver = false; // Model.Variables.Var Table.gameOver
+  }); // End of reset of Var Table
+
+  _model.addToReset(function() { // Reset of lines
+    linesLength = 1; // Model.Variables.lines.linesLength
+    linesColorInactive = "#90a4ae"; // Model.Variables.lines.linesColorInactive
+    linesColorActive = "black"; // Model.Variables.lines.linesColorActive
+    linesColorFlagged = "#eceff1"; // Model.Variables.lines.linesColorFlagged
+    linesActive = 0; // Model.Variables.lines.linesActive
+  }); // End of reset of lines
+
+  _model.addToReset(function() { // Reset of circles
+    circleLength = 0.5; // Model.Variables.circles.circleLength
+    colorValid = "#c5e1a5"; // Model.Variables.circles.colorValid
+    colorInvalid = "#ef9a9a"; // Model.Variables.circles.colorInvalid
+    colorNormal = "white"; // Model.Variables.circles.colorNormal
+  }); // End of reset of circles
+
+  _model.addToReset(function() { // Reset of text
+  }); // End of reset of text
+
+  _model.addToReset(function() { // Reset of lookang
+    textdebug = new Array(numOfRows*numOfCols); // Model.Variables.lookang.textdebug
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<numOfRows*numOfCols; _i0+=1) { // Model.Variables.lookang.textdebug
+        textdebug[_i0] = ""; // Model.Variables.lookang.textdebug
+      }
+    }());
+    n = numOfRows*numOfCols; // Model.Variables.lookang.n
+    offset = 0.3; // Model.Variables.lookang.offset
+    t = 0; // Model.Variables.lookang.t
+    dt = 0.05; // Model.Variables.lookang.dt
+    playing = false; // Model.Variables.lookang.playing
+    showAutoSolve = false; // Model.Variables.lookang.showAutoSolve
+    currentPuzzleName = "puzzle 1"; // Model.Variables.lookang.currentPuzzleName
+    teacherMode = true; // Model.Variables.lookang.teacherMode
+    teacherStatusHtml = ""; // Model.Variables.lookang.teacherStatusHtml
+    teacherFocusColor = "#ffe082"; // Model.Variables.lookang.teacherFocusColor
+    autoPlayTimer = null; // Model.Variables.lookang.autoPlayTimer
+    autoPlayRunning = false; // Model.Variables.lookang.autoPlayRunning
+  }); // End of reset of lookang
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function getPuzzleGrid(puzzleName) { // > Custom code page: toggleEdge - line 1
+      if (puzzleName === "puzzle 2") return [ // > Custom code page: toggleEdge - line 2
+        2, 3, 3, 3, 1, // > Custom code page: toggleEdge - line 3
+        3, 6, 7, 5, 1, // > Custom code page: toggleEdge - line 4
+        4, 4, 6, 6, 5, // > Custom code page: toggleEdge - line 5
+        5, 5, 7, 4, 2, // > Custom code page: toggleEdge - line 6
+        2, 5, 2, 4, 1 // > Custom code page: toggleEdge - line 7
+      ]; // > Custom code page: toggleEdge - line 8
+      if (puzzleName === "puzzle 3") return [ // > Custom code page: toggleEdge - line 9
+        1, 2, 2, 4, 2, // > Custom code page: toggleEdge - line 10
+        1, 5, 6, 3, 3, // > Custom code page: toggleEdge - line 11
+        4, 3, 5, 2, 3, // > Custom code page: toggleEdge - line 12
+        3, 7, 7, 6, 2, // > Custom code page: toggleEdge - line 13
+        2, 1, 3, 3, 2 // > Custom code page: toggleEdge - line 14
+      ]; // > Custom code page: toggleEdge - line 15
+      if (puzzleName === "puzzle 4") return [ // > Custom code page: toggleEdge - line 16
+        2, 2, 3, 4, 2, // > Custom code page: toggleEdge - line 17
+        1, 7, 6, 4, 4, // > Custom code page: toggleEdge - line 18
+        2, 5, 1, 6, 3, // > Custom code page: toggleEdge - line 19
+        4, 5, 7, 5, 1, // > Custom code page: toggleEdge - line 20
+        2, 3, 4, 1, 2 // > Custom code page: toggleEdge - line 21
+      ]; // > Custom code page: toggleEdge - line 22
+      return [ // > Custom code page: toggleEdge - line 23
+        2, 4, 1, 3, 2, // > Custom code page: toggleEdge - line 24
+        2, 3, 6, 1, 3, // > Custom code page: toggleEdge - line 25
+        2, 4, 6, 8, 1, // > Custom code page: toggleEdge - line 26
+        2, 2, 6, 4, 4, // > Custom code page: toggleEdge - line 27
+        1, 2, 2, 4, 1 // > Custom code page: toggleEdge - line 28
+      ]; // > Custom code page: toggleEdge - line 29
+    } // > Custom code page: toggleEdge - line 30
+   // > Custom code page: toggleEdge - line 31
+    function buildAdjacencyList() { // > Custom code page: toggleEdge - line 32
+      var adjEdges = []; // > Custom code page: toggleEdge - line 33
+      for (var i = 0; i < numOfNodes; i++) adjEdges.push([]); // > Custom code page: toggleEdge - line 34
+      for (var e = 0; e < edgeList.length; e++) { // > Custom code page: toggleEdge - line 35
+        var a = edgeList[e][0]; // > Custom code page: toggleEdge - line 36
+        var b = edgeList[e][1]; // > Custom code page: toggleEdge - line 37
+        adjEdges[a].push(e); // > Custom code page: toggleEdge - line 38
+        adjEdges[b].push(e); // > Custom code page: toggleEdge - line 39
+      } // > Custom code page: toggleEdge - line 40
+      return adjEdges; // > Custom code page: toggleEdge - line 41
+    } // > Custom code page: toggleEdge - line 42
+   // > Custom code page: toggleEdge - line 43
+    function formatNodeName(nodeIdx) { // > Custom code page: toggleEdge - line 44
+      var row = Math.floor(nodeIdx / numOfCols) + 1; // > Custom code page: toggleEdge - line 45
+      var col = (nodeIdx % numOfCols) + 1; // > Custom code page: toggleEdge - line 46
+      return "row " + row + ", col " + col; // > Custom code page: toggleEdge - line 47
+    } // > Custom code page: toggleEdge - line 48
+   // > Custom code page: toggleEdge - line 49
+    function buildTeacherStatus(title, message, detail) { // > Custom code page: toggleEdge - line 50
+      var modeLine = teacherMode ? "Teacher mode is on." : "Teacher mode is off."; // > Custom code page: toggleEdge - line 51
+      var html = "<div style='padding:0.35rem 0'><b>" + title + "</b><br/>" + message + "</div>"; // > Custom code page: toggleEdge - line 52
+      html += "<div style='padding:0.15rem 0'>" + modeLine + " Current puzzle: " + currentPuzzleName + ".</div>"; // > Custom code page: toggleEdge - line 53
+      if (detail) html += "<div style='padding:0.15rem 0'>" + detail + "</div>"; // > Custom code page: toggleEdge - line 54
+      return html; // > Custom code page: toggleEdge - line 55
+    } // > Custom code page: toggleEdge - line 56
+   // > Custom code page: toggleEdge - line 57
+    function refreshTeacherControls() { // > Custom code page: toggleEdge - line 58
+      if (!_view) return; // > Custom code page: toggleEdge - line 59
+      if (_view.comboBox && currentPuzzleName) _view.comboBox.setProperty("SelectedOptions", [currentPuzzleName]); // > Custom code page: toggleEdge - line 60
+      if (_view.teacherModeBtn) _view.teacherModeBtn.setProperty("Text", teacherMode ? "Teacher: On" : "Teacher: Off"); // > Custom code page: toggleEdge - line 61
+      if (_view.hintBtn) _view.hintBtn.setProperty("Display", teacherMode ? "inline" : "none"); // > Custom code page: toggleEdge - line 62
+      if (_view.stepBtn) _view.stepBtn.setProperty("Display", teacherMode ? "inline" : "none"); // > Custom code page: toggleEdge - line 63
+      if (_view.playBtn) { // > Custom code page: toggleEdge - line 64
+        _view.playBtn.setProperty("Display", teacherMode ? "inline" : "none"); // > Custom code page: toggleEdge - line 65
+        _view.playBtn.setProperty("Text", autoPlayRunning ? "Stop Play" : "Play Thinking"); // > Custom code page: toggleEdge - line 66
+      } // > Custom code page: toggleEdge - line 67
+      if (_view.autoSolveBtn) _view.autoSolveBtn.setProperty("Text", teacherMode ? "Solve Now" : "Auto-solve"); // > Custom code page: toggleEdge - line 68
+      if (_view.teacherStatus) _view.teacherStatus.setProperty("Text", teacherStatusHtml || ""); // > Custom code page: toggleEdge - line 69
+    } // > Custom code page: toggleEdge - line 70
+   // > Custom code page: toggleEdge - line 71
+    function setTeacherStatus(title, message, detail) { // > Custom code page: toggleEdge - line 72
+      teacherStatusHtml = buildTeacherStatus(title, message, detail); // > Custom code page: toggleEdge - line 73
+      refreshTeacherControls(); // > Custom code page: toggleEdge - line 74
+    } // > Custom code page: toggleEdge - line 75
+   // > Custom code page: toggleEdge - line 76
+    function stopTeacherAutoPlay() { // > Custom code page: toggleEdge - line 77
+      if (autoPlayTimer) { // > Custom code page: toggleEdge - line 78
+        window.clearTimeout(autoPlayTimer); // > Custom code page: toggleEdge - line 79
+        autoPlayTimer = null; // > Custom code page: toggleEdge - line 80
+      } // > Custom code page: toggleEdge - line 81
+      autoPlayRunning = false; // > Custom code page: toggleEdge - line 82
+      refreshTeacherControls(); // > Custom code page: toggleEdge - line 83
+    } // > Custom code page: toggleEdge - line 84
+   // > Custom code page: toggleEdge - line 85
+    function setEdgeVisualState(edgeIdx, state) { // > Custom code page: toggleEdge - line 86
+      linesActive[edgeIdx] = state; // > Custom code page: toggleEdge - line 87
+      if (state === 1) { // > Custom code page: toggleEdge - line 88
+        linesAttribute[edgeIdx]["stroke-dasharray"] = 0; // > Custom code page: toggleEdge - line 89
+        linesColor[edgeIdx] = linesColorActive; // > Custom code page: toggleEdge - line 90
+        return; // > Custom code page: toggleEdge - line 91
+      } // > Custom code page: toggleEdge - line 92
+      if (state === 2) { // > Custom code page: toggleEdge - line 93
+        linesAttribute[edgeIdx]["stroke-dasharray"] = "10 30"; // > Custom code page: toggleEdge - line 94
+        linesColor[edgeIdx] = linesColorFlagged; // > Custom code page: toggleEdge - line 95
+        return; // > Custom code page: toggleEdge - line 96
+      } // > Custom code page: toggleEdge - line 97
+      linesAttribute[edgeIdx]["stroke-dasharray"] = "10 5"; // > Custom code page: toggleEdge - line 98
+      linesColor[edgeIdx] = linesColorInactive; // > Custom code page: toggleEdge - line 99
+    } // > Custom code page: toggleEdge - line 100
+   // > Custom code page: toggleEdge - line 101
+    function recomputeNodeValsAndColors() { // > Custom code page: toggleEdge - line 102
+      for (var i = 0; i < numOfNodes; i++) nodeVal[i] = 0; // > Custom code page: toggleEdge - line 103
+      for (var e = 0; e < edgeList.length; e++) { // > Custom code page: toggleEdge - line 104
+        if (linesActive[e] === 1) { // > Custom code page: toggleEdge - line 105
+          var a = edgeList[e][0]; // > Custom code page: toggleEdge - line 106
+          var b = edgeList[e][1]; // > Custom code page: toggleEdge - line 107
+          nodeVal[a]++; // > Custom code page: toggleEdge - line 108
+          nodeVal[b]++; // > Custom code page: toggleEdge - line 109
+        } // > Custom code page: toggleEdge - line 110
+      } // > Custom code page: toggleEdge - line 111
+      for (var n = 0; n < numOfNodes; n++) { // > Custom code page: toggleEdge - line 112
+        if (nodeVal[n] === grid[n]) circleColor[n] = colorValid; // > Custom code page: toggleEdge - line 113
+        else if (nodeVal[n] > grid[n]) circleColor[n] = colorInvalid; // > Custom code page: toggleEdge - line 114
+        else circleColor[n] = colorNormal; // > Custom code page: toggleEdge - line 115
+      } // > Custom code page: toggleEdge - line 116
+      if (teacherFocusNodes && teacherFocusNodes.length) { // > Custom code page: toggleEdge - line 117
+        for (var j = 0; j < teacherFocusNodes.length; j++) { // > Custom code page: toggleEdge - line 118
+          circleColor[teacherFocusNodes[j]] = teacherFocusColor; // > Custom code page: toggleEdge - line 119
+        } // > Custom code page: toggleEdge - line 120
+      } // > Custom code page: toggleEdge - line 121
+    } // > Custom code page: toggleEdge - line 122
+   // > Custom code page: toggleEdge - line 123
+    function highlightNodes(nodeList) { // > Custom code page: toggleEdge - line 124
+      teacherFocusNodes = nodeList ? nodeList.slice(0) : []; // > Custom code page: toggleEdge - line 125
+      recomputeNodeValsAndColors(); // > Custom code page: toggleEdge - line 126
+    } // > Custom code page: toggleEdge - line 127
+   // > Custom code page: toggleEdge - line 128
+    function clearTeacherHighlight() { // > Custom code page: toggleEdge - line 129
+      teacherFocusNodes = []; // > Custom code page: toggleEdge - line 130
+      recomputeNodeValsAndColors(); // > Custom code page: toggleEdge - line 131
+    } // > Custom code page: toggleEdge - line 132
+   // > Custom code page: toggleEdge - line 133
+    function isBoardSolved() { // > Custom code page: toggleEdge - line 134
+      for (var i = 0; i < numOfNodes; i++) { // > Custom code page: toggleEdge - line 135
+        if (nodeVal[i] !== grid[i]) return false; // > Custom code page: toggleEdge - line 136
+      } // > Custom code page: toggleEdge - line 137
+      return true; // > Custom code page: toggleEdge - line 138
+    } // > Custom code page: toggleEdge - line 139
+   // > Custom code page: toggleEdge - line 140
+    function finishIfSolved(dialogText) { // > Custom code page: toggleEdge - line 141
+      if (!isBoardSolved()) return false; // > Custom code page: toggleEdge - line 142
+      gameOver = true; // > Custom code page: toggleEdge - line 143
+      if (dialogText) _tools.showOkDialog(dialogText); // > Custom code page: toggleEdge - line 144
+      return true; // > Custom code page: toggleEdge - line 145
+    } // > Custom code page: toggleEdge - line 146
+   // > Custom code page: toggleEdge - line 147
+    function getBoardSolverData() { // > Custom code page: toggleEdge - line 148
+      var solverData = []; // > Custom code page: toggleEdge - line 149
+      for (var e = 0; e < edgeList.length; e++) { // > Custom code page: toggleEdge - line 150
+        if (linesActive[e] === 1) solverData[e] = 1; // > Custom code page: toggleEdge - line 151
+        else if (linesActive[e] === 2) solverData[e] = 0; // > Custom code page: toggleEdge - line 152
+        else solverData[e] = -1; // > Custom code page: toggleEdge - line 153
+      } // > Custom code page: toggleEdge - line 154
+      return solverData; // > Custom code page: toggleEdge - line 155
+    } // > Custom code page: toggleEdge - line 156
+   // > Custom code page: toggleEdge - line 157
+    function buildReasoningStepFromState(solverData, adjEdges) { // > Custom code page: toggleEdge - line 158
+      var bestStep = null; // > Custom code page: toggleEdge - line 159
+      for (var nodeIdx = 0; nodeIdx < numOfNodes; nodeIdx++) { // > Custom code page: toggleEdge - line 160
+        var edges = adjEdges[nodeIdx]; // > Custom code page: toggleEdge - line 161
+        var req = grid[nodeIdx]; // > Custom code page: toggleEdge - line 162
+        var curActive = 0; // > Custom code page: toggleEdge - line 163
+        var unknownEdges = []; // > Custom code page: toggleEdge - line 164
+        for (var k = 0; k < edges.length; k++) { // > Custom code page: toggleEdge - line 165
+          var edgeIdx = edges[k]; // > Custom code page: toggleEdge - line 166
+          if (solverData[edgeIdx] === 1) curActive++; // > Custom code page: toggleEdge - line 167
+          else if (solverData[edgeIdx] === -1) unknownEdges.push(edgeIdx); // > Custom code page: toggleEdge - line 168
+        } // > Custom code page: toggleEdge - line 169
+        if (curActive > req) { // > Custom code page: toggleEdge - line 170
+          return { // > Custom code page: toggleEdge - line 171
+            kind: "contradiction", // > Custom code page: toggleEdge - line 172
+            nodes: [nodeIdx], // > Custom code page: toggleEdge - line 173
+            explanation: "At " + formatNodeName(nodeIdx) + ", there are already " + curActive + " active edges, but the clue is only " + req + ". Undo at least one active edge near this node." // > Custom code page: toggleEdge - line 174
+          }; // > Custom code page: toggleEdge - line 175
+        } // > Custom code page: toggleEdge - line 176
+        if (curActive + unknownEdges.length < req) { // > Custom code page: toggleEdge - line 177
+          return { // > Custom code page: toggleEdge - line 178
+            kind: "contradiction", // > Custom code page: toggleEdge - line 179
+            nodes: [nodeIdx], // > Custom code page: toggleEdge - line 180
+            explanation: "At " + formatNodeName(nodeIdx) + ", even turning on every undecided edge would only give " + (curActive + unknownEdges.length) + ", which is still less than the clue " + req + "." // > Custom code page: toggleEdge - line 181
+          }; // > Custom code page: toggleEdge - line 182
+        } // > Custom code page: toggleEdge - line 183
+        if (unknownEdges.length === 0) continue; // > Custom code page: toggleEdge - line 184
+        var step = null; // > Custom code page: toggleEdge - line 185
+        if (curActive === req) { // > Custom code page: toggleEdge - line 186
+          step = { // > Custom code page: toggleEdge - line 187
+            kind: "step", // > Custom code page: toggleEdge - line 188
+            rule: "all-filled", // > Custom code page: toggleEdge - line 189
+            targetValue: 0, // > Custom code page: toggleEdge - line 190
+            nodes: [nodeIdx], // > Custom code page: toggleEdge - line 191
+            edges: unknownEdges.slice(0), // > Custom code page: toggleEdge - line 192
+            explanation: "At " + formatNodeName(nodeIdx) + ", the clue " + req + " is already satisfied, so every remaining undecided edge around this node must stay inactive." // > Custom code page: toggleEdge - line 193
+          }; // > Custom code page: toggleEdge - line 194
+        } else if (curActive + unknownEdges.length === req) { // > Custom code page: toggleEdge - line 195
+          step = { // > Custom code page: toggleEdge - line 196
+            kind: "step", // > Custom code page: toggleEdge - line 197
+            rule: "all-needed", // > Custom code page: toggleEdge - line 198
+            targetValue: 1, // > Custom code page: toggleEdge - line 199
+            nodes: [nodeIdx], // > Custom code page: toggleEdge - line 200
+            edges: unknownEdges.slice(0), // > Custom code page: toggleEdge - line 201
+            explanation: "At " + formatNodeName(nodeIdx) + ", the clue still needs " + (req - curActive) + " more active edges, and exactly " + unknownEdges.length + " undecided edge(s) remain, so all of them must be active." // > Custom code page: toggleEdge - line 202
+          }; // > Custom code page: toggleEdge - line 203
+        } // > Custom code page: toggleEdge - line 204
+        if (step && (!bestStep || step.edges.length < bestStep.edges.length)) bestStep = step; // > Custom code page: toggleEdge - line 205
+      } // > Custom code page: toggleEdge - line 206
+      return bestStep; // > Custom code page: toggleEdge - line 207
+    } // > Custom code page: toggleEdge - line 208
+   // > Custom code page: toggleEdge - line 209
+    function validateSolverData(solverData, adjEdges) { // > Custom code page: toggleEdge - line 210
+      for (var nodeIdx = 0; nodeIdx < numOfNodes; nodeIdx++) { // > Custom code page: toggleEdge - line 211
+        var req = grid[nodeIdx]; // > Custom code page: toggleEdge - line 212
+        var curActive = 0; // > Custom code page: toggleEdge - line 213
+        var unknown = 0; // > Custom code page: toggleEdge - line 214
+        var edges = adjEdges[nodeIdx]; // > Custom code page: toggleEdge - line 215
+        for (var k = 0; k < edges.length; k++) { // > Custom code page: toggleEdge - line 216
+          var edgeIdx = edges[k]; // > Custom code page: toggleEdge - line 217
+          if (solverData[edgeIdx] === 1) curActive++; // > Custom code page: toggleEdge - line 218
+          else if (solverData[edgeIdx] === -1) unknown++; // > Custom code page: toggleEdge - line 219
+        } // > Custom code page: toggleEdge - line 220
+        if (curActive > req) return false; // > Custom code page: toggleEdge - line 221
+        if (curActive + unknown < req) return false; // > Custom code page: toggleEdge - line 222
+      } // > Custom code page: toggleEdge - line 223
+      return true; // > Custom code page: toggleEdge - line 224
+    } // > Custom code page: toggleEdge - line 225
+   // > Custom code page: toggleEdge - line 226
+    function chooseEdgeMRV(assignments, adjEdges) { // > Custom code page: toggleEdge - line 227
+      var bestEdge = null; // > Custom code page: toggleEdge - line 228
+      var bestScore = Infinity; // > Custom code page: toggleEdge - line 229
+      for (var edgeIdx = 0; edgeIdx < assignments.length; edgeIdx++) { // > Custom code page: toggleEdge - line 230
+        if (assignments[edgeIdx] !== -1) continue; // > Custom code page: toggleEdge - line 231
+        var a = edgeList[edgeIdx][0]; // > Custom code page: toggleEdge - line 232
+        var b = edgeList[edgeIdx][1]; // > Custom code page: toggleEdge - line 233
+        var curActiveA = 0; // > Custom code page: toggleEdge - line 234
+        var curActiveB = 0; // > Custom code page: toggleEdge - line 235
+        var unknownA = 0; // > Custom code page: toggleEdge - line 236
+        var unknownB = 0; // > Custom code page: toggleEdge - line 237
+        for (var i = 0; i < adjEdges[a].length; i++) { // > Custom code page: toggleEdge - line 238
+          var edgeA = adjEdges[a][i]; // > Custom code page: toggleEdge - line 239
+          if (assignments[edgeA] === 1) curActiveA++; // > Custom code page: toggleEdge - line 240
+          else if (assignments[edgeA] === -1) unknownA++; // > Custom code page: toggleEdge - line 241
+        } // > Custom code page: toggleEdge - line 242
+        for (var j = 0; j < adjEdges[b].length; j++) { // > Custom code page: toggleEdge - line 243
+          var edgeB = adjEdges[b][j]; // > Custom code page: toggleEdge - line 244
+          if (assignments[edgeB] === 1) curActiveB++; // > Custom code page: toggleEdge - line 245
+          else if (assignments[edgeB] === -1) unknownB++; // > Custom code page: toggleEdge - line 246
+        } // > Custom code page: toggleEdge - line 247
+        var score = Math.min(grid[a] - curActiveA, grid[b] - curActiveB) + 0.01 * Math.min(unknownA, unknownB); // > Custom code page: toggleEdge - line 248
+        if (score < bestScore) { // > Custom code page: toggleEdge - line 249
+          bestScore = score; // > Custom code page: toggleEdge - line 250
+          bestEdge = edgeIdx; // > Custom code page: toggleEdge - line 251
+        } // > Custom code page: toggleEdge - line 252
+      } // > Custom code page: toggleEdge - line 253
+      return bestEdge; // > Custom code page: toggleEdge - line 254
+    } // > Custom code page: toggleEdge - line 255
+   // > Custom code page: toggleEdge - line 256
+    function solveWithSearch(assignments, adjEdges) { // > Custom code page: toggleEdge - line 257
+      function backtrack() { // > Custom code page: toggleEdge - line 258
+        if (!validateSolverData(assignments, adjEdges)) return false; // > Custom code page: toggleEdge - line 259
+        var choice = chooseEdgeMRV(assignments, adjEdges); // > Custom code page: toggleEdge - line 260
+        if (choice === null) return true; // > Custom code page: toggleEdge - line 261
+        var aNode = edgeList[choice][0]; // > Custom code page: toggleEdge - line 262
+        var bNode = edgeList[choice][1]; // > Custom code page: toggleEdge - line 263
+        var curActiveA = 0; // > Custom code page: toggleEdge - line 264
+        var curActiveB = 0; // > Custom code page: toggleEdge - line 265
+        for (var i = 0; i < adjEdges[aNode].length; i++) if (assignments[adjEdges[aNode][i]] === 1) curActiveA++; // > Custom code page: toggleEdge - line 266
+        for (var j = 0; j < adjEdges[bNode].length; j++) if (assignments[adjEdges[bNode][j]] === 1) curActiveB++; // > Custom code page: toggleEdge - line 267
+        var tries = (Math.min(grid[aNode] - curActiveA, grid[bNode] - curActiveB) <= 1) ? [1, 0] : [0, 1]; // > Custom code page: toggleEdge - line 268
+        for (var tIdx = 0; tIdx < tries.length; tIdx++) { // > Custom code page: toggleEdge - line 269
+          assignments[choice] = tries[tIdx]; // > Custom code page: toggleEdge - line 270
+          if (backtrack()) return true; // > Custom code page: toggleEdge - line 271
+          assignments[choice] = -1; // > Custom code page: toggleEdge - line 272
+        } // > Custom code page: toggleEdge - line 273
+        return false; // > Custom code page: toggleEdge - line 274
+      } // > Custom code page: toggleEdge - line 275
+      return backtrack(); // > Custom code page: toggleEdge - line 276
+    } // > Custom code page: toggleEdge - line 277
+   // > Custom code page: toggleEdge - line 278
+    function solveFromCurrentBoard(allowSearch) { // > Custom code page: toggleEdge - line 279
+      var adjEdges = buildAdjacencyList(); // > Custom code page: toggleEdge - line 280
+      var solverData = getBoardSolverData(); // > Custom code page: toggleEdge - line 281
+      var logicalSteps = 0; // > Custom code page: toggleEdge - line 282
+      while (true) { // > Custom code page: toggleEdge - line 283
+        var step = buildReasoningStepFromState(solverData, adjEdges); // > Custom code page: toggleEdge - line 284
+        if (!step) break; // > Custom code page: toggleEdge - line 285
+        if (step.kind === "contradiction") { // > Custom code page: toggleEdge - line 286
+          return { success: false, contradiction: step, usedSearch: false, logicalSteps: logicalSteps }; // > Custom code page: toggleEdge - line 287
+        } // > Custom code page: toggleEdge - line 288
+        for (var i = 0; i < step.edges.length; i++) solverData[step.edges[i]] = step.targetValue; // > Custom code page: toggleEdge - line 289
+        logicalSteps++; // > Custom code page: toggleEdge - line 290
+      } // > Custom code page: toggleEdge - line 291
+      if (!validateSolverData(solverData, adjEdges)) { // > Custom code page: toggleEdge - line 292
+        return { success: false, contradiction: { kind: "contradiction", nodes: [], explanation: "The current partial board cannot be completed without undoing some moves." }, usedSearch: false, logicalSteps: logicalSteps }; // > Custom code page: toggleEdge - line 293
+      } // > Custom code page: toggleEdge - line 294
+      var solved = true; // > Custom code page: toggleEdge - line 295
+      for (var e = 0; e < solverData.length; e++) { // > Custom code page: toggleEdge - line 296
+        if (solverData[e] === -1) { // > Custom code page: toggleEdge - line 297
+          solved = false; // > Custom code page: toggleEdge - line 298
+          break; // > Custom code page: toggleEdge - line 299
+        } // > Custom code page: toggleEdge - line 300
+      } // > Custom code page: toggleEdge - line 301
+      if (solved) return { success: true, solverData: solverData, usedSearch: false, logicalSteps: logicalSteps }; // > Custom code page: toggleEdge - line 302
+      if (!allowSearch) return { success: false, needsSearch: true, solverData: solverData, usedSearch: false, logicalSteps: logicalSteps }; // > Custom code page: toggleEdge - line 303
+      var finalData = solverData.slice(0); // > Custom code page: toggleEdge - line 304
+      var success = solveWithSearch(finalData, adjEdges); // > Custom code page: toggleEdge - line 305
+      return { success: success, solverData: finalData, usedSearch: true, logicalSteps: logicalSteps }; // > Custom code page: toggleEdge - line 306
+    } // > Custom code page: toggleEdge - line 307
+   // > Custom code page: toggleEdge - line 308
+    function applyTeacherStep(step, titlePrefix) { // > Custom code page: toggleEdge - line 309
+      teacherFocusNodes = step.nodes ? step.nodes.slice(0) : []; // > Custom code page: toggleEdge - line 310
+      for (var i = 0; i < step.edges.length; i++) { // > Custom code page: toggleEdge - line 311
+        setEdgeVisualState(step.edges[i], step.targetValue === 1 ? 1 : 2); // > Custom code page: toggleEdge - line 312
+      } // > Custom code page: toggleEdge - line 313
+      recomputeNodeValsAndColors(); // > Custom code page: toggleEdge - line 314
+      var detail = step.targetValue === 1 // > Custom code page: toggleEdge - line 315
+        ? "Those undecided edges were turned on because they are all needed." // > Custom code page: toggleEdge - line 316
+        : "Those undecided edges were flagged because this clue is already satisfied."; // > Custom code page: toggleEdge - line 317
+      if (finishIfSolved("Completed! Well done!")) { // > Custom code page: toggleEdge - line 318
+        setTeacherStatus("Puzzle solved", step.explanation, detail + " The puzzle is now complete."); // > Custom code page: toggleEdge - line 319
+        return true; // > Custom code page: toggleEdge - line 320
+      } // > Custom code page: toggleEdge - line 321
+      setTeacherStatus(titlePrefix, step.explanation, detail); // > Custom code page: toggleEdge - line 322
+      return false; // > Custom code page: toggleEdge - line 323
+    } // > Custom code page: toggleEdge - line 324
+   // > Custom code page: toggleEdge - line 325
+    function applySolvedBoard(result, title) { // > Custom code page: toggleEdge - line 326
+      teacherFocusNodes = []; // > Custom code page: toggleEdge - line 327
+      for (var e = 0; e < result.solverData.length; e++) { // > Custom code page: toggleEdge - line 328
+        setEdgeVisualState(e, result.solverData[e] === 1 ? 1 : 2); // > Custom code page: toggleEdge - line 329
+      } // > Custom code page: toggleEdge - line 330
+      recomputeNodeValsAndColors(); // > Custom code page: toggleEdge - line 331
+      var detail = result.usedSearch // > Custom code page: toggleEdge - line 332
+        ? "Logical deduction found " + result.logicalSteps + " forced step(s). When no forced move remained, computer search completed the rest." // > Custom code page: toggleEdge - line 333
+        : "This position could be completed using visible deduction only."; // > Custom code page: toggleEdge - line 334
+      finishIfSolved("Solved by Auto-solver!"); // > Custom code page: toggleEdge - line 335
+      setTeacherStatus(title, "The board has been completed.", detail); // > Custom code page: toggleEdge - line 336
+    } // > Custom code page: toggleEdge - line 337
+   // > Custom code page: toggleEdge - line 338
+    function showHint() { // > Custom code page: toggleEdge - line 339
+      stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 340
+      clearTeacherHighlight(); // > Custom code page: toggleEdge - line 341
+      if (gameOver) { // > Custom code page: toggleEdge - line 342
+        setTeacherStatus("Puzzle solved", "This puzzle is already complete.", "Choose another puzzle or press Reset to explore again."); // > Custom code page: toggleEdge - line 343
+        return; // > Custom code page: toggleEdge - line 344
+      } // > Custom code page: toggleEdge - line 345
+      var nextStep = buildReasoningStepFromState(getBoardSolverData(), buildAdjacencyList()); // > Custom code page: toggleEdge - line 346
+      if (!nextStep) { // > Custom code page: toggleEdge - line 347
+        setTeacherStatus("No forced move", "There is no single-node deduction available from this position.", "A human solver may need a stronger pattern, or you can use Solve Now to let computer search finish."); // > Custom code page: toggleEdge - line 348
+        return; // > Custom code page: toggleEdge - line 349
+      } // > Custom code page: toggleEdge - line 350
+      highlightNodes(nextStep.nodes); // > Custom code page: toggleEdge - line 351
+      if (nextStep.kind === "contradiction") { // > Custom code page: toggleEdge - line 352
+        setTeacherStatus("Contradiction found", nextStep.explanation, "Undo something near the highlighted node, then ask for a new hint."); // > Custom code page: toggleEdge - line 353
+        return; // > Custom code page: toggleEdge - line 354
+      } // > Custom code page: toggleEdge - line 355
+      setTeacherStatus("Hint", nextStep.explanation, "Press Next Step to let the sim demonstrate this move."); // > Custom code page: toggleEdge - line 356
+    } // > Custom code page: toggleEdge - line 357
+   // > Custom code page: toggleEdge - line 358
+    function stepTeacherReasoning() { // > Custom code page: toggleEdge - line 359
+      stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 360
+      clearTeacherHighlight(); // > Custom code page: toggleEdge - line 361
+      if (gameOver) { // > Custom code page: toggleEdge - line 362
+        setTeacherStatus("Puzzle solved", "This puzzle is already complete.", "Choose another puzzle or press Reset to explore again."); // > Custom code page: toggleEdge - line 363
+        return false; // > Custom code page: toggleEdge - line 364
+      } // > Custom code page: toggleEdge - line 365
+      var nextStep = buildReasoningStepFromState(getBoardSolverData(), buildAdjacencyList()); // > Custom code page: toggleEdge - line 366
+      if (!nextStep) { // > Custom code page: toggleEdge - line 367
+        setTeacherStatus("No forced move", "The current position does not have a forced move that can be explained with the basic local rule set.", "Try a different idea yourself, or use Solve Now to let computer search finish."); // > Custom code page: toggleEdge - line 368
+        return false; // > Custom code page: toggleEdge - line 369
+      } // > Custom code page: toggleEdge - line 370
+      if (nextStep.kind === "contradiction") { // > Custom code page: toggleEdge - line 371
+        highlightNodes(nextStep.nodes); // > Custom code page: toggleEdge - line 372
+        setTeacherStatus("Contradiction found", nextStep.explanation, "Undo something near the highlighted node before continuing."); // > Custom code page: toggleEdge - line 373
+        return false; // > Custom code page: toggleEdge - line 374
+      } // > Custom code page: toggleEdge - line 375
+      applyTeacherStep(nextStep, "Next step"); // > Custom code page: toggleEdge - line 376
+      return true; // > Custom code page: toggleEdge - line 377
+    } // > Custom code page: toggleEdge - line 378
+   // > Custom code page: toggleEdge - line 379
+    function toggleTeacherPlayback() { // > Custom code page: toggleEdge - line 380
+      if (autoPlayRunning) { // > Custom code page: toggleEdge - line 381
+        stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 382
+        setTeacherStatus("Playback stopped", "Teacher playback has paused.", "You can continue with Hint, Next Step, or Solve Now."); // > Custom code page: toggleEdge - line 383
+        return; // > Custom code page: toggleEdge - line 384
+      } // > Custom code page: toggleEdge - line 385
+      if (gameOver) { // > Custom code page: toggleEdge - line 386
+        setTeacherStatus("Puzzle solved", "This puzzle is already complete.", "Choose another puzzle or press Reset to explore again."); // > Custom code page: toggleEdge - line 387
+        return; // > Custom code page: toggleEdge - line 388
+      } // > Custom code page: toggleEdge - line 389
+      autoPlayRunning = true; // > Custom code page: toggleEdge - line 390
+      refreshTeacherControls(); // > Custom code page: toggleEdge - line 391
+      function advancePlayback() { // > Custom code page: toggleEdge - line 392
+        if (!autoPlayRunning) return; // > Custom code page: toggleEdge - line 393
+        var nextStep = buildReasoningStepFromState(getBoardSolverData(), buildAdjacencyList()); // > Custom code page: toggleEdge - line 394
+        if (nextStep && nextStep.kind === "step") { // > Custom code page: toggleEdge - line 395
+          applyTeacherStep(nextStep, "Thinking aloud"); // > Custom code page: toggleEdge - line 396
+          autoPlayTimer = window.setTimeout(advancePlayback, 900); // > Custom code page: toggleEdge - line 397
+          return; // > Custom code page: toggleEdge - line 398
+        } // > Custom code page: toggleEdge - line 399
+        if (nextStep && nextStep.kind === "contradiction") { // > Custom code page: toggleEdge - line 400
+          highlightNodes(nextStep.nodes); // > Custom code page: toggleEdge - line 401
+          setTeacherStatus("Contradiction found", nextStep.explanation, "Playback stopped so that the contradiction can be repaired."); // > Custom code page: toggleEdge - line 402
+          stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 403
+          return; // > Custom code page: toggleEdge - line 404
+        } // > Custom code page: toggleEdge - line 405
+        var result = solveFromCurrentBoard(false); // > Custom code page: toggleEdge - line 406
+        if (result.success) { // > Custom code page: toggleEdge - line 407
+          applySolvedBoard(result, "Auto-play finished"); // > Custom code page: toggleEdge - line 408
+          stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 409
+          return; // > Custom code page: toggleEdge - line 410
+        } // > Custom code page: toggleEdge - line 411
+        if (result.contradiction) { // > Custom code page: toggleEdge - line 412
+          if (result.contradiction.nodes && result.contradiction.nodes.length) highlightNodes(result.contradiction.nodes); // > Custom code page: toggleEdge - line 413
+          setTeacherStatus("Contradiction found", result.contradiction.explanation, "Playback stopped so that you can repair the highlighted area before continuing."); // > Custom code page: toggleEdge - line 414
+          stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 415
+          return; // > Custom code page: toggleEdge - line 416
+        } // > Custom code page: toggleEdge - line 417
+        setTeacherStatus("Search boundary", "No more forced teacher steps are available from this position.", "Play Thinking now stops instead of freezing. Use Solve Now if you want the computer to continue with search, or keep exploring manually."); // > Custom code page: toggleEdge - line 418
+        stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 419
+      } // > Custom code page: toggleEdge - line 420
+      advancePlayback(); // > Custom code page: toggleEdge - line 421
+    } // > Custom code page: toggleEdge - line 422
+   // > Custom code page: toggleEdge - line 423
+    function toggleTeacherMode() { // > Custom code page: toggleEdge - line 424
+      stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 425
+      clearTeacherHighlight(); // > Custom code page: toggleEdge - line 426
+      teacherMode = !teacherMode; // > Custom code page: toggleEdge - line 427
+      setTeacherStatus( // > Custom code page: toggleEdge - line 428
+        teacherMode ? "Teacher mode enabled" : "Teacher mode hidden", // > Custom code page: toggleEdge - line 429
+        teacherMode ? "Hints, step-by-step reasoning, and teacher playback are now available." : "Only the puzzle controls remain visible.", // > Custom code page: toggleEdge - line 430
+        teacherMode ? "Use Hint for a suggestion, Next Step for a demonstrated move, and Play Thinking for a narrated walkthrough." : "You can turn teacher mode back on at any time." // > Custom code page: toggleEdge - line 431
+      ); // > Custom code page: toggleEdge - line 432
+    } // > Custom code page: toggleEdge - line 433
+   // > Custom code page: toggleEdge - line 434
+    function autoSolve() { // > Custom code page: toggleEdge - line 435
+      stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 436
+      clearTeacherHighlight(); // > Custom code page: toggleEdge - line 437
+      if (gameOver) { // > Custom code page: toggleEdge - line 438
+        setTeacherStatus("Puzzle solved", "This puzzle is already complete.", "Choose another puzzle or press Reset to explore again."); // > Custom code page: toggleEdge - line 439
+        return; // > Custom code page: toggleEdge - line 440
+      } // > Custom code page: toggleEdge - line 441
+      var result = solveFromCurrentBoard(true); // > Custom code page: toggleEdge - line 442
+      if (!result.success) { // > Custom code page: toggleEdge - line 443
+        if (result.contradiction && result.contradiction.nodes && result.contradiction.nodes.length) highlightNodes(result.contradiction.nodes); // > Custom code page: toggleEdge - line 444
+        setTeacherStatus("Cannot solve from here", result.contradiction ? result.contradiction.explanation : "This board state is inconsistent.", "Undo a few moves and try again."); // > Custom code page: toggleEdge - line 445
+        return; // > Custom code page: toggleEdge - line 446
+      } // > Custom code page: toggleEdge - line 447
+      applySolvedBoard(result, "Auto-solver"); // > Custom code page: toggleEdge - line 448
+    } // > Custom code page: toggleEdge - line 449
+   // > Custom code page: toggleEdge - line 450
+    function toggleEdge(edgeIdx) { // > Custom code page: toggleEdge - line 451
+      if (gameOver) return; // > Custom code page: toggleEdge - line 452
+      stopTeacherAutoPlay(); // > Custom code page: toggleEdge - line 453
+      teacherFocusNodes = []; // > Custom code page: toggleEdge - line 454
+      var nextState = (linesActive[edgeIdx] + 1) % 3; // > Custom code page: toggleEdge - line 455
+      setEdgeVisualState(edgeIdx, nextState); // > Custom code page: toggleEdge - line 456
+      recomputeNodeValsAndColors(); // > Custom code page: toggleEdge - line 457
+      if (finishIfSolved("Completed! Well done!")) { // > Custom code page: toggleEdge - line 458
+        setTeacherStatus("Puzzle solved", "You satisfied every clue on the board.", "Use another puzzle, or reset this one and compare your strategy with Teacher Mode."); // > Custom code page: toggleEdge - line 459
+        return; // > Custom code page: toggleEdge - line 460
+      } // > Custom code page: toggleEdge - line 461
+      setTeacherStatus("Board updated", "You changed one edge.", "Use Hint or Next Step to see what a solver would examine from this position."); // > Custom code page: toggleEdge - line 462
+    } // > Custom code page: toggleEdge - line 463
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['Init Page']) return;
+    if (_isMobile){ // > Initialization page: Init Page - line 1
+      //do nothing // > Initialization page: Init Page - line 2
+    } // > Initialization page: Init Page - line 3
+    else{ // > Initialization page: Init Page - line 4
+        // copy this into the initialization // > Initialization page: Init Page - line 5
+        // make the font bigger // > Initialization page: Init Page - line 6
+      _view.plottingPanel.getMessageDecoration("TL").getFont().setFontSize("2vw"); // > Initialization page: Init Page - line 7
+      _view.plottingPanel.getMessageDecoration("TR").getFont().setFontSize("2vw"); // > Initialization page: Init Page - line 8
+      _view.plottingPanel.getMessageDecoration("BL").getFont().setFontSize("2vw"); // > Initialization page: Init Page - line 9
+      _view.plottingPanel.getMessageDecoration("BR").getFont().setFontSize("2vw"); // > Initialization page: Init Page - line 10
+    } // > Initialization page: Init Page - line 11
+     // > Initialization page: Init Page - line 12
+    // initialising the grid (bottom row up) // > Initialization page: Init Page - line 13
+    currentPuzzleName = currentPuzzleName || "puzzle 1"; // > Initialization page: Init Page - line 14
+    grid = getPuzzleGrid(currentPuzzleName); // > Initialization page: Init Page - line 15
+     // > Initialization page: Init Page - line 16
+    // creating all the arrays // > Initialization page: Init Page - line 17
+    nodeVal = []; // > Initialization page: Init Page - line 18
+     // > Initialization page: Init Page - line 19
+    linesX = []; // > Initialization page: Init Page - line 20
+    linesY = []; // > Initialization page: Init Page - line 21
+    linesXSize = []; // > Initialization page: Init Page - line 22
+    linesYSize = []; // > Initialization page: Init Page - line 23
+    linesColor = []; // > Initialization page: Init Page - line 24
+    linesActive = []; // > Initialization page: Init Page - line 25
+    linesAttribute = []; // > Initialization page: Init Page - line 26
+    edgeList = []; // > Initialization page: Init Page - line 27
+     // > Initialization page: Init Page - line 28
+    //start lookang trying to create hotdots for clicking lines // > Initialization page: Init Page - line 29
+    linesXoffset1 = [] // > Initialization page: Init Page - line 30
+    linesYoffset1 = [] // > Initialization page: Init Page - line 31
+    linesXoffset2 = [] // > Initialization page: Init Page - line 32
+    linesYoffset2 = [] // > Initialization page: Init Page - line 33
+     // > Initialization page: Init Page - line 34
+     // > Initialization page: Init Page - line 35
+    circleX = []; // > Initialization page: Init Page - line 36
+    circleY = []; // > Initialization page: Init Page - line 37
+    circleColor = []; // > Initialization page: Init Page - line 38
+     // > Initialization page: Init Page - line 39
+    textX = []; // > Initialization page: Init Page - line 40
+    textY = []; // > Initialization page: Init Page - line 41
+     // > Initialization page: Init Page - line 42
+    // generate lines // > Initialization page: Init Page - line 43
+    for(var i = 0; i < numOfRows; i++) { // > Initialization page: Init Page - line 44
+      for(var j = 0; j < numOfCols; j++) {    // > Initialization page: Init Page - line 45
+        var curX = j * linesLength;  // > Initialization page: Init Page - line 46
+        var curY = i * linesLength; // > Initialization page: Init Page - line 47
+         // > Initialization page: Init Page - line 48
+        // horizontal lines // > Initialization page: Init Page - line 49
+        if(j < numOfCols - 1) { // > Initialization page: Init Page - line 50
+          linesX.push(curX); linesXSize.push(linesLength); // > Initialization page: Init Page - line 51
+          linesY.push(curY); linesYSize.push(0); // > Initialization page: Init Page - line 52
+           // > Initialization page: Init Page - line 53
+          edgeList.push([i * numOfRows + j, i * numOfRows + j + 1]); // > Initialization page: Init Page - line 54
+           // > Initialization page: Init Page - line 55
+          //start lookang trying to create hotdots for clicking lines // > Initialization page: Init Page - line 56
+          // hotdots position // > Initialization page: Init Page - line 57
+          linesXoffset1.push(curX + linesLength * offset); // > Initialization page: Init Page - line 58
+          linesYoffset1.push(curY); // > Initialization page: Init Page - line 59
+           // > Initialization page: Init Page - line 60
+          linesXoffset2.push(curX + linesLength * (1 -offset)); // > Initialization page: Init Page - line 61
+          linesYoffset2.push(curY); // > Initialization page: Init Page - line 62
+        } // > Initialization page: Init Page - line 63
+        // vertical lines // > Initialization page: Init Page - line 64
+        if(i < numOfRows - 1) { // > Initialization page: Init Page - line 65
+          linesX.push(curX); linesXSize.push(0); // > Initialization page: Init Page - line 66
+          linesY.push(curY); linesYSize.push(linesLength); // > Initialization page: Init Page - line 67
+           // > Initialization page: Init Page - line 68
+          edgeList.push([i * numOfRows + j, (i + 1) * numOfRows + j]); // > Initialization page: Init Page - line 69
+           // > Initialization page: Init Page - line 70
+          // hotdots position // > Initialization page: Init Page - line 71
+          linesXoffset1.push(curX); // > Initialization page: Init Page - line 72
+          linesYoffset1.push(curY + linesLength * offset); // > Initialization page: Init Page - line 73
+           // > Initialization page: Init Page - line 74
+          linesXoffset2.push(curX); // > Initialization page: Init Page - line 75
+          linesYoffset2.push(curY + linesLength * (1 - offset)); // > Initialization page: Init Page - line 76
+        } // > Initialization page: Init Page - line 77
+         // > Initialization page: Init Page - line 78
+        // diagonally left // > Initialization page: Init Page - line 79
+        if(j > 0 && i < numOfRows - 1){ // > Initialization page: Init Page - line 80
+          linesX.push(curX); linesXSize.push(-linesLength); // > Initialization page: Init Page - line 81
+          linesY.push(curY); linesYSize.push(linesLength); // > Initialization page: Init Page - line 82
+      // > Initialization page: Init Page - line 83
+          edgeList.push([i * numOfRows + j, (i + 1) * numOfRows + j - 1]); // > Initialization page: Init Page - line 84
+           // > Initialization page: Init Page - line 85
+          // hotdots position // > Initialization page: Init Page - line 86
+          linesXoffset1.push(curX - linesLength * offset); // > Initialization page: Init Page - line 87
+          linesYoffset1.push(curY + linesLength * offset); // > Initialization page: Init Page - line 88
+           // > Initialization page: Init Page - line 89
+          linesXoffset2.push(curX - linesLength * (1 - offset)); // > Initialization page: Init Page - line 90
+          linesYoffset2.push(curY + linesLength * (1 - offset)); // > Initialization page: Init Page - line 91
+        } // > Initialization page: Init Page - line 92
+         // > Initialization page: Init Page - line 93
+        // diagonally right // > Initialization page: Init Page - line 94
+        if(j < numOfCols - 1 && i < numOfRows - 1) { // > Initialization page: Init Page - line 95
+          linesX.push(curX); linesXSize.push(linesLength); // > Initialization page: Init Page - line 96
+          linesY.push(curY); linesYSize.push(linesLength); // > Initialization page: Init Page - line 97
+           // > Initialization page: Init Page - line 98
+          edgeList.push([i * numOfRows + j, (i + 1) * numOfRows + j + 1]); // > Initialization page: Init Page - line 99
+           // > Initialization page: Init Page - line 100
+          // hotdots position // > Initialization page: Init Page - line 101
+          linesXoffset1.push(curX + linesLength * offset); // > Initialization page: Init Page - line 102
+          linesYoffset1.push(curY + linesLength * offset); // > Initialization page: Init Page - line 103
+           // > Initialization page: Init Page - line 104
+          linesXoffset2.push(curX + linesLength * (1 - offset)); // > Initialization page: Init Page - line 105
+          linesYoffset2.push(curY + linesLength * (1 - offset)); // > Initialization page: Init Page - line 106
+        } // > Initialization page: Init Page - line 107
+         // > Initialization page: Init Page - line 108
+        nodeVal.push(0); // > Initialization page: Init Page - line 109
+        // circle position (the vertices) // > Initialization page: Init Page - line 110
+        circleX.push(curX); // > Initialization page: Init Page - line 111
+        circleY.push(curY); // > Initialization page: Init Page - line 112
+        circleColor.push("white"); // > Initialization page: Init Page - line 113
+        // number text // > Initialization page: Init Page - line 114
+        textX.push(curX); // > Initialization page: Init Page - line 115
+        textY.push(curY); // > Initialization page: Init Page - line 116
+      } // > Initialization page: Init Page - line 117
+    } // > Initialization page: Init Page - line 118
+     // > Initialization page: Init Page - line 119
+    // initialising linesAttribute, linesActive and linesColor // > Initialization page: Init Page - line 120
+    for(var i = 0; i < linesX.length; i++){ // > Initialization page: Init Page - line 121
+      linesAttribute.push( // > Initialization page: Init Page - line 122
+        { // > Initialization page: Init Page - line 123
+          "stroke-dasharray": "10 5" // > Initialization page: Init Page - line 124
+        } // > Initialization page: Init Page - line 125
+      ); // > Initialization page: Init Page - line 126
+      linesColor.push(linesColorInactive); // > Initialization page: Init Page - line 127
+      linesActive.push(0);   // > Initialization page: Init Page - line 128
+    } // > Initialization page: Init Page - line 129
+     // > Initialization page: Init Page - line 130
+    console.log(edgeList); // > Initialization page: Init Page - line 131
+    setTeacherStatus("Ready", "Choose edges so that each number matches the count of active edges touching it.", "Teacher Mode can explain the next local deduction for " + currentPuzzleName + "."); // > Initialization page: Init Page - line 132
+     // > Initialization page: Init Page - line 133
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['debug']) return;
+    for (var i=0; i<n  ; i++) { // > Initialization page: debug - line 1
+      textdebug[i]= 1+i; // > Initialization page: debug - line 2
+    } // > Initialization page: debug - line 3
+     // > Initialization page: debug - line 4
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['esc']) return;
+     // > Initialization page: esc - line 1
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled['FixRel Page 1']) return;
+    document.onkeydown = function(evt) { // > Fixed Relations page: FixRel Page 1 - line 1
+        evt = evt || window.event; // > Fixed Relations page: FixRel Page 1 - line 2
+        var isEscape = false; // > Fixed Relations page: FixRel Page 1 - line 3
+        if ("key" in evt) { // > Fixed Relations page: FixRel Page 1 - line 4
+            isEscape = (evt.key === "Escape" || evt.key === "Esc"); // > Fixed Relations page: FixRel Page 1 - line 5
+        } else { // > Fixed Relations page: FixRel Page 1 - line 6
+            isEscape = (evt.keyCode === 27); // > Fixed Relations page: FixRel Page 1 - line 7
+        } // > Fixed Relations page: FixRel Page 1 - line 8
+        if (isEscape) { // > Fixed Relations page: FixRel Page 1 - line 9
+            toggleTeacherMode(); // > Fixed Relations page: FixRel Page 1 - line 10
+        } // > Fixed Relations page: FixRel Page 1 - line 11
+    }; // > Fixed Relations page: FixRel Page 1 - line 12
+  });
+
+  // Intentionally repeated
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model._fontResized = function(iBase,iSize,iDelta) {
+    _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _createView() {
+    _view = new _simulationView(_topFrame,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      _view.comboBox.setAction('OnChange', function(_data, _info) { // Action OnChange for element comboBox
+        var opts = _view.comboBox.getProperty("SelectedOptions"); // property OnChange of comboBox: line 1
+        var option = (opts.length > 0) ? opts[0] : currentPuzzleName; // property OnChange of comboBox: line 2
+        stopTeacherAutoPlay(); // property OnChange of comboBox: line 3
+        currentPuzzleName = option || "puzzle 1"; // property OnChange of comboBox: line 4
+        _reset(); // property OnChange of comboBox: line 5
+      });
+      _view.comboBox.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of comboBox
+      _view.reset.setAction('OnClick', function(_data, _info) { // Action OnClick for element reset
+        stopTeacherAutoPlay(); // property OnClick of reset: line 1
+        _reset(); // property OnClick of reset: line 2
+      });
+      _view.reset.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of reset
+      _view.teacherModeBtn.linkProperty('Text', function() { return teacherMode?"Teacher: On":"Teacher: Off"; }); // linking Text of teacherModeBtn
+      _view.teacherModeBtn.setAction('OnClick', function(_data, _info) { // Action OnClick for element teacherModeBtn
+        toggleTeacherMode(); // property OnClick of teacherModeBtn: line 1
+      });
+      _view.teacherModeBtn.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of teacherModeBtn
+      _view.hintBtn.setAction('OnClick', function(_data, _info) { // Action OnClick for element hintBtn
+        showHint(); // property OnClick of hintBtn: line 1
+      });
+      _view.hintBtn.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of hintBtn
+      _view.hintBtn.linkProperty('Display', function() { return teacherMode?"inline":"none"; }); // linking Display of hintBtn
+      _view.stepBtn.setAction('OnClick', function(_data, _info) { // Action OnClick for element stepBtn
+        stepTeacherReasoning(); // property OnClick of stepBtn: line 1
+      });
+      _view.stepBtn.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of stepBtn
+      _view.stepBtn.linkProperty('Display', function() { return teacherMode?"inline":"none"; }); // linking Display of stepBtn
+      _view.playBtn.linkProperty('Text', function() { return autoPlayRunning?"Stop Play":"Play Thinking"; }); // linking Text of playBtn
+      _view.playBtn.setAction('OnClick', function(_data, _info) { // Action OnClick for element playBtn
+        toggleTeacherPlayback(); // property OnClick of playBtn: line 1
+      });
+      _view.playBtn.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of playBtn
+      _view.playBtn.linkProperty('Display', function() { return teacherMode?"inline":"none"; }); // linking Display of playBtn
+      _view.autoSolveBtn.linkProperty('Text', function() { return teacherMode?"Solve Now":"Auto-solve"; }); // linking Text of autoSolveBtn
+      _view.autoSolveBtn.setAction('OnClick', function(_data, _info) { // Action OnClick for element autoSolveBtn
+        autoSolve(); // property OnClick of autoSolveBtn: line 1
+      });
+      _view.autoSolveBtn.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of autoSolveBtn
+      _view.plottingPanel.setAction('OnMove', function(_data, _info) { // Action OnMove for element plottingPanel
+        playing = false; // property OnMove of plottingPanel: line 1
+      });
+      _view.segmentSet.linkProperty('SizeX', function() { return linesXSize; }, function(_v) { linesXSize = _v; }); // linking SizeX of segmentSet
+      _view.segmentSet.linkProperty('X', function() { return linesX; }, function(_v) { linesX = _v; }); // linking X of segmentSet
+      _view.segmentSet.linkProperty('Attributes', function() { return linesAttribute; }, function(_v) { linesAttribute = _v; }); // linking Attributes of segmentSet
+      _view.segmentSet.linkProperty('LineColor', function() { return linesColor; }, function(_v) { linesColor = _v; }); // linking LineColor of segmentSet
+      _view.segmentSet.linkProperty('Y', function() { return linesY; }, function(_v) { linesY = _v; }); // linking Y of segmentSet
+      _view.segmentSet.setAction('OnPress', function(_data, _info) { // Action OnPress for element segmentSet
+        toggleEdge(linesInteract); // property OnPress of segmentSet: line 1
+      });
+      _view.segmentSet.linkProperty('SizeY', function() { return linesYSize; }, function(_v) { linesYSize = _v; }); // linking SizeY of segmentSet
+      _view.segmentSet.linkProperty('ElementInteracted', function() { return linesInteract; }, function(_v) { linesInteract = _v; }); // linking ElementInteracted of segmentSet
+      _view.shapeSet.linkProperty('FillColor', function() { return circleColor; }, function(_v) { circleColor = _v; }); // linking FillColor of shapeSet
+      _view.shapeSet.linkProperty('SizeX', function() { return circleLength; }, function(_v) { circleLength = _v; }); // linking SizeX of shapeSet
+      _view.shapeSet.linkProperty('X', function() { return circleX; }, function(_v) { circleX = _v; }); // linking X of shapeSet
+      _view.shapeSet.linkProperty('Y', function() { return circleY; }, function(_v) { circleY = _v; }); // linking Y of shapeSet
+      _view.shapeSet.linkProperty('SizeY', function() { return circleLength; }, function(_v) { circleLength = _v; }); // linking SizeY of shapeSet
+      _view.textSet.linkProperty('X', function() { return textX; }, function(_v) { textX = _v; }); // linking X of textSet
+      _view.textSet.linkProperty('Y', function() { return textY; }, function(_v) { textY = _v; }); // linking Y of textSet
+      _view.textSet.linkProperty('Text', function() { return grid; }, function(_v) { grid = _v; }); // linking Text of textSet
+      _view.textSet.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of textSet
+      _view.hotclickpoints.linkProperty('FillColor', function() { return linesColor; }, function(_v) { linesColor = _v; }); // linking FillColor of hotclickpoints
+      _view.hotclickpoints.linkProperty('X', function() { return linesXoffset1; }, function(_v) { linesXoffset1 = _v; }); // linking X of hotclickpoints
+      _view.hotclickpoints.linkProperty('Y', function() { return linesYoffset1; }, function(_v) { linesYoffset1 = _v; }); // linking Y of hotclickpoints
+      _view.hotclickpoints.setAction('OnPress', function(_data, _info) { // Action OnPress for element hotclickpoints
+        toggleEdge(linesInteract); // property OnPress of hotclickpoints: line 1
+      });
+      _view.hotclickpoints.linkProperty('ElementInteracted', function() { return linesInteract; }, function(_v) { linesInteract = _v; }); // linking ElementInteracted of hotclickpoints
+      _view.hotclickpoints2.linkProperty('FillColor', function() { return linesColor; }, function(_v) { linesColor = _v; }); // linking FillColor of hotclickpoints2
+      _view.hotclickpoints2.linkProperty('X', function() { return linesXoffset2; }, function(_v) { linesXoffset2 = _v; }); // linking X of hotclickpoints2
+      _view.hotclickpoints2.linkProperty('Y', function() { return linesYoffset2; }, function(_v) { linesYoffset2 = _v; }); // linking Y of hotclickpoints2
+      _view.hotclickpoints2.setAction('OnPress', function(_data, _info) { // Action OnPress for element hotclickpoints2
+        toggleEdge(linesInteract); // property OnPress of hotclickpoints2: line 1
+      });
+      _view.hotclickpoints2.linkProperty('ElementInteracted', function() { return linesInteract; }, function(_v) { linesInteract = _v; }); // linking ElementInteracted of hotclickpoints2
+      _view.teacherStatus.linkProperty('Text', function() { return teacherStatusHtml; }, function(_v) { teacherStatusHtml = _v; }); // linking Text of teacherStatus
+      _view.teacherStatus.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of teacherStatus
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _createView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _createView(); // this includes _model.reset()
+  return _model;
+}
+
+function _simulationView (_topFrame,_libraryPath,_codebasePath) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  if (_libraryPath)  _view._setLibraryPath(_libraryPath);
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  _view._addDescriptionPage("Intro Page","_description_0.html");
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel, 'topPanel', _view._topFrame);
+    _view._addElement(EJSS_INTERFACE.comboBox, 'comboBox', _view.topPanel)
+      .setProperty("Options",["puzzle 1","puzzle 2","puzzle 3","puzzle 4"])
+      .setProperty("Disabled",false)
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'reset', _view.topPanel)
+      .setProperty("Text","Reset")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'teacherModeBtn', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.button, 'hintBtn', _view.topPanel)
+      .setProperty("Text","Hint")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'stepBtn', _view.topPanel)
+      .setProperty("Text","Next Step")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'playBtn', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.button, 'autoSolveBtn', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.panel, 'mainPanel', _view._topFrame);
+    _view._addElement(EJSS_DRAWING2D.plottingPanel, 'plottingPanel', _view.mainPanel)
+      .setProperty("Height","90vh")
+      .setProperty("Width","100%")
+      .setProperty("Gutters",[0,0,0,0])
+      .setProperty("YScalePrecision",0)
+      .setProperty("XFixedTick",0)
+      .setProperty("Enabled",true)
+      .setProperty("SquareAspect",true)
+      .setProperty("YFixedTick",0)
+      .setProperty("YAutoTicks",false)
+      .setProperty("XTickStep",1)
+      .setProperty("YTickStep",1)
+      .setProperty("AutoScaleY",true)
+      .setProperty("AutoScaleX",true)
+      .setProperty("CursorTypeForMove","pointer")
+      .setProperty("XAutoTicks",false)
+      .setProperty("XScalePrecision",0)
+      ;
+    _view._addElement(EJSS_DRAWING2D.segmentSet, 'segmentSet', _view.plottingPanel)
+      .setProperty("LineWidth",4)
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'shapeSet', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.textSet, 'textSet', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.group, 'debug', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'hotclickpoints', _view.debug)
+      .setProperty("SizeX",0.1)
+      .setProperty("ShapeType","ELLIPSE")
+      .setProperty("SizeY",0.1)
+      .setProperty("DrawLines",false)
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'hotclickpoints2', _view.debug)
+      .setProperty("SizeX",0.1)
+      .setProperty("ShapeType","ELLIPSE")
+      .setProperty("SizeY",0.1)
+      .setProperty("DrawLines",false)
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      ;
+    _view._addElement(EJSS_INTERFACE.panel, 'bottomPanel', _view._topFrame)
+      .setProperty("Html","<iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/z0Ofm-U6_C4?si=6wHFE52P9He0vZ5Y\" title=\"YouTube video player\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" referrerpolicy=\"strict-origin-when-cross-origin\" allowfullscreen></iframe>")
+      ;
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'instructions', _view.bottomPanel)
+      .setProperty("TextAlign","left")
+      .setProperty("Text","<h1>Sun Game</h1> <b>Objective</b>: Activate the correct edges so that the number of active edges touching each node matches the clue on that node.<br/><br/><b>Controls</b>: Click an edge once to activate it, a second time to flag it as impossible, and a third time to return it to undecided.<br/><br/><b>Teacher tools</b>: Use Hint for the next logical observation, Next Step to demonstrate it, Play Thinking to walk through the deduction, and Solve Now when you want the computer to finish.")
+      ;
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'teacherStatus', _view.bottomPanel)
+      .setProperty("TextAlign","left")
+      ;
+  }; // end of _view._reset
+  return _view;
+}
+
+    //--><!]]></script>
+
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+    <div id='metadata' class='metadata'>
+      <br />
+      <div id='title_author'>
+        <hr />
+        <b>Title and author:</b>
+        <p>
+          ejss_model_sunGame2 Strategy Math Sun Game<br/>
+          <img alt='Logo' src='./sunGame/Screenshot 2021-04-13 at 9.31.37 PM (2).png'/>
+        </p>
+        <p>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+shaun, lookang, based on idea by theresa
+        </p>
+        <hr />
+      </div>
+      <p></p>
+      <div id='copyright_message'>
+        <div class='cc_left'  style='float:left'>
+          &#169;2026, shaun, lookang, based on idea by theresa. <br />
+          Compiled with <a href='https://t.um.es/webejs' target='_blank'>WebEJS : the web version of Easy JavaScript Simulations</a>.<br />
+          Version 1.0 (240505)
+        </div>
+        <div class='cc_right' style='float:right'>
+          Released under a <a rel='license' target='_blank' href='https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US'>
+          <img alt='Creative Commons Attribution-NonCommercial-ShareAlike' src='./_ejs_library/images/cc_icon.png' />
+          </a> license.
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () {
+          _model = new _simulation("_topFrame","./_ejs_library/",null);
+
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+                _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+                },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

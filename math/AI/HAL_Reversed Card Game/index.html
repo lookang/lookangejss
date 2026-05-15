@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reverse the Cards Game</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      padding: 0 10px;
+    }
+    h1, h2, h3 {
+      text-align: center;
+    }
+
+    /* Game Information Section */
+    #gameInfo {
+      border: 2px solid #333;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: #f9f9f9;
+    }
+    #gameInfo h2 {
+      margin-top: 0;
+    }
+    #gameInfo p, #gameInfo ul {
+      text-align: left;
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    /* The yellow "start challenge" box at the end of Game Information */
+    #startChallengeBox {
+      background: yellow;
+      border: 2px solid #333;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    /* Button for toggling the Game Information (top-right corner) */
+    #toggleGameInfoButton {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      border: 1px solid #333;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: bold;
+      display: none; /* hidden at first */
+      z-index: 1000;
+      color: #000; /* black text for contrast */
+    }
+
+    /* Setup area for Player 1 */
+    #setup {
+      margin: 20px;
+    }
+    /* Game area for Player 2 */
+    #gameArea {
+      display: none;
+    }
+    /* Display for Player 1’s original order */
+    #originalOrderDisplay {
+      margin: 10px auto;
+      padding: 10px;
+      border: 2px solid #333;
+      display: inline-block;
+    }
+    #originalOrderDisplay h3 {
+      margin: 0 0 5px;
+      font-size: 18px;
+    }
+    .original-card {
+      width: 30px;
+      height: 40px;
+      border: 1px solid #333;
+      display: inline-block;
+      margin: 0 2px;
+      line-height: 40px;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    #instructionsText {
+      margin: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* Control buttons */
+    #controls button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    /* Board container for Player 2’s area */
+    #boardContainer {
+      margin: 20px auto;
+    }
+    #board {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px auto;
+    }
+
+    /* Style for movable cards (with alphabets) */
+    .card {
+      width: 50px;
+      height: 70px;
+      border: 2px solid #333;
+      border-radius: 5px;
+      margin: 0 5px;
+      font-size: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    /* Bold border when selected */
+    .card.selected {
+      border: 4px solid black;
+    }
+
+    /* Dropzone style */
+    .dropzone {
+      width: 20px;
+      height: 80px;
+      margin: 0 2px;
+      border: 2px dashed #ccc;
+      display: inline-block;
+    }
+    .dropzone.hovered {
+      border-color: #000;
+    }
+
+    /* Moves history and success message */
+    #movesHistory {
+      margin: 20px auto;
+      width: 80%;
+      text-align: left;
+    }
+    #successMessage {
+      margin: 20px auto;
+      font-size: 24px;
+      font-weight: bold;
+      color: green;
+      display: none;
+    }
+
+    /* Simple fireworks/confetti effect */
+    .fireworks {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+      overflow: hidden;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(100vh); opacity: 0; }
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: red;
+      animation: confetti-fall 2s linear infinite;
+    }
+  </style>
+<script 
+async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+</head>
+<body>
+  <h1>Reverse the Cards Game</h1>
+
+  <!-- Game Information Section -->
+  <div id="gameInfo">
+    <h2>Game Information</h2>
+    <h3>Rules</h3>
+    <ul>
+      <li>Player 1 selects a level of difficulty and sets the order of cards by entering the alphabets (with no repeats).</li>
+      <li>Player 2 must select one or more cards in one move, but the cards selected must be next to each other—forming a continuous sequence with no gaps—when dragging to re-arrange them. Each drag-and-drop counts as one move.</li>
+      <li>Use the UNDO button to revert your last move, IMPROVE MOVES to try for a lower move count, and RESET to start a new game.</li>
+    </ul>
+    <h3>About the Game</h3>
+    <p>
+      In this two-player puzzle game, Player 1 sets an initial order of cards (each showing a different alphabet).
+      Each card is displayed with a bright color. Player 2’s challenge is to rearrange these cards by dragging a group of cards (that are next to each other) so that the final order is the reverse of the original order.
+    </p>
+    <h3>Instructions</h3>
+    <ul>
+      <li>Player 1 selects a level of difficulty and sets the order of cards by entering the alphabets.</li>
+      <li>Player 2 then selects one or more cards at a time (the selected cards must be next to each other) and drags them to a new position. Each drag-and-drop counts as one move.</li>
+      <li>Use the UNDO button to revert your last move, IMPROVE MOVES to try for a lower move count, and RESET to start a new game.</li>
+    </ul>
+    <h3>Example (Level 1 with 4 cards: ABCD)</h3>
+    <p>
+      Suppose the initial order is: A B C D (the goal is D C B A). Here are three sample moves—all count as one move each:
+    </p>
+    <ul>
+      <li><strong>Example 1 (Moving one card from the back to the front):</strong> Drag card D from the back to the front to get: D A B C.</li>
+      <li><strong>Example 2 (Moving two cards from the back to the front):</strong> Drag the group “C D” (which are next to each other) from the back to the front to get: C D A B.</li>
+      <li><strong>Example 3 (Moving one card from the front to the back):</strong> Drag card A from the front to the back to get: B C D A.</li>
+    </ul>
+    <p>
+      (These examples show that whether you drag 1, 2, or more cards in one move, it is counted as one move, and moves can be made in either direction.)
+    </p>
+    <!-- Start Challenge Box -->
+    <div id="startChallengeBox">Click here once you are ready to start the challenge!</div>
+  </div>
+
+  <!-- Player 1 Setup -->
+  <div id="setup">
+    <h2>Player 1: Set the Order of Cards</h2>
+    <p>Select Level:</p>
+    <select id="levelSelect">
+      <option value="5">Level 1 (5 cards)</option>
+      <option value="6" selected>Level 2 (6 cards)</option>
+      <option value="7">Level 3 (7 cards)</option>
+      <option value="8">Level 4 (8 cards)</option>
+    </select>
+    <p id="setupInstructions"></p>
+    <p>
+      Enter <span id="cardCountDisplay"></span> alphabets (e.g., <span id="defaultValueDisplay"></span>):
+    </p>
+    <!-- type="button" to avoid form submission or page jump -->
+    <input type="text" id="player1Input" maxlength="6" value="ABCDEF">
+    <p><em>Reminder: The cards must not be repeated. Please use different alphabets.</em></p>
+    <button id="setOrder" type="button">Set Order</button>
+  </div>
+
+  <!-- Game Area for Player 2 -->
+  <div id="gameArea">
+    <!-- Always-visible area with Player 1’s original order -->
+    <div id="originalOrderDisplay">
+      <h3>Player 1's Original Order</h3>
+      <div id="originalCards"></div>
+    </div>
+    
+    <p id="instructionsText">
+      Player 2: Rearrange the cards into the reverse order of the above sequence.
+      Try to achieve it in as few moves as possible.
+    </p>
+    
+    <div id="controls">
+      <button id="undo">UNDO</button>
+      <button id="improveMoves">IMPROVE MOVES</button>
+      <button id="reset">RESET</button>
+    </div>
+    
+    <div id="boardContainer">
+      <div id="board"></div>
+    </div>
+    
+    <div id="movesHistory"></div>
+    <div id="successMessage"></div>
+  </div>
+
+  <!-- Toggle button for Game Information (top-right corner) -->
+  <div id="toggleGameInfoButton">Click here for game information!</div>
+  
+  <div class="fireworks" id="fireworks"></div>
+
+  <!-- Place the script here, at the end of the body, so DOM elements exist -->
+  <script>
+    // Global state variables
+    let originalBoard = [];
+    let board = [];
+    let goal = [];
+    let moveCount = 0;
+    let movesHistory = [];
+    let undoStack = [];
+    let selectionStart = null;
+    let selectionEnd = null;
+    // Mapping of each alphabet to a color
+    let cardColorsMapping = {};
+    // Extended bright colors (for up to 8 cards); note: the 6th color is lighter purple ("plum")
+    const extendedColors = ['red', 'orange', 'yellow', 'green', 'blue', 'plum', 'magenta', 'cyan'];
+    // Current card count (default from levelSelect)
+    let cardCount = 6; // default Level 2
+
+    // For toggling the Game Info
+    let infoVisible = true; // Initially visible
+
+    // Function to compute default alphabet string based on cardCount
+    function computeDefaultValue(n) {
+      let str = "";
+      for (let i = 0; i < n; i++) {
+        str += String.fromCharCode(65 + i);
+      }
+      return str;
+    }
+
+    // Update setup instructions when level changes
+    function updateSetupInstructions() {
+      cardCount = parseInt(document.getElementById('levelSelect').value);
+      document.getElementById('cardCountDisplay').textContent = cardCount;
+      const defaultVal = computeDefaultValue(cardCount);
+      document.getElementById('defaultValueDisplay').textContent = defaultVal;
+      document.getElementById('player1Input').maxLength = cardCount;
+      document.getElementById('player1Input').value = defaultVal;
+      document.getElementById('setupInstructions').textContent = 
+        "Please set the order for cards " + defaultVal.split("").join(", ") + ".";
+    }
+
+    // Initialize setup instructions on page load
+    updateSetupInstructions();
+    document.getElementById('levelSelect').addEventListener('change', updateSetupInstructions);
+
+    // Helper: make a shallow copy of an array
+    function copyBoard(arr) {
+      return arr.slice();
+    }
+
+    // Render Player 1's original order (as colored cards with alphabets)
+    function renderOriginalOrder() {
+      const originalCardsDiv = document.getElementById('originalCards');
+      originalCardsDiv.innerHTML = '';
+      originalBoard.forEach(letter => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'original-card';
+        cardDiv.textContent = letter;
+        cardDiv.style.backgroundColor = cardColorsMapping[letter];
+        cardDiv.style.color = (cardColorsMapping[letter] === "yellow") ? "black" : "white";
+        originalCardsDiv.appendChild(cardDiv);
+      });
+    }
+
+    // Render the game board for Player 2
+    function renderBoard() {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      for (let i = 0; i <= board.length; i++) {
+        const dz = document.createElement('div');
+        dz.className = 'dropzone';
+        dz.dataset.index = i;
+        dz.addEventListener('dragover', onDragOver);
+        dz.addEventListener('dragleave', onDragLeave);
+        dz.addEventListener('drop', onDrop);
+        boardDiv.appendChild(dz);
+        if (i < board.length) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.textContent = board[i];
+          card.dataset.index = i;
+          card.style.backgroundColor = cardColorsMapping[board[i]];
+          card.style.color = (cardColorsMapping[board[i]] === "yellow") ? "black" : "white";
+          if (selectionStart !== null && selectionEnd !== null && i >= selectionStart && i <= selectionEnd) {
+            card.classList.add('selected');
+          }
+          card.draggable = true;
+          card.addEventListener('click', onCardClick);
+          card.addEventListener('dragstart', onDragStart);
+          boardDiv.appendChild(card);
+        }
+      }
+      document.getElementById('undo').disabled = (undoStack.length === 0);
+    }
+
+    // Handle card clicks for selecting a group (cards must be next to each other)
+    function onCardClick(e) {
+      const index = parseInt(e.target.dataset.index);
+      if (selectionStart === null) {
+        selectionStart = index;
+        selectionEnd = index;
+      } else {
+        if (index === selectionStart - 1) {
+          selectionStart = index;
+        } else if (index === selectionEnd + 1) {
+          selectionEnd = index;
+        } else {
+          selectionStart = index;
+          selectionEnd = index;
+        }
+      }
+      renderBoard();
+    }
+
+    // When dragging starts, ensure the dragged card is in the current selection
+    function onDragStart(e) {
+      const index = parseInt(e.target.dataset.index);
+      if (selectionStart === null || index < selectionStart || index > selectionEnd) {
+        selectionStart = index;
+        selectionEnd = index;
+        renderBoard();
+      }
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData('text/plain', JSON.stringify({ start: selectionStart, end: selectionEnd }));
+    }
+
+    // Allow dropzones to accept drops
+    function onDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('hovered');
+    }
+    function onDragLeave(e) {
+      e.currentTarget.classList.remove('hovered');
+    }
+
+    // Handle drop: move the selected group into the dropzone location
+    function onDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('hovered');
+      const dropIndex = parseInt(e.currentTarget.dataset.index);
+      let data;
+      try {
+        data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      } catch (err) {
+        return;
+      }
+      let { start, end } = data;
+      if (start > end) [start, end] = [end, start];
+
+      undoStack.push(copyBoard(board));
+
+      const block = board.slice(start, end + 1);
+      board.splice(start, end - start + 1);
+
+      let insertionIndex = dropIndex;
+      if (dropIndex > start) {
+        insertionIndex = dropIndex - (end - start + 1);
+      }
+      board.splice(insertionIndex, 0, ...block);
+
+      moveCount++;
+      movesHistory.push(`Move ${moveCount}: Moved block [${block.join('')}] from position ${start + 1} to position ${insertionIndex + 1}`);
+      selectionStart = null;
+      selectionEnd = null;
+      renderBoard();
+      checkSuccess();
+    }
+
+    // Check if Player 2 has arranged the board into the reverse order
+    function checkSuccess() {
+      if (board.join('') === goal.join('')) {
+        const successDiv = document.getElementById('successMessage');
+        successDiv.textContent = `Congratulations! You have used ${moveCount} moves to arrange in reverse order!`;
+        successDiv.style.display = 'block';
+        showMovesHistory();
+        launchFireworks();
+      }
+    }
+
+    // Show move history
+    function showMovesHistory() {
+      const movesDiv = document.getElementById('movesHistory');
+      movesDiv.innerHTML = '<h3>Moves History:</h3><ol>' +
+        movesHistory.map(move => `<li>${move}</li>`).join('') +
+        '</ol>';
+    }
+
+    // UNDO last move
+    document.getElementById('undo').addEventListener('click', function() {
+      if (undoStack.length > 0) {
+        board = undoStack.pop();
+        moveCount--;
+        movesHistory.pop();
+        selectionStart = null;
+        selectionEnd = null;
+        document.getElementById('successMessage').style.display = 'none';
+        renderBoard();
+      }
+    });
+
+    // IMPROVE MOVES: Reset board to Player 1's original order
+    document.getElementById('improveMoves').addEventListener('click', function() {
+      board = copyBoard(originalBoard);
+      moveCount = 0;
+      movesHistory = [];
+      undoStack = [];
+      selectionStart = null;
+      selectionEnd = null;
+      document.getElementById('successMessage').style.display = 'none';
+      document.getElementById('movesHistory').innerHTML = '';
+      renderBoard();
+    });
+
+    // RESET: Return to setup for a new game
+    document.getElementById('reset').addEventListener('click', function() {
+      originalBoard = [];
+      board = [];
+      goal = [];
+      moveCount = 0;
+      movesHistory = [];
+      undoStack = [];
+      selectionStart = null;
+      selectionEnd = null;
+      document.getElementById('successMessage').style.display = 'none';
+      document.getElementById('movesHistory').innerHTML = '';
+      document.getElementById('boardContainer').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'none';
+      document.getElementById('setup').style.display = 'block';
+    });
+
+    // Launch a simple fireworks/confetti animation upon success
+    function launchFireworks() {
+      const fw = document.getElementById('fireworks');
+      fw.style.display = 'block';
+      for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.backgroundColor = randomColor();
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.top = '-10px';
+        confetti.style.animationDuration = (2 + Math.random() * 3) + 's';
+        confetti.style.opacity = Math.random();
+        fw.appendChild(confetti);
+      }
+      setTimeout(() => {
+        fw.innerHTML = '';
+        fw.style.display = 'none';
+      }, 5000);
+    }
+
+    // Helper: random bright color for confetti
+    function randomColor() {
+      const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // Toggle button for Game Information (top-right corner)
+    const toggleBtn = document.getElementById('toggleGameInfoButton');
+
+    // Big yellow "Start Challenge" box hides game info and shows the toggle button
+    document.getElementById('startChallengeBox').addEventListener('click', function() {
+      document.getElementById('gameInfo').style.display = 'none';
+      toggleBtn.style.display = 'block';
+      toggleBtn.textContent = 'Click here for game information!';
+      toggleBtn.style.backgroundColor = 'yellow';
+      infoVisible = false;
+    });
+
+    // Clicking the top-right button toggles the Game Information
+    toggleBtn.addEventListener('click', function() {
+      const gameInfo = document.getElementById('gameInfo');
+      if (infoVisible) {
+        // Currently shown, so hide it
+        gameInfo.style.display = 'none';
+        toggleBtn.textContent = 'Click here for game information!';
+        toggleBtn.style.backgroundColor = 'yellow';
+        infoVisible = false;
+      } else {
+        // Currently hidden, so show it
+        gameInfo.style.display = 'block';
+        toggleBtn.textContent = 'Click here to continue the game';
+        toggleBtn.style.backgroundColor = 'lightblue';
+        infoVisible = true;
+      }
+    });
+
+    // When Player 1 clicks "Set Order"
+    document.getElementById('setOrder').addEventListener('click', function() {
+      const input = document.getElementById('player1Input').value.trim().toUpperCase();
+      if (input.length !== cardCount) {
+        alert(`Please enter exactly ${cardCount} characters.`);
+        return;
+      }
+      if (new Set(input.split('')).size !== cardCount) {
+        alert('Please enter ' + cardCount + ' different alphabets. No repeats are allowed.');
+        return;
+      }
+      originalBoard = input.split('');
+      board = copyBoard(originalBoard);
+      goal = copyBoard(originalBoard).reverse();
+
+      cardColorsMapping = {};
+      for (let i = 0; i < originalBoard.length; i++) {
+        cardColorsMapping[originalBoard[i]] = extendedColors[i];
+      }
+
+      // Hide the setup area, show the game area
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'block';
+      document.getElementById('boardContainer').style.display = 'block';
+
+      renderOriginalOrder();
+
+      document.getElementById('instructionsText').textContent =
+        "Player 2: Rearrange the cards into the reverse order of the above sequence. Try to achieve it in as few moves as possible.";
+
+      moveCount = 0;
+      movesHistory = [];
+      undoStack = [];
+      selectionStart = null;
+      selectionEnd = null;
+      document.getElementById('successMessage').style.display = 'none';
+      document.getElementById('movesHistory').innerHTML = '';
+
+      renderBoard();
+    });
+  </script>
+
+  <footer>
+    <p>credit: made by theresa and/or hung, using Claude 4 or Gemini 2.5 Pro</p>
+    <p>For more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics</a></p>
+  </footer>
+</body>
+</html>

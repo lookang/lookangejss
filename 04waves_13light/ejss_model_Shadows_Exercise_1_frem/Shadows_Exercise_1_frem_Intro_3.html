@@ -1,0 +1,297 @@
+<html>
+  <head>
+    <title> Shadows_Exercise_1.py</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Shadows_Exercise_1.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # A point source is located a specified distance from
+    </p>
+    <p style="margin-top: 0">
+      # a rectangular aperture that is centered on the origin.
+    </p>
+    <p style="margin-top: 0">
+      # A screen is located a specified distance from
+    </p>
+    <p style="margin-top: 0">
+      # the aperture.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file will generate a filled contour plot of
+    </p>
+    <p style="margin-top: 0">
+      # the irradiance of the light reaching the screen
+    </p>
+    <p style="margin-top: 0">
+      # versus lateral coordinates (x,y)
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Written by:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20160112-13 original code by ERB
+    </p>
+    <p style="margin-top: 0">
+      # 20160609 clean up by ERB
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # import the commands needed to make the plot
+    </p>
+    <p style="margin-top: 0">
+      from pylab import 
+      xlabel,ylabel,show,contourf,axis,colorbar,figure,title,xlim,ylim
+    </p>
+    <p style="margin-top: 0">
+      from matplotlib import cm
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # import the command needed to make a 1D array
+    </p>
+    <p style="margin-top: 0">
+      from numpy import meshgrid,absolute,where,zeros,linspace
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # inputs
+    </p>
+    <p style="margin-top: 0">
+      zs = -20.0 # distance between the source and aperture [cm]
+    </p>
+    <p style="margin-top: 0">
+      zsc = 40.0 # distance between the screen and aperture [cm]
+    </p>
+    <p style="margin-top: 0">
+      rso = [5.0,0.0] # (x,y) location of the source [cm,cm]
+    </p>
+    <p style="margin-top: 0">
+      ap_width = 4.0 # aperture width [cm]
+    </p>
+    <p style="margin-top: 0">
+      ap_height = 3.0 # aperture height [cm]
+    </p>
+    <p style="margin-top: 0">
+      screen_width = 60.0 # screen width [cm]
+    </p>
+    <p style="margin-top: 0">
+      screen_height = 60.0 # wcreen height [cm]
+    </p>
+    <p style="margin-top: 0">
+      nw = 240 # Number of screen width intervals
+    </p>
+    <p style="margin-top: 0">
+      nh = 240 # Number of screen height intervals
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # initialize needed arrays to zero
+    </p>
+    <p style="margin-top: 0">
+      screen_x = zeros((nw+1,nh+1)) # x coordinates of screen points
+    </p>
+    <p style="margin-top: 0">
+      screen_y = zeros((nw+1,nh+1)) # y coordinates of screen points
+    </p>
+    <p style="margin-top: 0">
+      rsq = zeros((nw+1,nh+1)) # source-to-screen point distance, squared
+    </p>
+    <p style="margin-top: 0">
+      x0 = zeros((nw+1,nh+1)) # x coordinates of ray intercepts at aperture 
+      plane
+    </p>
+    <p style="margin-top: 0">
+      y0 = zeros((nw+1,nh+1)) # y coordinates of ray intercepts at aperture 
+      plane
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # initialize values
+    </p>
+    <p style="margin-top: 0">
+      screen_xx = linspace(-0.5*screen_width,0.5*screen_width,nw+1)
+    </p>
+    <p style="margin-top: 0">
+      screen_yy = linspace(-0.5*screen_height,0.5*screen_height,nh+1)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # create the meshgrid on which to evaluate the irradiance
+    </p>
+    <p style="margin-top: 0">
+      screen_xx, screen_yy = meshgrid(screen_xx,screen_yy)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate grid increments
+    </p>
+    <p style="margin-top: 0">
+      deltaw = screen_width/nw # grid increment, width [cm]
+    </p>
+    <p style="margin-top: 0">
+      deltah = screen_height/nh # grid increment, height [cm]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the array of screen x and screen y values
+    </p>
+    <p style="margin-top: 0">
+      for i in range (0,nw+1):
+    </p>
+    <p style="margin-top: 0">
+      for j in range (0,nh+1):
+    </p>
+    <p style="margin-top: 0">
+      screen_x[i,j] = -0.5*screen_width + deltaw*i
+    </p>
+    <p style="margin-top: 0">
+      screen_y[i,j] = -0.5*screen_height + deltah*j
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the intensity at each screen point
+    </p>
+    <p style="margin-top: 0">
+      for i in range (0,nw+1):
+    </p>
+    <p style="margin-top: 0">
+      for j in range (0,nh+1):
+    </p>
+    <p style="margin-top: 0">
+      # First calculate the square of the distance from source to screen
+    </p>
+    <p style="margin-top: 0">
+      rsq = (screen_x[i,j]-rso[0])**2 + (screen_y[i,j]-rso[1])**2 + (zsc - 
+      zs)**2
+    </p>
+    <p style="margin-top: 0">
+      # Calculate x and y coordinates at the aperture
+    </p>
+    <p style="margin-top: 0">
+      x0[i,j] = rso[0] + abs(zs)*(screen_x[i,j] - rso[0])/(zsc - zs)
+    </p>
+    <p style="margin-top: 0">
+      y0[i,j] = rso[1] + abs(zs)*(screen_y[i,j] - rso[1])/(zsc - zs)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Check if the coordinates fall within the aperture
+    </p>
+    <p style="margin-top: 0">
+      maskx = where(absolute(x0) &lt; 0.5*ap_width,1.0,0.0)
+    </p>
+    <p style="margin-top: 0">
+      masky = where(absolute(y0) &lt; 0.5*ap_height,1.0,0.0)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the intensity
+    </p>
+    <p style="margin-top: 0">
+      irradiance = maskx*masky/rsq
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # make a filled contour plot of the period vs overlap and length ratios
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      contourf(screen_yy,screen_xx,irradiance,100,cmap=cm.bone)
+    </p>
+    <p style="margin-top: 0">
+      axis('equal')
+    </p>
+    <p style="margin-top: 0">
+      xlim(-0.5*screen_width,0.5*screen_width)
+    </p>
+    <p style="margin-top: 0">
+      ylim(-0.5*screen_height,0.5*screen_height)
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;$x$ [cm]&quot;,size = 16)
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;$y$ [cm]&quot;,size = 16)
+    </p>
+    <p style="margin-top: 0">
+      title('Illumination pattern: $w = $%s cm, $h = 
+      $%s'%(ap_width,ap_height),size = 16)
+    </p>
+    <p style="margin-top: 0">
+      colorbar().set_label(label='Irradiance [arb. units]',size=16)
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

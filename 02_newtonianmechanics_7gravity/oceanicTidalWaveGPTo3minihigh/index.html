@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Mobile responsive -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oceanic Tides Simulation</title>
+  <style>
+    /* Reset and base styling */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #e0f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+    }
+    /* Control panel styling */
+    #controlPanel {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-around;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    #controlPanel button {
+      padding: 8px 12px;
+      margin: 5px;
+      font-size: 1em;
+      border: none;
+      background: #1e88e5;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #controlPanel button:hover {
+      background: #1565c0;
+    }
+    #controlPanel label {
+      font-size: 0.9em;
+      margin: 5px;
+    }
+    #controlPanel input[type="range"] {
+      margin: 5px;
+    }
+    /* Canvas styling */
+    canvas {
+      width: 100%;
+      max-width: 800px; /* expanded width for Moon visibility */
+      background: #e0f7fa;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      /* Increased height to ensure the Moon is visible at all angles */
+      height: auto;
+    }
+    /* Description styling */
+    #description {
+      max-width: 800px;
+      text-align: center;
+      padding: 10px;
+      font-size: 0.9em;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <!-- Control panel at the top -->
+  <div id="controlPanel">
+     <!-- The slider now controls simulation time (0 to 24 hours) -->
+     <label for="timeSlider">Time: <span id="timeLabel">00:00</span></label>
+     <input type="range" id="timeSlider" min="0" max="24" step="0.01" value="0">
+    <button id="playPauseBtn">Pause</button>
+    <button id="stepBtn">Step</button>
+    <button id="resetBtn">Reset</button>
+   
+    <label>Moon Angle: <span id="moonAngleLabel">0°</span></label>
+  </div>
+  
+  <!-- The canvas for simulation -->
+  <canvas id="tidesCanvas"></canvas>
+  
+  <!-- Description and credit -->
+  <div id="description">
+    <p>
+      This simulation illustrates the oceanic tides induced by the gravitational pull of a tide‑generating body (the Moon).
+      The deformation of the Earth's water envelope is exaggerated for visualization. The simulation is based on a 24‑hour cycle
+      (in a geocentric rotating frame) so that one full cycle corresponds to a day. Use the controls above to play/pause the animation,
+      step through it frame by frame, reset the simulation, or manually adjust the simulated time with the slider.
+    </p>
+    <p>
+      Credit: made by weelookang@gmail.com using GPTo3 mini high
+    </p>
+  </div>
+  
+  <!-- Google Analytics and AdSense scripts -->
+  <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+  <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  
+  <!-- Simulation JavaScript -->
+  <script>
+    // Global variables and image objects
+    const canvas = document.getElementById('tidesCanvas');
+    const ctx = canvas.getContext('2d');
+    let centerX, centerY, R;
+    const tideAmplitude = 0.2;  // Tidal exaggeration factor
+    // Define the simulation period as 24 hours in simulated milliseconds.
+    const periodSim = 24 * 3600000; // 24 hours = 86400000 ms simulated
+    // For demonstration, accelerate time so that a full day is simulated in ~150 seconds:
+    const simulationSpeed = 576*50; // simulated ms per real ms (86400000/150000 ≈ 576)
+    let simulationTime = 0;   // Simulation time in simulated ms
+    let lastUpdateTime = Date.now();
+    let paused = false;       // Controls auto-rotation
+
+    // Get control elements
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const stepBtn = document.getElementById('stepBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const timeSlider = document.getElementById('timeSlider');
+    const timeLabel = document.getElementById('timeLabel');
+    const moonAngleLabel = document.getElementById('moonAngleLabel');
+
+    // Load Earth and Moon images (using external textures)
+    const earthImg = new Image();
+    earthImg.src = "https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg";
+    const moonImg = new Image();
+    moonImg.src = "https://www.solarsystemscope.com/textures/download/2k_moon.jpg";
+
+    // Responsive canvas sizing: allow extra vertical space.
+    function resizeCanvas() {
+      // Let h be up to 700 pixels (or 70% of viewport width), and width be 120% of h.
+      let h = Math.min(window.innerWidth * 0.7, 700);
+      let w = h * 1.2;
+      let scaleFactor = 1.2;
+      canvas.width = w*scaleFactor;
+      canvas.height = h*scaleFactor;
+      centerX = canvas.width / 2;
+      centerY = canvas.height / 2;
+      R = h / 3; // Earth radius based on canvas height.
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Utility: format simulation time (in simulated ms) as HH:MM.
+    function formatSimTime(simTimeMs) {
+      let totalHours = simTimeMs / 3600000; // convert ms to hours
+      totalHours = totalHours % 24; // ensure 0 <= hours < 24
+      const hours = Math.floor(totalHours);
+      const minutes = Math.floor((totalHours - hours) * 60);
+      return String(hours).padStart(2, '0') + ":" + String(minutes).padStart(2, '0');
+    }
+
+    // Control Panel Event Listeners
+    playPauseBtn.addEventListener('click', function() {
+      paused = !paused;
+      if (!paused) {
+        // Resuming: update lastUpdateTime so that delta is small.
+        lastUpdateTime = Date.now();
+        this.textContent = "Pause";
+      } else {
+        this.textContent = "Play";
+      }
+    });
+
+    stepBtn.addEventListener('click', function() {
+      if (paused) {
+        // Advance simulated time by a small step (e.g., 0.1 hour = 6 minutes)
+        simulationTime = (simulationTime + 0.1 * 3600000) % periodSim;
+        timeSlider.value = simulationTime / 3600000;
+        timeLabel.textContent = formatSimTime(simulationTime);
+        // Update moon angle label (1 hour = 15°)
+        let angleDeg = (simulationTime / 3600000) * 15;
+        moonAngleLabel.textContent = Math.round(angleDeg) + "°";
+      }
+    });
+
+    resetBtn.addEventListener('click', function() {
+      simulationTime = 0;
+      timeSlider.value = 0;
+      timeLabel.textContent = "00:00";
+      moonAngleLabel.textContent = "0°";
+    });
+
+    // Update time slider when moved manually.
+    timeSlider.addEventListener('input', function() {
+      simulationTime = this.value * 3600000;
+      timeLabel.textContent = formatSimTime(simulationTime);
+      let angleDeg = (simulationTime / 3600000) * 15;
+      moonAngleLabel.textContent = Math.round(angleDeg) + "°";
+    });
+
+    // Main animation function.
+    function draw() {
+      const now = Date.now();
+      if (!paused) {
+        simulationTime = (simulationTime + (now - lastUpdateTime) * simulationSpeed) % periodSim;
+        // Update slider and labels.
+        let simHours = simulationTime / 3600000;
+        timeSlider.value = simHours;
+        timeLabel.textContent = formatSimTime(simulationTime);
+        let angleDeg = simHours * 15; // 24 hours -> 360°
+        moonAngleLabel.textContent = Math.round(angleDeg) + "°";
+      }
+      lastUpdateTime = now;
+
+      // Compute the Moon angle (in radians) based on simulation time.
+      // In a geocentric rotating frame, the Moon appears at an angle:
+      const moonAngle = 2 * Math.PI * ((simulationTime / 3600000) / 24);
+
+      // Clear the canvas and fill background.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#e0f7fa";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Earth image as a circular disk.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, R, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(earthImg, centerX - R, centerY - R, 2 * R, 2 * R);
+      ctx.restore();
+
+      // Draw the tidal deformation outline (using the deformed radius calculation).
+      ctx.beginPath();
+      for (let i = 0; i <= 360; i++) {
+        const theta = i * Math.PI / 180;
+        const r = R * (1 + (tideAmplitude / 2) * (3 * Math.cos(theta - moonAngle) ** 2 - 1));
+        const x = centerX + r * Math.cos(theta);
+        const y = centerY + r * Math.sin(theta);
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
+      ctx.strokeStyle = "#1e88e5";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Optionally, draw a faint reference circle for Earth.
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, R, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Compute Moon's position.
+      // Increase separation so that the Moon remains visible for all angles.
+      const arrowMargin = R * 0.7;
+      const arrowX = centerX + (R + arrowMargin) * Math.cos(moonAngle);
+      const arrowY = centerY + (R + arrowMargin) * Math.sin(moonAngle);
+
+      // Draw an arrow from Earth's center to the Moon.
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(arrowX, arrowY);
+      ctx.strokeStyle = "#ff5722";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw the Moon with its image as a circular disk.
+      const moonRadius = 15;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(arrowX, arrowY, moonRadius, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(moonImg, arrowX - moonRadius, arrowY - moonRadius, 2 * moonRadius, 2 * moonRadius);
+      ctx.restore();
+      // Draw Moon outline.
+      ctx.beginPath();
+      ctx.arc(arrowX, arrowY, moonRadius, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#e64a19";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw labels on the canvas.
+      ctx.font = "16px sans-serif";
+      ctx.fillStyle = "#000";
+      ctx.fillText("Earth", centerX - 30, centerY);
+      ctx.fillText("Moon", arrowX + moonRadius + 5, arrowY);
+
+      requestAnimationFrame(draw);
+    }
+    
+    // Start the animation loop.
+    draw();
+  </script>
+</body>
+</html>

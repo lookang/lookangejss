@@ -1,0 +1,102 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“You Are My Sunshine – Interactive Lyrics”** activity where young learners explore the lyrics through clickable images that reveal spelled-out key words, with audio playback of the song and strong accessibility support.
+
+TARGET AUDIENCE:
+- Lower Primary English / Music (Primary 1–2; beginner readers)
+
+INTERACTIVE REQUIREMENTS:
+- A **lyrics display** for the first part of “You Are My Sunshine”, laid out in lines with a mix of plain text words and **interactive picture-word cards**.
+- Each interactive card shows an image (sun, happy face, grey cloud, etc.) that, when clicked or activated via keyboard, flips to reveal the **spelled-out English word** as individual letters (e.g., S U N S H I N E).
+- A central **Play Song** button that plays the audio for “You Are My Sunshine”, with fallback to a simple generated melody if the audio file is not available.
+- Visual feedback (animations) and simple audio feedback (chimes/tones) to reward interaction.
+- Self-contained HTML, CSS, JavaScript. No external frameworks.
+- **ACCESSIBLE & CHILD-FRIENDLY**:
+  - Keyboard accessible (Tab/Enter/Space) for all interactive elements.
+  - ARIA labels + live region announcements for screen readers.
+  - Clear instructions for keyboard navigation embedded in an invisible region.
+
+SPECIFIC REQUIREMENTS:
+
+Lyrics layout
+- Show at least these lines (or equivalent subset):
+  - “You are my sunshine, my only sunshine”
+  - “You make me happy, when skies are grey”
+- Layout as `.lyrics-line` blocks containing:
+  - `<span class="word">` elements for regular words (you, are, my, only, etc.).
+  - `.word-image` blocks for key vocabulary represented by pictures:
+    - `data-word="sunshine"` – sun icon.
+    - `data-word="happy"` – smiley face icon.
+    - `data-word="grey"` – grey cloud icon.
+- Each `.word-image` contains a **flip card**:
+  - **Front**: SVG illustration (sun, face, cloud).
+  - **Back**: the **spelled word**, with each letter wrapped in a `.letter` span.
+
+Card interaction
+- Each `.word-image`:
+  - Is clickable and touch-friendly.
+  - Supports keyboard activation via Enter/Space.
+  - Uses `tabindex="0"`, `role="button"`, and ARIA label describing the action (e.g., “Click to reveal the word sunshine spelled out”).
+- Flipping behaviour:
+  - Default: shows picture.
+  - On activation: flip to show spelled letters, animate letters in a sequence (e.g., `letterPop` animation with slight delay between letters).
+  - On second activation: flip back to picture.
+- Maintain internal state (e.g., a `Set` of flipped cards) so the app knows which cards are currently revealed.
+- Provide haptic feedback (short vibration) on mobile if available.
+- When a card is flipped to reveal the word:
+  - Play a **short positive chime** using Web Audio API.
+  - Update ARIA label to reflect that the word is revealed and can be flipped back.
+  - Announce via a live region: “Word revealed: sunshine, spelled S, U, N, S, H, I, N, E.”
+
+Audio playback
+- Add an `<audio id="songAudio">` element with one or more `<source>` URLs for the “You Are My Sunshine” song.
+- Play button behaviour:
+  - Initial state: shows a play icon and text “Play Song”.
+  - On click/keypress:
+    - If not playing: attempt to play the audio file.
+    - If audio plays successfully: show pause/playing state (e.g., pause icon + “Playing…”), set `isPlaying = true`.
+    - If the audio file cannot be played (error or missing), **fallback** to a **generated melody** using Web Audio (sequence of notes approximating the first line).
+  - While playing generated melody, maintain the playing state until melody ends.
+  - If button pressed while playing: stop audio/melody and revert to “Play Song” state.
+- On natural audio end or melody completion: automatically reset button to “Play Song” and `isPlaying = false`.
+
+Generated melody (fallback)
+- Use Web Audio API `AudioContext`, `OscillatorNode`, and `GainNode`:
+  - Define a list of `(frequency, duration)` pairs approximating the melody of “You are my sunshine”.
+  - Schedule notes sequentially with a gentle sine wave and simple attack/decay envelope.
+  - Ensure the entire melody stops after all notes have played.
+
+Accessibility & instructions
+- Add a **live region** element (off-screen) with `aria-live="polite"` and `aria-atomic="true"` where status messages are announced, such as:
+  - Word reveal announcements with spelling.
+  - Optional “Playing song…” messages.
+- Add an off-screen **instructions region** with a description like:
+  - “Use Tab to navigate between images and the play button. Press Enter or Space to interact.”
+- Ensure `.word-image` and the play button both respond to keyboard events.
+
+Visual feedback and animations
+- Use CSS transitions/animations to: 
+  - Provide a brief scale-down effect on buttons/images when activated.
+  - Animate letter appearance on word reveal (staggered `letterPop` effect).
+- Use a `flip-card` pattern (CSS 3D transforms) for the image-to-word transition.
+
+Error handling
+- Wrap audio-related code in try/catch and log errors to console for debugging.
+- If AudioContext is not available, fail gracefully by still providing visual feedback and possibly a timed “pretend playing” state (e.g., 8 seconds) before resetting.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Connect **images** (sun, happy face, grey cloud) with the corresponding **vocabulary** (sunshine, happy, grey).
+  - Recognise and **spell** these key words by seeing them broken into letters.
+  - Enjoy and sing along to the song, reinforcing vocabulary in a musical context.
+- The interactive should support early literacy by combining **audio, imagery, and text** in a low-load, playful way.
+
+INTERACTION FEATURES TO INCLUDE:
+- Click/tap/keyboard flip between picture and spelled word.
+- Audio playback of the song with robust fallback.
+- Visual and audio reinforcement (chimes, animations) for correct interactions.
+- Screen-reader-friendly announcements and navigation instructions.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

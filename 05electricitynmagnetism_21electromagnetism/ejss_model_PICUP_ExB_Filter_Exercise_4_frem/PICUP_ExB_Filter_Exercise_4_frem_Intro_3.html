@@ -1,0 +1,558 @@
+<html>
+  <head>
+    <title> ExB_Filter_Exercise_4.py(with Bug Fix)</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # ExB_Filter_Exercise_4.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file is used to numerically integrate
+    </p>
+    <p style="margin-top: 0">
+      # the second order linear differential equations
+    </p>
+    <p style="margin-top: 0">
+      # that describe the trajectory of a charged particle through
+    </p>
+    <p style="margin-top: 0">
+      # an E x B velocity filter.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Here, it is assumed that the axis of the filter
+    </p>
+    <p style="margin-top: 0">
+      # is aligned with the z-axis, that the magnetic field
+    </p>
+    <p style="margin-top: 0">
+      # is along the +x-direction, and that the electric field
+    </p>
+    <p style="margin-top: 0">
+      # is along the -y-direction.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # The numerical integration is done using the built-in
+    </p>
+    <p style="margin-top: 0">
+      # routine odeint.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Many particles selected from a normal distribution of
+    </p>
+    <p style="margin-top: 0">
+      # z-velocities are sent through the filter and histograms
+    </p>
+    <p style="margin-top: 0">
+      # of the z-velocities of the incident and transmitted particles
+    </p>
+    <p style="margin-top: 0">
+      # are produced.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # By:
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799 (Office)
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Last updated:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20160624 ERB
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      from pylab import 
+      figure,xlim,xlabel,ylim,ylabel,grid,title,hist,show,text
+    </p>
+    <p style="margin-top: 0">
+      from numpy import sqrt,array,arange,random,absolute,zeros,linspace
+    </p>
+    <p style="margin-top: 0">
+      from scipy.integrate import odeint
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Initialize parameter values
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      q = 1.60e-19 # particle charge [C]
+    </p>
+    <p style="margin-top: 0">
+      m = 7.0*1.67e-27 # particle mass [kg]
+    </p>
+    <p style="margin-top: 0">
+      KE_eV = 100.0 # particle kinetic energy [eV]
+    </p>
+    <p style="margin-top: 0">
+      Ex = 0.0 # Ex = electric field in the +x direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Ey = -105.0 # Ey = electric field in the +y direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Ez = 0.0 # Ez = electric field in the +z direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Bx = 0.002 # Bx = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      By = 0.0 # By = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      Bz = 0.0 # Bz = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      R_mm = 0.5 # R = radius of the exit aperture [mm]
+    </p>
+    <p style="margin-top: 0">
+      L = 0.25 # L = length of the crossed field region [mm]
+    </p>
+    <p style="margin-top: 0">
+      Ntraj = 40000 # number of trajectories
+    </p>
+    <p style="margin-top: 0">
+      transmitted_v = zeros(Ntraj) # array to save velocities of transmitted 
+      particles
+    </p>
+    <p style="margin-top: 0">
+      n_transmitted = 0 # counter for the number of transmitted particles
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Derived quantities
+    </p>
+    <p style="margin-top: 0">
+      qoverm = q/m # charge to mass ratio [C/kg]
+    </p>
+    <p style="margin-top: 0">
+      KE = KE_eV*1.602e-19 # particle kinetic energy [J]
+    </p>
+    <p style="margin-top: 0">
+      vmag = sqrt(2.0*KE/m) # particle velocity magnitude [m/s]
+    </p>
+    <p style="margin-top: 0">
+      R = 0.001*R_mm # aperture radius [m]
+    </p>
+    <p style="margin-top: 0">
+      vzpass = -Ey/Bx # z-velocity for zero deflection [m/s]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set up the distribution of incident velocities
+    </p>
+    <p style="margin-top: 0">
+      mean = vzpass # the mean of the velocity distribution is vzpass
+    </p>
+    <p style="margin-top: 0">
+      sigma = 0.1*vzpass # the width of the velocity distribution is 0.1*vzpass
+    </p>
+    <p style="margin-top: 0">
+      vz = mean + sigma*random.randn(Ntraj) # the set of initial velocity 
+      magnitudes
+    </p>
+    <p style="margin-top: 0">
+      scaled_vz = vz/vzpass # the set of scaled initial velocity magnitudes
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Set up the bins for the histograms
+    </p>
+    <p style="margin-top: 0">
+      scaled_vz_min = 0.6
+    </p>
+    <p style="margin-top: 0">
+      scaled_vz_max = 1.4
+    </p>
+    <p style="margin-top: 0">
+      Nbins = 64
+    </p>
+    <p style="margin-top: 0">
+      scaled_vz_bins = linspace(scaled_vz_min,scaled_vz_max,Nbins+1)
+    </p>
+    <p style="margin-top: 0">
+      vz_bins = vzpass*scaled_vz_bins
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Over what time interval do we integrate?
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      tmax = L/vzpass;
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Specify the time steps at which to report the numerical solution
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      t1 = 0.0 # initial time
+    </p>
+    <p style="margin-top: 0">
+      t2 = tmax # final scaled time
+    </p>
+    <p style="margin-top: 0">
+      N = 1000 # number of time steps
+    </p>
+    <p style="margin-top: 0">
+      h = (t2-t1)/N # time step size
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # The array of time values at which to store the solution
+    </p>
+    <p style="margin-top: 0">
+      tpoints = arange(t1,t2,h)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Specify initial conditions that don't change
+    </p>
+    <p style="margin-top: 0">
+      x0 = 0.0 # initial x-coordinate of the charged particle [m]
+    </p>
+    <p style="margin-top: 0">
+      dxdt0 = 0.0 # initial x-velocity of the charged particle [m/s]
+    </p>
+    <p style="margin-top: 0">
+      y0 = 0.0 # initial y-coordinate of the charged particle [m]
+    </p>
+    <p style="margin-top: 0">
+      dydt0 = 0.0 # initial y-velocity of the charged particle [m/s]
+    </p>
+    <p style="margin-top: 0">
+      z0 = 0.0 # initial z-coordinate of the charged particle [m]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Here are the derivatives of position and velocity
+    </p>
+    <p style="margin-top: 0">
+      def derivs(r,t):
+    </p>
+    <p style="margin-top: 0">
+      # derivatives of position components
+    </p>
+    <p style="margin-top: 0">
+      xp = r[1]
+    </p>
+    <p style="margin-top: 0">
+      yp = r[3]
+    </p>
+    <p style="margin-top: 0">
+      zp = r[5]
+    </p>
+    <p style="margin-top: 0">
+      dx = xp
+    </p>
+    <p style="margin-top: 0">
+      dy = yp
+    </p>
+    <p style="margin-top: 0">
+      dz = zp
+    </p>
+    <p style="margin-top: 0">
+      # derivatives of velocity components
+    </p>
+    <p style="margin-top: 0">
+      ddx = qoverm*(Ex + yp*Bz - zp*By)
+    </p>
+    <p style="margin-top: 0">
+      ddy = qoverm*(Ey + zp*Bx - xp*Bz)
+    </p>
+    <p style="margin-top: 0">
+      ddz = qoverm*(Ez + xp*By - yp*Bx)
+    </p>
+    <p style="margin-top: 0">
+      return array([dx,ddx,dy,ddy,dz,ddz],float)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Start the loop over the initial velocities
+    </p>
+    <p style="margin-top: 0">
+      for i in range (0,Ntraj-1):
+    </p>
+    <p style="margin-top: 0">
+      # Specify initial conditions
+    </p>
+    <p style="margin-top: 0">
+      dzdt0 = vz[i] # initial z-velocity of the charged particle [m/s]
+    </p>
+    <p style="margin-top: 0">
+      r0 = array([x0,dxdt0,y0,dydt0,z0,dzdt0],float)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the numerical solution using odeint
+    </p>
+    <p style="margin-top: 0">
+      r = odeint(derivs,r0,tpoints)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Extract the 1D matrices of position values
+    </p>
+    <p style="margin-top: 0">
+      position_x = r[:,0]
+    </p>
+    <p style="margin-top: 0">
+      position_y = r[:,2]
+    </p>
+    <p style="margin-top: 0">
+      position_z = r[:,4]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Extract the 1D matrices of velocity values and final velocity
+    </p>
+    <p style="margin-top: 0">
+      v_x = r[:,1]
+    </p>
+    <p style="margin-top: 0">
+      v_y = r[:,3]
+    </p>
+    <p style="margin-top: 0">
+      v_z = r[:,5]
+    </p>
+    <p style="margin-top: 0">
+      vxf = v_x[N-1]
+    </p>
+    <p style="margin-top: 0">
+      vyf = v_y[N-1]
+    </p>
+    <p style="margin-top: 0">
+      vzf = v_z[N-1]
+    </p>
+    <p style="margin-top: 0">
+      vf = sqrt(vxf*vxf + vyf*vyf + vzf*vzf)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # If the particle made it through the aperture, save the velocity
+    </p>
+    <p style="margin-top: 0">
+      if absolute(position_x[N-1]) &lt; R:
+    </p>
+    <p style="margin-top: 0">
+      if absolute(position_y[N-1]) &lt; sqrt(R*R - 
+      position_x[N-1]*position_x[N-1]):
+    </p>
+    <p style="margin-top: 0">
+      transmitted_v[n_transmitted] = vf
+    </p>
+    <p style="margin-top: 0">
+      n_transmitted = n_transmitted + 1
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Only save the non-zero values for the histogram
+    </p>
+    <p style="margin-top: 0">
+      transmitted_v_f = transmitted_v[0:n_transmitted]
+    </p>
+    <p style="margin-top: 0">
+      scaled_transmitted_v_f = transmitted_v_f/vzpass
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Let the user know how many particles were transmitted
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The number of incident particles is %d&quot;%Ntraj) #Frem: Added 
+      Brackets
+    </p>
+    <p style="margin-top: 0">
+      print(&quot;The number of transmitted particles is %d&quot;%n_transmitted) #Frem: 
+      Added Brackets
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # start a new figure
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # plot the histogram of scaled initial velocities
+    </p>
+    <p style="margin-top: 0">
+      n, bins, patches = hist(scaled_vz, scaled_vz_bins, normed=0, 
+      facecolor='orange', alpha=0.75)
+    </p>
+    <p style="margin-top: 0">
+      xlabel('$v_z/v_{z,pass}$ [m/s]',size = 16)
+    </p>
+    <p style="margin-top: 0">
+      ylabel('$N$',size = 16)
+    </p>
+    <p style="margin-top: 0">
+      title('Histogram of initial $v_z/v_{z,pass}$ values')
+    </p>
+    <p style="margin-top: 0">
+      xlim(scaled_vz_min,scaled_vz_max)
+    </p>
+    <p style="margin-top: 0">
+      ylim(0,0.075*Ntraj)
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # start a new figure
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # plot the histogram of scaled final velocities (transmitted particles)
+    </p>
+    <p style="margin-top: 0">
+      n, bins, patches = hist(scaled_transmitted_v_f, scaled_vz_bins, 
+      normed=0, facecolor='purple', alpha=0.75)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      xlabel('$v_z/v_{z,pass}$',size = 16)
+    </p>
+    <p style="margin-top: 0">
+      ylabel('$N$',size = 16)
+    </p>
+    <p style="margin-top: 0">
+      title('Histogram of $v_z/v_{z,pass}$ values for transmitted particles')
+    </p>
+    <p style="margin-top: 0">
+      xlim(scaled_vz_min,scaled_vz_max)
+    </p>
+    <p style="margin-top: 0">
+      ylim(0,0.075*Ntraj)
+    </p>
+    <p style="margin-top: 0">
+      grid(True)
+    </p>
+    <p style="margin-top: 0">
+      text(0.65,2750,&quot;R = %.2f mm&quot;%R_mm,size=16)
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

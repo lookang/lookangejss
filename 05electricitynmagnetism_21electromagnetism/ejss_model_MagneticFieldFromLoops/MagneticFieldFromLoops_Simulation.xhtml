@@ -1,0 +1,1968 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Magnetic Field From Loop Simulator</title>
+    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function MagneticFieldFromLoops(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var range; // EjsS Model.Variables.coordinate.range
+  var xmin; // EjsS Model.Variables.coordinate.xmin
+  var xmax; // EjsS Model.Variables.coordinate.xmax
+  var ymin; // EjsS Model.Variables.coordinate.ymin
+  var ymax; // EjsS Model.Variables.coordinate.ymax
+  var zmin; // EjsS Model.Variables.coordinate.zmin
+  var zmax; // EjsS Model.Variables.coordinate.zmax
+  var t; // EjsS Model.Variables.coordinate.t
+  var dt; // EjsS Model.Variables.coordinate.dt
+  var size; // EjsS Model.Variables.coordinate.size
+
+  var n; // EjsS Model.Variables.basic.n
+  var n2; // EjsS Model.Variables.basic.n2
+  var xn; // EjsS Model.Variables.basic.xn
+  var yn; // EjsS Model.Variables.basic.yn
+  var zn; // EjsS Model.Variables.basic.zn
+  var polygon; // EjsS Model.Variables.basic.polygon
+  var cta; // EjsS Model.Variables.basic.cta
+  var omega; // EjsS Model.Variables.basic.omega
+  var dc; // EjsS Model.Variables.basic.dc
+  var np; // EjsS Model.Variables.basic.np
+  var bX; // EjsS Model.Variables.basic.bX
+  var bY; // EjsS Model.Variables.basic.bY
+  var bZ; // EjsS Model.Variables.basic.bZ
+  var bXlookang; // EjsS Model.Variables.basic.bXlookang
+  var bYlookang; // EjsS Model.Variables.basic.bYlookang
+  var bZlookang; // EjsS Model.Variables.basic.bZlookang
+  var bColor; // EjsS Model.Variables.basic.bColor
+  var z; // EjsS Model.Variables.basic.z
+  var vx; // EjsS Model.Variables.basic.vx
+  var vz; // EjsS Model.Variables.basic.vz
+  var T; // EjsS Model.Variables.basic.T
+  var nCoils; // EjsS Model.Variables.basic.nCoils
+  var T2; // EjsS Model.Variables.basic.T2
+  var R; // EjsS Model.Variables.basic.R
+  var psi; // EjsS Model.Variables.basic.psi
+  var scale; // EjsS Model.Variables.basic.scale
+  var showFlux; // EjsS Model.Variables.basic.showFlux
+  var stroke; // EjsS Model.Variables.basic.stroke
+  var I; // EjsS Model.Variables.basic.I
+  var I0; // EjsS Model.Variables.basic.I0
+  var Iold; // EjsS Model.Variables.basic.Iold
+  var current; // EjsS Model.Variables.basic.current
+  var polarity; // EjsS Model.Variables.basic.polarity
+  var CENTER; // EjsS Model.Variables.basic.CENTER
+
+  var font; // EjsS Model.Variables.varfrem.font
+  var fontb; // EjsS Model.Variables.varfrem.fontb
+  var box; // EjsS Model.Variables.varfrem.box
+  var xposition; // EjsS Model.Variables.varfrem.xposition
+  var yposition; // EjsS Model.Variables.varfrem.yposition
+  var zposition; // EjsS Model.Variables.varfrem.zposition
+  var xpositionlookang; // EjsS Model.Variables.varfrem.xpositionlookang
+  var ypositionlookang; // EjsS Model.Variables.varfrem.ypositionlookang
+  var zpositionlookang; // EjsS Model.Variables.varfrem.zpositionlookang
+  var positiontext; // EjsS Model.Variables.varfrem.positiontext
+  var color; // EjsS Model.Variables.varfrem.color
+  var headheight; // EjsS Model.Variables.varfrem.headheight
+  var headwidth; // EjsS Model.Variables.varfrem.headwidth
+
+  var _privateOdesList;
+  var _ODEi_evolution1;
+  var userEvents1=[];
+
+  _model.getOdes = function() { return [_ODEi_evolution1]; };
+
+  _model.removeEvents = function(){
+    userEvents1=[];
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      range : range,
+      xmin : xmin,
+      xmax : xmax,
+      ymin : ymin,
+      ymax : ymax,
+      zmin : zmin,
+      zmax : zmax,
+      t : t,
+      dt : dt,
+      size : size,
+      n : n,
+      n2 : n2,
+      xn : xn,
+      yn : yn,
+      zn : zn,
+      polygon : polygon,
+      cta : cta,
+      omega : omega,
+      dc : dc,
+      np : np,
+      bX : bX,
+      bY : bY,
+      bZ : bZ,
+      bXlookang : bXlookang,
+      bYlookang : bYlookang,
+      bZlookang : bZlookang,
+      bColor : bColor,
+      z : z,
+      vx : vx,
+      vz : vz,
+      T : T,
+      nCoils : nCoils,
+      T2 : T2,
+      R : R,
+      psi : psi,
+      scale : scale,
+      showFlux : showFlux,
+      stroke : stroke,
+      I : I,
+      I0 : I0,
+      Iold : Iold,
+      current : current,
+      polarity : polarity,
+      CENTER : CENTER,
+      font : font,
+      fontb : fontb,
+      box : box,
+      xposition : xposition,
+      yposition : yposition,
+      zposition : zposition,
+      xpositionlookang : xpositionlookang,
+      ypositionlookang : ypositionlookang,
+      zpositionlookang : zpositionlookang,
+      positiontext : positiontext,
+      color : color,
+      headheight : headheight,
+      headwidth : headwidth
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.range != "undefined") range = json.range;
+    if(typeof json.xmin != "undefined") xmin = json.xmin;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.ymin != "undefined") ymin = json.ymin;
+    if(typeof json.ymax != "undefined") ymax = json.ymax;
+    if(typeof json.zmin != "undefined") zmin = json.zmin;
+    if(typeof json.zmax != "undefined") zmax = json.zmax;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.size != "undefined") size = json.size;
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.n2 != "undefined") n2 = json.n2;
+    if(typeof json.xn != "undefined") xn = json.xn;
+    if(typeof json.yn != "undefined") yn = json.yn;
+    if(typeof json.zn != "undefined") zn = json.zn;
+    if(typeof json.polygon != "undefined") polygon = json.polygon;
+    if(typeof json.cta != "undefined") cta = json.cta;
+    if(typeof json.omega != "undefined") omega = json.omega;
+    if(typeof json.dc != "undefined") dc = json.dc;
+    if(typeof json.np != "undefined") np = json.np;
+    if(typeof json.bX != "undefined") bX = json.bX;
+    if(typeof json.bY != "undefined") bY = json.bY;
+    if(typeof json.bZ != "undefined") bZ = json.bZ;
+    if(typeof json.bXlookang != "undefined") bXlookang = json.bXlookang;
+    if(typeof json.bYlookang != "undefined") bYlookang = json.bYlookang;
+    if(typeof json.bZlookang != "undefined") bZlookang = json.bZlookang;
+    if(typeof json.bColor != "undefined") bColor = json.bColor;
+    if(typeof json.z != "undefined") z = json.z;
+    if(typeof json.vx != "undefined") vx = json.vx;
+    if(typeof json.vz != "undefined") vz = json.vz;
+    if(typeof json.T != "undefined") T = json.T;
+    if(typeof json.nCoils != "undefined") nCoils = json.nCoils;
+    if(typeof json.T2 != "undefined") T2 = json.T2;
+    if(typeof json.R != "undefined") R = json.R;
+    if(typeof json.psi != "undefined") psi = json.psi;
+    if(typeof json.scale != "undefined") scale = json.scale;
+    if(typeof json.showFlux != "undefined") showFlux = json.showFlux;
+    if(typeof json.stroke != "undefined") stroke = json.stroke;
+    if(typeof json.I != "undefined") I = json.I;
+    if(typeof json.I0 != "undefined") I0 = json.I0;
+    if(typeof json.Iold != "undefined") Iold = json.Iold;
+    if(typeof json.current != "undefined") current = json.current;
+    if(typeof json.polarity != "undefined") polarity = json.polarity;
+    if(typeof json.CENTER != "undefined") CENTER = json.CENTER;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.fontb != "undefined") fontb = json.fontb;
+    if(typeof json.box != "undefined") box = json.box;
+    if(typeof json.xposition != "undefined") xposition = json.xposition;
+    if(typeof json.yposition != "undefined") yposition = json.yposition;
+    if(typeof json.zposition != "undefined") zposition = json.zposition;
+    if(typeof json.xpositionlookang != "undefined") xpositionlookang = json.xpositionlookang;
+    if(typeof json.ypositionlookang != "undefined") ypositionlookang = json.ypositionlookang;
+    if(typeof json.zpositionlookang != "undefined") zpositionlookang = json.zpositionlookang;
+    if(typeof json.positiontext != "undefined") positiontext = json.positiontext;
+    if(typeof json.color != "undefined") color = json.color;
+    if(typeof json.headheight != "undefined") headheight = json.headheight;
+    if(typeof json.headwidth != "undefined") headwidth = json.headwidth;
+  };
+
+  _model._inputAndPublicParameters = ["range",  "xmin",  "xmax",  "ymin",  "ymax",  "zmin",  "zmax",  "t",  "dt",  "size",  "n",  "n2",  "xn",  "yn",  "zn",  "polygon",  "cta",  "omega",  "dc",  "np",  "bX",  "bY",  "bZ",  "bXlookang",  "bYlookang",  "bZlookang",  "bColor",  "z",  "vx",  "vz",  "T",  "nCoils",  "T2",  "R",  "psi",  "scale",  "showFlux",  "stroke",  "I",  "I0",  "Iold",  "current",  "polarity",  "CENTER",  "font",  "fontb",  "box",  "xposition",  "yposition",  "zposition",  "xpositionlookang",  "ypositionlookang",  "zpositionlookang",  "positiontext",  "color",  "headheight",  "headwidth"]; 
+
+  _model._outputAndPublicParameters = ["range",  "xmin",  "xmax",  "ymin",  "ymax",  "zmin",  "zmax",  "t",  "dt",  "size",  "n",  "n2",  "xn",  "yn",  "zn",  "polygon",  "cta",  "omega",  "dc",  "np",  "bX",  "bY",  "bZ",  "bXlookang",  "bYlookang",  "bZlookang",  "bColor",  "z",  "vx",  "vz",  "T",  "nCoils",  "T2",  "R",  "psi",  "scale",  "showFlux",  "stroke",  "I",  "I0",  "Iold",  "current",  "polarity",  "CENTER",  "font",  "fontb",  "box",  "xposition",  "yposition",  "zposition",  "xpositionlookang",  "ypositionlookang",  "zpositionlookang",  "positiontext",  "color",  "headheight",  "headwidth"];
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["Init Page"] = true;
+    __pagesEnabled["Evolve Field"] = true;
+    __pagesEnabled["First Coil"] = true;
+    __pagesEnabled["Last Coil"] = true;
+    __pagesEnabled["Update View"] = true;
+    __pagesEnabled["Coil Polygon"] = true;
+    __pagesEnabled["fixedfrem"] = true;
+    __pagesEnabled["ending"] = true;
+  });
+
+  _model.addToReset(function() {
+    range = 200; // EjsS Model.Variables.coordinate.range
+    xmin = -range/2; // EjsS Model.Variables.coordinate.xmin
+    xmax = range/2; // EjsS Model.Variables.coordinate.xmax
+    ymin = -range/2; // EjsS Model.Variables.coordinate.ymin
+    ymax = range/2; // EjsS Model.Variables.coordinate.ymax
+    zmin = -range/2; // EjsS Model.Variables.coordinate.zmin
+    zmax = range/2; // EjsS Model.Variables.coordinate.zmax
+    t = 0.0; // EjsS Model.Variables.coordinate.t
+    dt = 0.1; // EjsS Model.Variables.coordinate.dt
+    size = range/40; // EjsS Model.Variables.coordinate.size
+  });
+
+  _model.addToReset(function() {
+    n = 360; // EjsS Model.Variables.basic.n
+    n2 = n/2; // EjsS Model.Variables.basic.n2
+    xn = new Array(n); // EjsS Model.Variables.basic.xn
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.basic.xn
+        xn[_i0] = 0.0;  // EjsS Model.Variables.basic.xn
+      }
+    }());
+    yn = new Array(n); // EjsS Model.Variables.basic.yn
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.basic.yn
+        yn[_i0] = 0.0;  // EjsS Model.Variables.basic.yn
+      }
+    }());
+    zn = new Array(n); // EjsS Model.Variables.basic.zn
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.basic.zn
+        zn[_i0] = 0.0;  // EjsS Model.Variables.basic.zn
+      }
+    }());
+    polygon = new Array(3); // EjsS Model.Variables.basic.polygon
+    (function () {
+      var _i0,_i1;
+      for (_i0=0; _i0<3; _i0+=1) {  // EjsS Model.Variables.basic.polygon
+        polygon[_i0] = [];
+        for (_i1=0; _i1<n; _i1+=1) {  // EjsS Model.Variables.basic.polygon
+          polygon[_i0][_i1] = 0;  // EjsS Model.Variables.basic.polygon
+        }
+      }
+    }());
+    cta = new Array(n); // EjsS Model.Variables.basic.cta
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.basic.cta
+        cta[_i0] = 0.0;  // EjsS Model.Variables.basic.cta
+      }
+    }());
+    omega = 0.0; // EjsS Model.Variables.basic.omega
+    dc = Math.PI*2/(n-1); // EjsS Model.Variables.basic.dc
+    np = 10; // EjsS Model.Variables.basic.np
+    bX = new Array(1); // EjsS Model.Variables.basic.bX
+    (function () {
+      var _i0,_i1,_i2;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.basic.bX
+        bX[_i0] = [];
+        for (_i1=0; _i1<np; _i1+=1) {  // EjsS Model.Variables.basic.bX
+          bX[_i0][_i1] = [];
+          for (_i2=0; _i2<np; _i2+=1) {  // EjsS Model.Variables.basic.bX
+            bX[_i0][_i1][_i2] = 0;  // EjsS Model.Variables.basic.bX
+          }
+        }
+      }
+    }());
+    bY = new Array(1); // EjsS Model.Variables.basic.bY
+    (function () {
+      var _i0,_i1,_i2;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.basic.bY
+        bY[_i0] = [];
+        for (_i1=0; _i1<np; _i1+=1) {  // EjsS Model.Variables.basic.bY
+          bY[_i0][_i1] = [];
+          for (_i2=0; _i2<np; _i2+=1) {  // EjsS Model.Variables.basic.bY
+            bY[_i0][_i1][_i2] = 0;  // EjsS Model.Variables.basic.bY
+          }
+        }
+      }
+    }());
+    bZ = new Array(1); // EjsS Model.Variables.basic.bZ
+    (function () {
+      var _i0,_i1,_i2;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.basic.bZ
+        bZ[_i0] = [];
+        for (_i1=0; _i1<np; _i1+=1) {  // EjsS Model.Variables.basic.bZ
+          bZ[_i0][_i1] = [];
+          for (_i2=0; _i2<np; _i2+=1) {  // EjsS Model.Variables.basic.bZ
+            bZ[_i0][_i1][_i2] = 0;  // EjsS Model.Variables.basic.bZ
+          }
+        }
+      }
+    }());
+    bXlookang = new Array(np*np); // EjsS Model.Variables.basic.bXlookang
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.basic.bXlookang
+        bXlookang[_i0] = 0;  // EjsS Model.Variables.basic.bXlookang
+      }
+    }());
+    bYlookang = new Array(np*np); // EjsS Model.Variables.basic.bYlookang
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.basic.bYlookang
+        bYlookang[_i0] = 0;  // EjsS Model.Variables.basic.bYlookang
+      }
+    }());
+    bZlookang = new Array(np*np); // EjsS Model.Variables.basic.bZlookang
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.basic.bZlookang
+        bZlookang[_i0] = 0;  // EjsS Model.Variables.basic.bZlookang
+      }
+    }());
+    bColor = new Array(1); // EjsS Model.Variables.basic.bColor
+    (function () {
+      var _i0,_i1,_i2;
+      for (_i0=0; _i0<1; _i0+=1) {  // EjsS Model.Variables.basic.bColor
+        bColor[_i0] = [];
+        for (_i1=0; _i1<np; _i1+=1) {  // EjsS Model.Variables.basic.bColor
+          bColor[_i0][_i1] = [];
+          for (_i2=0; _i2<np; _i2+=1) {  // EjsS Model.Variables.basic.bColor
+            bColor[_i0][_i1][_i2] = 0;  // EjsS Model.Variables.basic.bColor
+          }
+        }
+      }
+    }());
+    z = 0; // EjsS Model.Variables.basic.z
+    vx = new Array(n); // EjsS Model.Variables.basic.vx
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.basic.vx
+        vx[_i0] = 0.0;  // EjsS Model.Variables.basic.vx
+      }
+    }());
+    vz = new Array(n); // EjsS Model.Variables.basic.vz
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.basic.vz
+        vz[_i0] = 0.0;  // EjsS Model.Variables.basic.vz
+      }
+    }());
+    T = 2.0; // EjsS Model.Variables.basic.T
+    nCoils = 1; // EjsS Model.Variables.basic.nCoils
+    T2 = T*nCoils; // EjsS Model.Variables.basic.T2
+    R = 50; // EjsS Model.Variables.basic.R
+    psi = new Array(np); // EjsS Model.Variables.basic.psi
+    (function () {
+      var _i0,_i1;
+      for (_i0=0; _i0<np; _i0+=1) {  // EjsS Model.Variables.basic.psi
+        psi[_i0] = [];
+        for (_i1=0; _i1<np; _i1+=1) {  // EjsS Model.Variables.basic.psi
+          psi[_i0][_i1] = 0.0;  // EjsS Model.Variables.basic.psi
+        }
+      }
+    }());
+    scale = 0.7; // EjsS Model.Variables.basic.scale
+    showFlux = false; // EjsS Model.Variables.basic.showFlux
+    stroke = 2.0; // EjsS Model.Variables.basic.stroke
+    I = 0; // EjsS Model.Variables.basic.I
+    I0 = 0; // EjsS Model.Variables.basic.I0
+    Iold = 0; // EjsS Model.Variables.basic.Iold
+    current = true; // EjsS Model.Variables.basic.current
+    polarity = false; // EjsS Model.Variables.basic.polarity
+    CENTER = 0; // EjsS Model.Variables.basic.CENTER
+  });
+
+  _model.addToReset(function() {
+    font = "normal normal 2vw"; // EjsS Model.Variables.varfrem.font
+    fontb = "normal bold 2vw"; // EjsS Model.Variables.varfrem.fontb
+    box = 1; // EjsS Model.Variables.varfrem.box
+    xposition = new Array(np); // EjsS Model.Variables.varfrem.xposition
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np; _i0+=1) {  // EjsS Model.Variables.varfrem.xposition
+        xposition[_i0] = 0;  // EjsS Model.Variables.varfrem.xposition
+      }
+    }());
+    yposition = new Array(np); // EjsS Model.Variables.varfrem.yposition
+    (function () {
+      var _i0,_i1;
+      for (_i0=0; _i0<np; _i0+=1) {  // EjsS Model.Variables.varfrem.yposition
+        yposition[_i0] = [];
+        for (_i1=0; _i1<np; _i1+=1) {  // EjsS Model.Variables.varfrem.yposition
+          yposition[_i0][_i1] = 0;  // EjsS Model.Variables.varfrem.yposition
+        }
+      }
+    }());
+    zposition = new Array(np); // EjsS Model.Variables.varfrem.zposition
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np; _i0+=1) {  // EjsS Model.Variables.varfrem.zposition
+        zposition[_i0] = 0;  // EjsS Model.Variables.varfrem.zposition
+      }
+    }());
+    xpositionlookang = new Array(np*np); // EjsS Model.Variables.varfrem.xpositionlookang
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.varfrem.xpositionlookang
+        xpositionlookang[_i0] = 0;  // EjsS Model.Variables.varfrem.xpositionlookang
+      }
+    }());
+    ypositionlookang = new Array(np*np); // EjsS Model.Variables.varfrem.ypositionlookang
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.varfrem.ypositionlookang
+        ypositionlookang[_i0] = 0;  // EjsS Model.Variables.varfrem.ypositionlookang
+      }
+    }());
+    zpositionlookang = new Array(np*np); // EjsS Model.Variables.varfrem.zpositionlookang
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.varfrem.zpositionlookang
+        zpositionlookang[_i0] = 0;  // EjsS Model.Variables.varfrem.zpositionlookang
+      }
+    }());
+    positiontext = new Array(np*np); // EjsS Model.Variables.varfrem.positiontext
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<np*np; _i0+=1) {  // EjsS Model.Variables.varfrem.positiontext
+        positiontext[_i0] = "";  // EjsS Model.Variables.varfrem.positiontext
+      }
+    }());
+    color = "blue"; // EjsS Model.Variables.varfrem.color
+    headheight = 2; // EjsS Model.Variables.varfrem.headheight
+    headwidth = 4; // EjsS Model.Variables.varfrem.headwidth
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _privateOdesList=[];
+    _ODEi_evolution1 = _ODE_evolution1();
+    _privateOdesList.push(_ODEi_evolution1);
+  });
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function norm (a, b, c) {  // > CustomCode.norm:1
+    return Math.sqrt(a*a + b*b + c*c);  // > CustomCode.norm:2
+  }  // > CustomCode.norm:3
+
+  function updateaction () {  // > CustomCode.updateAction:1
+    var deltaX = range/(np-1);  // > CustomCode.updateAction:2
+    var deltaY = range/(np-1);  // > CustomCode.updateAction:3
+      // > CustomCode.updateAction:4
+    I0=Math.abs(I); // added by lookang for current variable  // > CustomCode.updateAction:5
+      // > CustomCode.updateAction:6
+    for(var i=0;i<np;i++) {  // > CustomCode.updateAction:7
+      var x = xmin+i*deltaX;  // > CustomCode.updateAction:8
+      for(var j=0;j<np;j++) {  // > CustomCode.updateAction:9
+        var y = ymin+j*deltaY;  // > CustomCode.updateAction:10
+        psi[i][j]=calPsi(x,y,z);  // > CustomCode.updateAction:11
+        computeBfield(i,j,x,y,z);  // > CustomCode.updateAction:12
+        var norm1 = norm (bX[0][i][j],bY[0][i][j],bZ[0][i][j]);//rearrange arrays frem  // > CustomCode.updateAction:13
+        var factor = range/np/norm1;  // > CustomCode.updateAction:14
+  /* formula  // > CustomCode.updateAction:15
+  Bperpendicular = µoI / (2*pi*r)  // > CustomCode.updateAction:16
+  where  // > CustomCode.updateAction:17
+     * µo, permeability of free space = 4*pi x 10-7 Tm/A  // > CustomCode.updateAction:18
+     * I, current flowing through the wire, measured in amps  // > CustomCode.updateAction:19
+     * B, magnetic field strength, measured in Tesla  // > CustomCode.updateAction:20
+     * r, distance from the wire, measured in meters  // > CustomCode.updateAction:21
+     */  // > CustomCode.updateAction:22
+  bX[0][i][j] *= factor*I; // added *I for variablility with I by lookang  // > CustomCode.updateAction:23
+        bY[0][i][j] *= factor*I; // factor is the currently not using distance? hmmmm   // > CustomCode.updateAction:24
+        bZ[0][i][j] *= factor*I;  // > CustomCode.updateAction:25
+     // > CustomCode.updateAction:26
+   bXlookang[i+ np*j]  = bX[0][i][j];//rearragned array frem  // > CustomCode.updateAction:27
+    bYlookang[i+ np*j] = bY[0][i][j];  // > CustomCode.updateAction:28
+    bZlookang[i+ np*j] = bZ[0][i][j];  // > CustomCode.updateAction:29
+        bColor[0][i][j]="rgb("+(10*norm1).toFixed(0)+",0,200)";    // > CustomCode.updateAction:30
+      }  // > CustomCode.updateAction:31
+    }  // > CustomCode.updateAction:32
+  }  // > CustomCode.updateAction:33
+
+  function computeBfield(index1, index2, x, y, z) {  // > CustomCode.computeBField:1
+    var bx=0, by=0, bz=0;  // > CustomCode.computeBField:2
+    for(var i=1;i<n;i++) {  // > CustomCode.computeBField:3
+      var dx=xn[i]-xn[i-1];  // > CustomCode.computeBField:4
+      var dy=yn[i]-yn[i-1];  // > CustomCode.computeBField:5
+      var dz=zn[i]-zn[i-1];  // > CustomCode.computeBField:6
+      var xs=x-xn[i-1];  // > CustomCode.computeBField:7
+      var ys=y-yn[i-1];  // > CustomCode.computeBField:8
+      var zs=z-zn[i-1];  // > CustomCode.computeBField:9
+      var r=Math.sqrt(xs*xs+ys*ys+zs*zs);  // > CustomCode.computeBField:10
+      var r3=r*r*r;  // > CustomCode.computeBField:11
+      bz+=(dx*ys-dy*xs)/r3;  // > CustomCode.computeBField:12
+      bx+=(dy*zs-dz*ys)/r3;  // > CustomCode.computeBField:13
+      by+=(dz*xs-zs*dx)/r3;  // > CustomCode.computeBField:14
+    }  // > CustomCode.computeBField:15
+    bX[0][index1][index2] = bx;//rearragned array frem  // > CustomCode.computeBField:16
+    bY[0][index1][index2] = by;  // > CustomCode.computeBField:17
+    bZ[0][index1][index2] = bz;  // > CustomCode.computeBField:18
+   // bXlookang[index1+i*index2] = bx;//rearragned array frem  // > CustomCode.computeBField:19
+   // bYlookang[index1+i*index2] = by;  // > CustomCode.computeBField:20
+   // bZlookang[index1+i*index2] = bz;  // > CustomCode.computeBField:21
+      // > CustomCode.computeBField:22
+  }  // > CustomCode.computeBField:23
+
+  function calPsi(x, y, z) {  // > CustomCode.calPsi:1
+    var p=0;  // > CustomCode.calPsi:2
+    for(var i=1;i<n;i++) {  // > CustomCode.calPsi:3
+      var xs=x-xn[i-1];  // > CustomCode.calPsi:4
+      var ys=y-yn[i-1];  // > CustomCode.calPsi:5
+      var zs=z-zn[i-1];  // > CustomCode.calPsi:6
+      var dz=zn[i]-zn[i-1];  // > CustomCode.calPsi:7
+      var r=Math.sqrt(xs*xs+ys*ys+zs*zs);  // > CustomCode.calPsi:8
+      var r2=Math.sqrt(xn[i-1]*xn[i-1]+yn[i-1]*yn[i-1]);  // > CustomCode.calPsi:9
+      if(r>size)p+=r2/r;// p+=dz*r2/(r*r);  // > CustomCode.calPsi:10
+    }  // > CustomCode.calPsi:11
+    return p;  // > CustomCode.calPsi:12
+  }  // > CustomCode.calPsi:13
+
+  function calShape() {  // > CustomCode.calShape:1
+    var dy=size*2;  // > CustomCode.calShape:2
+    for(var i=0;i<n;i++) {  // > CustomCode.calShape:3
+      //if(t<T2)c=(i-n2)*dc*t*2/T;  // > CustomCode.calShape:4
+      //else c=(i-n2)*dc*T2*2/T;  // > CustomCode.calShape:5
+      var c=(i-n2)*dc*t/T;  // > CustomCode.calShape:6
+      xn[i]=-R*Math.cos(c);  // > CustomCode.calShape:7
+      zn[i]=R*Math.sin(c);  // > CustomCode.calShape:8
+      yn[i]=(nCoils>1)?c/Math.PI/2*dy:0;  // > CustomCode.calShape:9
+    }  // > CustomCode.calShape:10
+  }  // > CustomCode.calShape:11
+
+  function calcOne() {  // > CustomCode.calcOne:1
+    var dy=size*2;  // > CustomCode.calcOne:2
+    for(var i=0;i<n;i++) {  // > CustomCode.calcOne:3
+      var c=(i-n2)*dc*t/T;  // > CustomCode.calcOne:4
+      yn[i]=(nCoils>1)?-c/Math.PI/2*dy:0;  // > CustomCode.calcOne:5
+    }  // > CustomCode.calcOne:6
+  }  // > CustomCode.calcOne:7
+
+  function setcoil () {  // > CustomCode.setcoil:1
+    var dz=(zmax-zmin)/n;  // > CustomCode.setcoil:2
+    for(var i=0;i<n;i++) {  // > CustomCode.setcoil:3
+      // current segment  // > CustomCode.setcoil:4
+      xn[i]=0;  // > CustomCode.setcoil:5
+      yn[i]=0.;  // > CustomCode.setcoil:6
+      zn[i]=zmax-(i+0.5)*dz;  // > CustomCode.setcoil:7
+      vx[i]=(R*Math.cos(i*dc)-xn[i])/T;  // > CustomCode.setcoil:8
+      vz[i]=(R*Math.sin(i*dc)-zn[i])/T;  // > CustomCode.setcoil:9
+    }  // > CustomCode.setcoil:10
+  }  // > CustomCode.setcoil:11
+
+  //https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Using_full_screen_mode  // > CustomCode.fullscreen:1
+  // does not work for iOS   // > CustomCode.fullscreen:2
+  /*jslint browser:true */  // > CustomCode.fullscreen:3
+  function toggleFullScreen() {  // > CustomCode.fullscreen:4
+    if (!document.fullscreenElement &&    // alternative standard method  // > CustomCode.fullscreen:5
+        !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods  // > CustomCode.fullscreen:6
+      if (document.documentElement.requestFullscreen) {  // > CustomCode.fullscreen:7
+        document.documentElement.requestFullscreen();  // > CustomCode.fullscreen:8
+      } else if (document.documentElement.msRequestFullscreen) {  // > CustomCode.fullscreen:9
+        document.documentElement.msRequestFullscreen();  // > CustomCode.fullscreen:10
+      } else if (document.documentElement.mozRequestFullScreen) {  // > CustomCode.fullscreen:11
+        document.documentElement.mozRequestFullScreen();  // > CustomCode.fullscreen:12
+      } else if (document.documentElement.webkitRequestFullscreen) {  // > CustomCode.fullscreen:13
+        document.documentElement.webkitRequestFullscreen();  // > CustomCode.fullscreen:14
+      }  // > CustomCode.fullscreen:15
+    } else {  // > CustomCode.fullscreen:16
+      if (document.exitFullscreen) {  // > CustomCode.fullscreen:17
+        document.exitFullscreen();  // > CustomCode.fullscreen:18
+      } else if (document.msExitFullscreen) {  // > CustomCode.fullscreen:19
+        document.msExitFullscreen();  // > CustomCode.fullscreen:20
+      } else if (document.mozCancelFullScreen) {  // > CustomCode.fullscreen:21
+        document.mozCancelFullScreen();  // > CustomCode.fullscreen:22
+      } else if (document.webkitExitFullscreen) {  // > CustomCode.fullscreen:23
+        document.webkitExitFullscreen();  // > CustomCode.fullscreen:24
+      }  // > CustomCode.fullscreen:25
+    }  // > CustomCode.fullscreen:26
+  }  // > CustomCode.fullscreen:27
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    var dx,dy,dz;  // > Initialization.Init Page:1
+    updateaction ();  // > Initialization.Init Page:2
+    setcoil();  // > Initialization.Init Page:3
+    //double x,y,z;  // > Initialization.Init Page:4
+    //calPsi(0,0,0);  // > Initialization.Init Page:5
+    t=0;  // > Initialization.Init Page:6
+    omega=0.;  // > Initialization.Init Page:7
+    dx=dy=dz=range/(np-1);  // > Initialization.Init Page:8
+    if ( I==0 ) { // added to remember I by lookang  // > Initialization.Init Page:9
+      I = Iold = 1.0;  // > Initialization.Init Page:10
+      }  // > Initialization.Init Page:11
+    updateaction ();  // > Initialization.Init Page:12
+  });
+
+  _model.addToInitialization(function() {
+    _initializeSolvers();
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Evolve Field"]) return;
+    _ODEi_evolution1.step();
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Update View"]) return;
+    if(omega!=0 && t>=T){  // > Evolution.Update View:1
+      calShape();  // > Evolution.Update View:2
+    }else{  // > Evolution.Update View:3
+      calcOne();  // > Evolution.Update View:4
+    }  // > Evolution.Update View:5
+    updateaction ();  // > Evolution.Update View:6
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["Coil Polygon"]) return;
+    for(var i=0;i<n;i++) {  // > FixedRelations.Coil Polygon:1
+      polygon[0][i] = xn[i]; //swap arrays frem  // > FixedRelations.Coil Polygon:2
+      polygon[1][i] = yn[i];  // > FixedRelations.Coil Polygon:3
+      polygon[2][i] = zn[i];  // > FixedRelations.Coil Polygon:4
+    }  // > FixedRelations.Coil Polygon:5
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["fixedfrem"]) return;
+    //frem: To create vector field positions  // > FixedRelations.fixedfrem:1
+      var deltaX = range/(np-1);  // > FixedRelations.fixedfrem:2
+      var deltaY = range/(np-1);  // > FixedRelations.fixedfrem:3
+    for(var i=0;i<np;i++) {  // > FixedRelations.fixedfrem:4
+        xposition[i] = xmin+i*deltaX;  // > FixedRelations.fixedfrem:5
+          // > FixedRelations.fixedfrem:6
+        for(var j=0;j<np;j++) {  // > FixedRelations.fixedfrem:7
+          yposition[i][j] = ymin+j*deltaY;  // > FixedRelations.fixedfrem:8
+          xpositionlookang[i+np*j] = xmin+i*deltaX // added to display position in single element  // > FixedRelations.fixedfrem:9
+        ypositionlookang[i+np*j] = ymin+j*deltaY;  // > FixedRelations.fixedfrem:10
+        zpositionlookang[i+np*j] = z;  // > FixedRelations.fixedfrem:11
+      //  positiontext[i+np*j]=i+np*j+"="+bXlookang[i+np*j];  // > FixedRelations.fixedfrem:12
+      //   positiontext[i+np*j]=i+np*j+"="+bX[0][i][j];  // > FixedRelations.fixedfrem:13
+        }  // > FixedRelations.fixedfrem:14
+         }  // > FixedRelations.fixedfrem:15
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["ending"]) return;
+    if ( t<0 ) {  // > FixedRelations.ending:1
+      _pause(); // added by lookang to prevent simulation from running to t <0  // > FixedRelations.ending:2
+      }  // > FixedRelations.ending:3
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  function _initializeSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].initializeSolver();
+  }
+
+  function _automaticResetSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].automaticResetSolver();
+  }
+
+  _model.resetSolvers = function() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].resetSolver();
+  };
+
+  _getODE = function (_odeName) {
+    if (_odeName=="Evolve Field") return _ODEi_evolution1;
+    return null;
+  }
+
+  function _getEventSolver(_odeName) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return null;
+    return ode.getEventSolver();
+  }
+
+  function _setSolverClass(_odeName, _engine) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return;
+    if (!_engine.setODE) {
+      var classname = _engine.toLowerCase();
+      if      (classname.indexOf("boga")>=0)   _engine = EJSS_ODE_SOLVERS.bogackiShampine23;
+      else if (classname.indexOf("cash")>=0)   _engine = EJSS_ODE_SOLVERS.cashKarp45;
+      else if (classname.indexOf("dopri5")>=0) _engine = EJSS_ODE_SOLVERS.dopri5;
+      else if (classname.indexOf("dopri8")>=0) _engine = EJSS_ODE_SOLVERS.dopri853;
+      else if (classname.indexOf("richa")>=0)  _engine = EJSS_ODE_SOLVERS.eulerRichardson;
+      else if (classname.indexOf("euler")>=0)  _engine = EJSS_ODE_SOLVERS.euler;
+      else if (classname.indexOf("fehlberg87")>=0) _engine = EJSS_ODE_SOLVERS.fehlberg87;
+      else if (classname.indexOf("fehlberg8")>=0)  _engine = EJSS_ODE_SOLVERS.fehlberg8;
+      else if (classname.indexOf("radau")>=0)   _engine = EJSS_ODE_SOLVERS.radau5;
+      else if (classname.indexOf("runge")>=0)  _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("rk4")>=0)    _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("verlet")>=0) _engine = EJSS_ODE_SOLVERS.velocityVerlet;
+    }
+    if (_engine) ode.setSolverClass(_engine);
+  }
+
+  function _ODE_evolution1() {
+    var __odeSelf = {};
+    var __eventSolver;
+    var __solverClass = EJSS_ODE_SOLVERS.cashKarp45;
+    var __state=[];
+    var _ODE_evolution1_Event1;
+    var _ODE_evolution1_Event2;
+    var __ignoreErrors=false;
+    var __mustInitialize=true;
+    var __isEnabled=true;
+    var __mustUserReinitialize=false;
+    var __mustReinitialize=true;
+
+    var _xnLength;
+    var _znLength;
+    var _ctaLength;
+
+    __odeSelf._getOdeVars = function (){ return["xn","zn","cta","t"]};
+
+    __odeSelf.setSolverClass = function(__aSolverClass) {
+      __solverClass = __aSolverClass;
+      __instantiateSolver();
+    };
+
+    function __instantiateSolver() {
+      __state=[];
+      _xnLength = xn.length;
+      _znLength = zn.length;
+      _ctaLength = cta.length;
+      __pushState();
+      __eventSolver = EJSS_ODE_SOLVERS.interpolatorEventSolver(__solverClass(),__odeSelf);
+      __mustInitialize = true;
+    }
+
+    __odeSelf.setEnabled = function(_enabled) { __isEnabled = _enabled; };
+
+    __odeSelf.getIndependentVariableValue = function() { return __eventSolver.getIndependentVariableValue(); };
+
+    __odeSelf.getInternalStepSize = function() { return __eventSolver.getInternalStepSize(); };
+
+    __odeSelf.isAccelerationIndependentOfVelocity = function() { return false; };
+
+    __odeSelf.initializeSolver = function() {
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); return; }
+      __pushState();
+      __eventSolver.initialize(dt);
+      __eventSolver.setBestInterpolation(false);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.removeAllEvents();
+      if (__pagesEnabled["First Coil"]) __eventSolver.addEvent(_ODE_evolution1_Event1());
+      if (__pagesEnabled["Last Coil"]) __eventSolver.addEvent(_ODE_evolution1_Event2());
+      for(k in userEvents1){__eventSolver.addEvent(userEvents1[k]);}
+      __eventSolver.setEstimateFirstStep(false);
+      __eventSolver.setEnableExceptions(false);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __mustReinitialize = true;
+      __mustInitialize = false;
+    };
+
+    function __pushState() {
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_xnLength; __j++)
+           if (__state[__n++]!=xn[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_xnLength; __j++) {
+          __state[__cIn++] = xn[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_znLength; __j++)
+           if (__state[__n++]!=zn[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_znLength; __j++) {
+          __state[__cIn++] = zn[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_ctaLength; __j++)
+           if (__state[__n++]!=cta[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_ctaLength; __j++) {
+          __state[__cIn++] = cta[__j];
+        }
+        if (__state[__cIn]!=t) __mustReinitialize = true;
+        __state[__cIn++] = t;
+    }
+
+    function __arraysChanged () {
+      if (_xnLength != xn.length) return true;
+      if (_znLength != zn.length) return true;
+      if (_ctaLength != cta.length) return true;
+      return false;
+    }
+
+    __odeSelf.getEventSolver = function() {
+      return __eventSolver;
+    };
+
+    __odeSelf.resetSolver = function() {
+      __mustUserReinitialize = true;
+    };
+
+    __odeSelf.automaticResetSolver = function() {
+      __mustReinitialize = true;
+    };
+
+    function __errorAction () {
+      if (__ignoreErrors) return;
+      console.log (__eventSolver.getErrorMessage());
+      _pause();
+      // Make sure the solver is reinitialized;
+      __mustReinitialize = true;
+    }
+
+    __odeSelf.step = function() { return __privateStep(false); };
+
+    __odeSelf.solverStep = function() { return __privateStep(true); };
+
+    function __privateStep(__takeMaximumStep) {
+      if (!__isEnabled) return 0;
+      if (dt===0) return 0;
+      if (__mustInitialize) __odeSelf.initializeSolver();
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); }
+      __eventSolver.setStepSize(dt);
+      __eventSolver.setInternalStepSize(dt);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __pushState();
+      if (__mustUserReinitialize) { 
+        __eventSolver.userReinitialize();
+        __mustUserReinitialize = false;
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      else if (__mustReinitialize) { 
+        __eventSolver.reinitialize();
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      var __stepTaken = __takeMaximumStep ? __eventSolver.maxStep() : __eventSolver.step();
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = __state[__cOut++];
+        }
+        t = __state[__cOut++];
+      // Check for error
+      if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      return __stepTaken;
+    }
+
+    __odeSelf.getState = function() { return __state; };
+
+    __odeSelf.getRate = function(_aState,_aRate) {
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var xn = [];
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = _aState[__cOut++];
+        }
+        var zn = [];
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = _aState[__cOut++];
+        }
+        var cta = [];
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = _aState[__cOut++];
+        }
+        var t = _aState[__cOut++];
+      // Compute the rate
+        var __cRate=0;
+        var i;
+        for (i=0;i<_xnLength;i++) {
+          _aRate[__cRate++] = Array.isArray(vx[i]) ? vx[i][i] : vx[i]; // Rate for ODE: Evolve Field:xn
+        }
+        for (i=0;i<_znLength;i++) {
+          _aRate[__cRate++] = Array.isArray(vz[i]) ? vz[i][i] : vz[i]; // Rate for ODE: Evolve Field:zn
+        }
+        for (i=0;i<_ctaLength;i++) {
+          _aRate[__cRate++] = Array.isArray(omega) ? omega[i] : omega; // Rate for ODE: Evolve Field:cta
+        }
+        _aRate[__cRate++] = 1; // independent variable
+        return _aRate;
+    }; //end of getRate
+
+    __odeSelf._addEvent = function(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent){
+    var User_Event = function (userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent) {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return eventType; };
+
+      _eventSelf.getRootFindingMethod = function() { return eventMethod; };
+
+      _eventSelf.getMaxIterations = function() { return maxIter; };
+
+      _eventSelf.getTolerance = function() { return eventTolerance; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var xn = [];
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = _aState[__cOut++];
+        }
+        var zn = [];
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = _aState[__cOut++];
+        }
+        var cta = [];
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = _aState[__cOut++];
+        }
+        var t = _aState[__cOut++];
+      return eval(userCondition);
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = __state[__cOut++];
+        }
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        for (__j=0;__j<_xnLength; __j++) {
+          __state[__cIn++] = xn[__j];
+        }
+        for (__j=0;__j<_znLength; __j++) {
+          __state[__cIn++] = zn[__j];
+        }
+        for (__j=0;__j<_ctaLength; __j++) {
+          __state[__cIn++] = cta[__j];
+        }
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        if (undefined != functions) eval(functions.toString());
+        eval(userAction);
+        return endAtEvent;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+   userEvents1.push(User_Event(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent));
+   }
+
+    _ODE_evolution1_Event1 = function() {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return EJSS_ODE_SOLVERS.EVENT_TYPE.STATE_EVENT; };
+
+      _eventSelf.getRootFindingMethod = function() { return EJSS_ODE_SOLVERS.EVENT_METHOD.BISECTION; };
+
+      _eventSelf.getMaxIterations = function() { return 100; };
+
+      _eventSelf.getTolerance = function() { return 0.001; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var xn = [];
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = _aState[__cOut++];
+        }
+        var zn = [];
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = _aState[__cOut++];
+        }
+        var cta = [];
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = _aState[__cOut++];
+        }
+        var t = _aState[__cOut++];
+        if(omega==0 && t>=T){  // > Event zero-condition for page Evolve Field:1
+          return T-t;  // > Event zero-condition for page Evolve Field:2
+        }  // > Event zero-condition for page Evolve Field:3
+        return 1;  // > Event zero-condition for page Evolve Field:4
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = __state[__cOut++];
+        }
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        for (__j=0;__j<_xnLength; __j++) {
+          __state[__cIn++] = xn[__j];
+        }
+        for (__j=0;__j<_znLength; __j++) {
+          __state[__cIn++] = zn[__j];
+        }
+        for (__j=0;__j<_ctaLength; __j++) {
+          __state[__cIn++] = cta[__j];
+        }
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        for(var i=0;i<n;i++) {  // > Event action for page Evolve Field:1
+          vx[i]=vz[i]=0.;  // > Event action for page Evolve Field:2
+        }  // > Event action for page Evolve Field:3
+        omega=Math.PI*2/T;  // > Event action for page Evolve Field:4
+        Iold = I; // added by lookang  // > Event action for page Evolve Field:5
+        return true;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+    _ODE_evolution1_Event2 = function() {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return EJSS_ODE_SOLVERS.EVENT_TYPE.STATE_EVENT; };
+
+      _eventSelf.getRootFindingMethod = function() { return EJSS_ODE_SOLVERS.EVENT_METHOD.BISECTION; };
+
+      _eventSelf.getMaxIterations = function() { return 100; };
+
+      _eventSelf.getTolerance = function() { return 0.001; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var xn = [];
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = _aState[__cOut++];
+        }
+        var zn = [];
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = _aState[__cOut++];
+        }
+        var cta = [];
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = _aState[__cOut++];
+        }
+        var t = _aState[__cOut++];
+        return T2-t;  // > Event zero-condition for page Evolve Field:1
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        for (__i=0;__i<_xnLength; __i++) {
+          xn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_znLength; __i++) {
+          zn[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_ctaLength; __i++) {
+          cta[__i] = __state[__cOut++];
+        }
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        for (__j=0;__j<_xnLength; __j++) {
+          __state[__cIn++] = xn[__j];
+        }
+        for (__j=0;__j<_znLength; __j++) {
+          __state[__cIn++] = zn[__j];
+        }
+        for (__j=0;__j<_ctaLength; __j++) {
+          __state[__cIn++] = cta[__j];
+        }
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        t=T2;  // > Event action for page Evolve Field:1
+        _pause();  // > Event action for page Evolve Field:2
+        return true;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+    __instantiateSolver();
+
+    return __odeSelf;
+  }
+
+  function _historic_xn(__time) {
+    var __beginIndex = 0;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(xn.length),__beginIndex,xn.ength);
+  }
+
+  function _historic_zn(__time) {
+    var __beginIndex = 0 + xn.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(zn.length),__beginIndex,zn.ength);
+  }
+
+  function _historic_cta(__time) {
+    var __beginIndex = 0 + xn.length + zn.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(cta.length),__beginIndex,cta.ength);
+  }
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "HtmlView Page", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new MagneticFieldFromLoops_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.executionPanel.linkProperty("Background",  function() { return color; }, function(_v) { color = _v; } ); // HtmlView Page linking property 'Background' for element 'executionPanel'
+          _view.executionPanel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'executionPanel'
+          _view.comboBox.linkProperty("Options",  function() { return ["Polarity","Current","Number of Coils","z slice"]; } ); // HtmlView Page linking property 'Options' for element 'comboBox'
+          _view.comboBox.linkProperty("Foreground",  function() { return color; }, function(_v) { color = _v; } ); // HtmlView Page linking property 'Foreground' for element 'comboBox'
+          _view.comboBox.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBox.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  //["Display","Current","Number of Coils","z slice"]
+  if (option =="Polarity"){box=1;color="blue";}
+  else if (option =="Current"){box=2;color="green";}
+  else if (option =="Number of Coils"){box=3;color="red";}
+  else if (option=="z slice"){box=4;color="orange";}
+
+}); // HtmlView Page setting action 'OnChange' for element 'comboBox'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'comboBox'
+          _view.polarity.linkProperty("Checked",  function() { return polarity; }, function(_v) { polarity = _v; } ); // HtmlView Page linking property 'Checked' for element 'polarity'
+          _view.polarity.linkProperty("Disabled",  function() { return t<T2; } ); // HtmlView Page linking property 'Disabled' for element 'polarity'
+          _view.polarity.linkProperty("Display",  function() { return (box==1)?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'polarity'
+          _view.current.linkProperty("Checked",  function() { return current; }, function(_v) { current = _v; } ); // HtmlView Page linking property 'Checked' for element 'current'
+          _view.current.linkProperty("Display",  function() { return (box==2)?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'current'
+          _view.currentlabel.linkProperty("Text",  function() { return I.toFixed(1)+" A"; } ); // HtmlView Page linking property 'Text' for element 'currentlabel'
+          _view.currentlabel.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'currentlabel'
+          _view.currentlabel.linkProperty("Display",  function() { return (box==2)?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'currentlabel'
+          _view.slidercurrent.linkProperty("Value",  function() { return I; }, function(_v) { I = _v; } ); // HtmlView Page linking property 'Value' for element 'slidercurrent'
+          _view.slidercurrent.setAction("OnChange", function(_data,_info) {
+  updateaction ();
+
+}); // HtmlView Page setting action 'OnChange' for element 'slidercurrent'
+          _view.slidercurrent.linkProperty("Display",  function() { return (box==2)?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'slidercurrent'
+          _view.varfield.linkProperty("Value",  function() { return nCoils; }, function(_v) { nCoils = _v; } ); // HtmlView Page linking property 'Value' for element 'varfield'
+          _view.varfield.linkProperty("Editable",  function() { return t==0; } ); // HtmlView Page linking property 'Editable' for element 'varfield'
+          _view.varfield.setAction("OnChange", function(_data,_info) {
+  nCoils=Math.round(Math.max(nCoils,1));
+  nCoils=Math.min(nCoils,10);
+  T2=T*nCoils;
+
+}); // HtmlView Page setting action 'OnChange' for element 'varfield'
+          _view.varfield.linkProperty("Foreground",  function() { return color; }, function(_v) { color = _v; } ); // HtmlView Page linking property 'Foreground' for element 'varfield'
+          _view.varfield.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // HtmlView Page linking property 'Font' for element 'varfield'
+          _view.varfield.linkProperty("Display",  function() { return (box==3)?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'varfield'
+          _view.sliderz.linkProperty("Minimum",  function() { return zmin; }, function(_v) { zmin = _v; } ); // HtmlView Page linking property 'Minimum' for element 'sliderz'
+          _view.sliderz.linkProperty("Maximum",  function() { return zmax; }, function(_v) { zmax = _v; } ); // HtmlView Page linking property 'Maximum' for element 'sliderz'
+          _view.sliderz.linkProperty("Value",  function() { return z; }, function(_v) { z = _v; } ); // HtmlView Page linking property 'Value' for element 'sliderz'
+          _view.sliderz.setAction("OnChange", function(_data,_info) {
+  updateaction();
+
+}); // HtmlView Page setting action 'OnChange' for element 'sliderz'
+          _view.sliderz.linkProperty("Disabled",  function() { return _isPlaying; } ); // HtmlView Page linking property 'Disabled' for element 'sliderz'
+          _view.sliderz.linkProperty("Display",  function() { return (box==4)?"inline-block":"none"; } ); // HtmlView Page linking property 'Display' for element 'sliderz'
+          _view.playpausebutton.setAction("OffClick", function(_data,_info) {
+  _pause();
+
+}); // HtmlView Page setting action 'OffClick' for element 'playpausebutton'
+          _view.playpausebutton.linkProperty("State",  function() { return _isPaused; } ); // HtmlView Page linking property 'State' for element 'playpausebutton'
+          _view.playpausebutton.setAction("OnClick", function(_data,_info) {
+  _play();
+
+}); // HtmlView Page setting action 'OnClick' for element 'playpausebutton'
+          _view.playpausebutton.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'playpausebutton'
+          _view.resetButton.setAction("OnClick", function(_data,_info) {
+  _reset();
+
+}); // HtmlView Page setting action 'OnClick' for element 'resetButton'
+          _view.resetButton.linkProperty("Font",  function() { return fontb; }, function(_v) { fontb = _v; } ); // HtmlView Page linking property 'Font' for element 'resetButton'
+          _view.slider2.linkProperty("Value",  function() { return headheight; }, function(_v) { headheight = _v; } ); // HtmlView Page linking property 'Value' for element 'slider2'
+          _view.slider.linkProperty("Value",  function() { return headwidth; }, function(_v) { headwidth = _v; } ); // HtmlView Page linking property 'Value' for element 'slider'
+          _view.drawingPanel3D.linkProperty("MinimumX",  function() { return xmin*scale; } ); // HtmlView Page linking property 'MinimumX' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("MinimumY",  function() { return ymin*scale; } ); // HtmlView Page linking property 'MinimumY' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("MinimumZ",  function() { return zmin*scale; } ); // HtmlView Page linking property 'MinimumZ' for element 'drawingPanel3D'
+          _view.drawingPanel3D.setAction("OnDoubleClick", function(_data,_info) {
+  toggleFullScreen();
+
+}); // HtmlView Page setting action 'OnDoubleClick' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("MaximumZ",  function() { return zmax*scale; } ); // HtmlView Page linking property 'MaximumZ' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("MaximumY",  function() { return ymax*scale; } ); // HtmlView Page linking property 'MaximumY' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("MaximumX",  function() { return xmax*scale; } ); // HtmlView Page linking property 'MaximumX' for element 'drawingPanel3D'
+          _view.textSet3D.linkProperty("NumberOfElements",  function() { return np*np; } ); // HtmlView Page linking property 'NumberOfElements' for element 'textSet3D'
+          _view.textSet3D.linkProperty("X",  function() { return xpositionlookang; }, function(_v) { xpositionlookang = _v; } ); // HtmlView Page linking property 'X' for element 'textSet3D'
+          _view.textSet3D.linkProperty("Y",  function() { return ypositionlookang; }, function(_v) { ypositionlookang = _v; } ); // HtmlView Page linking property 'Y' for element 'textSet3D'
+          _view.textSet3D.linkProperty("Text",  function() { return positiontext; }, function(_v) { positiontext = _v; } ); // HtmlView Page linking property 'Text' for element 'textSet3D'
+          _view.textSet3D.linkProperty("Z",  function() { return zpositionlookang; }, function(_v) { zpositionlookang = _v; } ); // HtmlView Page linking property 'Z' for element 'textSet3D'
+          _view.vectorfieldlookang.linkProperty("SizeX",  function() { return bXlookang; }, function(_v) { bXlookang = _v; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfieldlookang'
+          _view.vectorfieldlookang.linkProperty("X",  function() { return xpositionlookang; }, function(_v) { xpositionlookang = _v; } ); // HtmlView Page linking property 'X' for element 'vectorfieldlookang'
+          _view.vectorfieldlookang.linkProperty("Y",  function() { return ypositionlookang; }, function(_v) { ypositionlookang = _v; } ); // HtmlView Page linking property 'Y' for element 'vectorfieldlookang'
+          _view.vectorfieldlookang.linkProperty("Z",  function() { return zpositionlookang; }, function(_v) { zpositionlookang = _v; } ); // HtmlView Page linking property 'Z' for element 'vectorfieldlookang'
+          _view.vectorfieldlookang.linkProperty("SizeZ",  function() { return bZlookang; }, function(_v) { bZlookang = _v; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfieldlookang'
+          _view.vectorfieldlookang.linkProperty("SizeY",  function() { return bYlookang; }, function(_v) { bYlookang = _v; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfieldlookang'
+          _view.sphereSet3Dlookang.linkProperty("NumberOfElements",  function() { return np*np; } ); // HtmlView Page linking property 'NumberOfElements' for element 'sphereSet3Dlookang'
+          _view.sphereSet3Dlookang.linkProperty("X",  function() { return xpositionlookang; }, function(_v) { xpositionlookang = _v; } ); // HtmlView Page linking property 'X' for element 'sphereSet3Dlookang'
+          _view.sphereSet3Dlookang.linkProperty("Y",  function() { return ypositionlookang; }, function(_v) { ypositionlookang = _v; } ); // HtmlView Page linking property 'Y' for element 'sphereSet3Dlookang'
+          _view.sphereSet3Dlookang.linkProperty("Z",  function() { return zpositionlookang; }, function(_v) { zpositionlookang = _v; } ); // HtmlView Page linking property 'Z' for element 'sphereSet3Dlookang'
+          _view.wire.linkProperty("InputZ",  function() { return polygon[2]; } ); // HtmlView Page linking property 'InputZ' for element 'wire'
+          _view.wire.linkProperty("InputX",  function() { return polygon[0]; } ); // HtmlView Page linking property 'InputX' for element 'wire'
+          _view.wire.linkProperty("InputY",  function() { return polygon[1]; } ); // HtmlView Page linking property 'InputY' for element 'wire'
+          _view.wire.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'wire'
+          _view.vectorfieldfrem.linkProperty("Z",  function() { return z; }, function(_v) { z = _v; } ); // HtmlView Page linking property 'Z' for element 'vectorfieldfrem'
+          _view.vectorfield.linkProperty("SizeX",  function() { return bX[0][0]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield'
+          _view.vectorfield.linkProperty("X",  function() { return xposition[0]; } ); // HtmlView Page linking property 'X' for element 'vectorfield'
+          _view.vectorfield.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield'
+          _view.vectorfield.linkProperty("SizeZ",  function() { return bZ[0][0]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield'
+          _view.vectorfield.linkProperty("SizeY",  function() { return bY[0][0]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield'
+          _view.vectorfield.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield'
+          _view.vectorfield1.linkProperty("SizeX",  function() { return bX[0][1]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1'
+          _view.vectorfield1.linkProperty("X",  function() { return xposition[1]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1'
+          _view.vectorfield1.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1'
+          _view.vectorfield1.linkProperty("SizeZ",  function() { return bZ[0][1]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1'
+          _view.vectorfield1.linkProperty("SizeY",  function() { return bY[0][1]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1'
+          _view.vectorfield1.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1'
+          _view.vectorfield12.linkProperty("SizeX",  function() { return bX[0][2]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield12'
+          _view.vectorfield12.linkProperty("X",  function() { return xposition[2]; } ); // HtmlView Page linking property 'X' for element 'vectorfield12'
+          _view.vectorfield12.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield12'
+          _view.vectorfield12.linkProperty("SizeZ",  function() { return bZ[0][2]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield12'
+          _view.vectorfield12.linkProperty("SizeY",  function() { return bY[0][2]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield12'
+          _view.vectorfield12.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield12'
+          _view.vectorfield13.linkProperty("SizeX",  function() { return bX[0][3]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield13'
+          _view.vectorfield13.linkProperty("X",  function() { return xposition[3]; } ); // HtmlView Page linking property 'X' for element 'vectorfield13'
+          _view.vectorfield13.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield13'
+          _view.vectorfield13.linkProperty("SizeZ",  function() { return bZ[0][3]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield13'
+          _view.vectorfield13.linkProperty("SizeY",  function() { return bY[0][3]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield13'
+          _view.vectorfield13.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield13'
+          _view.vectorfield14.linkProperty("SizeX",  function() { return bX[0][4]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield14'
+          _view.vectorfield14.linkProperty("X",  function() { return xposition[4]; } ); // HtmlView Page linking property 'X' for element 'vectorfield14'
+          _view.vectorfield14.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield14'
+          _view.vectorfield14.linkProperty("SizeZ",  function() { return bZ[0][4]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield14'
+          _view.vectorfield14.linkProperty("SizeY",  function() { return bY[0][4]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield14'
+          _view.vectorfield14.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield14'
+          _view.vectorfield15.linkProperty("SizeX",  function() { return bX[0][5]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield15'
+          _view.vectorfield15.linkProperty("X",  function() { return xposition[5]; } ); // HtmlView Page linking property 'X' for element 'vectorfield15'
+          _view.vectorfield15.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield15'
+          _view.vectorfield15.linkProperty("SizeZ",  function() { return bZ[0][5]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield15'
+          _view.vectorfield15.linkProperty("SizeY",  function() { return bY[0][5]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield15'
+          _view.vectorfield15.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield15'
+          _view.vectorfield16.linkProperty("SizeX",  function() { return bX[0][6]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield16'
+          _view.vectorfield16.linkProperty("X",  function() { return xposition[6]; } ); // HtmlView Page linking property 'X' for element 'vectorfield16'
+          _view.vectorfield16.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield16'
+          _view.vectorfield16.linkProperty("SizeZ",  function() { return bZ[0][6]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield16'
+          _view.vectorfield16.linkProperty("SizeY",  function() { return bY[0][6]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield16'
+          _view.vectorfield16.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield16'
+          _view.vectorfield17.linkProperty("SizeX",  function() { return bX[0][7]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield17'
+          _view.vectorfield17.linkProperty("X",  function() { return xposition[7]; } ); // HtmlView Page linking property 'X' for element 'vectorfield17'
+          _view.vectorfield17.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield17'
+          _view.vectorfield17.linkProperty("SizeZ",  function() { return bZ[0][7]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield17'
+          _view.vectorfield17.linkProperty("SizeY",  function() { return bY[0][7]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield17'
+          _view.vectorfield17.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield17'
+          _view.vectorfield18.linkProperty("SizeX",  function() { return bX[0][8]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield18'
+          _view.vectorfield18.linkProperty("X",  function() { return xposition[8]; } ); // HtmlView Page linking property 'X' for element 'vectorfield18'
+          _view.vectorfield18.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield18'
+          _view.vectorfield18.linkProperty("SizeZ",  function() { return bZ[0][8]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield18'
+          _view.vectorfield18.linkProperty("SizeY",  function() { return bY[0][8]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield18'
+          _view.vectorfield18.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield18'
+          _view.vectorfield19.linkProperty("SizeX",  function() { return bX[0][9]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield19'
+          _view.vectorfield19.linkProperty("X",  function() { return xposition[9]; } ); // HtmlView Page linking property 'X' for element 'vectorfield19'
+          _view.vectorfield19.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield19'
+          _view.vectorfield19.linkProperty("SizeZ",  function() { return bZ[0][9]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield19'
+          _view.vectorfield19.linkProperty("SizeY",  function() { return bY[0][9]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield19'
+          _view.vectorfield19.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield19'
+          _view.vectorfield110.linkProperty("SizeX",  function() { return bX[0][10]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield110'
+          _view.vectorfield110.linkProperty("X",  function() { return xposition[10]; } ); // HtmlView Page linking property 'X' for element 'vectorfield110'
+          _view.vectorfield110.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield110'
+          _view.vectorfield110.linkProperty("SizeZ",  function() { return bZ[0][10]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield110'
+          _view.vectorfield110.linkProperty("SizeY",  function() { return bY[0][10]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield110'
+          _view.vectorfield110.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield110'
+          _view.vectorfield111.linkProperty("SizeX",  function() { return bX[0][11]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield111'
+          _view.vectorfield111.linkProperty("X",  function() { return xposition[11]; } ); // HtmlView Page linking property 'X' for element 'vectorfield111'
+          _view.vectorfield111.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield111'
+          _view.vectorfield111.linkProperty("SizeZ",  function() { return bZ[0][11]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield111'
+          _view.vectorfield111.linkProperty("SizeY",  function() { return bY[0][11]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield111'
+          _view.vectorfield111.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield111'
+          _view.vectorfield122.linkProperty("SizeX",  function() { return bX[0][12]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield122'
+          _view.vectorfield122.linkProperty("X",  function() { return xposition[12]; } ); // HtmlView Page linking property 'X' for element 'vectorfield122'
+          _view.vectorfield122.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield122'
+          _view.vectorfield122.linkProperty("SizeZ",  function() { return bZ[0][12]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield122'
+          _view.vectorfield122.linkProperty("SizeY",  function() { return bY[0][12]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield122'
+          _view.vectorfield122.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield122'
+          _view.vectorfield132.linkProperty("SizeX",  function() { return bX[0][13]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield132'
+          _view.vectorfield132.linkProperty("X",  function() { return xposition[13]; } ); // HtmlView Page linking property 'X' for element 'vectorfield132'
+          _view.vectorfield132.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield132'
+          _view.vectorfield132.linkProperty("SizeZ",  function() { return bZ[0][13]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield132'
+          _view.vectorfield132.linkProperty("SizeY",  function() { return bY[0][13]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield132'
+          _view.vectorfield132.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield132'
+          _view.vectorfield142.linkProperty("SizeX",  function() { return bX[0][14]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield142'
+          _view.vectorfield142.linkProperty("X",  function() { return xposition[14]; } ); // HtmlView Page linking property 'X' for element 'vectorfield142'
+          _view.vectorfield142.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield142'
+          _view.vectorfield142.linkProperty("SizeZ",  function() { return bZ[0][14]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield142'
+          _view.vectorfield142.linkProperty("SizeY",  function() { return bY[0][14]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield142'
+          _view.vectorfield142.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield142'
+          _view.vectorfield152.linkProperty("SizeX",  function() { return bX[0][15]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield152'
+          _view.vectorfield152.linkProperty("X",  function() { return xposition[15]; } ); // HtmlView Page linking property 'X' for element 'vectorfield152'
+          _view.vectorfield152.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield152'
+          _view.vectorfield152.linkProperty("SizeZ",  function() { return bZ[0][15]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield152'
+          _view.vectorfield152.linkProperty("SizeY",  function() { return bY[0][15]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield152'
+          _view.vectorfield152.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield152'
+          _view.vectorfield162.linkProperty("SizeX",  function() { return bX[0][16]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield162'
+          _view.vectorfield162.linkProperty("X",  function() { return xposition[16]; } ); // HtmlView Page linking property 'X' for element 'vectorfield162'
+          _view.vectorfield162.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield162'
+          _view.vectorfield162.linkProperty("SizeZ",  function() { return bZ[0][16]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield162'
+          _view.vectorfield162.linkProperty("SizeY",  function() { return bY[0][16]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield162'
+          _view.vectorfield162.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield162'
+          _view.vectorfield172.linkProperty("SizeX",  function() { return bX[0][17]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield172'
+          _view.vectorfield172.linkProperty("X",  function() { return xposition[17]; } ); // HtmlView Page linking property 'X' for element 'vectorfield172'
+          _view.vectorfield172.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield172'
+          _view.vectorfield172.linkProperty("SizeZ",  function() { return bZ[0][17]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield172'
+          _view.vectorfield172.linkProperty("SizeY",  function() { return bY[0][17]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield172'
+          _view.vectorfield172.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield172'
+          _view.vectorfield182.linkProperty("SizeX",  function() { return bX[0][18]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield182'
+          _view.vectorfield182.linkProperty("X",  function() { return xposition[18]; } ); // HtmlView Page linking property 'X' for element 'vectorfield182'
+          _view.vectorfield182.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield182'
+          _view.vectorfield182.linkProperty("SizeZ",  function() { return bZ[0][18]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield182'
+          _view.vectorfield182.linkProperty("SizeY",  function() { return bY[0][18]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield182'
+          _view.vectorfield182.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield182'
+          _view.vectorfield192.linkProperty("SizeX",  function() { return bX[0][19]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield192'
+          _view.vectorfield192.linkProperty("X",  function() { return xposition[19]; } ); // HtmlView Page linking property 'X' for element 'vectorfield192'
+          _view.vectorfield192.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield192'
+          _view.vectorfield192.linkProperty("SizeZ",  function() { return bZ[0][19]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield192'
+          _view.vectorfield192.linkProperty("SizeY",  function() { return bY[0][19]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield192'
+          _view.vectorfield192.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield192'
+          _view.vectorfield1102.linkProperty("SizeX",  function() { return bX[0][20]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1102'
+          _view.vectorfield1102.linkProperty("X",  function() { return xposition[20]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1102'
+          _view.vectorfield1102.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1102'
+          _view.vectorfield1102.linkProperty("SizeZ",  function() { return bZ[0][20]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1102'
+          _view.vectorfield1102.linkProperty("SizeY",  function() { return bY[0][20]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1102'
+          _view.vectorfield1102.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1102'
+          _view.vectorfield1112.linkProperty("SizeX",  function() { return bX[0][21]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1112'
+          _view.vectorfield1112.linkProperty("X",  function() { return xposition[21]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1112'
+          _view.vectorfield1112.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1112'
+          _view.vectorfield1112.linkProperty("SizeZ",  function() { return bZ[0][21]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1112'
+          _view.vectorfield1112.linkProperty("SizeY",  function() { return bY[0][21]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1112'
+          _view.vectorfield1112.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1112'
+          _view.vectorfield1222.linkProperty("SizeX",  function() { return bX[0][22]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1222'
+          _view.vectorfield1222.linkProperty("X",  function() { return xposition[22]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1222'
+          _view.vectorfield1222.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1222'
+          _view.vectorfield1222.linkProperty("SizeZ",  function() { return bZ[0][22]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1222'
+          _view.vectorfield1222.linkProperty("SizeY",  function() { return bY[0][22]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1222'
+          _view.vectorfield1222.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1222'
+          _view.vectorfield1322.linkProperty("SizeX",  function() { return bX[0][23]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1322'
+          _view.vectorfield1322.linkProperty("X",  function() { return xposition[23]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1322'
+          _view.vectorfield1322.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1322'
+          _view.vectorfield1322.linkProperty("SizeZ",  function() { return bZ[0][23]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1322'
+          _view.vectorfield1322.linkProperty("SizeY",  function() { return bY[0][23]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1322'
+          _view.vectorfield1322.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1322'
+          _view.vectorfield1422.linkProperty("SizeX",  function() { return bX[0][24]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1422'
+          _view.vectorfield1422.linkProperty("X",  function() { return xposition[24]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1422'
+          _view.vectorfield1422.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1422'
+          _view.vectorfield1422.linkProperty("SizeZ",  function() { return bZ[0][24]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1422'
+          _view.vectorfield1422.linkProperty("SizeY",  function() { return bY[0][24]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1422'
+          _view.vectorfield1422.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1422'
+          _view.vectorfield1522.linkProperty("SizeX",  function() { return bX[0][25]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1522'
+          _view.vectorfield1522.linkProperty("X",  function() { return xposition[25]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1522'
+          _view.vectorfield1522.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1522'
+          _view.vectorfield1522.linkProperty("SizeZ",  function() { return bZ[0][25]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1522'
+          _view.vectorfield1522.linkProperty("SizeY",  function() { return bY[0][25]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1522'
+          _view.vectorfield1522.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1522'
+          _view.vectorfield1622.linkProperty("SizeX",  function() { return bX[0][26]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1622'
+          _view.vectorfield1622.linkProperty("X",  function() { return xposition[26]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1622'
+          _view.vectorfield1622.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1622'
+          _view.vectorfield1622.linkProperty("SizeZ",  function() { return bZ[0][26]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1622'
+          _view.vectorfield1622.linkProperty("SizeY",  function() { return bY[0][26]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1622'
+          _view.vectorfield1622.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1622'
+          _view.vectorfield1722.linkProperty("SizeX",  function() { return bX[0][27]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1722'
+          _view.vectorfield1722.linkProperty("X",  function() { return xposition[27]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1722'
+          _view.vectorfield1722.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1722'
+          _view.vectorfield1722.linkProperty("SizeZ",  function() { return bZ[0][27]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1722'
+          _view.vectorfield1722.linkProperty("SizeY",  function() { return bY[0][27]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1722'
+          _view.vectorfield1722.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1722'
+          _view.vectorfield1822.linkProperty("SizeX",  function() { return bX[0][28]; } ); // HtmlView Page linking property 'SizeX' for element 'vectorfield1822'
+          _view.vectorfield1822.linkProperty("X",  function() { return xposition[28]; } ); // HtmlView Page linking property 'X' for element 'vectorfield1822'
+          _view.vectorfield1822.linkProperty("Y",  function() { return yposition[0]; } ); // HtmlView Page linking property 'Y' for element 'vectorfield1822'
+          _view.vectorfield1822.linkProperty("SizeZ",  function() { return bZ[0][28]; } ); // HtmlView Page linking property 'SizeZ' for element 'vectorfield1822'
+          _view.vectorfield1822.linkProperty("SizeY",  function() { return bY[0][28]; } ); // HtmlView Page linking property 'SizeY' for element 'vectorfield1822'
+          _view.vectorfield1822.linkProperty("LineWidth",  function() { return stroke; }, function(_v) { stroke = _v; } ); // HtmlView Page linking property 'LineWidth' for element 'vectorfield1822'
+          _view.plusstop.linkProperty("X",  function() { return 6*xn[0]-5*xn[0]; } ); // HtmlView Page linking property 'X' for element 'plusstop'
+          _view.plusstop.linkProperty("Y",  function() { return 6*yn[0]-5*yn[0]; } ); // HtmlView Page linking property 'Y' for element 'plusstop'
+          _view.plusstop.linkProperty("Z",  function() { return 6*zn[0]-5*zn[0]; } ); // HtmlView Page linking property 'Z' for element 'plusstop'
+          _view.plusstop.linkProperty("Visibility",  function() { return I>0; } ); // HtmlView Page linking property 'Visibility' for element 'plusstop'
+          _view.minusbottom.linkProperty("X",  function() { return 6*xn[n-1]-5*xn[n-1]; } ); // HtmlView Page linking property 'X' for element 'minusbottom'
+          _view.minusbottom.linkProperty("Y",  function() { return 6*yn[n-1]-5*yn[n-1]; } ); // HtmlView Page linking property 'Y' for element 'minusbottom'
+          _view.minusbottom.linkProperty("Z",  function() { return 6*zn[n-1]-5*zn[n-1]; } ); // HtmlView Page linking property 'Z' for element 'minusbottom'
+          _view.minusbottom.linkProperty("Visibility",  function() { return I>0; } ); // HtmlView Page linking property 'Visibility' for element 'minusbottom'
+          _view.minustop.linkProperty("X",  function() { return 6*xn[0]-5*xn[0]; } ); // HtmlView Page linking property 'X' for element 'minustop'
+          _view.minustop.linkProperty("Y",  function() { return 6*yn[0]-5*yn[0]; } ); // HtmlView Page linking property 'Y' for element 'minustop'
+          _view.minustop.linkProperty("Z",  function() { return 6*zn[0]-5*zn[0]; } ); // HtmlView Page linking property 'Z' for element 'minustop'
+          _view.minustop.linkProperty("Visibility",  function() { return I<0; } ); // HtmlView Page linking property 'Visibility' for element 'minustop'
+          _view.plustop.linkProperty("X",  function() { return 6*xn[n-1]-5*xn[n-1]; } ); // HtmlView Page linking property 'X' for element 'plustop'
+          _view.plustop.linkProperty("Y",  function() { return 6*yn[n-1]-5*yn[n-1]; } ); // HtmlView Page linking property 'Y' for element 'plustop'
+          _view.plustop.linkProperty("Z",  function() { return 6*zn[n-1]-5*zn[n-1]; } ); // HtmlView Page linking property 'Z' for element 'plustop'
+          _view.plustop.linkProperty("Visibility",  function() { return I<0; } ); // HtmlView Page linking property 'Visibility' for element 'plustop'
+          _view.arrow3D.linkProperty("HeadHeight",  function() { return headheight; }, function(_v) { headheight = _v; } ); // HtmlView Page linking property 'HeadHeight' for element 'arrow3D'
+          _view.arrow3D.linkProperty("SizeX",  function() { return 5*(5*xn[1]-5*xn[0])*I; } ); // HtmlView Page linking property 'SizeX' for element 'arrow3D'
+          _view.arrow3D.linkProperty("HeadWidth",  function() { return headwidth; }, function(_v) { headwidth = _v; } ); // HtmlView Page linking property 'HeadWidth' for element 'arrow3D'
+          _view.arrow3D.linkProperty("X",  function() { return 6*xn[0]-5*xn[0]; } ); // HtmlView Page linking property 'X' for element 'arrow3D'
+          _view.arrow3D.linkProperty("Y",  function() { return 6*yn[0]-5*yn[0]; } ); // HtmlView Page linking property 'Y' for element 'arrow3D'
+          _view.arrow3D.linkProperty("Z",  function() { return 6*zn[0]-5*zn[0]; } ); // HtmlView Page linking property 'Z' for element 'arrow3D'
+          _view.arrow3D.linkProperty("SizeZ",  function() { return 5*(5*zn[1]-5*zn[0])*I; } ); // HtmlView Page linking property 'SizeZ' for element 'arrow3D'
+          _view.arrow3D.linkProperty("Visibility",  function() { return current; }, function(_v) { current = _v; } ); // HtmlView Page linking property 'Visibility' for element 'arrow3D'
+          _view.arrow3D.linkProperty("SizeY",  function() { return 5*(5*yn[1]-5*yn[0])*I; } ); // HtmlView Page linking property 'SizeY' for element 'arrow3D'
+          _view.arrow3D.linkProperty("LineWidth",  function() { return stroke*2; } ); // HtmlView Page linking property 'LineWidth' for element 'arrow3D'
+          _view.currentarrow.linkProperty("HeadHeight",  function() { return headheight; }, function(_v) { headheight = _v; } ); // HtmlView Page linking property 'HeadHeight' for element 'currentarrow'
+          _view.currentarrow.linkProperty("SizeX",  function() { return 5*(5*xn[n-1]-5*xn[n-2])*I; } ); // HtmlView Page linking property 'SizeX' for element 'currentarrow'
+          _view.currentarrow.linkProperty("HeadWidth",  function() { return headwidth; }, function(_v) { headwidth = _v; } ); // HtmlView Page linking property 'HeadWidth' for element 'currentarrow'
+          _view.currentarrow.linkProperty("X",  function() { return 6*xn[n-1]-5*xn[n-1]; } ); // HtmlView Page linking property 'X' for element 'currentarrow'
+          _view.currentarrow.linkProperty("Y",  function() { return 6*yn[n-1]-5*yn[n-1]; } ); // HtmlView Page linking property 'Y' for element 'currentarrow'
+          _view.currentarrow.linkProperty("Z",  function() { return 6*zn[n-1]-5*zn[n-1]; } ); // HtmlView Page linking property 'Z' for element 'currentarrow'
+          _view.currentarrow.linkProperty("SizeZ",  function() { return 5*(5*zn[n-1]-5*zn[n-2])*I; } ); // HtmlView Page linking property 'SizeZ' for element 'currentarrow'
+          _view.currentarrow.linkProperty("Visibility",  function() { return current; }, function(_v) { current = _v; } ); // HtmlView Page linking property 'Visibility' for element 'currentarrow'
+          _view.currentarrow.linkProperty("SizeY",  function() { return 5*(5*yn[n-1]-5*yn[n-2])*I; } ); // HtmlView Page linking property 'SizeY' for element 'currentarrow'
+          _view.currentarrow.linkProperty("LineWidth",  function() { return stroke*2; } ); // HtmlView Page linking property 'LineWidth' for element 'currentarrow'
+          _view.plane3D.linkProperty("SizeX",  function() { return range; }, function(_v) { range = _v; } ); // HtmlView Page linking property 'SizeX' for element 'plane3D'
+          _view.plane3D.linkProperty("Z",  function() { return z*0.99; } ); // HtmlView Page linking property 'Z' for element 'plane3D'
+          _view.plane3D.linkProperty("SizeY",  function() { return range; }, function(_v) { range = _v; } ); // HtmlView Page linking property 'SizeY' for element 'plane3D'
+          _view.North.linkProperty("Y",  function() { return nCoils*yn[n-1]/5; } ); // HtmlView Page linking property 'Y' for element 'North'
+          _view.North.linkProperty("Visibility",  function() { return (t>=T2&&polarity==true&&I>0); } ); // HtmlView Page linking property 'Visibility' for element 'North'
+          _view.South.linkProperty("Y",  function() { return nCoils*yn[0]/5; } ); // HtmlView Page linking property 'Y' for element 'South'
+          _view.South.linkProperty("Visibility",  function() { return (t>=T2&&polarity==true&&I>0); } ); // HtmlView Page linking property 'Visibility' for element 'South'
+          _view.South2.linkProperty("Y",  function() { return nCoils*yn[n-1]/5; } ); // HtmlView Page linking property 'Y' for element 'South2'
+          _view.South2.linkProperty("Visibility",  function() { return (t>=T2&&polarity==true&&I<0); } ); // HtmlView Page linking property 'Visibility' for element 'South2'
+          _view.North2.linkProperty("Y",  function() { return nCoils*yn[0]/5; } ); // HtmlView Page linking property 'Y' for element 'North2'
+          _view.North2.linkProperty("Visibility",  function() { return (t>=T2&&polarity==true&&I<0); } ); // HtmlView Page linking property 'Visibility' for element 'North2'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function MagneticFieldFromLoops_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = MagneticFieldFromLoops_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+  _view._addDescriptionPage('Magnetic Field From Loops','./MagneticFieldFromLoops_Intro_1.html');
+
+  return _view;
+} // end of main function
+
+function MagneticFieldFromLoops_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"executionPanel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'executionPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"polarity", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'polarity'
+      .setProperty("Foreground","white") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'polarity'
+      .setProperty("Text","") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'polarity'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.checkBox,"current", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'current'
+      .setProperty("Foreground","white") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'current'
+      .setProperty("Text","") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'current'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"currentlabel", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'currentlabel'
+      .setProperty("Foreground","white") // EJsS HtmlView.HtmlView Page: setting property 'Foreground' for element 'currentlabel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"slidercurrent", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'slidercurrent'
+      .setProperty("Width","15vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'slidercurrent'
+      .setProperty("Minimum",-1) // EJsS HtmlView.HtmlView Page: setting property 'Minimum' for element 'slidercurrent'
+      .setProperty("Maximum",1) // EJsS HtmlView.HtmlView Page: setting property 'Maximum' for element 'slidercurrent'
+      .setProperty("ShowText",false) // EJsS HtmlView.HtmlView Page: setting property 'ShowText' for element 'slidercurrent'
+      .setProperty("Format","0.0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'slidercurrent'
+      .setProperty("Tooltip","slider for current in wire") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'slidercurrent'
+      .setProperty("Step",0.1) // EJsS HtmlView.HtmlView Page: setting property 'Step' for element 'slidercurrent'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"varfield", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'varfield'
+      .setProperty("Format","0") // EJsS HtmlView.HtmlView Page: setting property 'Format' for element 'varfield'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"sliderz", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'sliderz'
+      .setProperty("Width","15vw") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'sliderz'
+      .setProperty("ShowText",false) // EJsS HtmlView.HtmlView Page: setting property 'ShowText' for element 'sliderz'
+      .setProperty("Tooltip","controls level of field") // EJsS HtmlView.HtmlView Page: setting property 'Tooltip' for element 'sliderz'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"playpausebutton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'playpausebutton'
+      .setProperty("TextOn","▶") // EJsS HtmlView.HtmlView Page: setting property 'TextOn' for element 'playpausebutton'
+      .setProperty("TextOff","❚❚") // EJsS HtmlView.HtmlView Page: setting property 'TextOff' for element 'playpausebutton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"slider2", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'slider2'
+      .setProperty("ShowText",true) // EJsS HtmlView.HtmlView Page: setting property 'ShowText' for element 'slider2'
+      .setProperty("Minimum",1) // EJsS HtmlView.HtmlView Page: setting property 'Minimum' for element 'slider2'
+      .setProperty("Maximum",100) // EJsS HtmlView.HtmlView Page: setting property 'Maximum' for element 'slider2'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'slider2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"slider", _view.executionPanel) // EJsS HtmlView.HtmlView Page: declaration of element 'slider'
+      .setProperty("ShowText",true) // EJsS HtmlView.HtmlView Page: setting property 'ShowText' for element 'slider'
+      .setProperty("Minimum",1) // EJsS HtmlView.HtmlView Page: setting property 'Minimum' for element 'slider'
+      .setProperty("Maximum",100) // EJsS HtmlView.HtmlView Page: setting property 'Maximum' for element 'slider'
+      .setProperty("Display","none") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'slider'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view._topFrame) // EJsS HtmlView.HtmlView Page: declaration of element 'panel'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'panel'
+      .setProperty("Display","inline-flex") // EJsS HtmlView.HtmlView Page: setting property 'Display' for element 'panel'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.drawingPanel,"drawingPanel3D", _view.panel) // EJsS HtmlView.HtmlView Page: declaration of element 'drawingPanel3D'
+      .setProperty("Height",window.innerHeight*0.9) // EJsS HtmlView.HtmlView Page: setting property 'Height' for element 'drawingPanel3D'
+      .setProperty("Width","100%") // EJsS HtmlView.HtmlView Page: setting property 'Width' for element 'drawingPanel3D'
+      .setProperty("Enabled",true) // EJsS HtmlView.HtmlView Page: setting property 'Enabled' for element 'drawingPanel3D'
+      .setProperty("DecorationType","CENTERED_AXES") // EJsS HtmlView.HtmlView Page: setting property 'DecorationType' for element 'drawingPanel3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.textSet,"textSet3D", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'textSet3D'
+      .setProperty("SizeX",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'textSet3D'
+      .setProperty("SizeZ",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'textSet3D'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'textSet3D'
+      .setProperty("Font","normal normal 49px ") // EJsS HtmlView.HtmlView Page: setting property 'Font' for element 'textSet3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfieldlookang", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfieldlookang'
+      .setProperty("FillColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'vectorfieldlookang'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfieldlookang'
+      .setProperty("LineWidth",3) // EJsS HtmlView.HtmlView Page: setting property 'LineWidth' for element 'vectorfieldlookang'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphereSet,"sphereSet3Dlookang", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'sphereSet3Dlookang'
+      .setProperty("Radius",1) // EJsS HtmlView.HtmlView Page: setting property 'Radius' for element 'sphereSet3Dlookang'
+      .setProperty("FillColor","Gray") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'sphereSet3Dlookang'
+      .setProperty("LineColor","Green") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'sphereSet3Dlookang'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"wire", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'wire'
+      .setProperty("ClearAtInput",true) // EJsS HtmlView.HtmlView Page: setting property 'ClearAtInput' for element 'wire'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"vectorfieldfrem", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfieldfrem'
+      .setProperty("Visibility",false) // EJsS HtmlView.HtmlView Page: setting property 'Visibility' for element 'vectorfieldfrem'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"vector010", _view.vectorfieldfrem) // EJsS HtmlView.HtmlView Page: declaration of element 'vector010'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield12", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield12'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield12'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield13", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield13'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield13'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield14", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield14'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield14'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield15", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield15'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield15'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield16", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield16'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield16'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield17", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield17'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield17'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield18", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield18'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield18'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield19", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield19'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield19'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield110", _view.vector010) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield110'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield110'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"vector1120", _view.vectorfieldfrem) // EJsS HtmlView.HtmlView Page: declaration of element 'vector1120'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield111", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield111'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield111'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield122", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield122'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield122'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield132", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield132'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield132'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield142", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield142'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield142'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield152", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield152'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield152'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield162", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield162'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield162'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield172", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield172'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield172'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield182", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield182'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield182'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield192", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield192'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield192'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1102", _view.vector1120) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1102'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1102'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"vector2128", _view.vectorfieldfrem) // EJsS HtmlView.HtmlView Page: declaration of element 'vector2128'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1112", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1112'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1112'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1222", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1222'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1222'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1322", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1322'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1322'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1422", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1422'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1422'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1522", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1522'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1522'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1622", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1622'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1622'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1722", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1722'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1722'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"vectorfield1822", _view.vector2128) // EJsS HtmlView.HtmlView Page: declaration of element 'vectorfield1822'
+      .setProperty("LineColor","blue") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'vectorfield1822'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"plusstop", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'plusstop'
+      .setProperty("SizeX",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'plusstop'
+      .setProperty("FitText",true) // EJsS HtmlView.HtmlView Page: setting property 'FitText' for element 'plusstop'
+      .setProperty("FontColor","red") // EJsS HtmlView.HtmlView Page: setting property 'FontColor' for element 'plusstop'
+      .setProperty("Text","+") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'plusstop'
+      .setProperty("SizeZ",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'plusstop'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'plusstop'
+      .setProperty("Font","normal normal 200px ") // EJsS HtmlView.HtmlView Page: setting property 'Font' for element 'plusstop'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"minusbottom", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'minusbottom'
+      .setProperty("SizeX",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'minusbottom'
+      .setProperty("FontColor","red") // EJsS HtmlView.HtmlView Page: setting property 'FontColor' for element 'minusbottom'
+      .setProperty("Text","-") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'minusbottom'
+      .setProperty("SizeZ",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'minusbottom'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'minusbottom'
+      .setProperty("Font","normal normal 200px ") // EJsS HtmlView.HtmlView Page: setting property 'Font' for element 'minusbottom'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"minustop", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'minustop'
+      .setProperty("SizeX",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'minustop'
+      .setProperty("FitText",true) // EJsS HtmlView.HtmlView Page: setting property 'FitText' for element 'minustop'
+      .setProperty("FontColor","red") // EJsS HtmlView.HtmlView Page: setting property 'FontColor' for element 'minustop'
+      .setProperty("Text","-") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'minustop'
+      .setProperty("SizeZ",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'minustop'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'minustop'
+      .setProperty("Font","normal normal 200px ") // EJsS HtmlView.HtmlView Page: setting property 'Font' for element 'minustop'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"plustop", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'plustop'
+      .setProperty("SizeX",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'plustop'
+      .setProperty("FitText",true) // EJsS HtmlView.HtmlView Page: setting property 'FitText' for element 'plustop'
+      .setProperty("FontColor","red") // EJsS HtmlView.HtmlView Page: setting property 'FontColor' for element 'plustop'
+      .setProperty("Text","+") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'plustop'
+      .setProperty("SizeZ",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'plustop'
+      .setProperty("SizeY",20) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'plustop'
+      .setProperty("Font","normal normal 200px ") // EJsS HtmlView.HtmlView Page: setting property 'Font' for element 'plustop'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrow,"arrow3D", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'arrow3D'
+      .setProperty("FillColor","rgb(64,128,0)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'arrow3D'
+      .setProperty("LineColor","Green") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'arrow3D'
+      .setProperty("DrawLines",true) // EJsS HtmlView.HtmlView Page: setting property 'DrawLines' for element 'arrow3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrow,"currentarrow", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'currentarrow'
+      .setProperty("FillColor","rgb(64,128,0)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'currentarrow'
+      .setProperty("LineColor","rgb(64,128,0)") // EJsS HtmlView.HtmlView Page: setting property 'LineColor' for element 'currentarrow'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.plane,"plane3D", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'plane3D'
+      .setProperty("FillColor","rgb(192,192,192)") // EJsS HtmlView.HtmlView Page: setting property 'FillColor' for element 'plane3D'
+      .setProperty("Transparency",128) // EJsS HtmlView.HtmlView Page: setting property 'Transparency' for element 'plane3D'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'plane3D'
+      .setProperty("Y",0) // EJsS HtmlView.HtmlView Page: setting property 'Y' for element 'plane3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"North", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'North'
+      .setProperty("SizeX",10) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'North'
+      .setProperty("FitText",true) // EJsS HtmlView.HtmlView Page: setting property 'FitText' for element 'North'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'North'
+      .setProperty("Z",0) // EJsS HtmlView.HtmlView Page: setting property 'Z' for element 'North'
+      .setProperty("Text","North") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'North'
+      .setProperty("SizeZ",10) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'North'
+      .setProperty("SizeY",10) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'North'
+      .setProperty("Font","normal normal 150px ") // EJsS HtmlView.HtmlView Page: setting property 'Font' for element 'North'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"South", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'South'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'South'
+      .setProperty("Z",0) // EJsS HtmlView.HtmlView Page: setting property 'Z' for element 'South'
+      .setProperty("Text","South") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'South'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"South2", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'South2'
+      .setProperty("SizeX",200) // EJsS HtmlView.HtmlView Page: setting property 'SizeX' for element 'South2'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'South2'
+      .setProperty("Z",0) // EJsS HtmlView.HtmlView Page: setting property 'Z' for element 'South2'
+      .setProperty("SizeZ",200) // EJsS HtmlView.HtmlView Page: setting property 'SizeZ' for element 'South2'
+      .setProperty("Text","South") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'South2'
+      .setProperty("SizeY",200) // EJsS HtmlView.HtmlView Page: setting property 'SizeY' for element 'South2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"North2", _view.drawingPanel3D) // EJsS HtmlView.HtmlView Page: declaration of element 'North2'
+      .setProperty("X",0) // EJsS HtmlView.HtmlView Page: setting property 'X' for element 'North2'
+      .setProperty("Text","North") // EJsS HtmlView.HtmlView Page: setting property 'Text' for element 'North2'
+      .setProperty("Z",0) // EJsS HtmlView.HtmlView Page: setting property 'Z' for element 'North2'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Magnetic Field From Loop Simulator<br />
+     <img alt="Logo" src="MagneticFieldFromLoops/Screen Shot 2018-04-10 at 5.26.17 PM (2).png" />
+      </p>
+      <p>
+      <img alt="author image" src="01authorfu-kwun.hwang.png" />
+      <img alt="author image" src="01authorlookang50x50.png" />
+ Fu-Kwun Hwang, Wolfgang Christian, Robert Mohr remixed by lookang (weelookang@gmail.com); Fremont Teng; Loo Kang Wee
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2018, Creative Commons Attribution.</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new MagneticFieldFromLoops("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

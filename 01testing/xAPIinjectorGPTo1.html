@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>xAPI Interactive Injector</title>
+</head>
+<body>
+    <h1>xAPI Interactive Injector</h1>
+    <input type="file" id="zipFileInput" accept=".zip">
+    <button id="downloadButton" disabled>Download Modified Interactive</button>
+
+    <!-- Include JSZip library for ZIP file manipulation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Include FileSaver library for saving files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        document.getElementById('zipFileInput').addEventListener('change', handleFileSelect);
+        document.getElementById('downloadButton').addEventListener('click', downloadModifiedZip);
+
+        var modifiedZipBlob = null;
+
+        function handleFileSelect(event) {
+            var file = event.target.files[0];
+            if (file) {
+                JSZip.loadAsync(file)
+                    .then(function(zip) {
+                        // Process the zip file
+                        return processZip(zip);
+                    })
+                    .then(function(modifiedZip) {
+                        // Generate the blob for download
+                        return modifiedZip.generateAsync({type: 'blob'});
+                    })
+                    .then(function(blob) {
+                        // Save the blob for downloading
+                        modifiedZipBlob = blob;
+                        document.getElementById('downloadButton').disabled = false;
+                        alert("Interactive modified successfully! Click 'Download Modified Interactive' to save it.");
+                    })
+                    .catch(function(err) {
+                        console.error("Error processing zip file:", err);
+                    });
+            }
+        }
+
+        function processZip(zip) {
+            var modifiedZip = new JSZip();
+            var filePromises = [];
+
+            zip.forEach(function(relativePath, zipEntry) {
+                if (!zipEntry.dir) {
+                    var promise = zip.file(zipEntry.name).async('text').then(function(content) {
+                        var modifiedContent = content;
+                        if (zipEntry.name.endsWith('.html')) {
+                            modifiedContent = modifyHtmlContent(content);
+                        } else if (zipEntry.name.endsWith('.js')) {
+                            modifiedContent = modifyJsContent(content);
+                        }
+                        modifiedZip.file(zipEntry.name, modifiedContent);
+                    });
+                    filePromises.push(promise);
+                } else {
+                    // If it's a directory, create it in the modifiedZip
+                    modifiedZip.folder(zipEntry.name);
+                }
+            });
+
+            return Promise.all(filePromises).then(function() {
+                return modifiedZip;
+            });
+        }
+
+        function modifyHtmlContent(content) {
+            // Inject the xAPIWrapper script from CDN before </head>
+            content = content.replace('</head>', '<script src="https://cdn.jsdelivr.net/gh/adlnet/xAPIWrapper@v1.10.1/build/xapiwrapper.min.js"></script>\n</head>');
+
+            // Build the script to add using an array of strings
+            var scriptLines = [
+                '<script>',
+                'var totalScore = 0;',
+                '',
+                '// xAPI',
+                'function getParameters() {',
+                '  var urlParams = new URLSearchParams(window.location.search);',
+                '  var endpoint = urlParams.get(\'endpoint\') + \'/\';',
+                '  var auth = urlParams.get(\'auth\');',
+                '',
+                '  var actorObject = JSON.parse(urlParams.get(\'actor\')); // this needs to be JSON decoded',
+                '  var actor = actorObject ? actorObject.id : null;',
+                '  var activity_id = urlParams.get(\'activityId\'); // e.g., http://adlnet.gov/expapi/activities/question/{question-id}',
+                '',
+                '  var conf = {',
+                '    "endpoint" : endpoint,',
+                '    "auth": "Basic " + auth,',
+                '    "withCredentials": true',
+                '  };',
+                '',
+                '  ADL.XAPIWrapper.changeConfig(conf);',
+                '',
+                '  return {',
+                '    actor: actor,',
+                '    activity_id: activity_id',
+                '  };',
+                '}',
+                '',
+                'function sendState(answer){',
+                '  if (totalScore === \'randomText\'){',
+                '    totalScore = 0;',
+                '  }',
+                '  if(answer === \'randomText\'){',
+                '    totalScore = \'randomText\';',
+                '  } else {',
+                '    totalScore = totalScore + answer;',
+                '  }',
+                '',
+                '  try {',
+                '    var parameters = getParameters();',
+                '    var stateval = {',
+                '      score: totalScore',
+                '    };',
+                '    ADL.XAPIWrapper.sendState("http://adlnet.gov/expapi/activities/question/" + parameters.activity_id,',
+                '        {"mbox":"mailto:tom@example.com"},',
+                '        parameters.actor, null, stateval);',
+                '  } catch (err) {',
+                '    console.error("An error has occurred!", err);',
+                '  }',
+                '}',
+                '</script>'
+            ];
+
+            var scriptToAdd = scriptLines.join('\n');
+
+            // Insert the script before </body>
+            content = content.replace('</body>', scriptToAdd + '\n</body>');
+
+            return content;
+        }
+
+        function modifyJsContent(content) {
+            // Intelligently add sendState(1) at the end of the interactive
+            // This is a simple heuristic and may need adjustment based on the interactive's code
+            var endStateRegex = /(function\s+endInteractive\s*\([\s\S]*?\{)/g;
+            content = content.replace(endStateRegex, function(match) {
+                return match + '\n    sendState(1);';
+            });
+            return content;
+        }
+
+        function downloadModifiedZip() {
+            if (modifiedZipBlob) {
+                saveAs(modifiedZipBlob, 'modified_interactive.zip');
+            }
+        }
+    </script>
+</body>
+</html>

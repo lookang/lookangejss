@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>HTML5 Interactive Content</title>
+        <style>
+    * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#container {
+    width: 100%;
+    height: 100vh;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    background-color: #f0f8ff;
+}
+
+#controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background-color: #e6f2ff;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.control-group {
+    margin: 0 15px;
+}
+
+label {
+    font-weight: bold;
+    margin-right: 8px;
+    color: black; /* Ensuring text is black */
+}
+
+select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 14px;
+    color: black; /* Ensuring text is black */
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-left: 20px;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#reset-btn {
+    background-color: #6c5ce7;
+    color: white;
+}
+
+#measure-btn {
+    background-color: #00b894;
+    color: white;
+}
+
+.action-btn:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+#info-panel {
+    padding: 10px;
+    background-color: #e6f2ff;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    color: black; /* Ensuring text is black */
+}
+
+#info-panel h2 {
+    margin-bottom: 8px;
+    color: #2c3e50;
+}
+
+.highlight {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+#simulation {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+}
+
+#qubits-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.qubit {
+    width: 100px;
+    height: 100px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background-color: white;
+    position: relative;
+}
+
+.qubit:hover {
+    border-color: #3498db;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+.qubit-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 2px solid #aaa;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.spin-arrow {
+    position: absolute;
+    width: 4px;
+    height: 40px;
+    background-color: transparent;
+    transform-origin: center bottom;
+}
+
+.spin-arrow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -6px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+}
+
+.spin-arrow.up {
+    background-color: #3498db;
+}
+
+.spin-arrow.up::before {
+    border-bottom: 12px solid #3498db;
+}
+
+.spin-arrow.down {
+    background-color: #e74c3c;
+}
+
+.spin-arrow.down::before {
+    border-top: 12px solid #e74c3c;
+    top: auto;
+    bottom: 0;
+}
+
+/* Modified superposition style to show both up and down arrows without rotation */
+.spin-arrow.superposition {
+    background-color: rgba(128, 128, 128, 0.5);
+}
+
+/* Added styles for up arrow in superposition */
+.spin-arrow.superposition::before {
+    border-bottom: 12px solid rgba(52, 152, 219, 0.7); /* Semi-transparent blue for up */
+}
+
+/* Added styles for down arrow in superposition */
+.spin-arrow.superposition::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -6px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid rgba(231, 76, 60, 0.7); /* Semi-transparent red for down */
+}
+
+/* Removed spin animation */
+
+#state-display {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10px;
+    text-align: center;
+    color: black; /* Ensuring text is black */
+}
+
+.state-up {
+    color: #3498db;
+}
+
+.state-down {
+    color: #e74c3c;
+}
+
+#explanation {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e6f2ff;
+    border-radius: 8px;
+    color: black; /* Ensuring text is black */
+}
+
+#explanation h3 {
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+#explanation p, #explanation ul {
+    margin-bottom: 10px;
+}
+
+#explanation ul {
+    padding-left: 20px;
+}
+
+/* Added style for credit line */
+.credit {
+    font-size: 12px;
+    font-style: italic;
+    text-align: center;
+    margin-top: 15px;
+    color: #555;
+}
+
+.credit a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.credit a:hover {
+    text-decoration: underline;
+}
+        </style>
+    </head>
+    <body>
+    <div id="container">
+    <div id="controls">
+        <div class="control-group">
+            <label for="qubit-count">Number of Qubits:</label>
+            <select id="qubit-count">
+                <option value="2">2 Qubits</option>
+                <option value="4">4 Qubits</option>
+                <option value="6">6 Qubits</option>
+                <option value="8" selected>8 Qubits</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="entanglement-type">Entanglement Type:</label>
+            <select id="entanglement-type">
+                <option value="same">Same Spins</option>
+                <option value="opposite">Opposite Spins</option>
+                <option value="alternate" selected>Alternate Spins</option>
+            </select>
+        </div>
+        
+        <div class="button-group">
+            <button id="reset-btn" class="action-btn">Create/Reset Pair</button>
+            <button id="measure-btn" class="action-btn">Measure All</button>
+        </div>
+    </div>
+    
+    <div id="info-panel">
+        <h2>Quantum Spin & Entanglement Explorer</h2>
+        <p>Multiple qubits can become <span class="highlight">entangled</span>. Their fates are linked. Measuring one instantly influences the state of the others based on the entanglement type:</p>
+        <ul>
+            <li><strong>Same Spins</strong>: All qubits will have identical spin states</li>
+            <li><strong>Opposite Spins</strong>: Only for 2 qubits, they will have opposite spin states</li>
+            <li><strong>Alternate Spins</strong>: Spins alternate in a pattern (up, down, up, down...)</li>
+        </ul>
+    </div>
+    
+    <div id="simulation">
+        <div id="qubits-container"></div>
+        <div id="state-display">State: <span id="state-text"></span></div>
+    </div>
+    
+    <div id="explanation">
+        <h3>How Quantum Entanglement Works</h3>
+        <p>In quantum mechanics, entangled particles share a quantum state regardless of distance. When you measure one particle, you instantly know the state of its entangled partners.</p>
+        <p>This simulation demonstrates three common entanglement patterns:</p>
+        <ul>
+            <li>Click "Create/Reset Pair" to generate a new set of entangled qubits in superposition (spinning state)</li>
+            <li>Click "Measure All" to collapse the wave functions and observe the entanglement relationship</li>
+            <li>You can also click individual qubits to measure just that one and observe how it affects the others</li>
+        </ul>
+        <p class="credit">Credit: weelookang@gmail.com | More resources: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/06-modern-physics/164-01-quantum-physics" target="_blank">sg.iwant2study.org</a></p>
+    </div>
+</div>
+        <script>
+    // Google Analytics
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-S9EWRY1CPJ');
+
+// Constants and configuration
+const SPIN_UP = 'up';
+const SPIN_DOWN = 'down';
+const SUPERPOSITION = 'superposition';
+
+// Main class to handle the quantum simulation
+class QuantumSimulation {
+    constructor() {
+        // Initialize properties
+        this.qubits = [];
+        this.qubitCount = 8;
+        this.entanglementType = 'alternate';
+        this.measured = false;
+        
+        // Cache DOM elements
+        this.qubitCountSelect = document.getElementById('qubit-count');
+        this.entanglementTypeSelect = document.getElementById('entanglement-type');
+        this.resetBtn = document.getElementById('reset-btn');
+        this.measureBtn = document.getElementById('measure-btn');
+        this.qubitsContainer = document.getElementById('qubits-container');
+        this.stateText = document.getElementById('state-text');
+        
+        // Bind event handlers
+        this.bindEvents();
+        
+        // Initialize the simulation
+        this.initialize();
+    }
+    
+    bindEvents() {
+        // Set up event listeners for controls
+        this.qubitCountSelect.addEventListener('change', () => {
+            this.qubitCount = parseInt(this.qubitCountSelect.value);
+            this.initialize();
+        });
+        
+        this.entanglementTypeSelect.addEventListener('change', () => {
+            this.entanglementType = this.entanglementTypeSelect.value;
+            
+            // Disable "Opposite Spins" for more than 2 qubits
+            if (this.entanglementType === 'opposite' && this.qubitCount > 2) {
+                this.qubitCount = 2;
+                this.qubitCountSelect.value = '2';
+            }
+            
+            this.initialize();
+        });
+        
+        this.resetBtn.addEventListener('click', () => this.initialize());
+        this.measureBtn.addEventListener('click', () => this.measureAll());
+    }
+    
+    initialize() {
+        // Reset the simulation state
+        this.qubits = [];
+        this.measured = false;
+        this.qubitsContainer.innerHTML = '';
+        
+        // Check if "Opposite Spins" is selected but qubit count > 2
+        if (this.entanglementType === 'opposite' && this.qubitCount > 2) {
+            this.qubitCount = 2;
+            this.qubitCountSelect.value = '2';
+            alert('Opposite Spins entanglement only works with 2 qubits.');
+        }
+        
+        // Create the qubits
+        for (let i = 0; i < this.qubitCount; i++) {
+            const qubitElement = this.createQubitElement(i);
+            this.qubitsContainer.appendChild(qubitElement);
+            
+            this.qubits.push({
+                id: i,
+                state: SUPERPOSITION,
+                element: qubitElement
+            });
+        }
+        
+        // Update the state display
+        this.updateStateDisplay();
+    }
+    
+    createQubitElement(id) {
+        // Create DOM elements for a qubit
+        const qubitDiv = document.createElement('div');
+        qubitDiv.className = 'qubit';
+        qubitDiv.dataset.id = id;
+        
+        const qubitCircle = document.createElement('div');
+        qubitCircle.className = 'qubit-circle';
+        
+        const spinArrow = document.createElement('div');
+        spinArrow.className = 'spin-arrow superposition';
+        
+        qubitCircle.appendChild(spinArrow);
+        qubitDiv.appendChild(qubitCircle);
+        
+        // Add click event to measure individual qubit
+        qubitDiv.addEventListener('click', () => {
+            if (!this.measured) {
+                this.measureQubit(id);
+            }
+        });
+        
+        return qubitDiv;
+    }
+    
+    measureQubit(id) {
+        // If already measured, do nothing
+        if (this.measured) return;
+        
+        // Randomly determine the first qubit's state
+        const firstState = Math.random() < 0.5 ? SPIN_UP : SPIN_DOWN;
+        
+        // Apply entanglement rules to determine all qubit states
+        for (let i = 0; i < this.qubits.length; i++) {
+            let state;
+            
+            switch (this.entanglementType) {
+                case 'same':
+                    // All qubits have the same state
+                    state = firstState;
+                    break;
+                    
+                case 'opposite':
+                    // Only for 2 qubits - they have opposite states
+                    state = (i === 0) ? firstState : (firstState === SPIN_UP ? SPIN_DOWN : SPIN_UP);
+                    break;
+                    
+                case 'alternate':
+                    // Alternating pattern: up, down, up, down...
+                    if (firstState === SPIN_UP) {
+                        state = i % 2 === 0 ? SPIN_UP : SPIN_DOWN;
+                    } else {
+                        state = i % 2 === 0 ? SPIN_DOWN : SPIN_UP;
+                    }
+                    break;
+            }
+            
+            // Update qubit state
+            this.qubits[i].state = state;
+            
+            // Update visual representation
+            const qubitElement = this.qubits[i].element;
+            const spinArrow = qubitElement.querySelector('.spin-arrow');
+            
+            spinArrow.classList.remove('superposition', 'up', 'down');
+            spinArrow.classList.add(state);
+        }
+        
+        this.measured = true;
+        this.updateStateDisplay();
+    }
+    
+    measureAll() {
+        // Measure the first qubit, which will entangle all others
+        if (!this.measured) {
+            this.measureQubit(0);
+        }
+    }
+    
+    updateStateDisplay() {
+        // Clear the current state display
+        this.stateText.innerHTML = '';
+        
+        // Create state representation
+        for (const qubit of this.qubits) {
+            let stateSymbol;
+            
+            if (qubit.state === SUPERPOSITION) {
+                stateSymbol = '<span style="color: purple;">|?⟩</span>';
+            } else if (qubit.state === SPIN_UP) {
+                stateSymbol = '<span class="state-up">|↑⟩</span>';
+            } else {
+                stateSymbol = '<span class="state-down">|↓⟩</span>';
+            }
+            
+            this.stateText.innerHTML += stateSymbol + ' ';
+        }
+    }
+}
+
+// Initialize the simulation when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    const simulation = new QuantumSimulation();
+    
+    // Load Google Analytics script
+    const gaScript = document.createElement('script');
+    gaScript.async = true;
+    gaScript.src = "https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ";
+    document.head.appendChild(gaScript);
+    
+    // Load Google AdSense script
+    const adScript = document.createElement('script');
+    adScript.async = true;
+    adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
+    adScript.dataset.adClient = "ca-pub-0121577198857509";
+    document.head.appendChild(adScript);
+});
+        </script>
+    </body>
+    </html>

@@ -1,0 +1,754 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>ejss_model_knight_star_to_star Knight Strategy game to maximise moves landing on stars only</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=UA-3326007-19"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-3326007-19');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <link rel="stylesheet"  type="text/css" href="./_ejs_library/css/ejss.css" />
+
+    <script type='text/javascript'><!--//--><![CDATA[//><!--
+      var gOldOnError = window.onerror;
+      window.onerror = function myErrorHandler(errorMsg, url, lineNumber) {
+        console.log(errorMsg + " (at " + url.toString() + " => line:" + lineNumber + ")" );
+        if (gOldOnError) return gOldOnError(errorMsg, url, lineNumber);
+        return false;
+      }
+    //--><!]]></script>
+    <script src="./_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="./_ejs_library/ejsS.v1.min.js"></script>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+function _simulation (_topFrame, _libraryPath, _codebasePath, _inputParameters) {
+
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isEPub = false;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+  var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+  // Is this still needed if we don't have locales???
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var numOfRows; // Model.Variables.Var Table.numOfRows
+  var numOfCols; // Model.Variables.Var Table.numOfCols
+  var numOfSquares; // Model.Variables.Var Table.numOfSquares
+  var numOfStars; // Model.Variables.Var Table.numOfStars
+  var squareX; // Model.Variables.Var Table.squareX
+  var squareY; // Model.Variables.Var Table.squareY
+  var squareColor; // Model.Variables.Var Table.squareColor
+  var squareHighlighted; // Model.Variables.Var Table.squareHighlighted
+  var squareFilled; // Model.Variables.Var Table.squareFilled
+  var squareLength; // Model.Variables.Var Table.squareLength
+  var idxToPos; // Model.Variables.Var Table.idxToPos
+  var posToIdx; // Model.Variables.Var Table.posToIdx
+  var symbolStr; // Model.Variables.Var Table.symbolStr
+  var symbolX; // Model.Variables.Var Table.symbolX
+  var symbolY; // Model.Variables.Var Table.symbolY
+  var textStr; // Model.Variables.Var Table.textStr
+  var textX; // Model.Variables.Var Table.textX
+  var textY; // Model.Variables.Var Table.textY
+  var moveCounter; // Model.Variables.Var Table.moveCounter
+  var topScore; // Model.Variables.Var Table.topScore
+  var interact; // Model.Variables.Var Table.interact
+  var gameOver; // Model.Variables.Var Table.gameOver
+  var font; // Model.Variables.Var Table.font
+  var fontSymbol; // Model.Variables.Var Table.fontSymbol
+  var hintIdx; // Model.Variables.Var Table.hintIdx
+  var autoSolveSpeed; // Model.Variables.Var Table.autoSolveSpeed
+  var autoSolveButtonText; // Model.Variables.Var Table.autoSolveButtonText
+  var moveHistoryIndices; // Model.Variables.Var Table.moveHistoryIndices
+  var autoSolveTimer; // Model.Variables.Var Table.autoSolveTimer
+
+  var filledColor; // Model.Variables.colours.filledColor
+  var unfilledColor; // Model.Variables.colours.unfilledColor
+  var highlightColor; // Model.Variables.colours.highlightColor
+
+  var textXunicode; // Model.Variables.lookang.textXunicode
+  var textYunicode; // Model.Variables.lookang.textYunicode
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return { numOfRows : numOfRows, numOfCols : numOfCols, numOfSquares : numOfSquares, numOfStars : numOfStars, squareX : squareX, squareY : squareY, squareColor : squareColor, squareHighlighted : squareHighlighted, squareFilled : squareFilled, squareLength : squareLength, idxToPos : idxToPos, posToIdx : posToIdx, symbolStr : symbolStr, symbolX : symbolX, symbolY : symbolY, textStr : textStr, textX : textX, textY : textY, moveCounter : moveCounter, topScore : topScore, interact : interact, gameOver : gameOver, font : font, fontSymbol : fontSymbol, hintIdx : hintIdx, autoSolveSpeed : autoSolveSpeed, autoSolveButtonText : autoSolveButtonText, moveHistoryIndices : moveHistoryIndices, autoSolveTimer : autoSolveTimer, filledColor : filledColor, unfilledColor : unfilledColor, highlightColor : highlightColor, textXunicode : textXunicode, textYunicode : textYunicode };
+  }
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return { numOfRows : numOfRows, numOfCols : numOfCols, numOfSquares : numOfSquares, numOfStars : numOfStars, squareX : squareX, squareY : squareY, squareColor : squareColor, squareHighlighted : squareHighlighted, squareFilled : squareFilled, squareLength : squareLength, idxToPos : idxToPos, posToIdx : posToIdx, symbolStr : symbolStr, symbolX : symbolX, symbolY : symbolY, textStr : textStr, textX : textX, textY : textY, moveCounter : moveCounter, topScore : topScore, interact : interact, gameOver : gameOver, font : font, fontSymbol : fontSymbol, hintIdx : hintIdx, autoSolveSpeed : autoSolveSpeed, autoSolveButtonText : autoSolveButtonText, moveHistoryIndices : moveHistoryIndices, autoSolveTimer : autoSolveTimer, filledColor : filledColor, unfilledColor : unfilledColor, highlightColor : highlightColor, textXunicode : textXunicode, textYunicode : textYunicode };
+  }
+
+  _model._readParameters = function(json) {
+    if(typeof json.numOfRows != 'undefined') numOfRows = json.numOfRows;
+    if(typeof json.numOfCols != 'undefined') numOfCols = json.numOfCols;
+    if(typeof json.numOfSquares != 'undefined') numOfSquares = json.numOfSquares;
+    if(typeof json.numOfStars != 'undefined') numOfStars = json.numOfStars;
+    if(typeof json.squareX != 'undefined') squareX = json.squareX;
+    if(typeof json.squareY != 'undefined') squareY = json.squareY;
+    if(typeof json.squareColor != 'undefined') squareColor = json.squareColor;
+    if(typeof json.squareHighlighted != 'undefined') squareHighlighted = json.squareHighlighted;
+    if(typeof json.squareFilled != 'undefined') squareFilled = json.squareFilled;
+    if(typeof json.squareLength != 'undefined') squareLength = json.squareLength;
+    if(typeof json.idxToPos != 'undefined') idxToPos = json.idxToPos;
+    if(typeof json.posToIdx != 'undefined') posToIdx = json.posToIdx;
+    if(typeof json.symbolStr != 'undefined') symbolStr = json.symbolStr;
+    if(typeof json.symbolX != 'undefined') symbolX = json.symbolX;
+    if(typeof json.symbolY != 'undefined') symbolY = json.symbolY;
+    if(typeof json.textStr != 'undefined') textStr = json.textStr;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.moveCounter != 'undefined') moveCounter = json.moveCounter;
+    if(typeof json.topScore != 'undefined') topScore = json.topScore;
+    if(typeof json.interact != 'undefined') interact = json.interact;
+    if(typeof json.gameOver != 'undefined') gameOver = json.gameOver;
+    if(typeof json.font != 'undefined') font = json.font;
+    if(typeof json.fontSymbol != 'undefined') fontSymbol = json.fontSymbol;
+    if(typeof json.hintIdx != 'undefined') hintIdx = json.hintIdx;
+    if(typeof json.autoSolveSpeed != 'undefined') autoSolveSpeed = json.autoSolveSpeed;
+    if(typeof json.autoSolveButtonText != 'undefined') autoSolveButtonText = json.autoSolveButtonText;
+    if(typeof json.moveHistoryIndices != 'undefined') moveHistoryIndices = json.moveHistoryIndices;
+    if(typeof json.autoSolveTimer != 'undefined') autoSolveTimer = json.autoSolveTimer;
+    if(typeof json.filledColor != 'undefined') filledColor = json.filledColor;
+    if(typeof json.unfilledColor != 'undefined') unfilledColor = json.unfilledColor;
+    if(typeof json.highlightColor != 'undefined') highlightColor = json.highlightColor;
+    if(typeof json.textXunicode != 'undefined') textXunicode = json.textXunicode;
+    if(typeof json.textYunicode != 'undefined') textYunicode = json.textYunicode;
+  }
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.numOfRows != 'undefined') numOfRows = json.numOfRows;
+    if(typeof json.numOfCols != 'undefined') numOfCols = json.numOfCols;
+    if(typeof json.numOfSquares != 'undefined') numOfSquares = json.numOfSquares;
+    if(typeof json.numOfStars != 'undefined') numOfStars = json.numOfStars;
+    if(typeof json.squareX != 'undefined') squareX = json.squareX;
+    if(typeof json.squareY != 'undefined') squareY = json.squareY;
+    if(typeof json.squareColor != 'undefined') squareColor = json.squareColor;
+    if(typeof json.squareHighlighted != 'undefined') squareHighlighted = json.squareHighlighted;
+    if(typeof json.squareFilled != 'undefined') squareFilled = json.squareFilled;
+    if(typeof json.squareLength != 'undefined') squareLength = json.squareLength;
+    if(typeof json.idxToPos != 'undefined') idxToPos = json.idxToPos;
+    if(typeof json.posToIdx != 'undefined') posToIdx = json.posToIdx;
+    if(typeof json.symbolStr != 'undefined') symbolStr = json.symbolStr;
+    if(typeof json.symbolX != 'undefined') symbolX = json.symbolX;
+    if(typeof json.symbolY != 'undefined') symbolY = json.symbolY;
+    if(typeof json.textStr != 'undefined') textStr = json.textStr;
+    if(typeof json.textX != 'undefined') textX = json.textX;
+    if(typeof json.textY != 'undefined') textY = json.textY;
+    if(typeof json.moveCounter != 'undefined') moveCounter = json.moveCounter;
+    if(typeof json.topScore != 'undefined') topScore = json.topScore;
+    if(typeof json.interact != 'undefined') interact = json.interact;
+    if(typeof json.gameOver != 'undefined') gameOver = json.gameOver;
+    if(typeof json.font != 'undefined') font = json.font;
+    if(typeof json.fontSymbol != 'undefined') fontSymbol = json.fontSymbol;
+    if(typeof json.hintIdx != 'undefined') hintIdx = json.hintIdx;
+    if(typeof json.autoSolveSpeed != 'undefined') autoSolveSpeed = json.autoSolveSpeed;
+    if(typeof json.autoSolveButtonText != 'undefined') autoSolveButtonText = json.autoSolveButtonText;
+    if(typeof json.moveHistoryIndices != 'undefined') moveHistoryIndices = json.moveHistoryIndices;
+    if(typeof json.autoSolveTimer != 'undefined') autoSolveTimer = json.autoSolveTimer;
+    if(typeof json.filledColor != 'undefined') filledColor = json.filledColor;
+    if(typeof json.unfilledColor != 'undefined') unfilledColor = json.unfilledColor;
+    if(typeof json.highlightColor != 'undefined') highlightColor = json.highlightColor;
+    if(typeof json.textXunicode != 'undefined') textXunicode = json.textXunicode;
+    if(typeof json.textYunicode != 'undefined') textYunicode = json.textYunicode;
+  }
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+    _resetSolvers();
+    _model.update();
+  }
+
+  _model.getOdes = function() { return []; }
+
+  _model.removeEvents = function(){
+  }
+
+  _model.addToReset(function() {
+    __pagesEnabled['Init Page'] = true;
+  });
+
+  _model.addToReset(function() { // Reset of Var Table
+    numOfRows = 6; // Model.Variables.Var Table.numOfRows
+    numOfCols = 6; // Model.Variables.Var Table.numOfCols
+    numOfSquares = 0; // Model.Variables.Var Table.numOfSquares
+    numOfStars = 0; // Model.Variables.Var Table.numOfStars
+    squareLength = 1; // Model.Variables.Var Table.squareLength
+    moveCounter = 1; // Model.Variables.Var Table.moveCounter
+    gameOver = false; // Model.Variables.Var Table.gameOver
+    font = "normal normal 2vw"; // Model.Variables.Var Table.font
+    fontSymbol = "normal normal 5vw"; // Model.Variables.Var Table.fontSymbol
+    hintIdx = -1; // Model.Variables.Var Table.hintIdx
+    autoSolveSpeed = 600; // Model.Variables.Var Table.autoSolveSpeed
+    autoSolveButtonText = "⚡ Auto Solve"; // Model.Variables.Var Table.autoSolveButtonText
+  }); // End of reset of Var Table
+
+  _model.addToReset(function() { // Reset of colours
+    filledColor = "rgba(0,255,0,0.5)"; // Model.Variables.colours.filledColor
+    unfilledColor = "rgba(0,0,255,0.5)"; // Model.Variables.colours.unfilledColor
+    highlightColor = "#aed581"; // Model.Variables.colours.highlightColor
+  }); // End of reset of colours
+
+  _model.addToReset(function() { // Reset of lookang
+    textXunicode = -1; // Model.Variables.lookang.textXunicode
+    textYunicode = 0; // Model.Variables.lookang.textYunicode
+  }); // End of reset of lookang
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function findPossibleMoves(x, y) { // > Custom code page: findPossibleMoves - line 1
+      // the 8 directions a knight can move on a chess board // > Custom code page: findPossibleMoves - line 2
+      const dx = [-1, 1, 2, 2, -1, 1, -2, -2]; // > Custom code page: findPossibleMoves - line 3
+      const dy = [2, 2, 1, -1, -2, -2, 1, -1]; // > Custom code page: findPossibleMoves - line 4
+   // > Custom code page: findPossibleMoves - line 5
+      var possible = false; // > Custom code page: findPossibleMoves - line 6
+      for(var i = 0; i < 8; i++) { // > Custom code page: findPossibleMoves - line 7
+          var curX = x + dx[i], curY = y + dy[i]; // > Custom code page: findPossibleMoves - line 8
+          if(curX < 0 || curX >= numOfCols || curY < 0 || curY >= numOfRows) { // out of bound and illegal // > Custom code page: findPossibleMoves - line 9
+              continue; // > Custom code page: findPossibleMoves - line 10
+          }   // > Custom code page: findPossibleMoves - line 11
+          var curIdx = posToIdx[curY][curX]; // > Custom code page: findPossibleMoves - line 12
+          if(!squareFilled[curIdx]){ // > Custom code page: findPossibleMoves - line 13
+              possible = true; // > Custom code page: findPossibleMoves - line 14
+              squareHighlighted[curIdx] = 1; // > Custom code page: findPossibleMoves - line 15
+          } // > Custom code page: findPossibleMoves - line 16
+      } // > Custom code page: findPossibleMoves - line 17
+      return possible; // > Custom code page: findPossibleMoves - line 18
+  } // > Custom code page: findPossibleMoves - line 19
+
+  // on clicking of a square // > Custom code page: onClickSquare - line 1
+  function onClickSquare(idx) { // > Custom code page: onClickSquare - line 2
+      if(gameOver) // > Custom code page: onClickSquare - line 3
+          return; // > Custom code page: onClickSquare - line 4
+   // > Custom code page: onClickSquare - line 5
+      var x = idxToPos[idx][0], y = idxToPos[idx][1]; // > Custom code page: onClickSquare - line 6
+       // > Custom code page: onClickSquare - line 7
+      if(!squareHighlighted[idx]) { // > Custom code page: onClickSquare - line 8
+          _tools.showOkDialog("You cannot move to this square! Click a legal move using the green squares."); // > Custom code page: onClickSquare - line 9
+          for(var i = 0; i < numOfSquares; i++) { // > Custom code page: onClickSquare - line 10
+              if(squareHighlighted[i]) // > Custom code page: onClickSquare - line 11
+                  squareColor[i] = highlightColor; // > Custom code page: onClickSquare - line 12
+          } // > Custom code page: onClickSquare - line 13
+          return; // > Custom code page: onClickSquare - line 14
+      } // > Custom code page: onClickSquare - line 15
+      // set the current grid square to be filled // > Custom code page: onClickSquare - line 16
+      squareFilled[idx] = 1; // > Custom code page: onClickSquare - line 17
+      moveHistoryIndices.push(idx); // > Custom code page: onClickSquare - line 18
+   // > Custom code page: onClickSquare - line 19
+      for(var i = 0; i < numOfSquares; i++) { // refresh color // > Custom code page: onClickSquare - line 20
+          if(squareColor[i] == highlightColor) { // > Custom code page: onClickSquare - line 21
+              squareColor[i] = unfilledColor; // > Custom code page: onClickSquare - line 22
+          } // > Custom code page: onClickSquare - line 23
+          if(squareHighlighted[i]) // > Custom code page: onClickSquare - line 24
+              squareHighlighted[i] = 0; // > Custom code page: onClickSquare - line 25
+      } // > Custom code page: onClickSquare - line 26
+   // > Custom code page: onClickSquare - line 27
+      squareColor[idx] = filledColor; // > Custom code page: onClickSquare - line 28
+      textStr.push(moveCounter++); // > Custom code page: onClickSquare - line 29
+      textX.push(x * squareLength); // > Custom code page: onClickSquare - line 30
+      textY.push(y * squareLength); // > Custom code page: onClickSquare - line 31
+       // > Custom code page: onClickSquare - line 32
+      //lookang attempt to add unicode knight position // > Custom code page: onClickSquare - line 33
+      textXunicode=(x * squareLength); // > Custom code page: onClickSquare - line 34
+      textYunicode=(y * squareLength); // > Custom code page: onClickSquare - line 35
+       // > Custom code page: onClickSquare - line 36
+      // updating topScore // > Custom code page: onClickSquare - line 37
+      topScore = Math.max(moveCounter - 1, topScore); // > Custom code page: onClickSquare - line 38
+   // > Custom code page: onClickSquare - line 39
+      // if no more moves // > Custom code page: onClickSquare - line 40
+      if(moveCounter == numOfStars + 1) { // > Custom code page: onClickSquare - line 41
+          _tools.showOkDialog("The whole board has been filled, good job!"); // > Custom code page: onClickSquare - line 42
+          gameOver = true; // > Custom code page: onClickSquare - line 43
+      } else if(!findPossibleMoves(x, y)) { // > Custom code page: onClickSquare - line 44
+          _tools.showOkDialog("There are no more possible moves! Score: " + (moveCounter - 1)); // > Custom code page: onClickSquare - line 45
+          gameOver = true; // > Custom code page: onClickSquare - line 46
+      } // > Custom code page: onClickSquare - line 47
+   // > Custom code page: onClickSquare - line 48
+  } // > Custom code page: onClickSquare - line 49
+
+  // ── WARNSDORFF SOLVER ──────────────────────────────────────────── // > Custom code page: solverAndPedagogy - line 1
+   // > Custom code page: solverAndPedagogy - line 2
+  function accessibility(x, y, filled) { // > Custom code page: solverAndPedagogy - line 3
+      var dx = [-1, 1, 2, 2, -1, 1, -2, -2]; // > Custom code page: solverAndPedagogy - line 4
+      var dy = [2, 2, 1, -1, -2, -2, 1, -1]; // > Custom code page: solverAndPedagogy - line 5
+      var count = 0; // > Custom code page: solverAndPedagogy - line 6
+      for (var i = 0; i < 8; i++) { // > Custom code page: solverAndPedagogy - line 7
+          var nx = x + dx[i], ny = y + dy[i]; // > Custom code page: solverAndPedagogy - line 8
+          if (nx < 0 || nx >= numOfCols || ny < 0 || ny >= numOfRows) continue; // > Custom code page: solverAndPedagogy - line 9
+          if (!filled[posToIdx[ny][nx]]) count++; // > Custom code page: solverAndPedagogy - line 10
+      } // > Custom code page: solverAndPedagogy - line 11
+      return count; // > Custom code page: solverAndPedagogy - line 12
+  } // > Custom code page: solverAndPedagogy - line 13
+   // > Custom code page: solverAndPedagogy - line 14
+  function warnsdorffSolve(startX, startY, filledState) { // > Custom code page: solverAndPedagogy - line 15
+      var dx = [-1, 1, 2, 2, -1, 1, -2, -2]; // > Custom code page: solverAndPedagogy - line 16
+      var dy = [2, 2, 1, -1, -2, -2, 1, -1]; // > Custom code page: solverAndPedagogy - line 17
+      var filled = filledState.slice(); // > Custom code page: solverAndPedagogy - line 18
+      var path = [[startX, startY]]; // > Custom code page: solverAndPedagogy - line 19
+      filled[posToIdx[startY][startX]] = 1; // > Custom code page: solverAndPedagogy - line 20
+      var x = startX, y = startY; // > Custom code page: solverAndPedagogy - line 21
+      while (true) { // > Custom code page: solverAndPedagogy - line 22
+          var bestX = -1, bestY = -1, bestAcc = 999; // > Custom code page: solverAndPedagogy - line 23
+          for (var i = 0; i < 8; i++) { // > Custom code page: solverAndPedagogy - line 24
+              var nx = x + dx[i], ny = y + dy[i]; // > Custom code page: solverAndPedagogy - line 25
+              if (nx < 0 || nx >= numOfCols || ny < 0 || ny >= numOfRows) continue; // > Custom code page: solverAndPedagogy - line 26
+              var nIdx = posToIdx[ny][nx]; // > Custom code page: solverAndPedagogy - line 27
+              if (filled[nIdx]) continue; // > Custom code page: solverAndPedagogy - line 28
+              var acc = accessibility(nx, ny, filled); // > Custom code page: solverAndPedagogy - line 29
+              if (acc < bestAcc) { bestAcc = acc; bestX = nx; bestY = ny; } // > Custom code page: solverAndPedagogy - line 30
+          } // > Custom code page: solverAndPedagogy - line 31
+          if (bestX === -1) break; // > Custom code page: solverAndPedagogy - line 32
+          filled[posToIdx[bestY][bestX]] = 1; // > Custom code page: solverAndPedagogy - line 33
+          path.push([bestX, bestY]); // > Custom code page: solverAndPedagogy - line 34
+          x = bestX; y = bestY; // > Custom code page: solverAndPedagogy - line 35
+      } // > Custom code page: solverAndPedagogy - line 36
+      return path; // > Custom code page: solverAndPedagogy - line 37
+  } // > Custom code page: solverAndPedagogy - line 38
+   // > Custom code page: solverAndPedagogy - line 39
+  function findBestSolution() { // > Custom code page: solverAndPedagogy - line 40
+      var bestPath = []; // > Custom code page: solverAndPedagogy - line 41
+      for (var i = 0; i < numOfSquares; i++) { // > Custom code page: solverAndPedagogy - line 42
+          if (squareFilled[i]) continue; // > Custom code page: solverAndPedagogy - line 43
+          var pos = idxToPos[i]; // > Custom code page: solverAndPedagogy - line 44
+          var path = warnsdorffSolve(pos[0], pos[1], squareFilled.slice()); // > Custom code page: solverAndPedagogy - line 45
+          if (path.length > bestPath.length) bestPath = path; // > Custom code page: solverAndPedagogy - line 46
+      } // > Custom code page: solverAndPedagogy - line 47
+      return bestPath; // > Custom code page: solverAndPedagogy - line 48
+  } // > Custom code page: solverAndPedagogy - line 49
+   // > Custom code page: solverAndPedagogy - line 50
+  // ── PEDAGOGICAL HELPERS ────────────────────────────────────────── // > Custom code page: solverAndPedagogy - line 51
+   // > Custom code page: solverAndPedagogy - line 52
+  function showPedagogicalMessage(msg) { // > Custom code page: solverAndPedagogy - line 53
+      var el = document.getElementById('pedagogical-message'); // > Custom code page: solverAndPedagogy - line 54
+      if (el) { el.innerHTML = msg; el.style.display = 'block'; } // > Custom code page: solverAndPedagogy - line 55
+  } // > Custom code page: solverAndPedagogy - line 56
+   // > Custom code page: solverAndPedagogy - line 57
+  function clearHintHighlight() { // > Custom code page: solverAndPedagogy - line 58
+      if (hintIdx >= 0) { // > Custom code page: solverAndPedagogy - line 59
+          if (squareFilled[hintIdx]) squareColor[hintIdx] = filledColor; // > Custom code page: solverAndPedagogy - line 60
+          else if (squareHighlighted[hintIdx]) squareColor[hintIdx] = highlightColor; // > Custom code page: solverAndPedagogy - line 61
+          else squareColor[hintIdx] = unfilledColor; // > Custom code page: solverAndPedagogy - line 62
+          hintIdx = -1; // > Custom code page: solverAndPedagogy - line 63
+      } // > Custom code page: solverAndPedagogy - line 64
+  } // > Custom code page: solverAndPedagogy - line 65
+   // > Custom code page: solverAndPedagogy - line 66
+  function showHint() { // > Custom code page: solverAndPedagogy - line 67
+      if (gameOver) { showPedagogicalMessage('<strong>Game over!</strong> Press Reset to try again.'); return; } // > Custom code page: solverAndPedagogy - line 68
+      clearHintHighlight(); // > Custom code page: solverAndPedagogy - line 69
+      if (moveHistoryIndices.length === 0) { // > Custom code page: solverAndPedagogy - line 70
+          var path = findBestSolution(); // > Custom code page: solverAndPedagogy - line 71
+          if (path.length > 0) { // > Custom code page: solverAndPedagogy - line 72
+              hintIdx = posToIdx[path[0][1]][path[0][0]]; // > Custom code page: solverAndPedagogy - line 73
+              squareColor[hintIdx] = 'rgba(255,165,0,0.9)'; // > Custom code page: solverAndPedagogy - line 74
+              showPedagogicalMessage('<strong>&#128161; Hint — Best Starting Square:</strong> The orange star gives a path of <strong>' + path.length + ' moves</strong> using Warnsdorff\'s rule. This rule says: <em>always move to the square with the fewest onward moves</em> — it avoids painting yourself into a corner.'); // > Custom code page: solverAndPedagogy - line 75
+          } // > Custom code page: solverAndPedagogy - line 76
+      } else { // > Custom code page: solverAndPedagogy - line 77
+          var lastIdx = moveHistoryIndices[moveHistoryIndices.length - 1]; // > Custom code page: solverAndPedagogy - line 78
+          var lastPos = idxToPos[lastIdx]; // > Custom code page: solverAndPedagogy - line 79
+          var path = warnsdorffSolve(lastPos[0], lastPos[1], squareFilled.slice()); // > Custom code page: solverAndPedagogy - line 80
+          if (path.length > 1) { // > Custom code page: solverAndPedagogy - line 81
+              var next = path[1]; // > Custom code page: solverAndPedagogy - line 82
+              hintIdx = posToIdx[next[1]][next[0]]; // > Custom code page: solverAndPedagogy - line 83
+              squareColor[hintIdx] = 'rgba(255,165,0,0.9)'; // > Custom code page: solverAndPedagogy - line 84
+              var acc = accessibility(next[0], next[1], squareFilled); // > Custom code page: solverAndPedagogy - line 85
+              var remaining = path.length - 1; // > Custom code page: solverAndPedagogy - line 86
+              showPedagogicalMessage('<strong>&#128161; Hint — Next Best Move:</strong> Move to the orange square (col ' + (next[0]+1) + ', row ' + (next[1]+1) + '). It has only <strong>' + acc + ' onward move' + (acc===1?'':'s') + '</strong> — the fewest available right now. Choosing the most constrained neighbour first keeps more future paths open. This path can still reach <strong>' + remaining + ' more star' + (remaining===1?'':'s') + '</strong>.'); // > Custom code page: solverAndPedagogy - line 87
+          } else { // > Custom code page: solverAndPedagogy - line 88
+              showPedagogicalMessage('<strong>&#128161; Hint:</strong> No more moves are reachable from here. Consider pressing <strong>&#8617; Undo</strong> to backtrack, or <strong>&#8635; Reset</strong> to start over.'); // > Custom code page: solverAndPedagogy - line 89
+          } // > Custom code page: solverAndPedagogy - line 90
+      } // > Custom code page: solverAndPedagogy - line 91
+  } // > Custom code page: solverAndPedagogy - line 92
+   // > Custom code page: solverAndPedagogy - line 93
+  function autoSolveToggle() { // > Custom code page: solverAndPedagogy - line 94
+      if (autoSolveTimer) { // > Custom code page: solverAndPedagogy - line 95
+          clearInterval(autoSolveTimer); autoSolveTimer = null; // > Custom code page: solverAndPedagogy - line 96
+          autoSolveButtonText = '⚡ Auto Solve'; // > Custom code page: solverAndPedagogy - line 97
+          _model.update(); // > Custom code page: solverAndPedagogy - line 98
+          return; // > Custom code page: solverAndPedagogy - line 99
+      } // > Custom code page: solverAndPedagogy - line 100
+      if (gameOver) return; // > Custom code page: solverAndPedagogy - line 101
+      clearHintHighlight(); // > Custom code page: solverAndPedagogy - line 102
+      var path; // > Custom code page: solverAndPedagogy - line 103
+      if (moveHistoryIndices.length === 0) { // > Custom code page: solverAndPedagogy - line 104
+          path = findBestSolution(); // > Custom code page: solverAndPedagogy - line 105
+      } else { // > Custom code page: solverAndPedagogy - line 106
+          var lastIdx = moveHistoryIndices[moveHistoryIndices.length - 1]; // > Custom code page: solverAndPedagogy - line 107
+          var lastPos = idxToPos[lastIdx]; // > Custom code page: solverAndPedagogy - line 108
+          var full = warnsdorffSolve(lastPos[0], lastPos[1], squareFilled.slice()); // > Custom code page: solverAndPedagogy - line 109
+          path = full.slice(1); // > Custom code page: solverAndPedagogy - line 110
+      } // > Custom code page: solverAndPedagogy - line 111
+      if (path.length === 0) { showPedagogicalMessage('<strong>No moves available to auto-solve from here.</strong>'); return; } // > Custom code page: solverAndPedagogy - line 112
+      autoSolveButtonText = '⏹ Stop'; // > Custom code page: solverAndPedagogy - line 113
+      _model.update(); // > Custom code page: solverAndPedagogy - line 114
+      showPedagogicalMessage('<strong>&#129302; Auto-solving with Warnsdorff\'s rule:</strong> At each step the knight moves to the neighbour with the <em>fewest</em> onward moves. This greedy heuristic usually finds near-optimal Hamiltonian paths. Watch the strategy unfold — ' + path.length + ' moves planned!'); // > Custom code page: solverAndPedagogy - line 115
+      var stepIdx = 0; // > Custom code page: solverAndPedagogy - line 116
+      autoSolveTimer = setInterval(function() { // > Custom code page: solverAndPedagogy - line 117
+          if (stepIdx >= path.length || gameOver) { // > Custom code page: solverAndPedagogy - line 118
+              clearInterval(autoSolveTimer); autoSolveTimer = null; // > Custom code page: solverAndPedagogy - line 119
+              autoSolveButtonText = '⚡ Auto Solve'; _model.update(); return; // > Custom code page: solverAndPedagogy - line 120
+          } // > Custom code page: solverAndPedagogy - line 121
+          var pos = path[stepIdx]; // > Custom code page: solverAndPedagogy - line 122
+          var idx = posToIdx[pos[1]][pos[0]]; // > Custom code page: solverAndPedagogy - line 123
+          squareHighlighted[idx] = 1; // > Custom code page: solverAndPedagogy - line 124
+          onClickSquare(idx); // > Custom code page: solverAndPedagogy - line 125
+          stepIdx++; _model.update(); // > Custom code page: solverAndPedagogy - line 126
+      }, autoSolveSpeed); // > Custom code page: solverAndPedagogy - line 127
+  } // > Custom code page: solverAndPedagogy - line 128
+   // > Custom code page: solverAndPedagogy - line 129
+  function undoMove() { // > Custom code page: solverAndPedagogy - line 130
+      if (moveHistoryIndices.length === 0) return; // > Custom code page: solverAndPedagogy - line 131
+      if (autoSolveTimer) { // > Custom code page: solverAndPedagogy - line 132
+          clearInterval(autoSolveTimer); autoSolveTimer = null; // > Custom code page: solverAndPedagogy - line 133
+          autoSolveButtonText = '⚡ Auto Solve'; // > Custom code page: solverAndPedagogy - line 134
+      } // > Custom code page: solverAndPedagogy - line 135
+      clearHintHighlight(); // > Custom code page: solverAndPedagogy - line 136
+      var removedIdx = moveHistoryIndices.pop(); // > Custom code page: solverAndPedagogy - line 137
+      squareFilled[removedIdx] = 0; // > Custom code page: solverAndPedagogy - line 138
+      squareColor[removedIdx] = unfilledColor; // > Custom code page: solverAndPedagogy - line 139
+      textStr.pop(); textX.pop(); textY.pop(); // > Custom code page: solverAndPedagogy - line 140
+      moveCounter--; // > Custom code page: solverAndPedagogy - line 141
+      gameOver = false; // > Custom code page: solverAndPedagogy - line 142
+      for (var i = 0; i < numOfSquares; i++) { // > Custom code page: solverAndPedagogy - line 143
+          if (squareColor[i] === highlightColor) squareColor[i] = unfilledColor; // > Custom code page: solverAndPedagogy - line 144
+          squareHighlighted[i] = 0; // > Custom code page: solverAndPedagogy - line 145
+      } // > Custom code page: solverAndPedagogy - line 146
+      if (moveHistoryIndices.length === 0) { // > Custom code page: solverAndPedagogy - line 147
+          textXunicode = -1; textYunicode = 0; // > Custom code page: solverAndPedagogy - line 148
+          for (var i = 0; i < numOfSquares; i++) { if (!squareFilled[i]) squareHighlighted[i] = 1; } // > Custom code page: solverAndPedagogy - line 149
+          showPedagogicalMessage('<strong>&#8617; Undone!</strong> Back to the start — click any ⭐ to begin.'); // > Custom code page: solverAndPedagogy - line 150
+      } else { // > Custom code page: solverAndPedagogy - line 151
+          var prevIdx = moveHistoryIndices[moveHistoryIndices.length - 1]; // > Custom code page: solverAndPedagogy - line 152
+          var prevPos = idxToPos[prevIdx]; // > Custom code page: solverAndPedagogy - line 153
+          textXunicode = prevPos[0] * squareLength; // > Custom code page: solverAndPedagogy - line 154
+          textYunicode = prevPos[1] * squareLength; // > Custom code page: solverAndPedagogy - line 155
+          findPossibleMoves(prevPos[0], prevPos[1]); // > Custom code page: solverAndPedagogy - line 156
+          showPedagogicalMessage('<strong>&#8617; Undone!</strong> Back to move ' + (moveCounter - 1) + '. Choose your next star.'); // > Custom code page: solverAndPedagogy - line 157
+      } // > Custom code page: solverAndPedagogy - line 158
+  } // > Custom code page: solverAndPedagogy - line 159
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled['Init Page']) return;
+    var board = [ // > Initialization page: Init Page - line 1
+      "*OO**O", // > Initialization page: Init Page - line 2
+      "O***OO", // > Initialization page: Init Page - line 3
+      "******", // > Initialization page: Init Page - line 4
+      "****O*", // > Initialization page: Init Page - line 5
+      "*O***O", // > Initialization page: Init Page - line 6
+      "O****O" // > Initialization page: Init Page - line 7
+    ]; // > Initialization page: Init Page - line 8
+     // > Initialization page: Init Page - line 9
+    // Create pedagogical message div dynamically (works in both local and WebEJS-generated HTML) // > Initialization page: Init Page - line 10
+    if (!document.getElementById('pedagogical-message')) { // > Initialization page: Init Page - line 11
+        var pmDiv = document.createElement('div'); // > Initialization page: Init Page - line 12
+        pmDiv.id = 'pedagogical-message'; // > Initialization page: Init Page - line 13
+        pmDiv.style.cssText = 'display:none; max-width:700px; margin:8px auto; padding:12px 16px; background:#fffde7; border-left:5px solid #f9a825; border-radius:4px; font-family:sans-serif; font-size:14px; line-height:1.6; color:#333;'; // > Initialization page: Init Page - line 14
+        var topFrame = document.getElementById('_topFrame'); // > Initialization page: Init Page - line 15
+        if (topFrame && topFrame.parentNode) topFrame.parentNode.insertBefore(pmDiv, topFrame.nextSibling); // > Initialization page: Init Page - line 16
+    } // > Initialization page: Init Page - line 17
+     // > Initialization page: Init Page - line 18
+    // Reset solver state on every init (plays nicely with the Reset button) // > Initialization page: Init Page - line 19
+    if (autoSolveTimer) { clearInterval(autoSolveTimer); autoSolveTimer = null; } // > Initialization page: Init Page - line 20
+    moveHistoryIndices = []; // > Initialization page: Init Page - line 21
+    hintIdx = -1; // > Initialization page: Init Page - line 22
+    autoSolveButtonText = '⚡ Auto Solve'; // > Initialization page: Init Page - line 23
+     // > Initialization page: Init Page - line 24
+    // INITIALISATION // > Initialization page: Init Page - line 25
+    if(topScore == undefined) // > Initialization page: Init Page - line 26
+        topScore = 0; // > Initialization page: Init Page - line 27
+     // > Initialization page: Init Page - line 28
+    textStr = [], textX = [], textY = []; // > Initialization page: Init Page - line 29
+    symbolStr = [], symbolX = [], symbolY = []; // > Initialization page: Init Page - line 30
+     // > Initialization page: Init Page - line 31
+    squareX = [], squareY = [], squareColor = [], squareHighlighted = [], squareFilled = []; // > Initialization page: Init Page - line 32
+    idxToPos = [], posToIdx = []; // > Initialization page: Init Page - line 33
+    numOfSquares = 0; // > Initialization page: Init Page - line 34
+    for(var i = 0; i < numOfRows; i++) { // > Initialization page: Init Page - line 35
+        posToIdx.push([]); // > Initialization page: Init Page - line 36
+        for(var j = 0; j < numOfCols; j++) { // > Initialization page: Init Page - line 37
+            if(board[i][j] == "*") { // > Initialization page: Init Page - line 38
+                squareFilled.push(0); // > Initialization page: Init Page - line 39
+                squareHighlighted.push(1); // > Initialization page: Init Page - line 40
+                // star emoji // > Initialization page: Init Page - line 41
+                symbolStr.push("⭐"); // > Initialization page: Init Page - line 42
+                symbolX.push(squareLength * j); // > Initialization page: Init Page - line 43
+                symbolY.push(squareLength * i); // > Initialization page: Init Page - line 44
+                 // > Initialization page: Init Page - line 45
+                numOfStars++; // > Initialization page: Init Page - line 46
+            } // > Initialization page: Init Page - line 47
+            else { // > Initialization page: Init Page - line 48
+                squareFilled.push(1); // > Initialization page: Init Page - line 49
+                squareHighlighted.push(0); // > Initialization page: Init Page - line 50
+            } // > Initialization page: Init Page - line 51
+             // > Initialization page: Init Page - line 52
+            squareX.push(squareLength * j); // > Initialization page: Init Page - line 53
+            squareY.push(squareLength * i); // > Initialization page: Init Page - line 54
+     // > Initialization page: Init Page - line 55
+            squareColor.push(unfilledColor); // > Initialization page: Init Page - line 56
+     // > Initialization page: Init Page - line 57
+            idxToPos.push([j, i]); // > Initialization page: Init Page - line 58
+            posToIdx[i].push(numOfSquares++); // > Initialization page: Init Page - line 59
+        } // > Initialization page: Init Page - line 60
+    } // > Initialization page: Init Page - line 61
+     // > Initialization page: Init Page - line 62
+    _tools.showOkDialog("Click on any star to begin!"); // > Initialization page: Init Page - line 63
+    showPedagogicalMessage('💡 <strong>How to play:</strong> Click any ⭐ star to place the knight. Then move it using L-shaped knight jumps — only landing on stars. Try to visit as many as possible! Use <strong>💡 Hint</strong> to see the recommended next move, <strong>⚡ Auto Solve</strong> to watch the computer play, or <strong>↩ Undo</strong> to backtrack.'); // > Initialization page: Init Page - line 64
+     // > Initialization page: Init Page - line 65
+     // > Initialization page: Init Page - line 66
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  // Intentionally repeated
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model._fontResized = function(iBase,iSize,iDelta) {
+    _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _createView() {
+    _view = new _simulationView(_topFrame,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      _view.topScore.linkProperty('Text', function() { return "Top Score: " + topScore; }); // linking Text of topScore
+      _view.topScore.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of topScore
+      _view.score.linkProperty('Text', function() { return "Current Score: " + (moveCounter -1); }); // linking Text of score
+      _view.score.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of score
+      _view.reset.setAction('OnPress', function(_data, _info) { // Action OnPress for element reset
+        _reset() // property OnPress of reset: line 1
+      });
+      _view.reset.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of reset
+      _view.hint.setAction('OnPress', function(_data, _info) { // Action OnPress for element hint
+        showHint() // property OnPress of hint: line 1
+      });
+      _view.hint.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of hint
+      _view.autoSolve.linkProperty('Text', function() { return autoSolveButtonText; }, function(_v) { autoSolveButtonText = _v; }); // linking Text of autoSolve
+      _view.autoSolve.setAction('OnPress', function(_data, _info) { // Action OnPress for element autoSolve
+        autoSolveToggle() // property OnPress of autoSolve: line 1
+      });
+      _view.autoSolve.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of autoSolve
+      _view.undo.setAction('OnPress', function(_data, _info) { // Action OnPress for element undo
+        undoMove() // property OnPress of undo: line 1
+      });
+      _view.undo.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of undo
+      _view.plottingPanel.linkProperty('XTickStep', function() { return numOfRows * squareLength; }); // linking XTickStep of plottingPanel
+      _view.plottingPanel.linkProperty('YTickStep', function() { return numOfCols * squareLength; }); // linking YTickStep of plottingPanel
+      _view.shapeSet.linkProperty('NumberOfElements', function() { return numOfSquares; }, function(_v) { numOfSquares = _v; }); // linking NumberOfElements of shapeSet
+      _view.shapeSet.linkProperty('FillColor', function() { return squareColor; }, function(_v) { squareColor = _v; }); // linking FillColor of shapeSet
+      _view.shapeSet.linkProperty('SizeX', function() { return squareLength; }, function(_v) { squareLength = _v; }); // linking SizeX of shapeSet
+      _view.shapeSet.linkProperty('X', function() { return squareX; }, function(_v) { squareX = _v; }); // linking X of shapeSet
+      _view.shapeSet.linkProperty('Y', function() { return squareY; }, function(_v) { squareY = _v; }); // linking Y of shapeSet
+      _view.shapeSet.setAction('OnPress', function(_data, _info) { // Action OnPress for element shapeSet
+        onClickSquare(interact); // property OnPress of shapeSet: line 1
+      });
+      _view.shapeSet.linkProperty('SizeY', function() { return squareLength; }, function(_v) { squareLength = _v; }); // linking SizeY of shapeSet
+      _view.shapeSet.linkProperty('ElementInteracted', function() { return interact; }, function(_v) { interact = _v; }); // linking ElementInteracted of shapeSet
+      _view.symbolSet.linkProperty('X', function() { return symbolX; }, function(_v) { symbolX = _v; }); // linking X of symbolSet
+      _view.symbolSet.linkProperty('Y', function() { return symbolY; }, function(_v) { symbolY = _v; }); // linking Y of symbolSet
+      _view.symbolSet.linkProperty('Text', function() { return symbolStr; }, function(_v) { symbolStr = _v; }); // linking Text of symbolSet
+      _view.symbolSet.linkProperty('Font', function() { return fontSymbol; }, function(_v) { fontSymbol = _v; }); // linking Font of symbolSet
+      _view.unicodeknight.linkProperty('X', function() { return textXunicode; }, function(_v) { textXunicode = _v; }); // linking X of unicodeknight
+      _view.unicodeknight.linkProperty('Y', function() { return textYunicode; }, function(_v) { textYunicode = _v; }); // linking Y of unicodeknight
+      _view.textSet.linkProperty('X', function() { return textX; }, function(_v) { textX = _v; }); // linking X of textSet
+      _view.textSet.linkProperty('Y', function() { return textY; }, function(_v) { textY = _v; }); // linking Y of textSet
+      _view.textSet.linkProperty('Text', function() { return textStr; }, function(_v) { textStr = _v; }); // linking Text of textSet
+      _view.textSet.linkProperty('Font', function() { return font; }, function(_v) { font = _v; }); // linking Font of textSet
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _createView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _createView(); // this includes _model.reset()
+  return _model;
+}
+
+function _simulationView (_topFrame,_libraryPath,_codebasePath) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  if (_libraryPath)  _view._setLibraryPath(_libraryPath);
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel, 'topPanel', _view._topFrame)
+      .setProperty("CSS",{     "grid-template-columns": "1fr 1fr 1fr" })
+      .setProperty("Display","grid")
+      ;
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'topScore', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton, 'score', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.button, 'reset', _view.topPanel)
+      .setProperty("Text","↻Reset")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'hint', _view.topPanel)
+      .setProperty("Text","💡 Hint")
+      ;
+    _view._addElement(EJSS_INTERFACE.button, 'autoSolve', _view.topPanel);
+    _view._addElement(EJSS_INTERFACE.button, 'undo', _view.topPanel)
+      .setProperty("Text","↩ Undo")
+      ;
+    _view._addElement(EJSS_INTERFACE.panel, 'mainPanel', _view._topFrame);
+    _view._addElement(EJSS_DRAWING2D.plottingPanel, 'plottingPanel', _view.mainPanel)
+      .setProperty("Height","90vh")
+      .setProperty("Width","100%")
+      .setProperty("Gutters",[0, 0, 0, 0])
+      .setProperty("YScalePrecision",0)
+      .setProperty("XFixedTick",-0.5)
+      .setProperty("Enabled",true)
+      .setProperty("SquareAspect",true)
+      .setProperty("YFixedTick",-0.5)
+      .setProperty("YAutoTicks",false)
+      .setProperty("AutoScaleY",true)
+      .setProperty("AutoScaleX",true)
+      .setProperty("CursorTypeForMove","pointer")
+      .setProperty("XAutoTicks",false)
+      .setProperty("XScalePrecision",0)
+      ;
+    _view._addElement(EJSS_DRAWING2D.shapeSet, 'shapeSet', _view.plottingPanel)
+      .setProperty("Sensitivity",0)
+      .setProperty("ShapeType","RECTANGLE")
+      .setProperty("EnabledPosition","ENABLED_NO_MOVE")
+      ;
+    _view._addElement(EJSS_DRAWING2D.textSet, 'symbolSet', _view.plottingPanel);
+    _view._addElement(EJSS_DRAWING2D.text, 'unicodeknight', _view.plottingPanel)
+      .setProperty("FillColor","Magenta")
+      .setProperty("Text","♞")
+      .setProperty("Font","normal normal 7vw ")
+      ;
+    _view._addElement(EJSS_DRAWING2D.textSet, 'textSet', _view.plottingPanel);
+    _view._addElement(EJSS_INTERFACE.panel, 'html', _view._topFrame)
+      .setProperty("Html","<h2>Knight's Move</h2> <p>The knight (♘, ♞) is a piece in the game of chess and is represented by a horse's head and neck.</p> <p>The knight's movement is unique: it may move two squares vertically and one square horizontally, or two squares horizontally and one square vertically (with both forming the shape of an L). This way, a knight can have a maximum of 8 moves. While moving, the knight can jump over pieces to reach its destination.</p> <h2>Single Player Game</h2> <p>Try to discover the best strategy/pattern to maximise the number of moves by landing on legal squares/stars.</p> <p>Given the current map of stars, try to move the maximum possible number of knight's move possible.</p>   <h2>For more resources</h2>   <ul>       <li>           <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1054-knight-intro\" target=\"_blank\" rel=\"noopener noreferrer\">               Knight — Intro           </a>       </li>       <li>           <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1101-knight-moves-no-hint\" target=\"_blank\" rel=\"noopener noreferrer\">               Knight Moves (No Hint)           </a>       </li>       <li>           <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1057-knight-moves\" target=\"_blank\" rel=\"noopener noreferrer\">               Knight Moves           </a>       </li>       <li>           <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1055-knight-star-to-star\" target=\"_blank\" rel=\"noopener noreferrer\">               Knight: Star to Star           </a>       </li>       <li>           <a href=\"https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/1102-knight-star-to-star-no-hint\" target=\"_blank\" rel=\"noopener noreferrer\">               Knight: Star to Star (No Hint)           </a>       </li>       <li>           <a href=\"https://sg.iwant2study.org/ospsg/index.php/events/1106-20210830-digital-e2k-applications-knights-move\" target=\"_blank\" rel=\"noopener noreferrer\">               Digital E2K Applications: Knight’s Move (Event)           </a>       </li>   </ul>")
+      ;
+  }; // end of _view._reset
+  return _view;
+}
+
+    //--><!]]></script>
+
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+    <div id='metadata' class='metadata'>
+      <br />
+      <div id='title_author'>
+        <hr />
+        <b>Title and author:</b>
+        <p>
+          ejss_model_knight_star_to_star Knight Strategy game to maximise moves landing on stars only<br/>
+          <img alt='Logo' src='./knight_star_to_star/Screenshot 2021-05-05 at 3.53.49 PM (2).png'/>
+        </p>
+        <p>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+          <img alt='author image' src=''/>
+Shaun Quek, Loo Kang Wee, Francisco Esquembre, Félix Jesús Garcia Clemente, based on idea by Theresa Heng
+        </p>
+        <hr />
+      </div>
+      <p></p>
+      <div id='copyright_message'>
+        <div class='cc_left'  style='float:left'>
+          &#169;2026, Shaun Quek, Loo Kang Wee, Francisco Esquembre, Félix Jesús Garcia Clemente, based on idea by Theresa Heng. <br />
+          Compiled with <a href='https://t.um.es/webejs' target='_blank'>WebEJS : the web version of Easy JavaScript Simulations</a>.<br />
+          Version 1.0 (240505)
+        </div>
+        <div class='cc_right' style='float:right'>
+          Released under a <a rel='license' target='_blank' href='https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US'>
+          <img alt='Creative Commons Attribution-NonCommercial-ShareAlike' src='./_ejs_library/images/cc_icon.png' />
+          </a> license.
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () {
+          _model = new _simulation("_topFrame","./_ejs_library/",null);
+
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+                _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+                },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

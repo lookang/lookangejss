@@ -1,0 +1,582 @@
+// ===== GLOBAL VARIABLES =====
+let startTime = Date.now();
+let actionCount = 0;
+let currentBearing = 0;
+let currentDistance = 100;
+let currentMode = 'bearing'; // 'bearing' or 'cardinal'
+
+// NEW: Navigation tracking variables
+let currentPositionX = 200; // Center of map (SVG coordinates)
+let currentPositionY = 200; // Center of map (SVG coordinates)
+let actualX = 0; // Actual position in meters
+let actualY = 0; // Actual position in meters
+let pathHistory = []; // Store all plotted paths
+let pathCounter = 1; // Counter for path numbering
+
+// ===== DOM ELEMENTS =====
+const bearingSlider = document.getElementById('bearingSlider');
+const bearingValue = document.getElementById('bearingValue');
+const cardinalEquivalent = document.getElementById('cardinalEquivalent');
+const distanceSlider = document.getElementById('distanceSlider');
+const distanceValue = document.getElementById('distanceValue');
+
+const bearingModeBtn = document.getElementById('bearingModeBtn');
+const cardinalModeBtn = document.getElementById('cardinalModeBtn');
+const bearingControls = document.getElementById('bearingControls');
+const cardinalControls = document.getElementById('cardinalControls');
+
+const plotBtn = document.getElementById('plotBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+const directionArrow = document.getElementById('directionArrow');
+const bearingArc = document.getElementById('bearingArc');
+const tooltip = document.getElementById('tooltip');
+
+const currentBearingDisplay = document.getElementById('currentBearing');
+const currentDirectionDisplay = document.getElementById('currentDirection');
+const currentDistanceDisplay = document.getElementById('currentDistance');
+
+const analyticsToggle = document.getElementById('analyticsToggle');
+const analyticsPanel = document.querySelector('.analytics-panel');
+const analyticsContent = document.getElementById('analyticsContent');
+const actionLog = document.getElementById('actionLog');
+const actionCountDisplay = document.getElementById('actionCount');
+const clearLogBtn = document.getElementById('clearLogBtn');
+
+const cardinalButtons = document.querySelectorAll('.cardinal-btn');
+
+// NEW: Map DOM elements
+const mapSvg = document.getElementById('mapSvg');
+const pathGroup = document.getElementById('pathGroup');
+const currentPosition = document.getElementById('currentPosition');
+const positionLabel = document.getElementById('positionLabel');
+const currentCoordinates = document.getElementById('currentCoordinates');
+const clearMapBtn = document.getElementById('clearMapBtn');
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCompass();
+    updateDisplay();
+    logAction('🎯 Interactive loaded', 'Ready to explore navigation');
+    
+    // Show tooltip on load
+    showTooltip('Use the controls to set bearing and distance. Click "Plot Course" to visualize your navigation path on the map.');
+    setTimeout(() => hideTooltip(), 4000);
+});
+
+// ===== COMPASS INITIALIZATION =====
+function initializeCompass() {
+    const degreeMarks = document.getElementById('degreeMarks');
+    
+    // Create degree markings every 15 degrees
+    for (let i = 0; i < 360; i += 15) {
+        const angle = i - 90; // SVG rotation starts from East
+        const isCardinal = i % 90 === 0;
+        const length = isCardinal ? 20 : 10;
+        const innerRadius = 180 - length;
+        
+        const x1 = 200 + innerRadius * Math.cos(angle * Math.PI / 180);
+        const y1 = 200 + innerRadius * Math.sin(angle * Math.PI / 180);
+        const x2 = 200 + 180 * Math.cos(angle * Math.PI / 180);
+        const y2 = 200 + 180 * Math.sin(angle * Math.PI / 180);
+        
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', isCardinal ? '#2c3e50' : '#95a5a6');
+        line.setAttribute('stroke-width', isCardinal ? '2' : '1');
+        
+        degreeMarks.appendChild(line);
+        
+        // Add degree labels for major angles
+        if (i % 30 === 0 && i % 90 !== 0) {
+            const labelRadius = 155;
+            const labelX = 200 + labelRadius * Math.cos(angle * Math.PI / 180);
+            const labelY = 200 + labelRadius * Math.sin(angle * Math.PI / 180);
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', labelX);
+            text.setAttribute('y', labelY);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('font-size', '10');
+            text.setAttribute('fill', '#7f8c8d');
+            text.textContent = i + '°';
+            
+            degreeMarks.appendChild(text);
+        }
+    }
+}
+
+// ===== BEARING CONVERSION FUNCTIONS =====
+function bearingToCardinal(bearing) {
+    const directions = [
+        { name: 'North (N)', abbr: 'N', range: [0, 22.5] },
+        { name: 'North-East (NE)', abbr: 'NE', range: [22.5, 67.5] },
+        { name: 'East (E)', abbr: 'E', range: [67.5, 112.5] },
+        { name: 'South-East (SE)', abbr: 'SE', range: [112.5, 157.5] },
+        { name: 'South (S)', abbr: 'S', range: [157.5, 202.5] },
+        { name: 'South-West (SW)', abbr: 'SW', range: [202.5, 247.5] },
+        { name: 'West (W)', abbr: 'W', range: [247.5, 292.5] },
+        { name: 'North-West (NW)', abbr: 'NW', range: [292.5, 337.5] },
+        { name: 'North (N)', abbr: 'N', range: [337.5, 360] }
+    ];
+    
+    for (let dir of directions) {
+        if (bearing >= dir.range[0] && bearing < dir.range[1]) {
+            return dir.name;
+        }
+    }
+    return 'North (N)';
+}
+
+// ===== NEW: MAP NAVIGATION FUNCTIONS =====
+
+// Calculate new position based on bearing and distance
+function calculateNewPosition(bearing, distance) {
+    // Convert bearing to radians (0° = North, clockwise)
+    const angleRad = (bearing * Math.PI) / 180;
+    
+    // Calculate displacement in meters (North is positive Y, East is positive X)
+    const deltaX = distance * Math.sin(angleRad);
+    const deltaY = -distance * Math.cos(angleRad); // Negative because SVG Y increases downward
+    
+    return { deltaX, deltaY };
+}
+
+// Convert meters to SVG pixels (scale: 100m = 100px on map)
+function metersToPixels(meters) {
+    return meters; // 1:1 scale for simplicity
+}
+
+// Update map with new path
+function updateMap(bearing, distance) {
+    // Calculate new position
+    const { deltaX, deltaY } = calculateNewPosition(bearing, distance);
+    
+    // Update actual position in meters
+    const newActualX = actualX + deltaX;
+    const newActualY = actualY + deltaY;
+    
+    // Convert to SVG coordinates
+    const newSvgX = 200 + metersToPixels(newActualX);
+    const newSvgY = 200 + metersToPixels(newActualY);
+    
+    // Draw path line from current position to new position
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', currentPositionX);
+    line.setAttribute('y1', currentPositionY);
+    line.setAttribute('x2', newSvgX);
+    line.setAttribute('y2', newSvgY);
+    line.setAttribute('class', 'path-line');
+    line.setAttribute('stroke-dasharray', '5,5');
+    
+    // Add animation
+    const length = Math.sqrt(Math.pow(newSvgX - currentPositionX, 2) + Math.pow(newSvgY - currentPositionY, 2));
+    line.style.strokeDasharray = length;
+    line.style.strokeDashoffset = length;
+    line.style.animation = 'drawLine 1s ease-out forwards';
+    
+    pathGroup.appendChild(line);
+    
+    // Draw arrow at the end of the path
+    const arrowSize = 8;
+    const angle = Math.atan2(newSvgY - currentPositionY, newSvgX - currentPositionX);
+    const arrowPoints = [
+        [newSvgX, newSvgY],
+        [newSvgX - arrowSize * Math.cos(angle - Math.PI / 6), newSvgY - arrowSize * Math.sin(angle - Math.PI / 6)],
+        [newSvgX - arrowSize * Math.cos(angle + Math.PI / 6), newSvgY - arrowSize * Math.sin(angle + Math.PI / 6)]
+    ];
+    
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    arrow.setAttribute('points', arrowPoints.map(p => p.join(',')).join(' '));
+    arrow.setAttribute('class', 'path-arrow');
+    pathGroup.appendChild(arrow);
+    
+    // Draw point at new position
+    const point = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    point.setAttribute('cx', newSvgX);
+    point.setAttribute('cy', newSvgY);
+    point.setAttribute('r', 5);
+    point.setAttribute('class', 'path-point');
+    pathGroup.appendChild(point);
+    
+    // Add label with path number
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', newSvgX);
+    label.setAttribute('y', newSvgY - 10);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('class', 'path-label');
+    label.textContent = pathCounter;
+    pathGroup.appendChild(label);
+    
+    // Store path in history
+    pathHistory.push({
+        number: pathCounter,
+        fromX: currentPositionX,
+        fromY: currentPositionY,
+        toX: newSvgX,
+        toY: newSvgY,
+        bearing: bearing,
+        distance: distance,
+        actualFromX: actualX,
+        actualFromY: actualY,
+        actualToX: newActualX,
+        actualToY: newActualY
+    });
+    
+    // Update current position
+    currentPositionX = newSvgX;
+    currentPositionY = newSvgY;
+    actualX = newActualX;
+    actualY = newActualY;
+    
+    // Move current position marker
+    currentPosition.setAttribute('cx', newSvgX);
+    currentPosition.setAttribute('cy', newSvgY);
+    positionLabel.setAttribute('x', newSvgX);
+    positionLabel.setAttribute('y', newSvgY + 20);
+    positionLabel.textContent = `P${pathCounter}`;
+    
+    // Update coordinates display
+    currentCoordinates.textContent = `(${actualX.toFixed(0)}m, ${actualY.toFixed(0)}m)`;
+    
+    // Increment path counter
+    pathCounter++;
+    
+    // Add CSS animation for line drawing
+    if (!document.getElementById('lineAnimation')) {
+        const style = document.createElement('style');
+        style.id = 'lineAnimation';
+        style.textContent = `
+            @keyframes drawLine {
+                to {
+                    stroke-dashoffset: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// Clear all paths from map
+function clearMap() {
+    // Clear path group
+    pathGroup.innerHTML = '';
+    
+    // Reset position to center
+    currentPositionX = 200;
+    currentPositionY = 200;
+    actualX = 0;
+    actualY = 0;
+    
+    // Reset position marker
+    currentPosition.setAttribute('cx', 200);
+    currentPosition.setAttribute('cy', 200);
+    positionLabel.setAttribute('x', 200);
+    positionLabel.setAttribute('y', 220);
+    positionLabel.textContent = 'START';
+    
+    // Reset coordinates display
+    currentCoordinates.textContent = '(0m, 0m)';
+    
+    // Clear path history
+    pathHistory = [];
+    pathCounter = 1;
+    
+    logAction('🗺️ Map cleared', 'All paths removed, position reset to start');
+}
+
+// ===== EVENT LISTENERS =====
+
+// Mode Toggle
+bearingModeBtn.addEventListener('click', () => {
+    currentMode = 'bearing';
+    bearingModeBtn.classList.add('active');
+    cardinalModeBtn.classList.remove('active');
+    bearingControls.classList.remove('hidden');
+    cardinalControls.classList.add('hidden');
+    logAction('🔄 Mode changed', 'Switched to Bearing input mode');
+});
+
+cardinalModeBtn.addEventListener('click', () => {
+    currentMode = 'cardinal';
+    cardinalModeBtn.classList.add('active');
+    bearingModeBtn.classList.remove('active');
+    cardinalControls.classList.remove('hidden');
+    bearingControls.classList.add('hidden');
+    logAction('🔄 Mode changed', 'Switched to Cardinal Direction input mode');
+});
+
+// Bearing Slider
+bearingSlider.addEventListener('input', (e) => {
+    currentBearing = parseInt(e.target.value);
+    updateDisplay();
+});
+
+bearingSlider.addEventListener('change', (e) => {
+    const bearing = parseInt(e.target.value);
+    logAction('🎚️ Bearing adjusted', `Set to ${bearing}° (${bearingToCardinal(bearing)})`);
+});
+
+// Distance Slider
+distanceSlider.addEventListener('input', (e) => {
+    currentDistance = parseInt(e.target.value);
+    distanceValue.textContent = currentDistance + ' m';
+    currentDistanceDisplay.textContent = currentDistance + ' m';
+});
+
+distanceSlider.addEventListener('change', (e) => {
+    const distance = parseInt(e.target.value);
+    logAction('📏 Distance adjusted', `Set to ${distance} meters`);
+});
+
+// Cardinal Direction Buttons
+cardinalButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const bearing = parseInt(btn.getAttribute('data-bearing'));
+        currentBearing = bearing;
+        
+        // Update visual selection
+        cardinalButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        
+        // Update displays
+        bearingSlider.value = bearing;
+        updateDisplay();
+        
+        logAction('🧭 Cardinal direction selected', `${btn.textContent} - Bearing: ${bearing}°`);
+    });
+});
+
+// Plot Course Button - MODIFIED to update map
+plotBtn.addEventListener('click', () => {
+    plotCourse();
+    updateMap(currentBearing, currentDistance); // NEW: Update map with plotted course
+    logAction('✅ Course plotted', `Bearing: ${currentBearing}°, Distance: ${currentDistance}m, Direction: ${bearingToCardinal(currentBearing)}, New position: (${actualX.toFixed(0)}m, ${actualY.toFixed(0)}m)`);
+    showTooltip(`Course plotted: ${currentBearing}° for ${currentDistance}m heading ${bearingToCardinal(currentBearing)}. Check the map!`);
+    setTimeout(() => hideTooltip(), 3000);
+});
+
+// Reset Button - MODIFIED to clear map
+resetBtn.addEventListener('click', () => {
+    resetInteractive();
+    clearMap(); // NEW: Clear map when resetting
+    logAction('🔄 Reset', 'All values reset to default, map cleared');
+    showTooltip('Interactive reset to default values, map cleared');
+    setTimeout(() => hideTooltip(), 2000);
+});
+
+// NEW: Clear Map Button
+clearMapBtn.addEventListener('click', () => {
+    clearMap();
+    showTooltip('Map cleared, position reset to start');
+    setTimeout(() => hideTooltip(), 2000);
+});
+
+// Analytics Toggle
+analyticsToggle.addEventListener('click', () => {
+    analyticsPanel.classList.toggle('collapsed');
+    logAction('📊 Analytics panel', analyticsPanel.classList.contains('collapsed') ? 'Collapsed' : 'Expanded');
+});
+
+// Clear Log Button
+clearLogBtn.addEventListener('click', () => {
+    actionLog.innerHTML = '';
+    actionCount = 0;
+    actionCountDisplay.textContent = '0';
+    startTime = Date.now();
+    logAction('🗑️ Log cleared', 'Action log reset');
+});
+
+// Touch Support for Compass (Direct Interaction)
+let compassSvg = document.getElementById('compassSvg');
+compassSvg.addEventListener('click', handleCompassClick);
+compassSvg.addEventListener('touchstart', handleCompassTouch, { passive: false });
+
+function handleCompassClick(e) {
+    const rect = compassSvg.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    
+    let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+    if (angle < 0) angle += 360;
+    
+    currentBearing = Math.round(angle);
+    bearingSlider.value = currentBearing;
+    updateDisplay();
+    
+    logAction('👆 Compass clicked', `Bearing set to ${currentBearing}° by direct interaction`);
+}
+
+function handleCompassTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = compassSvg.getBoundingClientRect();
+    const x = touch.clientX - rect.left - rect.width / 2;
+    const y = touch.clientY - rect.top - rect.height / 2;
+    
+    let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+    if (angle < 0) angle += 360;
+    
+    currentBearing = Math.round(angle);
+    bearingSlider.value = currentBearing;
+    updateDisplay();
+    
+    logAction('📱 Compass touched', `Bearing set to ${currentBearing}° by touch`);
+}
+
+// ===== UPDATE DISPLAY FUNCTION =====
+function updateDisplay() {
+    // Update text displays
+    bearingValue.textContent = currentBearing + '°';
+    cardinalEquivalent.textContent = bearingToCardinal(currentBearing);
+    currentBearingDisplay.textContent = currentBearing + '°';
+    currentDirectionDisplay.textContent = bearingToCardinal(currentBearing);
+    
+    // Rotate arrow
+    directionArrow.setAttribute('transform', `rotate(${currentBearing}, 200, 200)`);
+    
+    // Update bearing arc
+    updateBearingArc();
+}
+
+// ===== UPDATE BEARING ARC =====
+function updateBearingArc() {
+    const radius = 140;
+    const startAngle = -90; // Start from North (top)
+    const endAngle = currentBearing - 90;
+    
+    const start = polarToCartesian(200, 200, radius, endAngle);
+    const end = polarToCartesian(200, 200, radius, startAngle);
+    
+    const largeArcFlag = currentBearing > 180 ? 1 : 0;
+    
+    const d = [
+        'M', 200, 200,
+        'L', end.x, end.y,
+        'A', radius, radius, 0, largeArcFlag, 1, start.x, start.y,
+        'Z'
+    ].join(' ');
+    
+    bearingArc.setAttribute('d', d);
+    bearingArc.setAttribute('fill', 'rgba(155, 89, 182, 0.2)');
+}
+
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+    const angleInRadians = (angleInDegrees) * Math.PI / 180.0;
+    return {
+        x: centerX + (radius * Math.cos(angleInRadians)),
+        y: centerY + (radius * Math.sin(angleInRadians))
+    };
+}
+
+// ===== PLOT COURSE FUNCTION =====
+function plotCourse() {
+    // Visual feedback - pulse animation
+    directionArrow.style.transition = 'all 0.5s';
+    directionArrow.style.filter = 'drop-shadow(0 0 10px rgba(231, 76, 60, 0.8))';
+    
+    setTimeout(() => {
+        directionArrow.style.filter = '';
+    }, 500);
+    
+    // Create distance indicator line
+    const distanceScale = currentDistance / 500; // Scale to fit compass
+    const lineLength = 60 + (distanceScale * 80); // Base 60px + scaled distance
+    
+    // Update arrow length temporarily
+    const arrow = directionArrow.querySelector('line');
+    const originalY2 = arrow.getAttribute('y2');
+    arrow.setAttribute('y2', 200 - lineLength);
+    
+    setTimeout(() => {
+        arrow.setAttribute('y2', originalY2);
+    }, 1000);
+}
+
+// ===== RESET FUNCTION =====
+function resetInteractive() {
+    currentBearing = 0;
+    currentDistance = 100;
+    
+    bearingSlider.value = 0;
+    distanceSlider.value = 100;
+    
+    cardinalButtons.forEach(b => b.classList.remove('selected'));
+    
+    updateDisplay();
+    distanceValue.textContent = '100 m';
+    currentDistanceDisplay.textContent = '100 m';
+}
+
+// ===== TOOLTIP FUNCTIONS =====
+function showTooltip(message) {
+    tooltip.textContent = message;
+    tooltip.classList.add('show');
+}
+
+function hideTooltip() {
+    tooltip.classList.remove('show');
+}
+
+// ===== ANALYTICS LOGGING =====
+function logAction(action, details) {
+    actionCount++;
+    actionCountDisplay.textContent = actionCount;
+    
+    const timestamp = ((Date.now() - startTime) / 1000).toFixed(1);
+    
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+        <span class="timestamp">t=${timestamp}s</span>
+        <span class="action">${action}:</span>
+        <span class="value">${details}</span>
+    `;
+    
+    actionLog.insertBefore(entry, actionLog.firstChild);
+    
+    // Limit log entries to 50
+    while (actionLog.children.length > 50) {
+        actionLog.removeChild(actionLog.lastChild);
+    }
+}
+
+// ===== RESPONSIVE BEHAVIOR =====
+function checkIfIframe() {
+    if (window.self !== window.top) {
+        document.body.classList.add('iframe-mode');
+    }
+}
+
+checkIfIframe();
+
+// ===== KEYBOARD ACCESSIBILITY =====
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+        currentBearing = (currentBearing - 5 + 360) % 360;
+        bearingSlider.value = currentBearing;
+        updateDisplay();
+        logAction('⌨️ Keyboard input', `Bearing decreased to ${currentBearing}° (Arrow Left)`);
+    } else if (e.key === 'ArrowRight') {
+        currentBearing = (currentBearing + 5) % 360;
+        bearingSlider.value = currentBearing;
+        updateDisplay();
+        logAction('⌨️ Keyboard input', `Bearing increased to ${currentBearing}° (Arrow Right)`);
+    } else if (e.key === 'Enter') {
+        plotCourse();
+        updateMap(currentBearing, currentDistance); // NEW: Update map on Enter key
+        logAction('⌨️ Keyboard input', 'Course plotted (Enter key)');
+    } else if (e.key === 'r' || e.key === 'R') {
+        resetInteractive();
+        clearMap(); // NEW: Clear map on reset
+        logAction('⌨️ Keyboard input', 'Reset triggered (R key)');
+    } else if (e.key === 'c' || e.key === 'C') {
+        // NEW: Clear map with 'C' key
+        clearMap();
+        logAction('⌨️ Keyboard input', 'Map cleared (C key)');
+    }
+});

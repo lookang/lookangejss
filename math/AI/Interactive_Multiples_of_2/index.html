@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -197,3 +198,252 @@
 
         .info-box {
             padding: 0.5rem; /* Reduce padding for info boxes */
+        }
+
+        .tooltip-text {
+            font-size: 0.55rem; /* Further reduce tooltip text size */
+            margin-bottom: 0.3rem;
+        }
+
+        .equation-display {
+            font-size: 1.3rem; /* Further smaller equation font */
+            margin-bottom: 0.2rem;
+        }
+
+        .visual-area {
+            gap: 0.05rem; /* Further reduce gap between dino groups */
+            padding: 0.05rem; /* Further reduce padding */
+            min-height: 100px; /* Increase min-height for visual area */
+        }
+
+        .dino-group {
+            padding: 0.5px; /* Further reduce padding within dino groups */
+            gap: 0.25px; /* Further reduce gap between dinosaurs in a group */
+        }
+
+        .dino-emoji {
+            font-size: 0.9rem; /* Further smaller dinosaur emojis */
+        }
+
+        .controls {
+            flex-wrap: wrap; /* Allow buttons to wrap */
+            padding-top: 0.3rem; /* Reduce padding top for controls */
+            gap: 0.15rem; /* Reduce gap between controls */
+        }
+
+        .timer-display {
+            font-size: 0.9rem; /* Smaller timer font */
+            margin-right: 0;
+            width: 100%; /* Take full width */
+            text-align: center; /* Center timer */
+            margin-bottom: 0.3rem;
+        }
+
+        button {
+            padding: 0.6rem 1.2rem; /* Smaller button padding */
+            font-size: 0.9rem; /* Smaller button font */
+            min-height: 35px; /* Smaller min-height for buttons */
+            margin: 0.1rem;
+            flex-grow: 1; /* Allow buttons to grow and fill space */
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="content-wrapper">
+        <div class="info-container">
+            <div class="info-box" id="groups-box">
+                <h4>Number of Groups</h4>
+                <p id="groups-count">?</p>
+            </div>
+            <div class="info-box" id="items-box">
+                <h4>Items in Each Group</h4>
+                <p id="items-count">?</p>
+            </div>
+        </div>
+        
+        <div class="tooltip-text">Learn Multiples: Understand groups and items by counting dinosaurs!</div>
+
+        <div class="equation-display" id="equation-display">Click a button to start!</div>
+        
+        <div class="visual-area" id="visual-area">
+            <!-- Dinosaur groups will accumulate here -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <div id="timer-display" class="timer-display">00:00</div>
+        <button id="play-song-btn">Play Song</button>
+        <button id="next-btn">Next Multiple</button>
+        <button id="reset-btn">Reset</button>
+    </div>
+
+    <div class="credits">
+        <p>made by lookang, using Gemini 2.5 Pro, Flash, Cline Bot, Trae with Flash, music by Riffusion and Suno.</p>
+        <p>for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/whole-numbers/3-multiplication-and-division" target="_blank">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/whole-numbers/3-multiplication-and-division</a></p>
+    </div>
+</div>
+
+<audio id="background-music">
+    <source src="DinoDouble.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+</audio>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const equationDisplay = document.getElementById('equation-display');
+        const visualArea = document.getElementById('visual-area');
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const playSongBtn = document.getElementById('play-song-btn');
+        const backgroundMusic = document.getElementById('background-music');
+        const groupsCount = document.getElementById('groups-count');
+        const itemsCount = document.getElementById('items-count');
+        const timerDisplay = document.getElementById('timer-display'); // New timer element
+        
+        const dinoEmojis = ['🦖', '🦕'];
+        let multiplier = 0;
+        let isPlaying = false;
+        let currentSyncIndex = 0;
+        const currentMultiple = 2; // Define currentMultiple for multiples of 2
+
+        // Define synchronization points (timestamp in seconds, corresponding multiplier)
+        const syncPoints = [
+            { time: 16, multiplier: 1 }, // New: 1 x 2 = 2
+            { time: 22, multiplier: 2 },
+            { time: 40, multiplier: 3 },
+            { time: 45, multiplier: 4 },
+            { time: 51, multiplier: 5 },
+            { time: 56, multiplier: 6 },
+            { time: 62, multiplier: 7 }, // 1:02
+            { time: 68, multiplier: 8 }, // 1:08
+            { time: 73, multiplier: 9 }, // 1:13
+            { time: 94, multiplier: 10 }, // 1:34
+            { time: 100, multiplier: 11 }, // 1:40
+            { time: 102, multiplier: 12 }  // 1:42 (approx)
+        ];
+
+        const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            const formattedMinutes = String(minutes).padStart(2, '0');
+            const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+            return `${formattedMinutes}:${formattedSeconds}`;
+        };
+
+        const addGroup = () => {
+            const groupDiv = document.createElement('div');
+            groupDiv.classList.add('dino-group');
+            
+            for (let i = 0; i < 2; i++) {
+                const dinoSpan = document.createElement('span');
+                dinoSpan.classList.add('dino-emoji');
+                dinoSpan.textContent = dinoEmojis[i];
+                groupDiv.appendChild(dinoSpan);
+            }
+            
+            visualArea.appendChild(groupDiv);
+            // Auto-scroll to show the newest group
+            visualArea.scrollTop = visualArea.scrollHeight;
+        };
+
+        const updateDisplay = () => {
+            if (isPlaying && multiplier === 0) { // If song is playing but no multiple yet
+                equationDisplay.innerHTML = "Song is playing.....";
+                equationDisplay.classList.add('playing-animation');
+                groupsCount.textContent = "?";
+                itemsCount.textContent = "?";
+                visualArea.innerHTML = '';
+                // timerDisplay.textContent is updated by timeupdate listener
+                return;
+            }
+
+            if (multiplier === 0) { // If song is not playing and no multiple
+                equationDisplay.innerHTML = "Click a button to start!";
+                equationDisplay.classList.remove('playing-animation');
+                groupsCount.textContent = "?";
+                itemsCount.textContent = "?";
+                visualArea.innerHTML = '';
+                timerDisplay.textContent = '00:00';
+                return;
+            }
+
+            // If multiplier is not 0, display the equation
+            equationDisplay.innerHTML = `
+                <span class="groups-color">${multiplier}</span> x 
+                <span class="items-color">${currentMultiple}</span> = 
+                ${multiplier * currentMultiple}
+            `;
+            equationDisplay.classList.remove('playing-animation'); // Remove animation if equation is shown
+            groupsCount.textContent = multiplier;
+            itemsCount.textContent = currentMultiple;
+            
+            visualArea.innerHTML = '';
+            for (let i = 0; i < multiplier; i++) {
+                addGroup();
+            }
+        };
+
+        nextBtn.addEventListener('click', () => {
+            if (isPlaying) return; // Prevent manual interaction during song
+            if (multiplier >= 20) return; // Set a reasonable limit
+            multiplier++;
+            updateDisplay();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (isPlaying) return; // Prevent manual interaction during song
+            multiplier = 0;
+            updateDisplay();
+        });
+
+        playSongBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                backgroundMusic.pause();
+                playSongBtn.textContent = 'Play Song';
+                nextBtn.disabled = false;
+                resetBtn.disabled = false;
+                isPlaying = false;
+                updateDisplay(); // Update display to reflect paused state
+            } else {
+                isPlaying = true;
+                backgroundMusic.play();
+                // Immediately show "Song is playing....."
+                equationDisplay.innerHTML = "Song is playing.....";
+                equationDisplay.classList.add('playing-animation');
+                // No need to call updateDisplay here, timeupdate will handle it
+            }
+        });
+
+        backgroundMusic.addEventListener('timeupdate', () => {
+            const currentTime = backgroundMusic.currentTime;
+            timerDisplay.textContent = formatTime(currentTime); // Update timer display
+
+            if (currentSyncIndex < syncPoints.length) {
+                const point = syncPoints[currentSyncIndex];
+                if (currentTime >= point.time) {
+                    multiplier = point.multiplier;
+                    updateDisplay();
+                    currentSyncIndex++;
+                }
+            }
+        });
+
+        backgroundMusic.addEventListener('ended', () => {
+            isPlaying = false;
+            playSongBtn.textContent = 'Play Song';
+            nextBtn.disabled = false;
+            resetBtn.disabled = false;
+            multiplier = 0;
+            currentSyncIndex = 0; // Reset sync index
+            updateDisplay(); // Update display to reflect ended state
+        });
+
+        updateDisplay();
+    });
+</script>
+
+</body>
+</html>

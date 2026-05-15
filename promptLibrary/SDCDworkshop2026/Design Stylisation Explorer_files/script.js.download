@@ -1,0 +1,731 @@
+// ===== INITIALIZATION =====
+// Check if running in iframe or standalone and adjust height accordingly
+if (window.self === window.top) {
+    document.body.classList.add('standalone');
+}
+
+// Get DOM elements
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+const intensitySlider = document.getElementById('intensitySlider');
+const colorSlider = document.getElementById('colorSlider');
+const lineSlider = document.getElementById('lineSlider');
+const intensityValue = document.getElementById('intensityValue');
+const colorValue = document.getElementById('colorValue');
+const lineValue = document.getElementById('lineValue');
+const textureCheck = document.getElementById('textureCheck');
+const glowCheck = document.getElementById('glowCheck');
+const gridCheck = document.getElementById('gridCheck');
+const resetBtn = document.getElementById('resetBtn');
+const randomBtn = document.getElementById('randomBtn');
+const styleBtns = document.querySelectorAll('.style-btn');
+const experimentCount = document.getElementById('experimentCount');
+const styleCount = document.getElementById('styleCount');
+const learningToggle = document.getElementById('learningToggle');
+const learningPanel = document.getElementById('learningPanel');
+const analyticsToggle = document.getElementById('analyticsToggle');
+const analyticsPanel = document.getElementById('analyticsPanel');
+const analyticsLog = document.getElementById('analyticsLog');
+const clearLog = document.getElementById('clearLog');
+
+// ===== STATE MANAGEMENT =====
+// Track current settings and user interactions
+let currentStyle = 'realistic';
+let intensity = 50;
+let colorSimplification = 5;
+let lineWeight = 3;
+let hasTexture = false;
+let hasGlow = false;
+let hasGrid = false;
+let experiments = 0;
+let stylesTriedSet = new Set(['realistic']);
+
+// ===== CANVAS SETUP =====
+// Set canvas size to match container
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    drawScene();
+}
+
+// Initial canvas setup
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ===== DRAWING FUNCTIONS =====
+// Main drawing function that renders the scene based on current settings
+function drawScene() {
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Set background
+    ctx.fillStyle = '#e8f4f8';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw grid if enabled
+    if (hasGrid) {
+        drawGrid();
+    }
+    
+    // Draw main subject based on style
+    switch(currentStyle) {
+        case 'realistic':
+            drawRealistic();
+            break;
+        case 'cartoon':
+            drawCartoon();
+            break;
+        case 'abstract':
+            drawAbstract();
+            break;
+        case 'impressionist':
+            drawImpressionist();
+            break;
+    }
+    
+    // Apply effects
+    if (hasTexture) {
+        applyTexture();
+    }
+    
+    if (hasGlow) {
+        applyGlow();
+    }
+}
+
+// Draw construction grid
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.lineWidth = 1;
+    
+    const gridSize = 30;
+    
+    // Vertical lines
+    for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    
+    // Horizontal lines
+    for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+}
+
+// Draw realistic style - detailed tree with shading
+function drawRealistic() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const scale = Math.min(canvas.width, canvas.height) / 400;
+    
+    // Apply intensity to detail level
+    const detailLevel = intensity / 100;
+    
+    // Draw tree trunk with gradient
+    const trunkGradient = ctx.createLinearGradient(centerX - 20 * scale, 0, centerX + 20 * scale, 0);
+    trunkGradient.addColorStop(0, `rgba(101, 67, 33, ${detailLevel})`);
+    trunkGradient.addColorStop(0.5, `rgba(139, 90, 43, ${detailLevel})`);
+    trunkGradient.addColorStop(1, `rgba(101, 67, 33, ${detailLevel})`);
+    
+    ctx.fillStyle = trunkGradient;
+    ctx.fillRect(centerX - 20 * scale, centerY, 40 * scale, 100 * scale);
+    
+    // Add bark texture lines
+    if (detailLevel > 0.3) {
+        ctx.strokeStyle = `rgba(80, 50, 20, ${detailLevel * 0.5})`;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(centerX - 15 * scale, centerY + 20 * i * scale);
+            ctx.lineTo(centerX + 15 * scale, centerY + 20 * i * scale + 10 * scale);
+            ctx.stroke();
+        }
+    }
+    
+    // Draw foliage with multiple shades of green
+    const colors = getColorPalette('green', colorSimplification);
+    
+    for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 30 * scale - i * 20 * scale, 60 * scale - i * 10 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add outline if line weight is set
+        if (lineWeight > 0) {
+            ctx.strokeStyle = 'rgba(0, 100, 0, 0.8)';
+            ctx.lineWidth = lineWeight;
+            ctx.stroke();
+        }
+    }
+    
+    // Add highlights for realism
+    if (detailLevel > 0.5) {
+        ctx.fillStyle = 'rgba(255, 255, 200, 0.3)';
+        ctx.beginPath();
+        ctx.arc(centerX - 20 * scale, centerY - 60 * scale, 20 * scale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Draw cartoon style - bold outlines, flat colors
+function drawCartoon() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const scale = Math.min(canvas.width, canvas.height) / 400;
+    
+    // Cartoon uses simplified colors
+    const colors = getColorPalette('green', Math.min(colorSimplification, 3));
+    
+    // Draw trunk with bold outline
+    ctx.fillStyle = '#8B5A2B';
+    ctx.fillRect(centerX - 20 * scale, centerY, 40 * scale, 100 * scale);
+    
+    // Bold outline for trunk
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = Math.max(lineWeight, 3);
+    ctx.strokeRect(centerX - 20 * scale, centerY, 40 * scale, 100 * scale);
+    
+    // Draw foliage as simple circles with bold outlines
+    ctx.fillStyle = colors[0];
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - 30 * scale, 70 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = Math.max(lineWeight, 4);
+    ctx.stroke();
+    
+    // Add simple highlight
+    ctx.fillStyle = colors[1] || '#90EE90';
+    ctx.beginPath();
+    ctx.arc(centerX - 25 * scale, centerY - 50 * scale, 25 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Add cartoon eyes to make it playful
+    const eyeIntensity = intensity / 100;
+    if (eyeIntensity > 0.3) {
+        // Left eye
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX - 20 * scale, centerY - 30 * scale, 10 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(centerX - 20 * scale, centerY - 30 * scale, 5 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Right eye
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(centerX + 20 * scale, centerY - 30 * scale, 10 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(centerX + 20 * scale, centerY - 30 * scale, 5 * scale, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Draw abstract style - geometric shapes
+function drawAbstract() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const scale = Math.min(canvas.width, canvas.height) / 400;
+    
+    // Get abstract color palette
+    const colors = getColorPalette('abstract', colorSimplification);
+    
+    // Apply intensity to shape complexity
+    const complexity = Math.floor(intensity / 20) + 3;
+    
+    // Draw geometric shapes representing a tree
+    for (let i = 0; i < complexity; i++) {
+        const angle = (Math.PI * 2 * i) / complexity;
+        const radius = 50 * scale + (i * 15 * scale);
+        const x = centerX + Math.cos(angle) * radius * 0.5;
+        const y = centerY - 50 * scale + Math.sin(angle) * radius * 0.5;
+        
+        ctx.fillStyle = colors[i % colors.length];
+        
+        // Alternate between circles, triangles, and rectangles
+        if (i % 3 === 0) {
+            // Circle
+            ctx.beginPath();
+            ctx.arc(x, y, 30 * scale, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (i % 3 === 1) {
+            // Triangle
+            ctx.beginPath();
+            ctx.moveTo(x, y - 30 * scale);
+            ctx.lineTo(x - 25 * scale, y + 20 * scale);
+            ctx.lineTo(x + 25 * scale, y + 20 * scale);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // Rectangle
+            ctx.fillRect(x - 25 * scale, y - 25 * scale, 50 * scale, 50 * scale);
+        }
+        
+        // Add outline
+        if (lineWeight > 0) {
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = lineWeight;
+            ctx.stroke();
+        }
+    }
+    
+    // Add trunk as geometric shape
+    ctx.fillStyle = colors[0];
+    ctx.fillRect(centerX - 15 * scale, centerY + 20 * scale, 30 * scale, 80 * scale);
+    
+    if (lineWeight > 0) {
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = lineWeight;
+        ctx.strokeRect(centerX - 15 * scale, centerY + 20 * scale, 30 * scale, 80 * scale);
+    }
+}
+
+// Draw impressionist style - loose brushstrokes
+function drawImpressionist() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const scale = Math.min(canvas.width, canvas.height) / 400;
+    
+    // Get impressionist color palette
+    const colors = getColorPalette('impressionist', colorSimplification);
+    
+    // Number of brushstrokes based on intensity
+    const strokes = Math.floor(intensity * 2);
+    
+    // Draw trunk with vertical brushstrokes
+    for (let i = 0; i < 10; i++) {
+        ctx.fillStyle = `rgba(139, 90, 43, ${0.5 + Math.random() * 0.5})`;
+        const offsetX = (Math.random() - 0.5) * 30 * scale;
+        const offsetY = i * 10 * scale;
+        ctx.fillRect(centerX - 15 * scale + offsetX, centerY + offsetY, 30 * scale, 12 * scale);
+    }
+    
+    // Draw foliage with random brushstrokes
+    for (let i = 0; i < strokes; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * 80 * scale;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY - 40 * scale + Math.sin(angle) * radius;
+        
+        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+        ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+        
+        // Random brushstroke shape
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.fillRect(-10 * scale, -5 * scale, 20 * scale, 10 * scale);
+        ctx.restore();
+    }
+    
+    ctx.globalAlpha = 1.0;
+    
+    // Add some larger dabs for structure
+    for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.beginPath();
+        ctx.arc(
+            centerX + (Math.random() - 0.5) * 60 * scale,
+            centerY - 40 * scale + (Math.random() - 0.5) * 60 * scale,
+            15 * scale,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+    }
+}
+
+// Generate color palette based on style and simplification level
+function getColorPalette(type, numColors) {
+    const palettes = {
+        green: [
+            '#228B22', '#32CD32', '#90EE90', '#006400', '#9ACD32',
+            '#00FF00', '#7CFC00', '#ADFF2F', '#7FFF00', '#00FA9A'
+        ],
+        abstract: [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
+        ],
+        impressionist: [
+            '#A8D5BA', '#7FB3D5', '#C39BD3', '#F9E79F', '#FAD7A0',
+            '#85C1E2', '#AED6F1', '#D5F4E6', '#FADBD8', '#E8DAEF'
+        ]
+    };
+    
+    const palette = palettes[type] || palettes.green;
+    return palette.slice(0, numColors);
+}
+
+// Apply texture effect
+function applyTexture() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // Add noise to create texture
+    for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 30;
+        data[i] += noise;     // Red
+        data[i + 1] += noise; // Green
+        data[i + 2] += noise; // Blue
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// Apply glow effect
+function applyGlow() {
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = 'rgba(255, 255, 200, 0.8)';
+    
+    // Redraw with glow (simplified version)
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const scale = Math.min(canvas.width, canvas.height) / 400;
+    
+    ctx.fillStyle = 'rgba(255, 255, 200, 0.3)';
+    ctx.beginPath();
+    ctx.arc(centerX - 20 * scale, centerY - 60 * scale, 30 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Reset shadow
+    ctx.shadowBlur = 0;
+}
+
+// ===== EVENT HANDLERS =====
+
+// Style button click handler
+styleBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Remove active class from all buttons
+        styleBtns.forEach(b => b.classList.remove('active'));
+        
+        // Add active class to clicked button
+        this.classList.add('active');
+        
+        // Update current style
+        currentStyle = this.dataset.style;
+        
+        // Track style usage
+        stylesTriedSet.add(currentStyle);
+        updateScore();
+        
+        // Redraw scene
+        drawScene();
+        
+        // Log activity
+        logActivity('Style Changed', `Selected: ${currentStyle.charAt(0).toUpperCase() + currentStyle.slice(1)}`);
+    });
+});
+
+// Intensity slider handler
+intensitySlider.addEventListener('input', function() {
+    intensity = parseInt(this.value);
+    intensityValue.textContent = intensity;
+    drawScene();
+    experiments++;
+    updateScore();
+});
+
+// Color slider handler
+colorSlider.addEventListener('input', function() {
+    colorSimplification = parseInt(this.value);
+    colorValue.textContent = colorSimplification;
+    drawScene();
+    experiments++;
+    updateScore();
+});
+
+// Line weight slider handler
+lineSlider.addEventListener('input', function() {
+    lineWeight = parseInt(this.value);
+    lineValue.textContent = lineWeight;
+    drawScene();
+    experiments++;
+    updateScore();
+});
+
+// Texture checkbox handler
+textureCheck.addEventListener('change', function() {
+    hasTexture = this.checked;
+    drawScene();
+    logActivity('Effect Toggled', `Texture: ${hasTexture ? 'ON' : 'OFF'}`);
+    experiments++;
+    updateScore();
+});
+
+// Glow checkbox handler
+glowCheck.addEventListener('change', function() {
+    hasGlow = this.checked;
+    drawScene();
+    logActivity('Effect Toggled', `Glow: ${hasGlow ? 'ON' : 'OFF'}`);
+    experiments++;
+    updateScore();
+});
+
+// Grid checkbox handler
+gridCheck.addEventListener('change', function() {
+    hasGrid = this.checked;
+    drawScene();
+    logActivity('Effect Toggled', `Grid: ${hasGrid ? 'ON' : 'OFF'}`);
+});
+
+// Reset button handler
+resetBtn.addEventListener('click', function() {
+    // Reset all values to default
+    currentStyle = 'realistic';
+    intensity = 50;
+    colorSimplification = 5;
+    lineWeight = 3;
+    hasTexture = false;
+    hasGlow = false;
+    hasGrid = false;
+    
+    // Update UI
+    intensitySlider.value = 50;
+    intensityValue.textContent = 50;
+    colorSlider.value = 5;
+    colorValue.textContent = 5;
+    lineSlider.value = 3;
+    lineValue.textContent = 3;
+    textureCheck.checked = false;
+    glowCheck.checked = false;
+    gridCheck.checked = false;
+    
+    // Reset style buttons
+    styleBtns.forEach(btn => {
+        if (btn.dataset.style === 'realistic') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Redraw
+    drawScene();
+    
+    // Log activity
+    logActivity('Reset', 'All settings restored to default');
+});
+
+// Randomize button handler
+randomBtn.addEventListener('click', function() {
+    // Randomize all settings
+    const styles = ['realistic', 'cartoon', 'abstract', 'impressionist'];
+    const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+    
+    currentStyle = randomStyle;
+    intensity = Math.floor(Math.random() * 100);
+    colorSimplification = Math.floor(Math.random() * 9) + 2;
+    lineWeight = Math.floor(Math.random() * 11);
+    hasTexture = Math.random() > 0.5;
+    hasGlow = Math.random() > 0.5;
+    hasGrid = Math.random() > 0.7;
+    
+    // Update UI
+    intensitySlider.value = intensity;
+    intensityValue.textContent = intensity;
+    colorSlider.value = colorSimplification;
+    colorValue.textContent = colorSimplification;
+    lineSlider.value = lineWeight;
+    lineValue.textContent = lineWeight;
+    textureCheck.checked = hasTexture;
+    glowCheck.checked = hasGlow;
+    gridCheck.checked = hasGrid;
+    
+    // Update style buttons
+    styleBtns.forEach(btn => {
+        if (btn.dataset.style === currentStyle) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Track style usage
+    stylesTriedSet.add(currentStyle);
+    
+    // Redraw
+    drawScene();
+    
+    // Update score
+    experiments++;
+    updateScore();
+    
+    // Log activity
+    logActivity('Randomized', `Style: ${currentStyle}, Intensity: ${intensity}%, Colors: ${colorSimplification}`);
+});
+
+// Learning panel toggle
+learningToggle.addEventListener('click', function() {
+    learningPanel.classList.toggle('collapsed');
+    logActivity('Panel Toggled', 'Learning Objectives panel');
+});
+
+// Analytics panel toggle
+analyticsToggle.addEventListener('click', function() {
+    analyticsPanel.classList.toggle('collapsed');
+});
+
+// Clear log button
+clearLog.addEventListener('click', function() {
+    analyticsLog.innerHTML = '<p style="color: #888; font-style: italic;">Activity log cleared. Start interacting to see new entries.</p>';
+    logActivity('Log Cleared', 'Activity log has been reset');
+});
+
+// ===== TOUCH SUPPORT =====
+// Add touch event support for mobile devices
+let touchStartX = 0;
+let touchStartY = 0;
+
+canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    
+    // Could implement drawing or interaction here
+    // For now, just log the interaction
+    if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+        logActivity('Canvas Interaction', 'Touch gesture detected');
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    }
+}, { passive: false });
+
+// ===== UTILITY FUNCTIONS =====
+
+// Update score display
+function updateScore() {
+    experimentCount.textContent = experiments;
+    styleCount.textContent = `${stylesTriedSet.size}/4`;
+}
+
+// Log activity to analytics panel
+function logActivity(action, details) {
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+        <div class="timestamp">${timestamp}</div>
+        <div class="action">📌 ${action}</div>
+        <div class="details">${details}</div>
+    `;
+    
+    analyticsLog.insertBefore(entry, analyticsLog.firstChild);
+    
+    // Limit log entries to 50
+    while (analyticsLog.children.length > 50) {
+        analyticsLog.removeChild(analyticsLog.lastChild);
+    }
+}
+
+// ===== INITIAL SETUP =====
+// Draw initial scene
+drawScene();
+
+// Log initial state
+logActivity('Interactive Loaded', 'Design Stylisation Explorer initialized with Realistic style');
+
+// Add welcome message to analytics
+setTimeout(() => {
+    const welcomeMsg = document.createElement('div');
+    welcomeMsg.style.cssText = 'padding: 10px; background: #e3f2fd; border-radius: 4px; margin-bottom: 10px; font-size: 12px; color: #1976d2;';
+    welcomeMsg.innerHTML = '<strong>Welcome!</strong> Explore different artistic styles by changing settings. Your interactions are logged below for learning assessment.';
+    analyticsLog.insertBefore(welcomeMsg, analyticsLog.firstChild);
+}, 500);
+
+// ===== KEYBOARD SHORTCUTS =====
+document.addEventListener('keydown', function(e) {
+    switch(e.key) {
+        case 'r':
+        case 'R':
+            resetBtn.click();
+            break;
+        case ' ':
+            e.preventDefault();
+            randomBtn.click();
+            break;
+        case '1':
+            styleBtns[0].click();
+            break;
+        case '2':
+            styleBtns[1].click();
+            break;
+        case '3':
+            styleBtns[2].click();
+            break;
+        case '4':
+            styleBtns[3].click();
+            break;
+    }
+});
+
+// Log keyboard shortcuts availability
+console.log('Keyboard shortcuts available:');
+console.log('R - Reset settings');
+console.log('Space - Randomize');
+console.log('1-4 - Select style');
+
+// ===== PERFORMANCE OPTIMIZATION =====
+// Debounce function for slider inputs to reduce redraws
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Apply debouncing to sliders for better performance
+const debouncedDraw = debounce(drawScene, 50);
+
+// ===== ACCESSIBILITY ENHANCEMENTS =====
+// Add ARIA labels for better screen reader support
+canvas.setAttribute('role', 'img');
+canvas.setAttribute('aria-label', 'Interactive canvas showing stylised artwork based on selected settings');
+
+// Announce changes to screen readers
+function announceChange(message) {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.style.position = 'absolute';
+    announcement.style.left = '-10000px';
+    announcement.textContent = message;
+    document.body.appendChild(announcement);
+    setTimeout(() => document.body.removeChild(announcement), 1000);
+}
+
+// Add announcements to major interactions
+styleBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+        announceChange(`Style changed to ${this.dataset.style}`);
+    });
+});

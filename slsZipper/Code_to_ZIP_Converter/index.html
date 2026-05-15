@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLS Offline ZIP Packager</title>
+<link rel="stylesheet" href="styles.css?v=20260513">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="brand-row">
+                <div class="header-kicker">SLS-ready packaging tool</div>
+                <h1>SLS Offline ZIP Packager</h1>
+            </div>
+            <p><strong>Goal:</strong> Package front-end projects into a self-contained ZIP. Designed to work with (1) SLS New Interactive Generator ZIP files and (2) Gemini&nbsp;2.5&nbsp;Pro outputs. It merges your HTML, CSS, and JavaScript, and can make the archive SLS-ready by auto-detecting and downloading external dependencies (CDN scripts/styles) so it runs offline in Singapore Learning Space (SLS).</p>
+            
+        </header>
+        
+        <main>
+            <section class="community-pulse" aria-label="Live community activity">
+                <div class="community-pulse-top">
+                    <span id="presenceWidget" class="presence-widget">
+                        <span class="presence-dot"></span>
+                        <strong id="presenceOnlineCount">...</strong>
+                        <span>online now</span>
+                    </span>
+                    <button id="notifBellBtn" class="notif-bell-btn" type="button" title="Get notified about promptLibrary activity">
+                        <span aria-hidden="true">&#128276;</span>
+                        <span id="notifBellLabel">Prompt library alerts</span>
+                    </button>
+                </div>
+                <div id="notifPanel" class="notif-panel" hidden>
+                    Notifications and live activity are managed by the prompt library page. Open it to subscribe to updates about new simulations, views, and downloads.
+                    <a href="../../promptLibrary/ai-prompt-library.html" target="_blank" rel="noopener noreferrer">Open prompt library</a>
+                </div>
+                <div id="activityTicker" class="activity-ticker">
+                    <span class="activity-ticker-label">&#128308; LIVE</span>
+                    <div class="activity-ticker-scroll">
+                        <span id="activityTickerInner" class="activity-ticker-inner"></span>
+                    </div>
+                </div>
+            </section>
+            <div class="file-type-tabs">
+                <button class="tab-btn active" data-tab="html">HTML</button>
+                <button class="tab-btn" data-tab="css">CSS</button>
+                <button class="tab-btn" data-tab="js">JavaScript</button>
+                <button class="tab-btn" data-tab="prompt">Prompt</button>
+            </div>
+            
+            <div class="input-sections">
+                <div class="input-section active" id="html-section">
+                    <label for="html-input">Paste your HTML code here:</label>
+                    <textarea id="html-input" placeholder="Paste your index.html code here... or drag index.html OR a .zip project here to import."></textarea>
+                </div>
+                
+                <div class="input-section" id="css-section">
+                    <label for="css-input">Paste your CSS code here:</label>
+                    <textarea id="css-input" placeholder="Paste your styles.css code here... or drag the file here."></textarea>
+                </div>
+                
+                <div class="input-section" id="js-section">
+                    <label for="js-input">Paste your JavaScript code here:</label>
+                    <textarea id="js-input" placeholder="Paste your script.js code here... or drag the file here."></textarea>
+                </div>
+
+                <div class="input-section" id="prompt-section">
+                    <label for="prompt-input">Enter prompt text to include as prompt.txt:</label>
+                    <textarea id="prompt-input" placeholder="Enter prompt text to include in the ZIP as prompt.txt... or drag a .txt file here."></textarea>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button id="import-zip-btn" class="secondary-btn">Import ZIP (.zip)</button>
+                <input type="file" id="zip-input" accept=".zip" style="display:none" />
+                <button id="preview-btn" class="secondary-btn">Preview</button>
+                <button id="preview-new-tab-btn" class="secondary-btn">Preview in New Tab</button>
+                <button id="generate-zip" class="primary-btn">GENERATE ZIP and THUMBNAIL</button>
+                <button id="clear-btn" class="secondary-btn">Clear</button>
+            </div>
+
+            
+            <button id="toggle-addons-btn" class="secondary-btn" style="margin:8px 0;">Show Optional add-ons</button>
+            <section class="addons" style="display:none;">
+                <h4>Optional add-ons</h4>
+                <label><input type="checkbox" id="include-ga" checked> Include Google Analytics (gtag)</label>
+                <br>
+                <label><input type="checkbox" id="include-adsense" checked> Include Google AdSense</label>
+                <div class="footer-credit-input" style="margin-top:8px;">
+                    <label for="footer-free-text">Footer credit (free text):</label>
+                    <textarea id="footer-free-text" rows="2" style="width:100%;" placeholder="Made by lookang, using Gemini 2.5 Pro. For more resources: https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light">Made by lookang, using Gemini 2.5 Pro. For more resources: https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light</textarea>
+                    <small>URLs in this text will be auto-linked.</small>
+                </div>
+                <div class="footer-credit-input" style="margin-top:8px; display:none;" aria-hidden="true">
+                    <label for="footer-author">Footer author:</label>
+                    <input type="text" id="footer-author" style="width:100%;" value="lookang" placeholder="Author name">
+                </div>
+                <div class="footer-credit-input" style="margin-top:8px; display:none;" aria-hidden="true">
+                    <label for="footer-url">Footer "More resources" URL:</label>
+                    <input type="url" id="footer-url" style="width:100%;" value="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/04-waves/04-light" placeholder="https://example.com/path">
+                </div>
+            </section>
+            
+            <div id="preview-section" class="hidden">
+                <h3>Preview:</h3>
+                <div id="preview-container"></div>
+            </div>
+            
+            <div id="result-section" class="hidden">
+                <div class="result-info">
+                    <h3>Your ZIP file is ready!</h3>
+                    <p id="filename-display"></p>
+                </div>
+                <a id="download-link" class="download-btn" download>Download ZIP</a>
+                <div class="contribute-callout" id="contribute-callout">
+                    <div class="contribute-callout-copy">
+                        <strong>Help grow the SLS interactive community.</strong>
+                        <span>After downloading your ZIP, consider sharing it in the prompt library so other educators can adapt it for learning.</span>
+                    </div>
+                    <ol class="contribute-steps">
+                        <li>Open the prompt library.</li>
+                        <li>Log in.</li>
+                        <li>Choose <strong>Start contributing</strong> and upload your ZIP.</li>
+                    </ol>
+                    <a class="contribute-link" href="https://iwant2study.moe.edu.sg/lookangejss/promptLibrary/ai-prompt-library.html" target="_blank" rel="noopener noreferrer">
+                        Contribute ZIP to prompt library
+                    </a>
+                </div>
+            </div>
+            <div class="sls-warning">
+                <h3>&#128640; Enhanced for SLS Compatibility</h3>
+                <details>
+                    <summary>Click to learn more about SLS compatibility</summary>
+                    <div class="warning-content">
+                        <h4>What this tool now does:</h4>
+                        <ul>
+                            <li>&#9989; Detects external URLs in your HTML, CSS, and JavaScript</li>
+                            <li>&#9989; Automatically downloads external files (CDN libraries, stylesheets, etc.)</li>
+                            <li>&#9989; Updates your code to reference local files instead</li>
+                            <li>&#9989; Creates a README with SLS compatibility notes</li>
+                            <li>&#9989; Generates truly self-contained ZIP files</li>
+                        </ul>
+                        <h4>SLS Environment Limitations:</h4>
+                        <ul>
+                            <li>&#9888; No internet access for external resources</li>
+                            <li>&#9888; Strict Content Security Policy</li>
+                            <li>&#9888; Limited JavaScript execution capabilities</li>
+                            <li>&#9888; Some modern web APIs may be restricted</li>
+                        </ul>
+                        <p><strong>Tip:</strong> For best SLS compatibility, use vanilla JavaScript and avoid complex external libraries when possible.</p>
+                    </div>
+                </details>
+            </div>
+        </main>
+        
+        <footer>
+            <section class="edtech-alignment" aria-label="Alignment with MOE EdTech Masterplan 2030">
+                <h2>Supporting Technology-Transformed Learning</h2>
+                <p>
+                    This tool supports the spirit of MOE's
+                    <a href="https://www.moe.gov.sg/education-in-sg/educational-technology-journey/edtech-masterplan" target="_blank" rel="noopener noreferrer">EdTech Masterplan 2030</a>,
+                    whose vision is technology-transformed learning for a technology-transformed world. It helps educators convert interactive HTML lessons into self-contained SLS-ready ZIP packages, so technology-enabled learning resources can be used reliably, shared more easily, and adapted by other teachers.
+                </p>
+                <ul>
+                    <li><strong>Enhancing teaching and learning:</strong> packages interactive lessons, media, scripts, styles, and required external resources so classroom activities can run smoothly in SLS, including when internet access to CDNs is unavailable.</li>
+                    <li><strong>Multiplying educator capability:</strong> reduces the technical work of preparing offline-ready resources, freeing teachers to focus on lesson design, pedagogy, and meaningful use of technology.</li>
+                    <li><strong>Building digital readiness:</strong> encourages students and teachers to use, adapt, and understand interactive digital resources as part of everyday learning in a technology-rich environment.</li>
+                </ul>
+            </section>
+            <p>Created by lawrence_wee using Trae Cline Extension and Gemini 2.5 Pro. Updated on 2026-05-13 at 23:08:51 +08:00 using OpenAI Codex.</p>
+            <p>
+                More Resources:
+                <a href="https://sg.iwant2study.org/ospsg/index.php/related-sites" target="_blank" rel="noopener noreferrer">Related Sites</a> |
+                
+            </p>
+        </footer>
+    </div>
+    
+    <!-- JSZip: prefer local copy if available, fall back to CDN -->
+    <script src="vendor/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- html2canvas: optional, used only for thumbnail generation -->
+    <script src="vendor/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="script.js?v=20260513"></script>
+    <div id="activityToastContainer" class="activity-toast-container"></div>
+</body>
+</html>

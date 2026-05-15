@@ -1,0 +1,123 @@
+GlowScript 2.1 VPython
+
+##add keyboard control
+def process(event):
+    global Fthrust
+    if event.type=='keydown':
+        k = event.which
+        if k == 38 and mfuel>0: #up arrow turns on the vertical thruster
+            Fthrust=thrust*vector(0,1,0)
+            fireU.visible=True
+            FarrowU.visible=True
+        elif k == 39 and mfuel>0: #right arrow turns on the rightward thruster
+            Fthrust=thrust*vector(1,0,0)
+            fireR.visible=True
+            FarrowR.visible=True
+        elif k == 37 and mfuel>0: #right arrow turns on the leftward thruster
+            Fthrust=thrust*vector(-1,0,0)
+            fireL.visible=True
+            FarrowL.visible=True
+    elif event.type=='keyup': #releasing the key turns off the thruster
+        Fthrust=vector(0,0,0)
+        fireR.visible=False
+        FarrowR.visible=False
+        fireL.visible=False
+        FarrowL.visible=False
+        fireU.visible=False
+        FarrowU.visible=False
+
+    FthrustArrow.axis=scale*Fthrust
+
+scene=canvas(title="Lunar Lander")
+scene.append_to_title("<h2>Instructions</h2>")
+scene.append_to_title("<br>1. Click the scene to begin.")
+scene.append_to_title("<br>")
+scene.append_to_title("2. Hold down the up arrow or right arrow or left arrow to turn the corresponding thruster.")
+scene.append_to_title("<br>")
+scene.append_to_title("3. Land on the red target. To succeed, the lander's speed must be less than 1 m/s, and it <br>must land within 1 m of the center of the target.")
+scene.append_to_title("<br>")
+scene.append_to_title("<br>")
+scene.bind('keydown keyup', process)
+scene.range=40
+scene.background=color.black
+scene.camera.pos=scene.camera.pos+vector(0,20,-10)
+
+L=3
+
+ground = box(pos=vector(0,-1.1,0), size=vector(50.0,2,50), color=color.white)
+lander = box(pos=vector(-10,50,0), size=vector(L,L,L), color=color.yellow)
+target = cylinder(pos=vector(10,0,0), axis=vector(0,-1,0), radius=L/2+1, color=color.red)
+
+m_i=1e4
+lander.m = m_i
+mfuel=8e3
+mdot=-500
+lander.v = vector(0,0,0)
+g=1.6*vector(0,-1,0)
+thrust=3*m_i*mag(g)
+scale=2*L/m_i/mag(g)
+sw=0.5
+
+vstr="Speed: {0:.2f}".format(mag(lander.v))
+vlabel=label(pos=vector(0,-10,0), text=vstr)
+mfuelstr="Mass of Fuel: {0:.0f} kg".format(mfuel)
+mfuellabel=label(pos=vector(-30,-10,0), text=mfuelstr)
+
+fireR=cone(pos=lander.pos-vector(L/2,0,0), radius=L/4, axis=L/2*vector(-1,0,0), color=color.orange, visible=False)
+FarrowR=arrow(pos=lander.pos, axis=scale*thrust*vector(1,0,0), color=color.orange, shaftwidth=sw, visible=False)
+fireL=cone(pos=lander.pos+vector(L/2,0,0), radius=L/4, axis=L/2*vector(1,0,0), color=color.orange, visible=False)
+FarrowL=arrow(pos=lander.pos, axis=scale*thrust*vector(-1,0,0), color=color.orange, shaftwidth=sw, visible=False)
+fireU=cone(pos=lander.pos-vector(0,L/2,0), radius=L/4, axis=L/2*vector(0,-1,0), color=color.orange, visible=False)
+FarrowU=arrow(pos=lander.pos, axis=scale*thrust*vector(0,1,0), color=color.orange, shaftwidth=sw, visible=False)
+Farrowgrav=arrow(pos=lander.pos, axis=scale*lander.m*g, color=color.white, shaftwidth=sw, visible=True)
+
+dt = 0.01
+t = 0
+
+Fthrust=vector(0,0,0)
+
+aGraph=graph(title="", xtitle='t (s)', ytitle='a_y (m/s/s)', xmin=0, x=500, y=0, width=400, height=150)
+ayPlot=series(color=color.blue, graph=aGraph)
+
+
+scene.waitfor("click")
+
+while 1:
+    rate(100)
+    if(mag(Fthrust)>0):
+        dm=mdot*dt
+        mfuel=mfuel+dm
+        lander.m=lander.m+dm
+    Fgrav=lander.m*g
+    Fnet=Fgrav+Fthrust
+    lander.v =lander.v+Fnet/lander.m*dt
+    lander.pos = lander.pos + lander.v*dt
+    if(lander.pos.y-lander.height/2<ground.pos.y+ground.height/2):
+            print("The lander has landed")
+            break
+    t = t+dt
+
+    ayPlot.plot(t,Fnet.y/lander.m)
+
+    vstr="Speed: {0:.2f}".format(mag(lander.v))
+    vlabel.text=vstr
+    mfuelstr="Mass of Fuel: {0:.0f} kg".format(mfuel)
+    mfuellabel.text=mfuelstr
+    Farrowgrav.pos=lander.pos
+    Farrowgrav.axis=scale*Fgrav
+    FarrowR.pos=lander.pos
+    FarrowL.pos=lander.pos
+    FarrowU.pos=lander.pos
+    fireR.pos=lander.pos-vector(L/2,0,0)
+    fireL.pos=lander.pos+vector(L/2,0,0)
+    fireU.pos=lander.pos-vector(0,L/2,0)
+
+if(mag((lander.pos-vector(0,L/2,0))-target.pos)<1):
+    print("You landed on the target within the allowed landing zone (+- 1 m).")
+else:
+    print("You did not land within the allowed landing zone (+- 1 m). You are "+"{0:.1f}".format(mag(lander.pos-target.pos))+" from the target.")
+
+if(mag(lander.v)<1):
+    print("You landed on the target within the allowed landing speed (+- 1 m/s).")
+else:
+    print("You landed too fast.")

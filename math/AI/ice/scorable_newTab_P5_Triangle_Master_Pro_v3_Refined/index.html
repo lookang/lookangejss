@@ -1,0 +1,927 @@
+<!doctype html>
+<html><head>
+<meta charset="UTF-8">
+<title>P5 Triangle Master Pro v3</title>
+
+<!-- SLS Metadata -->
+<meta name="application-name" content="P5 Triangle Area Interactive">
+<meta name="activity-type" content="Interactive Response">
+<meta name="learning-objective" content="Generalise A = 1/2 × base × height">
+
+<script src="lib/xapiwrapper.min.js"></script>
+
+<style>
+body { font-family: Arial; text-align:center; background:#f4f6f9; }
+canvas { border:1px solid #ccc; background:#fff; }
+input { width:80px; margin:5px; }
+button { margin:6px; padding:8px 12px; }
+.correct { background:#d4edda; }
+.wrong { background:#f8d7da; }
+#popup {
+ position:fixed; top:30%; left:50%; transform:translate(-50%,-50%);
+ background:white; border:1px solid #333; padding:20px; display:none;
+ z-index: 1000; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+#dashboard { margin-top:15px; font-weight:bold; }
+
+/* ── Analytics Panel ──────────────────────────────────────────── */
+#analyticsPanel {
+  margin: 16px auto 20px;
+  max-width: 760px;
+  text-align: left;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+#analyticsPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  background: #1e293b;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #334155;
+}
+#analyticsPanelHeader:hover { background: #263548; }
+#analyticsPanelTitle {
+  font-weight: 700;
+  color: #60a5fa;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+#analyticsPanelToggle {
+  color: #64748b;
+  font-size: 11px;
+  font-family: Arial, sans-serif;
+}
+#analyticsPanelStats {
+  display: flex;
+  gap: 0;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  flex-wrap: wrap;
+}
+.ap-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  border-right: 1px solid #334155;
+  min-width: 80px;
+}
+.ap-stat:last-child { border-right: none; }
+.ap-stat-label { color: #64748b; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; font-family: Arial, sans-serif; }
+.ap-stat-value { color: #f1f5f9; font-weight: 700; font-size: 16px; margin-top: 2px; }
+.ap-stat-value.green { color: #4ade80; }
+.ap-stat-value.red   { color: #f87171; }
+#actionLogContent {
+  height: 200px;
+  overflow-y: auto;
+  padding: 6px 10px;
+  background: #0f172a;
+}
+#actionLogContent::-webkit-scrollbar { width: 5px; }
+#actionLogContent::-webkit-scrollbar-track { background: #0f172a; }
+#actionLogContent::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+.log-entry {
+  display: flex;
+  gap: 6px;
+  padding: 3px 2px;
+  border-bottom: 1px solid #111827;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-time  { color: #475569; min-width: 46px; font-size: 10px; padding-top: 1px; }
+.log-sym   { min-width: 20px; }
+.log-desc  { color: #cbd5e1; flex: 1; }
+.log-detail {
+  font-size: 10px;
+  padding: 1px 2px 4px 72px;
+  color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.log-detail-correct { color: #4ade80; }
+.log-detail-wrong   { color: #f87171; }
+#analyticsBtnRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 7px 10px;
+  border-top: 1px solid #1e293b;
+  background: #0f172a;
+}
+.ap-btn {
+  padding: 5px 11px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  transition: background 0.15s, color 0.15s;
+}
+.ap-btn:hover { background: #334155; color: #e2e8f0; }
+.ap-btn-save { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+.ap-btn-save:hover { background: #2563eb; }
+</style>
+
+<!-- ── xAPI Infrastructure (preserved exactly) ── -->
+<script>
+      (function() {
+        // --- Stable Scope Identification ---
+        // ALWAYS use the folder path as the unique ID for the activity scope.
+        // This ensures that ALL tabs (SLS frame, tool's new tab, SLS native button)
+        // stay in sync even if URL parameters (like activityId IRI) differ.
+        var getStablePath = function() {
+          try {
+            var p = window.location.pathname;
+            var folder = p.substring(0, p.lastIndexOf('/')) || p;
+            return folder;
+          } catch (e) {
+            return 'default_scope';
+          }
+        };
+
+        var stableScope = getStablePath();
+        window.ACTIVITY_ID = stableScope;
+        console.log('[xAPI] Stable Scope ID:', stableScope);
+
+        // We also keep the original IRI if available for actual xAPI statements.
+        var urlParams = new URLSearchParams(window.location.search);
+        var iri = urlParams.get('activityId');
+        if (iri) {
+          window._SLS_IRI = iri;
+        }
+      })();
+    </script><script src="./lib/xAPI.js"></script><script>(function (global) {
+      var ACTIVITY_ID = String(global.ACTIVITY_ID || location.href);
+
+      function clearAllForActivity() {
+        try {
+          var prefixes = [
+            ACTIVITY_ID,
+            "sls_scope::" + ACTIVITY_ID,
+            "UFCO-firstSubmit::" + ACTIVITY_ID,
+            "sls_unlike_payload::" + ACTIVITY_ID
+          ];
+
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            var k = localStorage.key(i);
+            if (!k) continue;
+            if (prefixes.some(function(p) { return k === p || k.indexOf(p) === 0; })) {
+              localStorage.removeItem(k);
+            }
+          }
+
+          sessionStorage.removeItem(ACTIVITY_ID + "::locked");
+          sessionStorage.removeItem(ACTIVITY_ID + "::done");
+        } catch (e) {}
+
+        try {
+          var bc = new BroadcastChannel("xapi-state");
+          bc.postMessage({ type: "clear", activityId: ACTIVITY_ID, ts: Date.now() });
+          if (bc.close) bc.close();
+        } catch (e) {}
+      }
+
+      // Run clear on every load
+      clearAllForActivity();
+
+      // Expose for teacher "New Session — Clear"
+      global.__SLS_CLEAR_ACTIVITY__ = clearAllForActivity;
+    })(window);</script><script>var getStablePath = function() {
+      try {
+        var p = window.location.pathname;
+        var folder = p.substring(0, p.lastIndexOf('/')) || p;
+        return folder;
+      } catch (e) {
+        return 'default_scope';
+      }
+    };
+    var APP_SCOPE = getStablePath();
+    var PAYLOAD_KEY = "sls_unlike_payload::" + APP_SCOPE + "::v1";
+    var FIRST_KEY = "UFCO-firstSubmit::" + APP_SCOPE;
+
+    function pushToXAPI(score, feedback) {
+
+      // Child tab: Send to parent via postMessage
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({
+            type: 'xapi-update',
+            source: 'child',
+            payload: { score: score, feedback: feedback }
+          }, '*');
+          console.log('[Child] Notified parent of score update via postMessage');
+        }
+      } catch (e) {
+        console.warn('[Child] Could not notify parent:', e);
+      }
+
+    }
+
+    function writePayload(score, feedback, hiddenMarks) {
+      try {
+        var timestamp = Date.now();
+        var obj = { score: score, feedback: feedback, hiddenMarks: hiddenMarks, t: timestamp };
+        localStorage.setItem(PAYLOAD_KEY, JSON.stringify(obj));
+        console.log('[xAPI] Data updated in localStorage at ' + new Date(timestamp).toLocaleTimeString());
+      } catch (e) {
+        console.warn('[xAPI] writePayload failed:', e);
+      }
+    }
+
+    function readPayload() {
+      try {
+        var raw = localStorage.getItem(PAYLOAD_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function hasPostedFirstSubmit() {
+      try {
+        return localStorage.getItem(FIRST_KEY) === "1";
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function lockFirstSubmit() {
+      try {
+        localStorage.setItem(FIRST_KEY, "1");
+      } catch (e) {}
+    }
+
+    function postFirstSubmitIfNeeded(score, feedback, hiddenMarks) {
+      if (hasPostedFirstSubmit()) return false;
+      writePayload(score, feedback, hiddenMarks);
+      pushToXAPI(score, feedback);
+      lockFirstSubmit();
+      return true;
+    }
+
+    window._lastKnownTimestamp = 0;
+
+    function syncFromLocalToXAPI() {
+      var p = readPayload();
+      if (!p) return;
+
+      // Only sync if the data is newer than what we last processed
+      if (p.t > (window._lastKnownTimestamp || 0)) {
+        console.log('[xAPI] Syncing newer data from localStorage...', p);
+        window._lastKnownTimestamp = p.t;
+
+        window._isSyncing = true;
+        try {
+
+          // Child: just update internal state if needed
+          if (typeof window.onXapiSync === 'function') window.onXapiSync(p);
+
+        } finally {
+          window._isSyncing = false;
+        }
+      }
+    }</script><script>// Cross-tab synchronization: Listen to storage events from other tabs
+    window.addEventListener("load", syncFromLocalToXAPI);
+    window.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncFromLocalToXAPI();
+    });
+    window.addEventListener("focus", syncFromLocalToXAPI);
+    window.addEventListener("storage", (e) => {
+      if (e.key === PAYLOAD_KEY && e.newValue) syncFromLocalToXAPI();
+    });
+
+    // Listen for SLS submit messages from parent window (if launched by SLS)
+    window.addEventListener("message", (event) => {
+      try {
+        const data = event.data;
+        const key = (data && (data.type || data.event || data.action || data.message)) || '';
+        if (typeof key === 'string' && /submit/i.test(key)) {
+          console.log('[xAPI] Received SLS submit signal');
+          syncFromLocalToXAPI();
+        }
+      } catch (e) {}
+    });</script><script>
+        (function() {
+          window.isNewTabChild = true;
+          console.log('[Child] Running in new-tab child mode');
+
+          // Wait for xAPI.js to load, then wrap its storeState
+          function wrapStoreState() {
+            if (typeof window.storeState !== 'function') {
+              // xAPI.js not loaded yet, wait
+              setTimeout(wrapStoreState, 100);
+              return;
+            }
+
+            // Save the original storeState
+            var originalStoreState = window.storeState;
+
+            // Replace with our wrapper
+            window.storeState = function(payload) {
+              var score = payload.score || 0;
+              var feedback = payload.feedback || '';
+              var hiddenMarks = payload.hiddenMarks;
+
+              // Only write if NOT currently syncing from another tab
+              if (!window._isSyncing) {
+                if (typeof writePayload === 'function') {
+                  writePayload(score, feedback, hiddenMarks);
+                }
+
+                // Notify parent immediately
+                if (typeof pushToXAPI === 'function') {
+                  pushToXAPI(score, feedback);
+                }
+              }
+
+              // Also try to call original (will fail gracefully in child mode)
+              try {
+                originalStoreState(payload);
+              } catch(e) {
+                // Expected to fail in child mode - that's ok
+              }
+
+              console.log('[Child] storeState wrapper called' + (window._isSyncing ? ' (sync-only)' : ' - stored locally'));
+            };
+
+            console.log('[Child] storeState wrapped - syncing via localStorage/postMessage');
+          }
+
+          // Start wrapping after DOM loads
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', wrapStoreState);
+          } else {
+            wrapStoreState();
+          }
+        })();
+      </script>  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+<h2>P5 Triangle Area – Refined Interactive</h2>
+
+<canvas id="canvas" width="720" height="480"></canvas><br>
+
+Base: <input id="baseInput" type="number"> units
+Height: <input id="heightInput" type="number"> units
+Area: <input id="areaInput" type="number"> square units<br>
+
+<button onclick="checkAnswers()">Submit</button>
+<button onclick="nextTriangle()">Next</button>
+
+<div id="dashboard"></div>
+
+<!-- ── Real-Time Action Analytics Panel ───────────────────────── -->
+<div id="analyticsPanel">
+  <div id="analyticsPanelHeader" onclick="toggleAnalytics()">
+    <span id="analyticsPanelTitle">📊 Real-Time Action Analytics</span>
+    <span id="analyticsPanelToggle">▼ Hide</span>
+  </div>
+  <div id="analyticsPanelBody">
+    <div id="analyticsPanelStats">
+      <div class="ap-stat">
+        <span class="ap-stat-label">Score</span>
+        <span class="ap-stat-value" id="statScore">—</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat-label">Correct</span>
+        <span class="ap-stat-value green" id="statCorrect">0</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat-label">Wrong</span>
+        <span class="ap-stat-value red" id="statWrong">0</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat-label">Attempts</span>
+        <span class="ap-stat-value" id="statAttempts">0</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat-label">Time</span>
+        <span class="ap-stat-value" id="statTime">0s</span>
+      </div>
+      <div class="ap-stat">
+        <span class="ap-stat-label">Actions</span>
+        <span class="ap-stat-value" id="statActions">0</span>
+      </div>
+    </div>
+    <div id="actionLogContent">
+      <div style="color:#475569;font-style:italic;padding:8px 0;">No actions yet. Start interacting with the triangle...</div>
+    </div>
+    <div id="analyticsBtnRow">
+      <button class="ap-btn" onclick="clearActionLog()">🗑️ Clear Log</button>
+      <button class="ap-btn ap-btn-save" id="slsSaveBtn" onclick="manualSaveToSLS()">💾 Save to SLS</button>
+    </div>
+  </div>
+</div>
+
+<div id="popup"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ANALYTICS ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+var sessionStartTime = Date.now();
+var actionLog = [];        // Sequential log of all interactions
+var questionHistory = [];  // Per-submission correct/wrong detail
+var analyticsVisible = true;
+var timerInterval = null;
+
+/** Elapsed seconds since session start (relative time) */
+function tRel() {
+  return Math.round((Date.now() - sessionStartTime) / 1000);
+}
+
+/**
+ * Log an action to the panel.
+ * @param {string} symbol   - Unicode symbol (✅ ❌ ✏️ 🖱️ ▶️ etc.)
+ * @param {string} desc     - Human-readable description
+ * @param {Object|null} details - Key/value pairs shown beneath the entry
+ */
+function logAction(symbol, desc, details) {
+  var entry = { t: tRel(), symbol: symbol, description: desc, details: details || null };
+  actionLog.push(entry);
+  renderActionLog();
+  updateStats();
+}
+
+function renderActionLog() {
+  var el = document.getElementById('actionLogContent');
+  if (!el) return;
+  if (actionLog.length === 0) {
+    el.innerHTML = '<div style="color:#475569;font-style:italic;padding:8px 0;">No actions yet. Start interacting with the triangle...</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < actionLog.length; i++) {
+    var e = actionLog[i];
+    html += '<div class="log-entry">'
+      + '<span class="log-time">t=' + e.t + 's</span>'
+      + '<span class="log-sym">'  + e.symbol + '</span>'
+      + '<span class="log-desc">' + e.description + '</span>'
+      + '</div>';
+    if (e.details) {
+      var keys = Object.keys(e.details);
+      var dParts = '';
+      for (var k = 0; k < keys.length; k++) {
+        var val = String(e.details[keys[k]]);
+        var cls = (val.indexOf('✓') !== -1) ? 'log-detail-correct'
+                : (val.indexOf('✗') !== -1) ? 'log-detail-wrong' : '';
+        dParts += '<span class="' + cls + '">' + keys[k] + ': ' + val + '</span>';
+      }
+      html += '<div class="log-detail">' + dParts + '</div>';
+    }
+  }
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateStats() {
+  var wrongCount = totalQuestions - correctCount;
+  var pct = totalQuestions > 0 ? Math.round(correctCount / totalQuestions * 100) : 0;
+  var el;
+  el = document.getElementById('statScore');
+  if (el) el.textContent = totalQuestions > 0 ? correctCount + '/' + totalQuestions + ' (' + pct + '%)' : '—';
+  el = document.getElementById('statCorrect');
+  if (el) el.textContent = correctCount;
+  el = document.getElementById('statWrong');
+  if (el) el.textContent = wrongCount;
+  el = document.getElementById('statAttempts');
+  if (el) el.textContent = attempts;
+  el = document.getElementById('statActions');
+  if (el) el.textContent = actionLog.length;
+}
+
+function updateStatTime() {
+  var el = document.getElementById('statTime');
+  if (el) el.textContent = tRel() + 's';
+}
+
+function toggleAnalytics() {
+  analyticsVisible = !analyticsVisible;
+  var body = document.getElementById('analyticsPanelBody');
+  var tog  = document.getElementById('analyticsPanelToggle');
+  if (body) body.style.display = analyticsVisible ? '' : 'none';
+  if (tog)  tog.textContent    = analyticsVisible ? '▼ Hide' : '▶ Show';
+}
+
+function clearActionLog() {
+  actionLog = [];
+  renderActionLog();
+  updateStats();
+  logAction('🗑️', 'Action log cleared by user');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUIZ LOGIC
+// ═══════════════════════════════════════════════════════════════
+
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+var gridSize = 32;
+
+var baseStart, baseEnd, apex;
+var triangleType = 0;
+var types = ["right","acute","obtuse","inverted"];
+
+var attempts = 0;
+var correctCount = 0;
+var totalQuestions = 0;
+
+function showPopup(msg){
+  var p = document.getElementById("popup");
+  p.innerHTML = msg + "<br><button onclick='closePopup()'>OK</button>";
+  p.style.display = "block";
+}
+function closePopup(){ document.getElementById("popup").style.display = "none"; }
+
+function randomInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+function generateTriangle(){
+  var baseUnits  = randomInt(4,9);
+  var heightUnits = randomInt(3,7);
+
+  baseStart = {x:gridSize*4, y:gridSize*12};
+  baseEnd   = {x:baseStart.x + baseUnits*gridSize, y:baseStart.y};
+  var mid   = (baseStart.x + baseEnd.x) / 2;
+
+  var type = types[triangleType % types.length];
+
+  if(type === "right"){
+    apex = {x:baseStart.x, y:baseStart.y - heightUnits*gridSize};
+  } else if(type === "acute"){
+    apex = {x:mid, y:baseStart.y - heightUnits*gridSize};
+  } else if(type === "obtuse"){
+    apex = {x:baseStart.x - gridSize*2, y:baseStart.y - heightUnits*gridSize};
+  } else if(type === "inverted"){
+    apex = {x:mid, y:baseStart.y + heightUnits*gridSize};
+  }
+}
+
+function drawGrid(){
+  ctx.strokeStyle = "#e0e0e0";
+  for(var x=0; x<=canvas.width; x+=gridSize){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for(var y=0; y<=canvas.height; y+=gridSize){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+}
+
+function drawAltitude(){
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle = "red";
+  var footX = apex.x;
+  if(apex.x < baseStart.x) footX = baseStart.x;
+  if(apex.x > baseEnd.x)   footX = baseEnd.x;
+  ctx.beginPath();
+  ctx.moveTo(apex.x, apex.y);
+  ctx.lineTo(footX, baseStart.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawRectangleAnimation(){
+  ctx.strokeStyle = "green";
+  ctx.strokeRect(
+    baseStart.x,
+    Math.min(apex.y, baseStart.y),
+    baseEnd.x - baseStart.x,
+    Math.abs(baseStart.y - apex.y)
+  );
+}
+
+function drawTriangle(){
+  ctx.strokeStyle = "blue";
+  ctx.beginPath();
+  ctx.moveTo(baseStart.x, baseStart.y);
+  ctx.lineTo(baseEnd.x, baseEnd.y);
+  ctx.lineTo(apex.x, apex.y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  drawTriangle();
+  drawAltitude();
+  drawRectangleAnimation();
+}
+
+// Canvas click – track exploration
+canvas.addEventListener("click", function(e){
+  var rect = canvas.getBoundingClientRect();
+  var cx = Math.round((e.clientX - rect.left)  / gridSize) * gridSize;
+  var cy = Math.round((e.clientY - rect.top)   / gridSize) * gridSize;
+
+  if(cy === baseStart.y && cx >= baseStart.x && cx <= baseEnd.x){
+    logAction('📏', 'Canvas – base line identified', { 'grid-x': cx/gridSize, 'grid-y': cy/gridSize });
+    showPopup("Correct Base Selected!");
+  } else if(cx === apex.x){
+    logAction('📐', 'Canvas – height line identified', { 'grid-x': cx/gridSize, 'grid-y': cy/gridSize });
+    showPopup("Correct Height Line Identified!");
+  } else {
+    logAction('🖱️', 'Canvas – explored point', { 'grid-x': cx/gridSize, 'grid-y': cy/gridSize });
+  }
+});
+
+// Input field tracking
+(function() {
+  var fields = [
+    { id: 'baseInput',   label: 'Base'   },
+    { id: 'heightInput', label: 'Height' },
+    { id: 'areaInput',   label: 'Area'   }
+  ];
+  fields.forEach(function(f) {
+    var el = document.getElementById(f.id);
+    if (el) {
+      el.addEventListener('change', function() {
+        logAction('✏️', f.label + ' value entered: ' + this.value + ' units');
+      });
+    }
+  });
+})();
+
+function calculateBase()  { return Math.abs(baseEnd.x - baseStart.x) / gridSize; }
+function calculateHeight(){ return Math.abs(baseStart.y - apex.y)    / gridSize; }
+function calculateArea()  { return 0.5 * calculateBase() * calculateHeight(); }
+
+function checkAnswers(){
+  attempts++;
+  totalQuestions += 3;
+
+  var b = Number(document.getElementById("baseInput").value);
+  var h = Number(document.getElementById("heightInput").value);
+  var a = Number(document.getElementById("areaInput").value);
+
+  var correctB = calculateBase();
+  var correctH = calculateHeight();
+  var correctA = calculateArea();
+
+  var bCorrect = (b === correctB);
+  var hCorrect = (h === correctH);
+  var aCorrect = (a === correctA);
+
+  if(bCorrect){ correctCount++; document.getElementById("baseInput").className   = "correct"; }
+  else         {                 document.getElementById("baseInput").className   = "wrong"; }
+
+  if(hCorrect){ correctCount++; document.getElementById("heightInput").className = "correct"; }
+  else         {                 document.getElementById("heightInput").className = "wrong"; }
+
+  if(aCorrect){ correctCount++; document.getElementById("areaInput").className   = "correct"; }
+  else         {                 document.getElementById("areaInput").className   = "wrong"; }
+
+  var currentType = types[triangleType % types.length];
+  var allCorrect  = bCorrect && hCorrect && aCorrect;
+
+  // Record in history (for xAPI feedback)
+  questionHistory.push({
+    questionNum:  attempts,
+    triangleType: currentType,
+    t:            tRel(),
+    base:   { student: b, correct: correctB, isCorrect: bCorrect },
+    height: { student: h, correct: correctH, isCorrect: hCorrect },
+    area:   { student: a, correct: correctA, isCorrect: aCorrect },
+    allCorrect: allCorrect
+  });
+
+  // Log to analytics panel
+  logAction(
+    allCorrect ? '✅' : '❌',
+    'Q' + attempts + ' Submit – ' + currentType + ' triangle',
+    {
+      'Base':   bCorrect ? ('✓ ' + correctB)   : ('✗ got ' + b   + ', ans=' + correctB),
+      'Height': hCorrect ? ('✓ ' + correctH)   : ('✗ got ' + h   + ', ans=' + correctH),
+      'Area':   aCorrect ? ('✓ ' + correctA)   : ('✗ got ' + a   + ', ans=' + correctA)
+    }
+  );
+
+  // User-facing popup
+  if(allCorrect){
+    showPopup("✅ Excellent! All Correct.");
+  } else {
+    var wrongParts = [];
+    if(!bCorrect) wrongParts.push('Base: got ' + b + ', correct=' + correctB);
+    if(!hCorrect) wrongParts.push('Height: got ' + h + ', correct=' + correctH);
+    if(!aCorrect) wrongParts.push('Area: got ' + a + ', correct=' + correctA);
+    showPopup("❌ Review: " + wrongParts.join('; '));
+  }
+
+  updateDashboard();
+  updateStats();
+  sendToXAPI('check-answers');
+}
+
+function updateDashboard(){
+  document.getElementById("dashboard").innerHTML =
+    "Attempts: " + attempts + " | Score: " + correctCount + " / " + totalQuestions;
+}
+
+function nextTriangle(){
+  triangleType++;
+  generateTriangle();
+  render();
+
+  // Clear input fields and styling
+  ['baseInput','heightInput','areaInput'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.value = '';
+    el.className = '';
+  });
+
+  var nextType = types[triangleType % types.length];
+  logAction('▶️', 'Next triangle – ' + nextType + ' triangle loaded');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// xAPI INTEGRATION  ← analytics data baked into every statement
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build rich HTML feedback shown in SLS teacher view.
+ * Includes per-question correct/wrong breakdown AND action timeline.
+ */
+function buildDetailedFeedback() {
+  var scorePercent = totalQuestions > 0 ? Math.round(correctCount / totalQuestions * 100) : 0;
+  var wrongTotal   = totalQuestions - correctCount;
+  var lines = [];
+
+  lines.push('<strong>📐 Triangle Area Quiz – Student Activity Report</strong><br>');
+  lines.push(
+    'Score: ' + correctCount + '/' + totalQuestions +
+    ' (' + scorePercent + '%) &nbsp;|&nbsp; ' +
+    'Time on task: ' + tRel() + 's &nbsp;|&nbsp; ' +
+    'Submissions: ' + attempts +
+    '<br>'
+  );
+  lines.push(
+    '<span style="color:green">✅ Correct parts: ' + correctCount + '</span>' +
+    ' &nbsp;|&nbsp; ' +
+    '<span style="color:red">❌ Wrong parts: ' + wrongTotal + '</span>' +
+    '<br><br>'
+  );
+
+  // ── Per-question detail ──────────────────────────────────────
+  if (questionHistory.length > 0) {
+    lines.push('<strong>Per-Question Results (what student got right/wrong):</strong><br>');
+    for (var i = 0; i < questionHistory.length; i++) {
+      var r = questionHistory[i];
+      var borderCol = r.allCorrect ? '#22c55e' : '#ef4444';
+      var icon      = r.allCorrect ? '✅' : '❌';
+      lines.push(
+        '<div style="margin:4px 0;padding:5px 8px;border-left:3px solid ' + borderCol + ';background:rgba(0,0,0,0.04);">'
+      );
+      lines.push(
+        icon + ' <strong>Q' + r.questionNum + ' – ' + r.triangleType + ' triangle</strong>' +
+        ' <small style="color:#666;">[t=' + r.t + 's into session]</small><br>'
+      );
+      lines.push(
+        '&nbsp;&nbsp;• Base: ' +
+        (r.base.isCorrect
+          ? '<span style="color:green">✅ Correct (' + r.base.correct + ')</span>'
+          : '<span style="color:red">❌ Student entered <b>' + r.base.student + '</b>, correct = ' + r.base.correct + '</span>') +
+        '<br>'
+      );
+      lines.push(
+        '&nbsp;&nbsp;• Height: ' +
+        (r.height.isCorrect
+          ? '<span style="color:green">✅ Correct (' + r.height.correct + ')</span>'
+          : '<span style="color:red">❌ Student entered <b>' + r.height.student + '</b>, correct = ' + r.height.correct + '</span>') +
+        '<br>'
+      );
+      lines.push(
+        '&nbsp;&nbsp;• Area: ' +
+        (r.area.isCorrect
+          ? '<span style="color:green">✅ Correct (' + r.area.correct + ')</span>'
+          : '<span style="color:red">❌ Student entered <b>' + r.area.student + '</b>, correct = ' + r.area.correct + '</span>') +
+        '<br>'
+      );
+      lines.push('</div>');
+    }
+    lines.push('<br>');
+  }
+
+  // ── Action timeline ──────────────────────────────────────────
+  lines.push('<strong>Action Timeline (exploration pattern):</strong><br>');
+  lines.push('<div style="font-family:monospace;font-size:11px;background:#f8fafc;padding:6px 8px;border-radius:4px;border:1px solid #e2e8f0;">');
+  for (var j = 0; j < actionLog.length; j++) {
+    var e = actionLog[j];
+    var detailStr = '';
+    if (e.details) {
+      var dKeys = Object.keys(e.details);
+      var dParts = [];
+      for (var k = 0; k < dKeys.length; k++) {
+        dParts.push(dKeys[k] + ': ' + e.details[dKeys[k]]);
+      }
+      detailStr = ' [' + dParts.join(' | ') + ']';
+    }
+    lines.push('[t=' + e.t + 's] ' + e.symbol + ' ' + e.description + detailStr + '<br>');
+  }
+  lines.push('</div>');
+
+  return lines.join('');
+}
+
+var _lastSentSig = '';
+
+/**
+ * Package analytics data into xAPI state and push to SLS.
+ * Called on every submission, manual save, and auto-save events.
+ */
+function sendToXAPI(reason) {
+  try {
+    var score    = totalQuestions > 0 ? correctCount / totalQuestions : 0;
+    var feedback = buildDetailedFeedback();
+
+    // Lightweight dedup – skip if nothing changed (except forced saves)
+    var sig = attempts + ':' + correctCount + ':' + actionLog.length;
+    if (sig === _lastSentSig && reason !== 'manual-save') return;
+    _lastSentSig = sig;
+
+    var hiddenMarks = {
+      totalQuestions:  totalQuestions,
+      correctCount:    correctCount,
+      wrongCount:      totalQuestions - correctCount,
+      scorePercent:    totalQuestions > 0 ? Math.round(correctCount / totalQuestions * 100) : 0,
+      attempts:        attempts,
+      elapsedSeconds:  tRel(),
+      questionHistory: JSON.parse(JSON.stringify(questionHistory)),
+      actionLog: actionLog.map(function(e) {
+        return { t: e.t, symbol: e.symbol, action: e.description, details: e.details };
+      })
+    };
+
+    var payload = { score: score, feedback: feedback, hiddenMarks: hiddenMarks };
+
+    // storeState is wrapped by the child-tab initialiser to also call
+    // writePayload (localStorage) + pushToXAPI (postMessage to parent/SLS)
+    if (typeof window.storeState === 'function') {
+      window.storeState(payload);
+      console.log('[Quiz xAPI] Sent – score=' + Math.round(score * 100) + '% reason=' + reason);
+    }
+  } catch (err) {
+    console.warn('[Quiz xAPI] sendToXAPI failed:', err);
+  }
+}
+
+function manualSaveToSLS() {
+  sendToXAPI('manual-save');
+  var btn = document.getElementById('slsSaveBtn');
+  if (btn) {
+    var orig = btn.textContent;
+    btn.textContent = '✅ Saved!';
+    setTimeout(function() { btn.textContent = orig; }, 2000);
+  }
+}
+
+// Auto-save hooks
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden' && attempts > 0) {
+    sendToXAPI('auto-save-hidden');
+  }
+});
+window.addEventListener('pagehide', function() {
+  if (attempts > 0) sendToXAPI('auto-save-pagehide');
+}, { capture: true });
+window.addEventListener('message', function(event) {
+  try {
+    var data = event.data;
+    var key  = (data && (data.type || data.event || data.action || data.message)) || '';
+    if (typeof key === 'string' && /submit/i.test(key)) {
+      sendToXAPI('sls-submit-signal');
+    }
+  } catch(e) {}
+}, false);
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+generateTriangle();
+render();
+logAction('🎯', 'Session started – first triangle: ' + types[triangleType % types.length]);
+timerInterval = setInterval(updateStatTime, 1000);
+</script>
+
+</body></html>

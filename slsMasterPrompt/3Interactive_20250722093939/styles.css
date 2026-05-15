@@ -1,0 +1,346 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    overflow-x: hidden;
+}
+
+/* Main container - adapts to iframe or full window */
+#main-container {
+    width: 100%;
+    height: 450px; /* Default iframe height */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Full window mode detection */
+@media (min-height: 500px) {
+    body:not(.iframe-mode) #main-container {
+        height: 90vh;
+    }
+}
+
+/* Tooltip styles */
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    max-width: 250px;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+/* Game interface */
+#game-interface {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    gap: 8px;
+}
+
+/* Progress and score display */
+#progress-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 4px;
+    position: relative;
+    height: 24px;
+    backdrop-filter: blur(10px);
+}
+
+#progress-fill {
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    height: 100%;
+    border-radius: 12px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+#progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+#score-display {
+    display: flex;
+    justify-content: space-between;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Main game area */
+#game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+/* Branches container */
+#branches-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    height: 60%;
+}
+
+.branch-zone {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 8px;
+    border: 2px dashed #ccc;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.branch-zone:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    border-color: #4CAF50;
+}
+
+.branch-zone.drag-over {
+    border-color: #2196F3;
+    background: rgba(33, 150, 243, 0.1);
+    transform: scale(1.02);
+}
+
+.branch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.branch-header h3 {
+    font-size: 14px;
+    color: #333;
+    margin: 0;
+}
+
+.branch-icon {
+    font-size: 18px;
+}
+
+.functions-container {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Functions pool */
+#functions-pool {
+    height: 40%;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 8px;
+    overflow-y: auto;
+}
+
+#functions-pool h4 {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+#draggable-functions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+
+/* Function cards */
+.function-card {
+    background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border: 2px solid transparent;
+    text-align: center;
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.function-card:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.function-card:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+.function-card.dragging {
+    opacity: 0.7;
+    transform: rotate(5deg);
+    z-index: 100;
+}
+
+.function-card.placed {
+    background: linear-gradient(135deg, #4CAF50, #8BC34A);
+    cursor: default;
+    transform: none;
+}
+
+.function-card.placed:hover {
+    transform: none;
+}
+
+.function-card.incorrect {
+    background: linear-gradient(135deg, #f44336, #ff9800);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Action buttons */
+#action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    color: #333;
+    height: auto;
+    white-space: nowrap;
+}
+
+.action-btn:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+/* Results panel */
+#results-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(10px);
+}
+
+#results-panel.hidden {
+    display: none;
+}
+
+#results-content {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    max-width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#results-title {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+#results-details {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 600px) {
+    #branches-container {
+        grid-template-columns: 1fr;
+        height: 50%;
+    }
+    
+    #functions-pool {
+        height: 50%;
+    }
+    
+    .branch-header h3 {
+        font-size: 12px;
+    }
+    
+    .function-card {
+        font-size: 10px;
+        padding: 4px 8px;
+        min-width: 70px;
+    }
+}
+
+/* Animation for successful placement */
+@keyframes success-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.success-animation {
+    animation: success-pulse 0.6s ease-in-out;
+}

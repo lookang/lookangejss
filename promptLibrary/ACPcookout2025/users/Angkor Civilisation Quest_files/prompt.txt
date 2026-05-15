@@ -1,0 +1,121 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Angkor Civilisation Quest”** narrative exploration where students journey through key aspects of the Angkor (Khmer) civilisation and connect its ancient innovations to modern Singapore and Southeast Asia.
+
+TARGET AUDIENCE:
+- Upper Primary / Lower Secondary History / Social Studies (~11–14 years old)
+
+INTERACTIVE REQUIREMENTS:
+- A **story-based quest UI** composed of:
+  - Main **scene area** showing a stylised illustration (SVG background) representing the current location (e.g., temple complex, irrigation system, trade routes, cultural arts).
+  - A **scene title** (e.g., “Welcome to Angkor”, “Temple Complex”, “Irrigation System”).
+  - A **dialogue box** with typewriter-style text narrating what the student sees/learns.
+- A **progress bar** at the top tracking “Quest Progress: X/5”.
+- An **inventory panel** labelled “Discoveries” showing collected icons (e.g., 🏛️, 💧, 🛤️, 🎭) representing key legacies.
+- An **action panel** with navigation buttons:
+  - Explore Temple (🔍 Explore Temple).
+  - Talk to Guide (💬 Talk to Guide).
+  - Examine Artifacts (📜 Examine Artifacts).
+- Contextual **decision buttons** (two choices) that appear for certain scenes to support critical thinking (e.g., how to preserve techniques, what Singapore can learn).
+- A **tooltip** system giving a brief description of the overall quest when hovering over the container and descriptions when hovering over inventory items.
+- Self-contained HTML, CSS, and JavaScript; no external frameworks required.
+- **MOBILE-FRIENDLY**:
+  - Buttons and inventory slots are large enough for touch.
+  - Layout height adapts for iframe vs full-screen and orientation changes.
+
+SPECIFIC REQUIREMENTS:
+
+Scenes and narrative
+- Define a set of **scenes** (at least 5) each with:
+  - `id`, `title`, `image` (data URL or asset), `dialogue` text, `actions`, and optionally a `discovery` icon.
+- Example scenes (as used in the existing implementation):
+  1. Welcome to Angkor (intro to quest and mission).
+  2. Temple Complex – focus on architecture/engineering and its influence on modern buildings.
+  3. Irrigation System – hydraulic engineering and barays; links to modern water management (e.g., Singapore).
+  4. Trade Routes – Angkor as trading hub; parallels to modern Singapore’s trade networks.
+  5. Cultural Legacy – arts, dance, architecture; living traditions in Southeast Asia.
+- The **dialogue text** should be chunked, student-friendly, and highlight **continuities** between Angkor and present-day Singapore/SEA.
+- Each scene specifies which actions are available (e.g., `['explore', 'talk', 'examine']`). Buttons not in the list are hidden.
+
+Player actions
+- **Explore**:
+  - Moves the student forward through scenes in sequence (0 → 1 → 2 → 3 → 4).
+  - Increases `progress` when moving to a new scene.
+  - When reaching the final scene and exploring again, shows a completion summary.
+- **Talk to Guide**:
+  - For some scenes, opens a **decision** segment where the student chooses one of two options related to preservation, learning, or application of Angkor’s legacies.
+- **Examine Artifacts**:
+  - Shows a random examination result from a small set of educational descriptions linking artifacts/structures to modern practices.
+  - Increases `progress` slightly to reward curiosity.
+- Provide subtle **haptic feedback** when possible (e.g., `navigator.vibrate(50)` on mobile).
+
+Decisions and feedback
+- For certain scenes (e.g., irrigation, engineering, trade), define **decision objects** with:
+  - `sceneId` (which scene triggers this decision).
+  - `question` (prompt text shown implicitly in the dialogue or UI).
+  - Two `choices`, each with:
+    - `text` (student-facing option text).
+    - `result` (feedback text explaining the impact of that choice).
+- When `Talk to Guide` is selected on a scene with a decision:
+  - Hide navigation buttons and show **decision buttons** (two options).
+  - On selecting a choice, show the `result` text in the dialogue box.
+  - Then hide decision buttons, restore navigation buttons, and increment progress (e.g., +0.5).
+
+Inventory system
+- Each scene may include a **discovery icon** (e.g., 🏛️, 💧, 🛤️, 🎭).
+- When entering a scene with a discovery the player hasn’t collected yet:
+  - Add the icon to an `inventory` array.
+  - Update the **inventory grid** with up to 8 slots:
+    - Filled slots show icons and `title` attributes explaining their meaning.
+    - Empty slots are greyed or semi-transparent to suggest more to discover.
+- Provide educational descriptions for each discovery in a mapping, such as:
+  - 🏛️ – Temple Architecture – influences modern building design in SEA.
+  - 💧 – Water Management – ancient techniques used in modern water systems.
+  - 🛤️ – Trade Networks – routes still important to global commerce.
+  - 🎭 – Cultural Arts – traditions preserved in contemporary culture.
+- Hovering/tapping an inventory slot shows a **tooltip** with this description near the cursor.
+
+Progress bar & completion
+- Track `progress` as a fractional value (e.g., 0–5) and `maxProgress`.
+- `updateProgress()`:
+  - Sets width of `#progressFill` to `(progress / maxProgress) * 100%`.
+  - Sets `#progressText` to “Quest Progress: X/5” (X = floor of progress).
+- When `progress >= maxProgress`, show a **completion message** in the dialogue box summarizing key takeaways:
+  - Architecture and urban planning.
+  - Water management.
+  - Trade networks.
+  - Cultural arts.
+- Replace action panel with a **Start New Quest** button that calls a `restart()` method.
+
+Restart behaviour
+- `restart()` should:
+  - Reset `currentScene = 0`, `progress = 0`, clear inventory array.
+  - Re-render the starting scene and reset inventory display.
+  - Restore default navigation buttons configuration.
+
+Tooltips and layout behaviour
+- Main game container tooltip:
+  - On mouse enter over container, show a tooltip describing the quest.
+  - On leave, hide the tooltip.
+- Inventory/tooltips:
+  - On hover over `.inventory-item` with a title, show a tooltip near the cursor with the description.
+- Orientation change support:
+  - On `orientationchange`, recalc container height (e.g., 90vh for tall screens, 450px for short), to keep everything visible on mobile.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Identify key features of **Angkor civilisation** (architecture, water, trade, culture).
+  - Explain how Angkor’s innovations influence **modern Singapore and Southeast Asia** (continuity and change).
+  - Appreciate the value of studying ancient civilisations for solving modern problems (e.g., water management).
+- The quest should support **inquiry**, **connection-making**, and **reflection**, not just content recall.
+
+INTERACTION FEATURES TO INCLUDE:
+- Narrative progression through explore/talk/examine actions.
+- Simple choice-based decisions with feedback.
+- Collectible inventory representing conceptual “discoveries”.
+- Visual progress tracking and completion summary.
+- Mobile-friendly layout with touch-capable buttons and responsive height.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

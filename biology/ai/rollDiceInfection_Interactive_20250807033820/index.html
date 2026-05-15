@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORBET - Disease Transmission Probability Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Google Analytics -->
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+</head>
+<body>
+
+    <!-- Main container with tooltip for header information -->
+    <div class="container" title="Introduction: What causes a disease to spread? Infectious diseases are often transmitted through the air. If an infected person breathes or sneezes on you, it is possible that you will become infected. How likely is it that you will become infected? Will you definitely become infected and ill or could you possibly remain uninfected? This activity simulates the spread of disease in a population.">
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="controls-row">
+                <div class="button-group">
+                    <button id="startBtn" class="btn primary">Start Simulation</button>
+                    <button id="resetBtn" class="btn secondary">Reset</button>
+                    <button id="rollDiceBtn" class="btn dice-btn">Manual Dice Roll</button>
+                </div>
+                
+                <!-- Dice Visualization -->
+                <div class="dice-section">
+                    <div class="dice-container">
+                        <div class="dice" id="dice1">
+                            <div class="dice-face">
+                                <div class="dot"></div>
+                            </div>
+                        </div>
+                        <div class="dice" id="dice2">
+                            <div class="dice-face">
+                                <div class="dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dice-sum" id="diceSum">Sum: -</div>
+                </div>
+                
+                <!-- Population Controls -->
+                <div class="population-controls">
+                    <label for="populationSlider" title="Total number of students in simulation">
+                        Population: <span id="populationValue">50</span>
+                    </label>
+                    <input type="range" id="populationSlider" min="20" max="100" value="50" class="slider">
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Simulation Area -->
+        <div class="simulation-container">
+            <!-- Canvas for student visualization -->
+            <canvas id="simulationCanvas" width="600" height="300"></canvas>
+            
+            <!-- Statistics Panel -->
+            <div class="stats-panel">
+                <!-- Live Variables Section -->
+                <div class="stats-section">
+                    <h4 title="Current dice roll and transmission data">Live Variables</h4>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Dice Roll:</span>
+                        <span id="lastDiceRoll" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Transmission %:</span>
+                        <span id="transmissionPercent" class="stat-value">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Contacts:</span>
+                        <span id="totalContacts" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Successful Transmissions:</span>
+                        <span id="successfulTransmissions" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Success Rate:</span>
+                        <span id="successRate" class="stat-value">0%</span>
+                    </div>
+                </div>
+
+                <!-- Population Statistics -->
+                <div class="stats-section">
+                    <h4 title="Current population health status">Population Status</h4>
+                    <div class="stat-item">
+                        <span class="stat-label healthy">Healthy:</span>
+                        <span id="healthyCount" class="stat-value">49</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label infected">Infected:</span>
+                        <span id="infectedCount" class="stat-value">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label recovered">Recovered:</span>
+                        <span id="recoveredCount" class="stat-value">0</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Probability Distribution Chart -->
+        <div class="chart-container">
+            <h4 title="Distribution of transmission probabilities over time">Probability Distribution</h4>
+            <canvas id="chartCanvas" width="600" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- Activities Tab Container -->
+    <div class="activities-container">
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="activity1">Activity 1: Making Sense of Data</button>
+            <button class="tab-btn" data-tab="activity2">Activity 2: Probability of Infection</button>
+        </div>
+
+        <!-- Activity 1 Tab Content -->
+        <div id="activity1" class="tab-content active">
+            <div class="activity-row">
+            <div class="data-table-container">
+                <h4 title="This table tracks how the infection spreads over time periods (stages) during the simulation">Table 1: Infection Data Collection</h4>
+                <table id="infectionDataTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th title="Time periods in the simulation - each stage represents about 3 seconds of simulation time">Stage</th>
+                            <th title="How many people became infected during this specific stage">No. of newly infected</th>
+                            <th title="Total number of infected people by the end of this stage (cumulative count)">Total number of infected</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td title="Initial stage - simulation starts with 1 infected person (patient zero)">0</td><td id="stage0-new">1</td><td id="stage0-total">1</td></tr>
+                        <tr><td title="Stage 1 - after 3 seconds of simulation">1</td><td id="stage1-new">0</td><td id="stage1-total">1</td></tr>
+                        <tr><td title="Stage 2 - after 6 seconds of simulation">2</td><td id="stage2-new">0</td><td id="stage2-total">1</td></tr>
+                        <tr><td title="Stage 3 - after 9 seconds of simulation">3</td><td id="stage3-new">0</td><td id="stage3-total">1</td></tr>
+                        <tr><td title="Stage 4 - after 12 seconds of simulation">4</td><td id="stage4-new">0</td><td id="stage4-total">1</td></tr>
+                        <tr><td title="Stage 5 - after 15 seconds of simulation">5</td><td id="stage5-new">0</td><td id="stage5-total">1</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+                <div class="graph-container">
+                    <h4 title="This graph shows how the total number of infected people changes over time (stages) - it helps visualize the spread pattern">Graph: Total Infected vs Stages</h4>
+                    <canvas id="infectionGraphCanvas" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="outcomes-explanation">
+                <h4>3 possible outcomes in each interaction:</h4>
+                <ul>
+                    <li>Come into contact with an infected person but not infected</li>
+                    <li>Come into contact with an infected person and was infected</li>
+                    <li>Did not come into contact with an infected person</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Activity 2 Tab Content -->
+        <div id="activity2" class="tab-content">
+            <div class="activity-row">
+                <div class="possibility-diagram-container">
+                    <h4>Table 2: Possibility Diagram</h4>
+                    <table id="possibilityDiagram" class="possibility-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><th>1</th><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+                            <tr><th>2</th><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td></tr>
+                            <tr><th>3</th><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
+                            <tr><th>4</th><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td></tr>
+                            <tr><th>5</th><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td></tr>
+                            <tr><th>6</th><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="contagious-question">
+                        <h4>Which sum is the most contagious?</h4>
+                        <input type="text" id="mostContagiousAnswer" placeholder="Enter your answer">
+                    </div>
+                </div>
+
+                <div class="probability-table-container">
+                    <h4>Table 3: Probability of Getting a Certain Sum</h4>
+                    <table id="probabilityTable" class="probability-table">
+                        <thead>
+                            <tr>
+                                <th>Sum</th>
+                                <th>Experimental Probability</th>
+                                <th>Observed Count</th>
+                                <th>Observed Probability</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>2</td><td>1/36</td><td id="count-2">0</td><td id="percent-2">0%</td></tr>
+                            <tr><td>3</td><td>2/36</td><td id="count-3">0</td><td id="percent-3">0%</td></tr>
+                            <tr><td>4</td><td>3/36</td><td id="count-4">0</td><td id="percent-4">0%</td></tr>
+                            <tr><td>5</td><td>4/36</td><td id="count-5">0</td><td id="percent-5">0%</td></tr>
+                            <tr><td>6</td><td>5/36</td><td id="count-6">0</td><td id="percent-6">0%</td></tr>
+                            <tr><td>7</td><td>6/36</td><td id="count-7">0</td><td id="percent-7">0%</td></tr>
+                            <tr><td>8</td><td>5/36</td><td id="count-8">0</td><td id="percent-8">0%</td></tr>
+                            <tr><td>9</td><td>4/36</td><td id="count-9">0</td><td id="percent-9">0%</td></tr>
+                            <tr><td>10</td><td>3/36</td><td id="count-10">0</td><td id="percent-10">0%</td></tr>
+                            <tr><td>11</td><td>2/36</td><td id="count-11">0</td><td id="percent-11">0%</td></tr>
+                            <tr><td>12</td><td>1/36</td><td id="count-12">0</td><td id="percent-12">0%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="reflection-question">
+                <h4>What do you think your graph will look like if there are more students over a longer period of time?</h4>
+                <textarea id="reflectionAnswer" placeholder="Enter your thoughts here..." rows="4"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="credits">
+                Made by <strong>lookang</strong> with inputs from <strong>sweeling</strong>, using <strong>Cline bot</strong> running <strong>Claude 4</strong>
+            </p>
+            <p class="resources">
+                For more resources: <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/biology" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/biology</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+// Plant Growth Experiment - Interactive Simulation
+// This script manages the plant growth visualization based on light intensity and time
+
+// ============================================
+// STATE MANAGEMENT
+// ============================================
+
+// Current experiment state
+let currentState = {
+    lightIntensity: 'no-light', // Current light setting: 'no-light', 'some-light', 'bright-light'
+    days: 0, // Current day in the experiment (0-14)
+};
+
+// Plant growth data - defines how tall the plant grows under different conditions
+const growthData = {
+    'no-light': {
+        maxHeight: 40, // Stunted growth without light
+        healthStatus: 'unhealthy',
+        color: 'yellow-green'
+    },
+    'some-light': {
+        maxHeight: 80, // Moderate growth with some light
+        healthStatus: 'moderate',
+        color: 'light-green'
+    },
+    'bright-light': {
+        maxHeight: 120, // Optimal growth with bright light
+        healthStatus: 'healthy',
+        color: 'dark-green'
+    }
+};
+
+// Observation messages based on light intensity and growth stage
+const observations = {
+    'no-light': {
+        early: "The plant is trying to grow but looks weak without light.",
+        mid: "The plant is growing slowly and looks pale yellow.",
+        late: "The plant is small and unhealthy without enough light."
+    },
+    'some-light': {
+        early: "The plant is starting to grow with some light!",
+        mid: "The plant is growing steadily with leaves appearing.",
+        late: "The plant has grown well with some light, but could be healthier."
+    },
+    'bright-light': {
+        early: "The plant is growing strong in bright light!",
+        mid: "The plant is growing tall with healthy green leaves.",
+        late: "The plant is tall, healthy, and has many green leaves!"
+    }
+};
+
+// Learning summaries for each light condition
+const learningSummaries = {
+    'no-light': "🌱 Without light, plants cannot make food through photosynthesis. They grow weak and pale.",
+    'some-light': "🌿 With some light, plants can grow but not as well as in bright light. They need more light to be very healthy.",
+    'bright-light': "🌳 In bright light, plants grow best! They make lots of food and become tall and green."
+};
+
+// ============================================
+// DOM ELEMENTS
+// ============================================
+
+// Get references to all interactive elements
+const infoIcon = document.getElementById('infoIcon');
+const tooltip = document.getElementById('tooltip');
+const lightButtons = document.querySelectorAll('.light-btn');
+const timeSlider = document.getElementById('timeSlider');
+const dayDisplay = document.getElementById('dayDisplay');
+const dayCounter = document.getElementById('dayCounter');
+const resetBtn = document.getElementById('resetBtn');
+const observationText = document.getElementById('observationText');
+const learningSummary = document.getElementById('learningSummary');
+const background = document.getElementById('background');
+const plant = document.getElementById('plant');
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
+// Info icon hover - shows experiment title
+infoIcon.addEventListener('mouseenter', () => {
+    tooltip.textContent = 'Effect of Light Intensity on Plant Growth';
+    tooltip.classList.add('show');
+});
+
+infoIcon.addEventListener('mouseleave', () => {
+    tooltip.classList.remove('show');
+});
+
+// Touch support for mobile devices
+infoIcon.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    tooltip.textContent = 'Effect of Light Intensity on Plant Growth';
+    tooltip.classList.add('show');
+    setTimeout(() => {
+        tooltip.classList.remove('show');
+    }, 2000);
+});
+
+// Light intensity button clicks
+lightButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove active class from all buttons
+        lightButtons.forEach(btn => btn.classList.remove('active'));
+        
+        // Add active class to clicked button
+        button.classList.add('active');
+        
+        // Update light intensity
+        currentState.lightIntensity = button.getAttribute('data-light');
+        
+        // Update the visualization
+        updateVisualization();
+    });
+});
+
+// Time slider - controls the number of days
+timeSlider.addEventListener('input', (e) => {
+    currentState.days = parseInt(e.target.value);
+    dayDisplay.textContent = currentState.days;
+    dayCounter.textContent = currentState.days;
+    
+    // Update the visualization
+    updateVisualization();
+});
+
+// Reset button - resets experiment to initial state
+resetBtn.addEventListener('click', () => {
+    // Reset state
+    currentState.days = 0;
+    currentState.lightIntensity = 'no-light';
+    
+    // Reset UI elements
+    timeSlider.value = 0;
+    dayDisplay.textContent = '0';
+    dayCounter.textContent = '0';
+    
+    // Reset light buttons
+    lightButtons.forEach(btn => btn.classList.remove('active'));
+    lightButtons[0].classList.add('active');
+    
+    // Update visualization
+    updateVisualization();
+    
+    // Visual feedback
+    resetBtn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        resetBtn.style.transform = 'scale(1)';
+    }, 100);
+});
+
+// ============================================
+// VISUALIZATION UPDATE FUNCTIONS
+// ============================================
+
+/**
+ * Main function to update the entire visualization
+ * Called whenever light intensity or time changes
+ */
+function updateVisualization() {
+    updateBackground();
+    updatePlantGrowth();
+    updateObservation();
+    updateLearningSummary();
+}
+
+/**
+ * Updates the background color based on light intensity
+ */
+function updateBackground() {
+    // Remove all background classes
+    background.classList.remove('no-light-bg', 'some-light-bg', 'bright-light-bg');
+    
+    // Add the appropriate background class
+    background.classList.add(`${currentState.lightIntensity}-bg`);
+}
+
+/**
+ * Updates plant height and appearance based on light and time
+ */
+function updatePlantGrowth() {
+    const { lightIntensity, days } = currentState;
+    const growthInfo = growthData[lightIntensity];
+    
+    // Calculate plant height based on days and light intensity
+    // Growth is proportional to time (days/14) and maximum height for that light level
+    const growthProgress = days / 14; // 0 to 1
+    const currentHeight = growthInfo.maxHeight * growthProgress;
+    
+    // Update plant height
+    plant.style.height = `${currentHeight}px`;
+    
+    // Update health status
+    plant.classList.remove('unhealthy', 'moderate', 'healthy');
+    if (lightIntensity === 'no-light' && days > 0) {
+        plant.classList.add('unhealthy');
+    }
+    
+    // Show leaves based on growth stage
+    updateLeaves(growthProgress, lightIntensity);
+}
+
+/**
+ * Shows/hides leaves based on plant growth progress
+ * @param {number} progress - Growth progress from 0 to 1
+ * @param {string} lightIntensity - Current light intensity
+ */
+function updateLeaves(progress, lightIntensity) {
+    const leaves = document.querySelectorAll('.leaf');
+    
+    // Leaves appear at different stages of growth
+    leaves.forEach((leaf, index) => {
+        const appearThreshold = (index + 1) * 0.2; // Leaves appear at 20%, 40%, 60%, 80%, 100%
+        
+        if (progress >= appearThreshold) {
+            leaf.style.opacity = '1';
+            
+            // Adjust leaf color based on light intensity
+            if (lightIntensity === 'no-light') {
+                leaf.style.background = '#9e9d24'; // Yellow-green for unhealthy
+            } else if (lightIntensity === 'some-light') {
+                leaf.style.background = '#81c784'; // Light green
+            } else {
+                leaf.style.background = '#66bb6a'; // Healthy green
+            }
+        } else {
+            leaf.style.opacity = '0';
+        }
+    });
+}
+
+/**
+ * Updates the observation text based on current conditions
+ */
+function updateObservation() {
+    const { lightIntensity, days } = currentState;
+    
+    if (days === 0) {
+        observationText.textContent = "Move the slider to see how plants grow over 14 days!";
+        return;
+    }
+    
+    // Determine growth stage
+    let stage;
+    if (days <= 5) {
+        stage = 'early';
+    } else if (days <= 10) {
+        stage = 'mid';
+    } else {
+        stage = 'late';
+    }
+    
+    // Get appropriate observation message
+    observationText.textContent = observations[lightIntensity][stage];
+}
+
+/**
+ * Updates the learning summary at the bottom
+ */
+function updateLearningSummary() {
+    const { lightIntensity } = currentState;
+    learningSummary.textContent = learningSummaries[lightIntensity];
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+/**
+ * Initialize the experiment on page load
+ */
+function init() {
+    // Set initial visualization
+    updateVisualization();
+    
+    // Add smooth transitions
+    plant.style.transition = 'height 0.5s ease';
+    
+    console.log('Plant Growth Experiment initialized');
+}
+
+// Run initialization when DOM is fully loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// ============================================
+// ACCESSIBILITY ENHANCEMENTS
+// ============================================
+
+// Keyboard navigation support for buttons
+lightButtons.forEach(button => {
+    button.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            button.click();
+        }
+    });
+});
+
+resetBtn.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        resetBtn.click();
+    }
+});
+
+// ============================================
+// TOUCH OPTIMIZATION
+// ============================================
+
+// Prevent double-tap zoom on buttons for better mobile experience
+const buttons = document.querySelectorAll('button');
+buttons.forEach(button => {
+    button.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        button.click();
+    });
+});
+
+// Optimize slider for touch
+timeSlider.addEventListener('touchmove', (e) => {
+    // Ensure smooth sliding on touch devices
+    const touch = e.touches[0];
+    const slider = e.target;
+    const rect = slider.getBoundingClientRect();
+    const percent = (touch.clientX - rect.left) / rect.width;
+    const value = Math.round(percent * (slider.max - slider.min) + parseInt(slider.min));
+    
+    if (value >= slider.min && value <= slider.max) {
+        slider.value = value;
+        currentState.days = value;
+        dayDisplay.textContent = value;
+        dayCounter.textContent = value;
+        updateVisualization();
+    }
+});

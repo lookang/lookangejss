@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-SG">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>新加坡地铁大富翁 3D - AI 增强版</title>
+    <!-- Three.js Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Noto Sans SC', sans-serif; background-color: #1a202c; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        /* UI Overlay Layer */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .pointer-events-auto { pointer-events: auto; }
+        
+        /* Animations */
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes bounce-in { 0% { transform: scale(0.8); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+        
+        .animate-bounce-in { animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .modal-box {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            animation: popIn 0.3s ease-out forwards;
+            border: 4px solid #4299e1;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            min-width: 140px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-active {
+            transform: scale(1.1);
+            border-color: #ECC94B;
+            background: #fff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 0 20px rgba(236, 201, 75, 0.6);
+            z-index: 20;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #f3f4f6;
+        }
+
+        .station-img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            background-color: #eee;
+            border: 2px solid #e2e8f0;
+        }
+
+        /* Dice Styles */
+        .dice-container { perspective: 1000px; width: 60px; height: 60px; }
+        .dice { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .dice-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #333; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; box-shadow: inset 0 0 15px rgba(0,0,0,0.1); backface-visibility: hidden; }
+        
+        .face-1 { transform: translateZ(30px); }
+        .face-2 { transform: rotateY(180deg) translateZ(30px); }
+        .face-3 { transform: rotateY(90deg) translateZ(30px); }
+        .face-4 { transform: rotateY(-90deg) translateZ(30px); }
+        .face-5 { transform: rotateX(90deg) translateZ(30px); }
+        .face-6 { transform: rotateX(-90deg) translateZ(30px); }
+
+        .font-title { font-family: 'Ma Shan Zheng', cursive; }
+
+        /* HUD Buttons */
+        .hud-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.4);
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+        }
+        .hud-btn:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.1); }
+
+        /* Bottom Control Bar */
+        .control-bar {
+            background: rgba(23, 23, 23, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3498db;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* AI Sparkle Effect */
+        .ai-btn {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: transform 0.2s;
+        }
+        .ai-btn:hover { transform: scale(1.05); }
+        .ai-text {
+            background: -webkit-linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+</head>
+<body>
+
+    <!-- Rules / Start Modal (Visible by default) -->
+    <div id="rules-modal" class="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm pointer-events-auto">
+        <div class="bg-white p-8 rounded-3xl max-w-md w-full text-center shadow-2xl border-4 border-yellow-400 relative animate-bounce-in mx-4">
+            <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 text-6xl filter drop-shadow-lg">🇸🇬</div>
+            <h1 class="text-3xl font-black text-blue-800 mb-2 mt-6 font-title">新加坡地铁大富翁</h1>
+            <p class="text-gray-500 text-sm mb-6">探索全岛，学习知识，成为地产大亨！</p>
+            
+            <div class="text-left bg-blue-50 p-5 rounded-xl mb-6 border border-blue-100 shadow-inner">
+                <h3 class="font-bold text-blue-700 mb-3 flex items-center gap-2">
+                    <span>🎮</span> 游戏规则：
+                </h3>
+                <ul class="text-sm text-gray-700 space-y-2">
+                    <li class="flex items-start gap-2"><span class="text-blue-500 font-bold">•</span> <span><span class="font-bold">掷骰子：</span> 轮流移动，探索新加坡。</span></li>
+                    <li class="flex items-start gap-2"><span class="text-blue-500 font-bold">•</span> <span><span class="font-bold">答题买地：</span> 走到空地，答对 AI 问题即可购买。</span></li>
+                    <li class="flex items-start gap-2"><span class="text-blue-500 font-bold">•</span> <span><span class="font-bold">收租金：</span> 对手走到你的地盘需要付钱。</span></li>
+                    <li class="flex items-start gap-2"><span class="text-blue-500 font-bold">•</span> <span><span class="font-bold">机会命运：</span> 触发随机事件，好运或倒霉！</span></li>
+                    <li class="flex items-start gap-2"><span class="text-green-600 font-bold">🏆</span> <span><span class="font-bold text-green-700">获胜条件：</span> 让对手资金归零（破产）。</span></li>
+                </ul>
+            </div>
+
+            <button onclick="game.startGame()" class="bg-gradient-to-r from-green-500 to-green-700 text-white font-bold py-3 px-12 rounded-full text-xl shadow-lg transform transition hover:scale-105 hover:shadow-xl border-b-4 border-green-900 flex items-center justify-center gap-2 mx-auto">
+                <span>🚀</span> 开始游戏
+            </button>
+        </div>
+    </div>
+
+    <div id="game-container"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="p-4">
+        
+        <!-- TOP BAR: Players & Status -->
+        <div class="flex justify-between items-start w-full pointer-events-auto relative">
+            
+            <!-- Player 1 (Left) -->
+            <div id="p1-card" class="player-card border-l-4 border-red-500">
+                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Felix" class="avatar bg-red-100">
+                <div class="flex flex-col">
+                    <span class="text-sm font-bold text-gray-800 leading-none">玩家 1</span>
+                    <span class="text-lg font-black text-red-600 leading-tight" id="p1-money">$1500</span>
+                    <span class="text-xs text-gray-500 truncate max-w-[80px]" id="p1-loc">起点</span>
+                </div>
+            </div>
+
+            <!-- Center Title & Turn Info -->
+            <div class="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 w-full max-w-xs">
+                <div class="bg-white bg-opacity-90 px-4 py-1 rounded-b-xl shadow-md border-t-0 border-2 border-blue-400">
+                    <h1 class="text-lg font-bold text-blue-800 font-title text-center whitespace-nowrap">🇸🇬 新加坡地铁大富翁</h1>
+                </div>
+                
+                <!-- Turn Indicator -->
+                <div id="turn-indicator" class="bg-yellow-400 text-white px-6 py-1 rounded-full text-sm font-bold shadow-lg animate-pulse border-2 border-yellow-200">
+                    当前回合: 玩家 1
+                </div>
+
+                <!-- Tiny Tools -->
+                <div class="flex gap-2 mt-1 opacity-80 hover:opacity-100 transition">
+                    <button onclick="game.toggleCamera()" id="cam-btn" class="w-8 h-8 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70">🎥</button>
+                    <button onclick="toggleSound()" id="sound-btn" class="w-8 h-8 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70">🔊</button>
+                    <button onclick="game.showRules()" class="w-8 h-8 rounded-full bg-yellow-500 text-white font-bold flex items-center justify-center hover:bg-yellow-600">?</button>
+                </div>
+            </div>
+
+            <!-- Player 2 (Right) -->
+            <div id="p2-card" class="player-card border-r-4 border-blue-500 flex-row-reverse text-right">
+                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Abby" class="avatar bg-blue-100">
+                <div class="flex flex-col">
+                    <span class="text-sm font-bold text-gray-800 leading-none">玩家 2</span>
+                    <span class="text-lg font-black text-blue-600 leading-tight" id="p2-money">$1500</span>
+                    <span class="text-xs text-gray-500 truncate max-w-[80px]" id="p2-loc">起点</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Container (Center) -->
+        <div id="modal-container" class="absolute inset-0 flex items-center justify-center pointer-events-none z-50 p-4"></div>
+
+        <!-- BOTTOM BAR: Controls -->
+        <div class="pointer-events-auto flex flex-col items-center w-full pb-4">
+            
+            <!-- Game Log -->
+            <div id="game-log" class="mb-3 bg-black bg-opacity-60 text-white px-4 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm">
+                准备开始...
+            </div>
+
+            <!-- Control Console -->
+            <div class="control-bar flex items-center gap-6 px-6 py-3">
+                <!-- Dice -->
+                <div class="dice-container transform scale-75">
+                    <div id="dice" class="dice">
+                        <div class="dice-face face-1">1</div>
+                        <div class="dice-face face-2">2</div>
+                        <div class="dice-face face-3">3</div>
+                        <div class="dice-face face-4">4</div>
+                        <div class="dice-face face-5">5</div>
+                        <div class="dice-face face-6">6</div>
+                    </div>
+                </div>
+
+                <!-- Roll Button -->
+                <button id="roll-btn" onclick="game.rollDice()" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-6 rounded-xl shadow-lg transform transition active:scale-95 border-b-4 border-green-800 flex items-center gap-2">
+                    <span class="text-2xl">🎲</span>
+                    <div class="flex flex-col items-start">
+                        <span class="text-sm font-bold leading-none">掷骰子</span>
+                        <span class="text-[10px] opacity-80 font-mono leading-none">ROLL</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; 
+
+        // --- Gemini API Helpers ---
+        // 1. Text Generation (Quiz, Facts)
+        async function callGemini(prompt, systemInstruction = "You are a game master for a Singapore MRT Monopoly game.") {
+            if (!apiKey) return null;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                generationConfig: { responseMimeType: "application/json" }
+            };
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(response.statusText);
+                const data = await response.json();
+                return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+            } catch (e) { 
+                console.error("Gemini API Error:", e);
+                return null; 
+            }
+        }
+
+        // 2. Text-to-Speech (TTS)
+        async function callGeminiTTS(text) {
+            if (!apiKey) return;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: text }] }],
+                generationConfig: { 
+                    responseModalities: ["AUDIO"],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                }
+            };
+
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(response.statusText);
+                const data = await response.json();
+                const audioData = data.candidates[0].content.parts[0].inlineData.data;
+                
+                const pcmData = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
+                const wavBytes = pcmToWav(pcmData, 24000); // Kore is usually 24kHz
+                const blob = new Blob([wavBytes], { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(blob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+            } catch (e) {
+                console.error("TTS Error:", e);
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'zh-CN';
+                speechSynthesis.speak(u);
+            }
+        }
+
+        // Helper: PCM to WAV Converter
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1;
+            const byteRate = sampleRate * numChannels * 2;
+            const blockAlign = numChannels * 2;
+            const dataSize = pcmData.length;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); 
+            view.setUint16(20, 1, true); 
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true); 
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+            const pcmView = new Uint8Array(buffer, 44);
+            pcmView.set(pcmData);
+            return buffer;
+        }
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+
+        // --- 1. Expanded Data: 20 Stations ---
+        const STATIONS = [
+            // Side 1 (West/North)
+            { id: 0, name: "起点", en: "Start", type: "start", color: "#ffffff", price: 0 },
+            { 
+                id: 1, name: "裕廊东", en: "Jurong East", type: "prop", color: "#009e3e", price: 200, rent: 30, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/NS1_Jurong_East_MRT_Exit_B_20200923_170556.jpg/640px-NS1_Jurong_East_MRT_Exit_B_20200923_170556.jpg",
+                desc: "西部最大的换乘站。", question: "裕廊东是红线和哪条线的换乘站？", options: ["绿线", "紫线", "蓝线"], answer: 0 
+            },
+            { 
+                id: 2, name: "金文泰", en: "Clementi", type: "prop", color: "#009e3e", price: 220, rent: 35, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/EW23_Clementi_MRT_Station_Exit_D_20200923_172648.jpg/640px-EW23_Clementi_MRT_Station_Exit_D_20200923_172648.jpg",
+                desc: "大学城门户。", question: "金文泰附近有一所著名的大学是？", options: ["NTU", "NUS", "SMU"], answer: 1
+            },
+            { 
+                id: 3, name: "波那维斯达", en: "Buona Vista", type: "prop", color: "#fab005", price: 240, rent: 40, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/EW21_Buona_Vista_Platform_A_201303.jpg/640px-EW21_Buona_Vista_Platform_A_201303.jpg",
+                desc: "邻近科技园和星悦汇。", question: "Buona Vista 意思是？", options: ["美好景色", "远方", "高山"], answer: 0
+            },
+            { 
+                id: 4, name: "兀兰", en: "Woodlands", type: "prop", color: "#d63031", price: 250, rent: 40, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/NS9_Woodlands_Exit_5_20200919_190203.jpg/640px-NS9_Woodlands_Exit_5_20200919_190203.jpg",
+                desc: "通往马来西亚的门户。", question: "兀兰最著名的地标是？", options: ["长堤", "机场", "港口"], answer: 0
+            },
+            
+            // Corner 1
+            { id: 5, name: "监狱", en: "Jail", type: "jail", color: "#2d3436", price: 0 },
+
+            // Side 2 (Central/North)
+            { 
+                id: 6, name: "宏茂桥", en: "Ang Mo Kio", type: "prop", color: "#d63031", price: 260, rent: 45, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/NS16_Ang_Mo_Kio_Exit_C.jpg/640px-NS16_Ang_Mo_Kio_Exit_C.jpg",
+                desc: "新加坡最早的市镇之一。", question: "Ang Mo Kio 名字的来源可能与什么有关？", options: ["红毛番茄", "红毛桥", "红毛丹"], answer: 0
+            },
+            { 
+                id: 7, name: "碧山", en: "Bishan", type: "prop", color: "#d63031", price: 280, rent: 45, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/NS17_Bishan_MRT_Exit_C.jpg/640px-NS17_Bishan_MRT_Exit_C.jpg",
+                desc: "拥有著名的碧山公园。", question: "碧山以前主要是？", options: ["坟场", "矿场", "农场"], answer: 0
+            },
+            { 
+                id: 8, name: "大巴窑", en: "Toa Payoh", type: "prop", color: "#d63031", price: 280, rent: 45, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/NS19_Toa_Payoh_Exit_D.jpg/640px-NS19_Toa_Payoh_Exit_D.jpg",
+                desc: "建屋局总部的所在地。", question: "Toa Payoh 在方言中的意思是？", options: ["大沼泽", "大森林", "大广场"], answer: 0
+            },
+            { 
+                id: 9, name: "纽顿", en: "Newton", type: "prop", color: "#d63031", price: 300, rent: 50, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/NS21_DT11_Newton_MRT_Exit_C_20210918_115847.jpg/640px-NS21_DT11_Newton_MRT_Exit_C_20210918_115847.jpg",
+                desc: "以熟食中心闻名。", question: "纽顿熟食中心在电影《疯狂富豪》中出现过吗？", options: ["有", "没有", "不确定"], answer: 0
+            },
+
+            // Corner 2
+            { id: 10, name: "休息", en: "Rest", type: "chance", color: "#00cec9", price: 0 },
+
+            // Side 3 (East)
+            { 
+                id: 11, name: "巴耶利峇", en: "Paya Lebar", type: "prop", color: "#009e3e", price: 320, rent: 55, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/EW8_CC9_Paya_Lebar_Exit_C_20210214_153303.jpg/640px-EW8_CC9_Paya_Lebar_Exit_C_20210214_153303.jpg",
+                desc: "重要的商业中心。", question: "Paya Lebar 意思是？", options: ["宽阔的沼泽", "长长的河流", "高高的山丘"], answer: 0
+            },
+            { 
+                id: 12, name: "勿洛", en: "Bedok", type: "prop", color: "#009e3e", price: 300, rent: 50, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/EW5_Bedok_MRT_Exit_B_20201008_165532.jpg/640px-EW5_Bedok_MRT_Exit_B_20201008_165532.jpg",
+                desc: "人口最多的住宅区之一。", question: "勿洛著名的美食是？", options: ["肉脞面", "鸡饭", "叻沙"], answer: 0
+            },
+            { 
+                id: 13, name: "淡滨尼", en: "Tampines", type: "prop", color: "#009e3e", price: 340, rent: 60, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/EW2_DT32_Tampines_MRT_Exit_C_20201008_161700.jpg/640px-EW2_DT32_Tampines_MRT_Exit_C_20201008_161700.jpg",
+                desc: "东部的区域中心。", question: "淡滨尼名字源于？", options: ["一种树木 (鹊肾树)", "一种水果", "一种动物"], answer: 0
+            },
+            { 
+                id: 14, name: "樟宜机场", en: "Changi Airport", type: "prop", color: "#009e3e", price: 400, rent: 80, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Changi_Airport_MRT_Station_Platform.jpg/640px-Changi_Airport_MRT_Station_Platform.jpg",
+                desc: "世界最佳机场之一。", question: "樟宜机场有几个航站楼（不含星耀樟宜）？", options: ["4个", "3个", "5个"], answer: 0
+            },
+
+            // Corner 3
+            { id: 15, name: "命运", en: "Chance", type: "chance", color: "#a29bfe", price: 0 },
+
+            // Side 4 (City)
+            { 
+                id: 16, name: "武吉士", en: "Bugis", type: "prop", color: "#0984e3", price: 350, rent: 65, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/DT14_Bugis_MRT_Exit_D_20201128_173355.jpg/640px-DT14_Bugis_MRT_Exit_D_20201128_173355.jpg",
+                desc: "历史悠久的商圈。", question: "武吉士街以前以什么闻名？", options: ["夜市", "海盗", "造船厂"], answer: 0
+            },
+            { 
+                id: 17, name: "政府大厦", en: "City Hall", type: "prop", color: "#d63031", price: 380, rent: 70, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/EW13_NS25_City_Hall_MRT_Exit_B_20200905_163208.jpg/640px-EW13_NS25_City_Hall_MRT_Exit_B_20200905_163208.jpg",
+                desc: "位于历史区的中心。", question: "政府大厦附近的历史建筑是？", options: ["国家美术馆", "植物园", "动物园"], answer: 0
+            },
+            { 
+                id: 18, name: "莱佛士坊", en: "Raffles Place", type: "prop", color: "#d63031", price: 400, rent: 75, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/NS26_EW14_Raffles_Place_MRT_Exit_A.jpg/640px-NS26_EW14_Raffles_Place_MRT_Exit_A.jpg",
+                desc: "新加坡的金融中心。", question: "莱佛士是新加坡的？", options: ["开埠者", "第一任总统", "著名厨师"], answer: 0
+            },
+            { 
+                id: 19, name: "滨海湾", en: "Marina Bay", type: "prop", color: "#d63031", price: 450, rent: 90, 
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/NS27_CE2_TE20_Marina_Bay_MRT_Exit_1_20221115_184524.jpg/640px-NS27_CE2_TE20_Marina_Bay_MRT_Exit_1_20221115_184524.jpg",
+                desc: "标志性的金沙酒店所在地。", question: "滨海湾金沙有几座塔楼？", options: ["3座", "2座", "4座"], answer: 0
+            }
+        ];
+
+        const CHANCE_CARDS = [
+            { text: "地铁故障，迟到了！扣除 $50。", amount: -50 },
+            { text: "让座给老人，获得奖励 $100！", amount: 100 },
+            { text: "捡到易通卡归还，奖励 $50。", amount: 50 },
+            { text: "在车厢饮食被罚款 $30。", amount: -30 },
+            { text: "国庆日免费乘车，获得补助 $20。", amount: 20 }
+        ];
+
+        // --- 2. Sound & Audio (Enhanced) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            const t = audioCtx.currentTime;
+
+            // Helper to create simple oscillator sound
+            const createOsc = (wavetype, freqStart, freqEnd, duration, delay = 0) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = wavetype;
+                osc.frequency.setValueAtTime(freqStart, t + delay);
+                if (freqEnd) {
+                    osc.frequency.exponentialRampToValueAtTime(freqEnd, t + delay + duration);
+                }
+                
+                gain.gain.setValueAtTime(0.1, t + delay);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + delay + duration);
+                
+                osc.start(t + delay);
+                osc.stop(t + delay + duration);
+            };
+
+            if (type === 'move') {
+                createOsc('sine', 400, 600, 0.1);
+            } else if (type === 'coin') {
+                createOsc('triangle', 1000, 1800, 0.1); // High pitch ping
+                createOsc('triangle', 1500, 2000, 0.1, 0.05); // Second ping for sparkle effect
+            } else if (type === 'bad') {
+                createOsc('sawtooth', 150, 100, 0.3);
+            } else if (type === 'correct') {
+                // Exciting Major Arpeggio (C5 - E5 - G5)
+                createOsc('sine', 523.25, null, 0.2, 0);    // Do
+                createOsc('sine', 659.25, null, 0.2, 0.1);  // Mi
+                createOsc('triangle', 783.99, null, 0.4, 0.2);  // Sol (Longer)
+            } else if (type === 'wrong') {
+                // Disappointing Slide Down
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, t);
+                osc.frequency.linearRampToValueAtTime(50, t + 0.4); // Pitch drop
+                
+                gain.gain.setValueAtTime(0.15, t);
+                gain.gain.linearRampToValueAtTime(0.01, t + 0.4);
+                
+                osc.start(t);
+                osc.stop(t + 0.4);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-btn').innerText = soundEnabled ? '🔊' : '🔇';
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // --- 3. Three.js Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 30, 120);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 45, 55); 
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1; 
+        controls.minDistance = 20; controls.maxDistance = 100;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(30, 50, 30);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.left = -40; dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 40; dirLight.shadow.camera.bottom = -40;
+        dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        const water = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0x3498db, transparent: true, opacity: 0.8 }));
+        water.rotation.x = -Math.PI / 2; water.position.y = -2;
+        scene.add(water);
+
+        const island = new THREE.Mesh(new THREE.BoxGeometry(55, 1, 55), new THREE.MeshStandardMaterial({ color: 0x2ecc71 }));
+        island.position.y = -0.5; island.receiveShadow = true;
+        scene.add(island);
+
+        const centerPole = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 6, 8), new THREE.MeshStandardMaterial({color: 0xFFFFFF}));
+        centerPole.position.y = 3; scene.add(centerPole);
+        const flag = new THREE.Mesh(new THREE.BoxGeometry(4, 2.5, 0.2), new THREE.MeshStandardMaterial({color: 0xe74c3c}));
+        flag.position.set(0, 5, 0); scene.add(flag);
+
+        // --- 4. Procedural Board Generation ---
+        const boardScale = 18; const tilesPerSide = 5; const stepSize = (boardScale * 2) / tilesPerSide; 
+        const pathCoords = [];
+        for (let i = 0; i < 20; i++) {
+            let x, z, rot;
+            if (i === 0) { x = -boardScale; z = boardScale; rot = Math.PI/2; }
+            else if (i > 0 && i < 5) { x = -boardScale; z = boardScale - (i * stepSize); rot = Math.PI/2; }
+            else if (i === 5) { x = -boardScale; z = -boardScale; rot = 0; }
+            else if (i > 5 && i < 10) { x = -boardScale + ((i - 5) * stepSize); z = -boardScale; rot = 0; }
+            else if (i === 10) { x = boardScale; z = -boardScale; rot = -Math.PI/2; }
+            else if (i > 10 && i < 15) { x = boardScale; z = -boardScale + ((i - 10) * stepSize); rot = -Math.PI/2; }
+            else if (i === 15) { x = boardScale; z = boardScale; rot = Math.PI; }
+            else if (i > 15) { x = boardScale - ((i - 15) * stepSize); z = boardScale; rot = Math.PI; }
+            pathCoords.push({x, z, rot});
+        }
+
+        const trackMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+        const tW = 0.8; const len = boardScale * 2 + 4;
+        const trackL = new THREE.Mesh(new THREE.BoxGeometry(tW, 0.2, len), trackMat); trackL.position.set(-boardScale, 0.1, 0); scene.add(trackL);
+        const trackR = new THREE.Mesh(new THREE.BoxGeometry(tW, 0.2, len), trackMat); trackR.position.set(boardScale, 0.1, 0); scene.add(trackR);
+        const trackT = new THREE.Mesh(new THREE.BoxGeometry(len, 0.2, tW), trackMat); trackT.position.set(0, 0.1, -boardScale); scene.add(trackT);
+        const trackB = new THREE.Mesh(new THREE.BoxGeometry(len, 0.2, tW), trackMat); trackB.position.set(0, 0.1, boardScale); scene.add(trackB);
+
+        const texLoader = new THREE.TextureLoader();
+        texLoader.crossOrigin = 'anonymous';
+
+        function createTile(station, index) {
+            const coord = pathCoords[index];
+            const group = new THREE.Group();
+            group.position.set(coord.x, 0, coord.z);
+            group.rotation.y = coord.rot;
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#f0f0f0'; ctx.fillRect(0,0,256,256);
+            ctx.fillStyle = station.color; ctx.fillRect(0,0,256,60);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 4; ctx.strokeRect(0,0,256,256);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = (station.color === '#ffffff') ? 'black' : 'white';
+            ctx.font = 'bold 30px Arial'; ctx.fillText(station.en, 128, 40);
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 50px "Noto Sans SC"'; ctx.fillText(station.name, 128, 130);
+            if(station.price > 0) { ctx.fillStyle = '#e67e22'; ctx.font = 'bold 40px Arial'; ctx.fillText(`$${station.price}`, 128, 200); } 
+            else { ctx.fillStyle = '#7f8c8d'; ctx.font = 'italic 30px Arial'; ctx.fillText(station.type === 'start' ? "GO ->" : station.type.toUpperCase(), 128, 200); }
+            const tex = new THREE.CanvasTexture(canvas);
+            const tile = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, 3.5), [
+                new THREE.MeshLambertMaterial({color:0xecf0f1}), new THREE.MeshLambertMaterial({color:0xecf0f1}),
+                new THREE.MeshLambertMaterial({map:tex}), new THREE.MeshLambertMaterial({color:0xecf0f1}),
+                new THREE.MeshLambertMaterial({color:0xecf0f1}), new THREE.MeshLambertMaterial({color:0xecf0f1})
+            ]);
+            tile.position.y = 0.2; tile.rotation.y = -Math.PI / 2; tile.receiveShadow = true; group.add(tile);
+            if (station.type === 'prop' && station.image) {
+                const bH = 2.5;
+                const imgTex = texLoader.load(station.image);
+                imgTex.center.set(0.5, 0.5);
+                const bMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+                const imgMat = new THREE.MeshBasicMaterial({ map: imgTex });
+                const building = new THREE.Mesh(new THREE.BoxGeometry(3, bH, 0.5), [bMat, bMat, bMat, bMat, imgMat, bMat]);
+                building.position.set(0, 0.4 + bH/2, -1.5); building.castShadow = true; group.add(building);
+            } else if (station.type === 'chance' || station.type === 'jail' || station.type === 'start') {
+                const markerGeo = new THREE.CylinderGeometry(0.5, 0.5, 2);
+                const markerMat = new THREE.MeshLambertMaterial({color: station.color === '#ffffff' ? 0x333333 : station.color});
+                const marker = new THREE.Mesh(markerGeo, markerMat);
+                marker.position.set(0, 1.5, -1); group.add(marker); station.animObj = marker;
+            }
+            const houseGroup = new THREE.Group();
+            houseGroup.position.set(0, 4, -1.5); group.add(houseGroup); station.houseGroup = houseGroup;
+            scene.add(group);
+            station.worldPos = new THREE.Vector3(coord.x, 0.1, coord.z);
+        }
+        STATIONS.forEach((s, i) => createTile(s, i));
+
+        // --- 5. Player & Game Logic ---
+        const p1Mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 1.5, 16), new THREE.MeshPhongMaterial({ color: 0xe74c3c }));
+        p1Mesh.add(new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshPhongMaterial({ color: 0xe74c3c })).translateY(0.8));
+        const p2Mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 1.5, 16), new THREE.MeshPhongMaterial({ color: 0x3498db }));
+        p2Mesh.add(new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.6, 16), new THREE.MeshPhongMaterial({ color: 0x3498db })).translateY(1.0));
+        p1Mesh.castShadow = true; p2Mesh.castShadow = true; scene.add(p1Mesh); scene.add(p2Mesh);
+
+        class Player {
+            constructor(id, name, mesh, offset) {
+                this.id = id; this.name = name; this.money = 1500; this.posIndex = 0; this.mesh = mesh; this.offset = offset; this.properties = [];
+                this.updatePos(0, true);
+            }
+            updatePos(index, instant = false) {
+                this.posIndex = index;
+                const dest = STATIONS[index].worldPos;
+                this.mesh.position.set(dest.x + this.offset, 0.8, dest.z + this.offset);
+                document.getElementById(`p${this.id}-money`).innerText = `$${this.money}`;
+                document.getElementById(`p${this.id}-loc`).innerText = STATIONS[index].name;
+            }
+            pay(amount) { 
+                this.money -= amount; 
+                playSound('bad'); 
+                this.updateUI(); 
+                
+                // Check Bankruptcy Win Condition
+                if (this.money < 0) {
+                    const winnerId = this.id === 1 ? 2 : 1;
+                    game.declareWinner(winnerId);
+                }
+            }
+            earn(amount) { this.money += amount; playSound('coin'); this.updateUI(); }
+            updateUI() { document.getElementById(`p${this.id}-money`).innerText = `$${this.money}`; }
+        }
+
+        const game = {
+            turn: 1,
+            players: [new Player(1, "P1", p1Mesh, -0.6), new Player(2, "P2", p2Mesh, 0.6)],
+            state: 'idle', cameraMode: 'free',
+            log: function(msg) { document.getElementById('game-log').innerText = msg; },
+            toggleCamera: function() {
+                this.cameraMode = this.cameraMode === 'free' ? 'follow' : 'free';
+                document.getElementById('cam-btn').innerText = this.cameraMode === 'free' ? '🎥' : '👁️';
+                controls.enabled = (this.cameraMode === 'free');
+            },
+            startGame: function() {
+                document.getElementById('rules-modal').style.display = 'none';
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                playSound('coin');
+                this.log("游戏开始！轮到 玩家 1。");
+            },
+            showRules: function() {
+                 const modal = document.getElementById('rules-modal');
+                 modal.style.display = 'flex';
+                 const btn = modal.querySelector('button');
+                 btn.innerHTML = '<span>▶</span> 继续游戏 (Resume)';
+                 btn.onclick = function() { modal.style.display = 'none'; }
+            },
+            switchTurn: function() {
+                if (this.state === 'gameover') return; // Stop logic if game over
+
+                this.turn = this.turn === 1 ? 2 : 1;
+                const p1Card = document.getElementById('p1-card');
+                const p2Card = document.getElementById('p2-card');
+                if(this.turn === 1) {
+                    p1Card.classList.add('player-active'); p2Card.classList.remove('player-active');
+                    document.getElementById('turn-indicator').innerText = "当前回合: 玩家 1";
+                    document.getElementById('turn-indicator').classList.replace('bg-blue-400', 'bg-yellow-400');
+                } else {
+                    p2Card.classList.add('player-active'); p1Card.classList.remove('player-active');
+                    document.getElementById('turn-indicator').innerText = "当前回合: 玩家 2";
+                    document.getElementById('turn-indicator').classList.replace('bg-yellow-400', 'bg-blue-400');
+                }
+                this.state = 'idle';
+            },
+            getCurrentPlayer: function() { return this.players[this.turn - 1]; },
+            
+            // --- Winner Logic ---
+            declareWinner: function(winnerId) {
+                this.state = 'gameover';
+                const winnerName = winnerId === 1 ? "玩家 1" : "玩家 2";
+                const colorClass = winnerId === 1 ? "text-red-600" : "text-blue-600";
+                const avatarUrl = winnerId === 1 ? "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix" : "https://api.dicebear.com/7.x/adventurer/svg?seed=Abby";
+
+                document.getElementById('modal-container').innerHTML = `
+                    <div class="modal-box p-8 text-center pointer-events-auto flex flex-col items-center animate-bounce">
+                        <div class="text-6xl mb-4">🏆</div>
+                        <img src="${avatarUrl}" class="w-24 h-24 rounded-full border-4 border-yellow-400 shadow-lg mb-4 bg-white">
+                        <h2 class="text-4xl font-black ${colorClass} mb-2">恭喜 ${winnerName}!</h2>
+                        <p class="text-xl text-gray-600 font-bold mb-6">你是新加坡地铁大富翁！</p>
+                        <p class="text-sm text-gray-500 mb-6">对手已经破产了。</p>
+                        <button onclick="location.reload()" class="bg-gradient-to-r from-green-400 to-green-600 text-white px-8 py-3 rounded-full font-bold text-xl hover:scale-105 transition shadow-lg border-b-4 border-green-800">
+                            再玩一次 (Play Again)
+                        </button>
+                    </div>
+                `;
+                
+                // Victory Sound (Simulated by multiple coin sounds)
+                for(let i=0; i<5; i++) {
+                    setTimeout(() => playSound('coin'), i * 200);
+                }
+            },
+
+            rollDice: function() {
+                if (this.state !== 'idle') return;
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                this.state = 'rolling';
+                const roll = Math.floor(Math.random() * 6) + 1;
+                const diceEl = document.getElementById('dice');
+                diceEl.style.transform = `rotateX(${Math.random()*720}deg) rotateY(${Math.random()*720}deg)`;
+                setTimeout(() => {
+                    const rot = {1:[0,0],2:[0,180],3:[0,-90],4:[0,90],5:[-90,0],6:[90,0]}[roll];
+                    diceEl.style.transform = `rotateX(${rot[0]}deg) rotateY(${rot[1]}deg)`;
+                    this.movePlayer(roll);
+                }, 800);
+            },
+            movePlayer: function(steps) {
+                const p = this.getCurrentPlayer();
+                let stepsLeft = steps;
+                this.cameraMode = 'follow'; controls.enabled = false; document.getElementById('cam-btn').innerText = '👁️';
+                const timer = setInterval(() => {
+                    if (stepsLeft > 0) {
+                        p.posIndex = (p.posIndex + 1) % STATIONS.length;
+                        p.updatePos(p.posIndex);
+                        playSound('move');
+                        if (p.posIndex === 0) { p.earn(200); this.log("经过起点，奖励 $200!"); }
+                        stepsLeft--;
+                    } else {
+                        clearInterval(timer);
+                        this.handleLanding();
+                    }
+                }, 400);
+            },
+            handleLanding: function() {
+                const p = this.getCurrentPlayer();
+                const s = STATIONS[p.posIndex];
+                setTimeout(() => {
+                    if (s.type === 'prop') {
+                        if (s.owner === undefined) this.showBuyModal(s);
+                        else if (s.owner !== p.id) this.payRent(p, s);
+                        else this.switchTurn();
+                    } else if (s.type === 'chance') {
+                        this.drawChanceCard(p);
+                    } else if (s.type === 'jail') {
+                         p.pay(50); this.log("罚款 $50"); setTimeout(()=>this.switchTurn(), 1500);
+                    } else this.switchTurn();
+                }, 500);
+            },
+            showBuyModal: function(s) {
+                const p = this.getCurrentPlayer();
+                if (p.money < s.price) { this.log("资金不足"); setTimeout(()=>this.switchTurn(), 1500); return; }
+                this.renderBuyModal(s);
+            },
+            renderBuyModal: function(s, isAI=false, aiData=null) {
+                const q = aiData ? aiData.question : s.question;
+                const opts = aiData ? aiData.options : s.options;
+                const ansIdx = aiData ? aiData.answer : s.answer;
+                s.tempAns = ansIdx;
+
+                document.getElementById('modal-container').innerHTML = `
+                    <div class="modal-box p-4 w-full max-w-sm pointer-events-auto text-center flex flex-col items-center">
+                        <div class="flex justify-between w-full items-center mb-1">
+                            <div class="text-left">
+                                <h2 class="text-2xl font-bold text-blue-800 leading-none">${s.name}</h2>
+                                <p class="text-sm font-bold text-gray-500">${s.en}</p>
+                            </div>
+                             <!-- AI TTS Button -->
+                            <button onclick="game.triggerTTS('${s.name}, ${s.en}。${s.desc}')" class="bg-blue-100 p-2 rounded-full hover:bg-blue-200 transition text-xl" title="朗读">🔊</button>
+                        </div>
+                        
+                        <img src="${s.image}" onerror="this.outerHTML='<div class=&quot;station-img mt-2 flex items-center justify-center bg-blue-50 text-6xl&quot;>🚂</div>'" class="station-img mt-2 w-full">
+                        
+                        <div class="w-full text-left bg-gray-50 p-2 rounded my-2 border border-gray-200">
+                            <p class="text-xs text-gray-600 mb-1">${s.desc}</p>
+                            <div class="flex justify-end">
+                                <button onclick="game.triggerAIGuide(${s.id})" class="text-xs ai-btn px-2 py-1 rounded font-bold flex items-center gap-1">
+                                    <span>✨</span> AI 导游趣闻
+                                </button>
+                            </div>
+                            <div id="ai-guide-content-${s.id}" class="hidden text-xs text-indigo-600 mt-2 border-t border-indigo-100 pt-1 italic"></div>
+                        </div>
+
+                        <div class="bg-yellow-100 px-3 py-1 rounded mb-3 font-bold text-sm shadow-sm">价格: $${s.price}</div>
+                        
+                        <div class="border-t pt-2 w-full">
+                            <div class="flex justify-between mb-2 text-sm font-bold text-blue-600 items-center">
+                                <span class="${isAI ? 'ai-text' : ''}">${isAI?'✨ AI 智能提问':'回答购买'}</span>
+                                <button onclick="game.triggerAI(${s.id})" class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs hover:bg-indigo-100 transition border border-indigo-200">✨ 换一题</button>
+                            </div>
+                            <p class="text-sm font-bold mb-2 text-left leading-snug">${q}</p>
+                            <div class="grid gap-2 w-full">
+                                ${opts.map((o,i)=>`<button onclick="game.answer(${i},${s.id})" class="bg-white border-2 border-blue-100 text-blue-800 py-2 rounded-lg text-sm text-left px-4 hover:bg-blue-50 hover:border-blue-300 transition shadow-sm">${o}</button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+            // AI Feature 1: Dynamic Quiz
+            triggerAI: async function(sid) {
+                const s = STATIONS[sid];
+                const btn = event.target;
+                btn.innerHTML = '<div class="loader"></div>';
+                const data = await callGemini(`Generate a multiple choice question about Singapore MRT station ${s.name} (${s.en}) suitable for primary school kids. Focus on history, landmarks, or color. Return JSON {question, options:[], answer:int_index}.`);
+                if(data) this.renderBuyModal(s, true, data);
+                else btn.innerText = "失败";
+            },
+            // AI Feature 2: Fun Fact Guide
+            triggerAIGuide: async function(sid) {
+                const s = STATIONS[sid];
+                const contentDiv = document.getElementById(`ai-guide-content-${s.id}`);
+                contentDiv.classList.remove('hidden');
+                contentDiv.innerHTML = '<div class="loader"></div> AI 正在翻阅旅游指南...';
+                
+                const fact = await callGemini(
+                    `Tell me a fun, short "Did you know?" fact about the Singapore MRT station area: ${s.name} (${s.en}). Keep it under 30 words, in Chinese, suitable for kids.`,
+                    "You are a friendly Singaporean tour guide."
+                );
+                
+                if(fact) {
+                    contentDiv.innerText = fact;
+                    // Auto-read the fact
+                    // game.triggerTTS(fact); 
+                } else {
+                    contentDiv.innerText = "AI 导游迷路了...";
+                }
+            },
+            // AI Feature 3: Text to Speech
+            triggerTTS: function(text) {
+                callGeminiTTS(text);
+            },
+
+            answer: function(idx, sid) {
+                const s = STATIONS[sid];
+                document.getElementById('modal-container').innerHTML = '';
+                if (idx === s.tempAns) {
+                    playSound('correct'); // Play exciting correct sound!
+                    this.getCurrentPlayer().pay(s.price);
+                    s.owner = this.getCurrentPlayer().id;
+                    this.log(`购买 ${s.name} 成功!`);
+                    const flag = new THREE.Mesh(new THREE.BoxGeometry(1, 0.6, 0.1), new THREE.MeshLambertMaterial({color: this.getCurrentPlayer().id===1?0xe74c3c:0x3498db}));
+                    flag.position.y = 0.5; s.houseGroup.add(flag);
+                } else {
+                    playSound('wrong'); // Play disappointing wrong sound
+                    this.log("回答错误!");
+                }
+                setTimeout(() => this.switchTurn(), 1500);
+            },
+            payRent: function(p, s) {
+                const owner = this.players.find(pl => pl.id === s.owner);
+                p.pay(s.rent); owner.earn(s.rent);
+                this.log(`支付租金 $${s.rent}`);
+                setTimeout(()=>this.switchTurn(), 1500);
+            },
+            drawChanceCard: function(p) {
+                const c = CHANCE_CARDS[Math.floor(Math.random()*CHANCE_CARDS.length)];
+                p.earn(c.amount);
+                document.getElementById('modal-container').innerHTML = `
+                    <div class="modal-box p-6 bg-yellow-50 pointer-events-auto text-center">
+                        <div class="text-4xl">⚡</div>
+                        <p class="my-4 font-bold">${c.text}</p>
+                        <button onclick="game.closeModal()" class="bg-yellow-500 text-white px-6 py-2 rounded font-bold">确定</button>
+                    </div>
+                `;
+            },
+            closeModal: function() { document.getElementById('modal-container').innerHTML = ''; this.switchTurn(); }
+        };
+        
+        document.getElementById('p1-card').classList.add('player-active');
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            STATIONS.forEach(s => { if(s.animObj) s.animObj.rotation.y += 0.02; });
+            if (game.cameraMode === 'follow') {
+                const p = game.getCurrentPlayer();
+                const t = new THREE.Vector3(p.mesh.position.x, p.mesh.position.y + 15, p.mesh.position.z + 20);
+                camera.position.lerp(t, 0.05); controls.target.lerp(p.mesh.position, 0.05);
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+Note: this text prompt is re-made from the interactive, use as reference only.
+
+USER TASK SPECIFICATION:
+
+Create an interactive HTML5 **“Algebraic Expansion Whack-a-Mole”** arcade-style game where students practice expanding algebraic expressions by quickly identifying the correct expanded form among multiple moving options.
+
+TARGET AUDIENCE:
+- Upper Secondary / high-ability Lower Secondary Mathematics (algebra, ~14–17 years old)
+
+INTERACTIVE REQUIREMENTS:
+- A **whack-a-mole style grid** (3×3) of “moles”, each showing a candidate **expanded expression**.
+- At the top, display:
+  - The **current expression to expand** (question). Example forms:
+    - Level 1: `a(x + b)`
+    - Level 2: `a(bx + c)`
+    - Level 3: `(ax + b)(cx + d)`
+  - Instructions (e.g., “Find the expanded form and press SPACEBAR when the correct answer appears”).
+- Each mole:
+  - Pops up as “active” for a brief time with a candidate answer string.
+  - Has a visual “face” (e.g., 🐹) and a text region for the algebraic expression.
+- Game stats panel showing:
+  - **Score**.
+  - **Time remaining**.
+  - **Level**.
+  - **Lives**.
+- Control buttons:
+  - **START**: begins the game.
+  - **PAUSE/RESUME**: toggles pause state.
+  - **RESET**: resets entire game to initial state.
+- Game over modal at the end displaying final score, level reached, and a **Play Again** button.
+- A tooltip/info system explaining the game when hovering over UI elements.
+- Self-contained HTML, CSS, and JavaScript (no external game engine).
+- **MOBILE-FRIENDLY**:
+  - Moles are tap‑able on touch devices in addition to keyboard play.
+
+SPECIFIC REQUIREMENTS:
+
+Game state and difficulty
+- State variables:
+  - `score`, `level` (starting at 1), `lives` (e.g., 3), `timeRemaining` (e.g., 60 s).
+  - `isGameActive`, `isPaused`, `currentQuestion`, `correctAnswer`, `activeMoles`.
+  - Timers for overall game time and for mole cycles.
+- Level configuration (at least 3 levels):
+  - Level 1: questionType `simple`, slower mole speed (e.g., 3000 ms), expand `a(x + b)`.
+  - Level 2: questionType `linear`, medium speed (e.g., 2500 ms), expand `a(bx + c)`.
+  - Level 3: questionType `quadratic`, faster speed (e.g., 2000 ms), expand `(ax + b)(cx + d)`.
+- Level progression:
+  - Increase level when score crosses certain thresholds (e.g., score ≥ level × 50), and optionally add bonus time.
+
+Question generation
+- For each new question, based on the current level’s `questionType`:
+  - Level 1 (`simple`): randomly generate integers a, b (avoiding 0), then question is `a(x + b)`.
+    - Correct expansion: `ax + ab`, formatted with proper coefficient/ sign rules.
+  - Level 2 (`linear`): randomly generate a, b, c (avoiding 0), question `a(bx + c)`.
+    - Correct expansion: `abx + ac` with similar formatting.
+  - Level 3 (`quadratic`): randomly generate a, b, c, d, question `(ax + b)(cx + d)`.
+    - Correct expansion: `(ac)x² + (ad + bc)x + bd`, rendered using `x²` symbol and correct signs.
+- Formatting helpers:
+  - Omit coefficient 1; write `x` instead of `1x`.
+  - Use `-x` for coefficient −1.
+  - For constant and linear terms, prepend `+` or `−` appropriately.
+
+Mole answers
+- For each cycle:
+  - Generate one **correct** expanded expression and multiple **plausible incorrect** expressions.
+  - Fill the 9 mole answer slots with 1 correct and 8 distractors.
+    - Distractors might have sign mistakes, wrong coefficients, or missing terms, but still look algebraic.
+  - Shuffle the assignment of answers to moles.
+- Show a **subset of moles** as active per cycle (e.g., 3–6 moles, increasing with level).
+- Active moles add an `.active` class to animate popping up.
+
+Input & interaction
+- **Keyboard**:
+  - SPACEBAR: checks whether any currently active mole contains the correct answer.
+    - If yes → treat as a correct hit.
+    - If no active mole is correct → treat as a miss (life lost).
+- **Mouse/touch**:
+  - Clicking/tapping an active mole should immediately evaluate that mole’s answer:
+    - If its answer matches `correctAnswer` → correct.
+    - Else → incorrect.
+- Prevent non-game elements from triggering default context menus or selection where needed.
+
+Scoring, lives, and timing
+- Correct answer:
+  - Increase score by an amount depending on level (e.g., `10 × level`).
+  - Show positive feedback message (e.g., “Correct! +20”).
+  - Optionally play a small hit animation on the mole.
+  - Generate a new question shortly after.
+- Incorrect answer or missed correct mole:
+  - Decrease lives by 1.
+  - Show negative feedback message (e.g., “Incorrect! −1 Life”).
+  - If lives reach 0 → end the game.
+- Timer:
+  - Count down from initial time (e.g., 60 seconds).
+  - When `timeRemaining <= 0`, end the game (“Time’s up!”).
+- Level up:
+  - When reaching thresholds, increase `level`, speed up mole cycle, and optionally add bonus time.
+  - Display a feedback banner (e.g., “Level 2!”).
+
+Feedback and game over
+- Feedback area shows short-lived messages for correct/incorrect actions.
+- **Game over modal** displays:
+  - Custom end message (e.g., “No lives remaining!” or “Time’s up!”).
+  - Final score.
+  - Level reached.
+  - **Play Again** button that resets score, level, lives, and time to starting values and hides the modal.
+
+Tooltips & UX
+- Tooltip system using a common tooltip element that:
+  - Appears on `mouseenter` for elements with `title` attributes (stats, buttons, etc.).
+  - Is positioned near the element and shows the text of the `title`.
+  - Fades out on `mouseleave`.
+
+Responsive behaviour
+- Game container should adapt height in iframes or full-screen.
+- Mole grid and buttons must be **tap friendly** on tablets/phones (large touch targets).
+- When the tab becomes hidden (e.g., user switches tabs), automatically **pause** the game to avoid time running out in the background.
+
+LEARNING OUTCOMES:
+- Students should be able to:
+  - Expand simple algebraic expressions quickly and accurately.
+  - Recognise common patterns in multiplications (distributive and FOIL for binomials).
+  - Spot common errors in expansions (e.g., sign errors, missing terms).
+- The game should build **fluency** and confidence with algebraic expansion under light time pressure.
+
+INTERACTION FEATURES TO INCLUDE:
+- Fast-paced whack-a-mole style gameplay with algebra answers.
+- Multiple input methods (SPACEBAR and clicking/tapping moles).
+- Dynamic difficulty progression across levels.
+- Immediate feedback and a clear end-of-game summary.
+
+Create a complete, functional HTML5 interactive that meets all requirements above.

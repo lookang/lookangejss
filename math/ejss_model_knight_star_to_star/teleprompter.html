@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Knight: Star to Star — Video Tutorial Teleprompter</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d1a; color: #eee; font-family: Georgia, serif;
+         font-size: 1.6rem; line-height: 1.85; }
+
+  #header { background: #12122a; padding: 10px 20px; display: flex;
+             align-items: center; gap: 16px; position: sticky; top: 0; z-index: 10;
+             border-bottom: 2px solid #e2b96b; }
+  #clock { font-size: 2.2rem; font-weight: bold; color: #e2b96b;
+            font-variant-numeric: tabular-nums; min-width: 90px; }
+  #header button { padding: 8px 18px; font-size: 1rem; cursor: pointer;
+                   border: none; border-radius: 6px; font-weight: bold; }
+  #btnStart  { background: #27ae60; color: #fff; }
+  #btnPause  { background: #e67e22; color: #fff; }
+  #btnReset  { background: #555;    color: #eee; }
+  #simLink   { margin-left: auto; font-size: .85rem; color: #aaa; }
+  #simLink a { color: #e2b96b; text-decoration: none; }
+
+  #progress  { height: 6px; background: #222; }
+  #bar       { height: 6px; background: #e2b96b; width: 0; transition: width 0.5s linear; }
+
+  #script    { max-width: 820px; margin: 0 auto; padding: 30px 20px 80px; }
+
+  .section   { margin-bottom: 44px; border-left: 5px solid #333; padding-left: 20px; }
+  .section.active { border-left-color: #e2b96b; }
+  .section.done   { opacity: 0.32; }
+
+  .section-title { font-size: 1rem; color: #aaa; text-transform: uppercase;
+                   letter-spacing: .1em; margin-bottom: 6px; }
+  .timestamp     { display: inline-block; background: #e2b96b; color: #0d0d1a;
+                   font-size: .85rem; font-weight: bold; border-radius: 4px;
+                   padding: 2px 8px; margin-left: 10px; vertical-align: middle; }
+  .action        { background: #0d2e0d; color: #7fdd7f; font-size: 1rem;
+                   padding: 8px 14px; border-radius: 6px; margin-bottom: 12px;
+                   font-family: monospace; white-space: pre-wrap; }
+  .narration     { color: #f0f0f0; }
+  .narration em  { color: #e2b96b; font-style: normal; }
+  .narration strong { color: #fff; }
+
+  /* think-box — for the "pause & think" moments */
+  .think { background: #1a1a3a; border: 1px solid #4444aa; border-radius: 8px;
+           padding: 12px 18px; margin: 14px 0; font-size: 1.1rem; color: #b0c4ff; }
+  .think::before { content: "🧠 Pause & Think — "; font-weight: bold; color: #8888ff; }
+
+  /* CTA card at end */
+  .cta-card { background: linear-gradient(135deg, #1a0a0a, #2a1a00);
+              border: 2px solid #e2b96b; border-radius: 12px;
+              padding: 24px 28px; margin-top: 18px; text-align: center; }
+  .cta-card h3 { color: #e2b96b; font-size: 1.4rem; margin-bottom: 14px; }
+  .cta-card p  { font-size: 1.1rem; color: #ddd; margin-bottom: 10px; }
+  .cta-btn { display: inline-block; margin: 6px; padding: 10px 22px;
+             border-radius: 24px; font-weight: bold; font-size: 1rem;
+             text-decoration: none; cursor: pointer; border: none; }
+  .btn-like      { background: #e22; color: #fff; }
+  .btn-subscribe { background: #c00; color: #fff; }
+  .btn-comment   { background: #1565c0; color: #fff; }
+
+  #jumpNav { position: fixed; right: 10px; top: 80px; display: flex;
+             flex-direction: column; gap: 5px; }
+  #jumpNav a { background: #222; color: #aaa; text-decoration: none;
+               font-size: .75rem; padding: 4px 9px; border-radius: 4px;
+               white-space: nowrap; }
+  #jumpNav a:hover, #jumpNav a.active { background: #e2b96b; color: #0d0d1a; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="clock">0:00</div>
+  <button id="btnStart" onclick="startTimer()">▶ Start</button>
+  <button id="btnPause" onclick="pauseTimer()">⏸ Pause</button>
+  <button id="btnReset" onclick="resetTimer()">↺ Reset</button>
+  <span style="color:#aaa;font-size:.9rem">Total: ~6:20 min</span>
+  <span id="simLink">Simulation: <a href="index.html" target="_blank">index.html</a></span>
+</div>
+<div id="progress"><div id="bar"></div></div>
+
+<div id="jumpNav">
+  <a href="#s1">Hook</a>
+  <a href="#s2">Knight's Move</a>
+  <a href="#s3">The Board</a>
+  <a href="#s4">First Game</a>
+  <a href="#s5">Dead Ends</a>
+  <a href="#s6">Hint &amp; Warnsdorff</a>
+  <a href="#s7">Auto Solve</a>
+  <a href="#s8">Undo &amp; Explore</a>
+  <a href="#s9">Framework</a>
+  <a href="#s10">Subscribe ♞</a>
+</div>
+
+<div id="script">
+
+<!-- ============================================================ SECTION 1 -->
+<div class="section" id="s1" data-start="0" data-end="25">
+  <div class="section-title">Section 1 — Hook <span class="timestamp">0:00 – 0:25</span></div>
+  <div class="action">Screen: Open index.html — full board visible with ⭐ stars and ♞ knight waiting.
+Zoom in slightly so stars are prominent. No clicks yet.</div>
+  <div class="narration">
+    "What if I told you a chess piece could teach you one of the most powerful
+    problem-solving strategies in mathematics and computer science?
+    <br><br>
+    Welcome to <em>Knight: Star to Star</em> — an interactive simulation where the
+    humble knight's L-shaped hop unlocks deep ideas about <em>planning ahead,
+    avoiding dead ends,</em> and thinking like a mathematician.
+    <br><br>
+    By the end of this video, you'll understand <em>Warnsdorff's rule</em> — a
+    two-hundred-year-old algorithm that still powers modern path-finding today."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 2 -->
+<div class="section" id="s2" data-start="25" data-end="65">
+  <div class="section-title">Section 2 — The Knight's Move <span class="timestamp">0:25 – 1:05</span></div>
+  <div class="action">Screen: Zoom to one corner of the board — show the knight ♞.
+Slowly trace an L-shape with cursor: 2 squares up + 1 across, then 1 up + 2 across.
+Show at least 3 different L directions from the same square.</div>
+  <div class="narration">
+    "First — how does a knight move in chess?
+    <br><br>
+    The knight travels in an <em>L-shape</em>: two squares in one direction,
+    then one square at a right angle. From any position it can reach up to
+    <em>eight different squares</em>, jumping cleanly over everything in between.
+    <br><br>
+    This is what makes the knight <em>unique</em> — it doesn't travel in straight
+    lines. It hops. It sees the board differently from every other piece.
+    <br><br>
+    From a corner, the knight has only <em>two</em> possible moves.
+    From an edge square, maybe <em>three or four</em>.
+    From the very centre of the board, a full <em>eight</em>.
+    That difference will matter a great deal in a moment."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 3 -->
+<div class="section" id="s3" data-start="65" data-end="105">
+  <div class="section-title">Section 3 — The Board &amp; Goal <span class="timestamp">1:05 – 1:45</span></div>
+  <div class="action">Screen: Pull back to full board view.
+Hover cursor over a ⭐ star square, then over a grey/blue blocked square.
+Point to the score counters at the top: "Top Score" and "Current Score".</div>
+  <div class="narration">
+    "Now look at the board. You see two kinds of squares.
+    <br><br>
+    The <em>starred squares</em> — those are the only landing zones.
+    The plain blue squares are <em>blocked</em>; the knight cannot land there.
+    <br><br>
+    Your mission: click any star to <em>place the knight</em>. Then hop from
+    star to star using only valid knight moves. Each star you land on gets
+    numbered in sequence — <em>one, two, three</em> — counting your path.
+    <br><br>
+    The goal? Visit as many stars as possible before you run out of
+    legal moves. On this board there are <em>twenty-five stars</em> in total.
+    Can you visit all of them in a single connected path?
+    <br><br>
+    That is the puzzle."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 4 -->
+<div class="section" id="s4" data-start="105" data-end="145">
+  <div class="section-title">Section 4 — Playing Your First Game <span class="timestamp">1:45 – 2:25</span></div>
+  <div class="action">Screen: Click a star near the centre of the board to start.
+Show the knight ♞ appearing there, score → 1.
+Click 2–3 more stars slowly, narrating each move.
+Let the score counter tick up visibly each time.</div>
+  <div class="narration">
+    "Let's play. I'll click a star near the centre — and there's the knight,
+    move number <em>one</em>.
+    <br><br>
+    Now — where can I go next? Only squares reachable by a valid knight
+    jump from here. I'll pick this one — move <em>two</em>. And this one — move
+    <em>three</em>. Watch the score counting up at the top.
+    <br><br>
+    Every time you land on a star, it's filled with green and stamped with
+    its number. <em>Visited squares are gone</em> — you can't revisit them.
+    <br><br>
+    So the question isn't just 'where can I go?'
+    The question is: 'where <em>should</em> I go to stay alive the longest?'
+    <br><br>
+    That distinction — <em>can vs. should</em> — is the heart of all strategic thinking."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 5 -->
+<div class="section" id="s5" data-start="145" data-end="185">
+  <div class="section-title">Section 5 — Dead Ends: The Core Problem <span class="timestamp">2:25 – 3:05</span></div>
+  <div class="action">Screen: Continue playing — deliberately move into a corner-like sequence.
+Let the game end with "no more moves" dialog after 8–12 moves.
+Keep the dialog open for a beat, then click OK and let the board sit there.</div>
+  <div class="narration">
+    "And here it happens — <em>stuck</em>. 'There are no more possible moves.'
+    <br><br>
+    What went wrong? The knight is sitting on a star, but every square it
+    could reach next has already been visited. A <em>dead end</em>.
+    <br><br>
+    This is the fundamental difficulty of this puzzle. Each move you
+    make <em>closes off future options</em>. The choices you make in move three
+    ripple forward to determine whether you survive to move fifteen.
+    <br><br>
+    This is called a <em>Hamiltonian path problem</em> — finding a route that
+    visits every node exactly once. It's one of the classic hard problems
+    in mathematics, and the knight's tour is its most famous instance.
+    <br><br>
+    So how do we do better? We need a smarter strategy."
+
+    <div class="think">After seeing a dead end — before pressing Reset — ask yourself:
+"Which square did I visit that seemed safe at the time, but actually cut off the future?"
+This is the essence of look-ahead thinking.</div>
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 6 -->
+<div class="section" id="s6" data-start="185" data-end="235">
+  <div class="section-title">Section 6 — Hint &amp; Warnsdorff's Rule <span class="timestamp">3:05 – 3:55</span></div>
+  <div class="action">Screen: Press ↻ Reset.
+Click 💡 Hint BEFORE making any move — orange star appears; yellow message panel shows.
+Read the Warnsdorff explanation from the message panel aloud.
+Then make the suggested first move. Press 💡 Hint again for the next move.
+Point to the "fewest onward moves" number in the message each time.</div>
+  <div class="narration">
+    "Let me show you a smarter way to think. Press <em>Hint</em>.
+    <br><br>
+    See the <em>orange star</em>? That is the recommended starting square, chosen
+    using a rule discovered by the German mathematician <em>H. C. von Warnsdorff
+    in 1823</em>. The rule is beautifully simple:
+    <br><br>
+    <em>Always move to the square that has the fewest onward moves available.</em>
+    <br><br>
+    Read the message at the bottom. It tells you exactly how many onward
+    moves each candidate has. We pick the one with the <em>smallest number</em>.
+    <br><br>
+    Why does this work? Think of it this way: if a square is hard to reach —
+    if it only has <em>one or two</em> ways in — then it will be very hard to visit
+    it later without getting trapped. So visit those constrained squares
+    <em>first</em>, while you still can. Leave the easy, well-connected squares
+    for later.
+    <br><br>
+    This is called the <em>greedy heuristic for the most-constrained variable</em>.
+    The same idea appears in Sudoku solving, in scheduling problems, and
+    in artificial intelligence planners worldwide."
+
+    <div class="think">Warnsdorff's rule doesn't guarantee the optimal answer — it's a heuristic.
+Why might it fail? Can you construct a board where following the rule gets you stuck earlier than if you'd ignored it?</div>
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 7 -->
+<div class="section" id="s7" data-start="235" data-end="285">
+  <div class="section-title">Section 7 — Watching Auto Solve <span class="timestamp">3:55 – 4:45</span></div>
+  <div class="action">Screen: Press ↻ Reset.
+Press ⚡ Auto Solve — watch the knight hop through the board automatically.
+Keep the camera on the board; let the whole sequence play out in real time.
+When done, pause — board shows the numbered path clearly.
+Then zoom in to the "Current Score" and "Top Score" labels.</div>
+  <div class="narration">
+    "Now let's let the computer show us its best. Press <em>Auto Solve</em>.
+    <br><br>
+    Watch the knight move. <em>No hesitation. No backtracking.</em> It flows
+    through the board, visiting star after star. The pedagogical message
+    at the bottom updates in real time, explaining the strategy at every step.
+    <br><br>
+    Notice the <em>pattern</em>: the computer tends to visit corner stars and
+    edge stars early — the constrained positions — and works its way
+    toward the centre as more options remain.
+    <br><br>
+    And look at the final score. <em>How many stars did it visit?</em> That is
+    Warnsdorff's rule performing in real time.
+    <br><br>
+    Here is the key lesson: the computer is not smarter than you in any
+    deep sense. It is simply applying a <em>consistent rule</em> that you can
+    learn and apply yourself. The simulation is your window into how
+    that rule works, step by step.
+    <br><br>
+    Press <em>Auto Solve again</em> to stop the animation early and take over manually."
+
+    <div class="think">Watch the path the computer took.
+Can you spot the first move where a human player might have chosen differently?
+What would have happened if it had?</div>
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 8 -->
+<div class="section" id="s8" data-start="285" data-end="315">
+  <div class="section-title">Section 8 — Undo &amp; Explore <span class="timestamp">4:45 – 5:15</span></div>
+  <div class="action">Screen: Press ↻ Reset.
+Click a star manually, make 3–4 moves, then press ↩ Undo twice.
+Show how the knight rewinds and the score decreases.
+Then try a completely different path from the same starting square.</div>
+  <div class="narration">
+    "One of the most powerful ways to learn is to <em>experiment and undo</em>.
+    <br><br>
+    Make a few moves. Now press <em>Undo</em>. The knight steps back, the board
+    rewinds, and you can try a different path from the same point.
+    <br><br>
+    This is your <em>time machine</em> for decision-making. Use it to ask:
+    'What if I had gone there instead?' Compare the outcomes.
+    <br><br>
+    Try starting from a <em>corner star</em> — notice how quickly you get stuck.
+    Then try starting from a <em>central star</em>. Different result?
+    <br><br>
+    This is scientific thinking: <em>vary one thing, hold everything else
+    constant, observe what changes.</em> The simulation gives you infinite
+    patience to test every hypothesis."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 9 -->
+<div class="section" id="s9" data-start="315" data-end="365">
+  <div class="section-title">Section 9 — Problem-Solving Framework <span class="timestamp">5:15 – 6:05</span></div>
+  <div class="action">Screen: Open simulation and keep it visible in background.
+Slowly move cursor to different parts of the board as each principle is mentioned.
+No clicking — let the board be a visual backdrop for this reflective section.</div>
+  <div class="narration">
+    "Let me summarise the problem-solving framework that this simulation teaches.
+    <br><br>
+    <strong>Principle one: Think forward, not just sideways.</strong>
+    Don't only ask 'can I move here?' Ask 'if I move here, what does my
+    situation look like <em>three moves from now</em>?' This is look-ahead thinking,
+    and it separates good decisions from great ones.
+    <br><br>
+    <strong>Principle two: Tackle constraints early.</strong>
+    Warnsdorff's rule is a concrete example of the general idea: when you
+    face a problem with many sub-tasks, solve the <em>most difficult or most
+    restricted</em> ones first. If they're going to fail, fail fast —
+    before you've invested effort in everything else.
+    <br><br>
+    <strong>Principle three: Use tools to extend your thinking.</strong>
+    The Hint and Auto Solve buttons are not shortcuts — they are <em>teachers</em>.
+    Use them to verify your instincts, to see what you missed,
+    and to build a mental model of the algorithm.
+    <br><br>
+    <strong>Principle four: Failure is data.</strong>
+    Every dead end tells you something. 'I got stuck after move eight
+    when I started in the top-right corner.' That is a piece of information
+    you can use. <em>Systematic failure leads to systematic improvement.</em>
+    <br><br>
+    These four principles apply far beyond chess.
+    They apply to <em>scheduling, logistics, coding, design</em> — any situation
+    where you must sequence decisions under constraints."
+  </div>
+</div>
+
+<!-- ============================================================ SECTION 10 -->
+<div class="section" id="s10" data-start="365" data-end="380">
+  <div class="section-title">Section 10 — Call to Action <span class="timestamp">6:05 – 6:20</span></div>
+  <div class="action">Screen: Show full simulation — board with knight ♞ at rest.
+Smile at camera. Speak directly to viewer. End on a still of the simulation.</div>
+  <div class="narration">
+    "Now it's your turn. Open the simulation, try to beat the computer's score,
+    and use the Hint button as a <em>pedagogical partner</em>, not a crutch —
+    read the explanation, understand the rule, then see if you can apply it yourself.
+    <br><br>
+    <em>What's your highest score?</em> Leave it in the comments — I read every one.
+    <br><br>
+    If this video helped you think differently about problem solving,
+    give it a <em>thumbs up</em> — it really helps this channel reach more learners.
+    And if you want more simulations like this every week, <em>subscribe</em>
+    and hit the bell so you don't miss the next one.
+    <br><br>
+    Until then — <em>good luck, and happy hopping!</em> ♞"
+  </div>
+
+  <div class="cta-card">
+    <h3>♞ Enjoyed this simulation?</h3>
+    <p>Share your <strong>top score</strong> in the comments below!</p>
+    <p>👍 <strong>Like</strong> if it helped you think differently about problem solving.</p>
+    <p>🔔 <strong>Subscribe</strong> for a new interactive simulation every week.</p>
+    <p>💬 <strong>Comment</strong> your highest score, questions, or ideas for the next topic.</p>
+    <br>
+    <span class="cta-btn btn-like">👍 Like</span>
+    <span class="cta-btn btn-subscribe">🔔 Subscribe</span>
+    <span class="cta-btn btn-comment">💬 Comment</span>
+    <br><br>
+    <p style="font-size:1rem;color:#aaa;">
+      Simulation by Shaun Quek, Loo Kang Wee, Francisco Esquembre &amp; Félix Jesús Garcia Clemente<br>
+      Based on an idea by Theresa Heng · Released CC-BY-NC-SA 4.0
+    </p>
+  </div>
+</div>
+
+</div><!-- #script -->
+
+<script>
+const TOTAL = 380; // 6:20 in seconds
+let elapsed = 0, running = false, interval = null;
+
+function fmt(s) {
+  const m = Math.floor(s / 60), sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function updateUI() {
+  document.getElementById('clock').textContent = fmt(elapsed);
+  document.getElementById('bar').style.width = (elapsed / TOTAL * 100) + '%';
+
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(sec => {
+    const start = +sec.dataset.start, end = +sec.dataset.end;
+    sec.classList.remove('active', 'done');
+    if (elapsed >= start && elapsed < end) {
+      sec.classList.add('active');
+      sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const id = sec.id;
+      document.querySelectorAll('#jumpNav a').forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    } else if (elapsed >= end) {
+      sec.classList.add('done');
+    }
+  });
+}
+
+function startTimer() {
+  if (running) return;
+  running = true;
+  interval = setInterval(() => {
+    if (elapsed < TOTAL) { elapsed++; updateUI(); }
+    else { clearInterval(interval); running = false; }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(interval);
+  running = false;
+}
+
+function resetTimer() {
+  clearInterval(interval);
+  running = false;
+  elapsed = 0;
+  updateUI();
+  document.querySelectorAll('#jumpNav a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active', 'done'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+updateUI();
+</script>
+</body>
+</html>

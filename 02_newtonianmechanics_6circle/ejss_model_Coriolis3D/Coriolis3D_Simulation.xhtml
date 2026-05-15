@@ -1,0 +1,2726 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+  <head>
+    <meta charset="utf-8" />
+    <title>Coriolos 3D Inertia and non-Inertia System</title>
+    <link rel="stylesheet"  type="text/css" href="_ejs_library/css/ejss.css" />
+    <script src="_ejs_library/scripts/common_script.js"></script>
+    <script src="_ejs_library/scripts/textresizedetector.js"></script>
+    <script src="_ejs_library/ejsS.v1.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+/* _inputParameters: an object with different values for the model parameters */
+function Coriolis3D(_topFrame,_libraryPath,_codebasePath, _inputParameters) {
+  var _model = EJSS_CORE.createAnimationLMS();
+  var _view;
+  var _isPlaying = false;
+  var _isPaused = true;
+  var _isMobile = (navigator===undefined) ? false : navigator.userAgent.match(/iPhone|iPad|iPod|Android|BlackBerry|Opera Mini|IEMobile/i);
+
+var _stringProperties = {};
+  var _tools = {
+    showInputDialog : EJSS_INTERFACE.BoxPanel.showInputDialog,
+    showOkDialog : EJSS_INTERFACE.BoxPanel.showOkDialog,
+    showOkCancelDialog : EJSS_INTERFACE.BoxPanel.showOkCancelDialog,
+    downloadText: EJSS_TOOLS.File.downloadText,
+    uploadText: function(action) { EJSS_TOOLS.File.uploadText(_model,action); } 
+  };
+
+  function _play()  { _isPaused = false; _isPlaying = true;  _model.play();  }
+  function _pause() { _isPaused = true;  _isPlaying = false; _model.pause(); }
+  function _step()  { _pause();  _model.step(); }
+  function _reset() { _model.reset();  _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); }
+  _model._play  = _play;
+  _model._pause = _pause;
+  _model._step  = _step;
+  _model._reset = _reset;
+  function _update() { _model.update(); }
+  function _initialize() { _model.initialize(); }
+  function _setFPS(_fps) { _model.setFPS(_fps); }
+  function _setDelay(_delay) { _model.setDelay(_delay); }
+  function _setStepsPerDisplay(_spd) { _model.setStepsPerDisplay(_spd); }
+  function _setUpdateView(_updateView) { _model.setUpdateView(_updateView); }
+  function _setAutoplay(_auto) { _model.setAutoplay(_auto); }
+  function _println(_message) { console.log(_message); }
+
+  function _breakAfterThisPage() { _model.setShouldBreak(true); }
+
+  function _resetSolvers() { if (_model.resetSolvers) _model.resetSolvers(); }
+
+  function _saveText(name,type,content) { if (_model.saveText) _model.saveText(name,type,content); }
+
+  function _saveState(name) { if (_model.saveState) _model.saveState(name); }
+
+  function _saveImage(name,panelname) { if (_model.saveImage) _model.saveImage(name,panelname); }
+
+  function _readState(url,type) { if (_model.readState) _model.readState(url,type); }
+
+  function _readText(url,type,varname) { if (_model.readText) _model.readText(url,type,varname); }
+
+  function _getStringProperty(propertyName) {
+    var _value = _stringProperties[propertyName];
+    if (_value===undefined) return propertyName;
+    else return _value;
+  }
+  var __pagesEnabled = [];
+  function _setPageEnabled(pageName,enabled) { __pagesEnabled[pageName] = enabled; }
+
+  var range; // EjsS Model.Variables.Coordinates.range
+  var xmin; // EjsS Model.Variables.Coordinates.xmin
+  var xmax; // EjsS Model.Variables.Coordinates.xmax
+  var ymin; // EjsS Model.Variables.Coordinates.ymin
+  var ymax; // EjsS Model.Variables.Coordinates.ymax
+  var zmin; // EjsS Model.Variables.Coordinates.zmin
+  var zmax; // EjsS Model.Variables.Coordinates.zmax
+  var D; // EjsS Model.Variables.Coordinates.D
+  var R; // EjsS Model.Variables.Coordinates.R
+  var t; // EjsS Model.Variables.Coordinates.t
+  var dt; // EjsS Model.Variables.Coordinates.dt
+  var size; // EjsS Model.Variables.Coordinates.size
+  var pi2; // EjsS Model.Variables.Coordinates.pi2
+  var npt; // EjsS Model.Variables.Coordinates.npt
+  var stroke; // EjsS Model.Variables.Coordinates.stroke
+  var beta; // EjsS Model.Variables.Coordinates.beta
+  var zoom; // EjsS Model.Variables.Coordinates.zoom
+
+  var font; // EjsS Model.Variables.Unicode Fonts.font
+
+  var n; // EjsS Model.Variables.Basic.n
+  var n2; // EjsS Model.Variables.Basic.n2
+  var x; // EjsS Model.Variables.Basic.x
+  var y; // EjsS Model.Variables.Basic.y
+  var z; // EjsS Model.Variables.Basic.z
+  var phi; // EjsS Model.Variables.Basic.phi
+  var v; // EjsS Model.Variables.Basic.v
+  var vx; // EjsS Model.Variables.Basic.vx
+  var vy; // EjsS Model.Variables.Basic.vy
+  var vz; // EjsS Model.Variables.Basic.vz
+  var stopped; // EjsS Model.Variables.Basic.stopped
+  var x2; // EjsS Model.Variables.Basic.x2
+  var y2; // EjsS Model.Variables.Basic.y2
+  var z2; // EjsS Model.Variables.Basic.z2
+  var x21; // EjsS Model.Variables.Basic.x21
+  var y21; // EjsS Model.Variables.Basic.y21
+  var z21; // EjsS Model.Variables.Basic.z21
+  var x3; // EjsS Model.Variables.Basic.x3
+  var y3; // EjsS Model.Variables.Basic.y3
+  var z3; // EjsS Model.Variables.Basic.z3
+  var vx3; // EjsS Model.Variables.Basic.vx3
+  var vy3; // EjsS Model.Variables.Basic.vy3
+  var vz3; // EjsS Model.Variables.Basic.vz3
+  var x4; // EjsS Model.Variables.Basic.x4
+  var y4; // EjsS Model.Variables.Basic.y4
+  var z4; // EjsS Model.Variables.Basic.z4
+  var x34; // EjsS Model.Variables.Basic.x34
+  var y34; // EjsS Model.Variables.Basic.y34
+  var z34; // EjsS Model.Variables.Basic.z34
+
+  var l_play; // EjsS Model.Variables.Language.l_play
+  var l_pause; // EjsS Model.Variables.Language.l_pause
+  var l_reset; // EjsS Model.Variables.Language.l_reset
+  var l_init; // EjsS Model.Variables.Language.l_init
+  var label; // EjsS Model.Variables.Language.label
+  var l_step; // EjsS Model.Variables.Language.l_step
+  var l_jump; // EjsS Model.Variables.Language.l_jump
+  var l_viewD; // EjsS Model.Variables.Language.l_viewD
+  var l_inertial; // EjsS Model.Variables.Language.l_inertial
+  var l_noninertial; // EjsS Model.Variables.Language.l_noninertial
+
+  var axis; // EjsS Model.Variables.View.axis
+  var cta; // EjsS Model.Variables.View.cta
+  var T; // EjsS Model.Variables.View.T
+  var alpha; // EjsS Model.Variables.View.alpha
+  var alpha2; // EjsS Model.Variables.View.alpha2
+  var omega; // EjsS Model.Variables.View.omega
+  var cs; // EjsS Model.Variables.View.cs
+  var sc; // EjsS Model.Variables.View.sc
+  var stage; // EjsS Model.Variables.View.stage
+  var vr; // EjsS Model.Variables.View.vr
+  var ax; // EjsS Model.Variables.View.ax
+  var ay; // EjsS Model.Variables.View.ay
+  var az; // EjsS Model.Variables.View.az
+  var G; // EjsS Model.Variables.View.G
+  var scale; // EjsS Model.Variables.View.scale
+  var viewtrace; // EjsS Model.Variables.View.viewtrace
+  var viewd; // EjsS Model.Variables.View.viewd
+  var connect; // EjsS Model.Variables.View.connect
+
+  var inertia; // EjsS Model.Variables.menu.inertia
+  var noninertia; // EjsS Model.Variables.menu.noninertia
+  var Width; // EjsS Model.Variables.menu.Width
+  var Width2; // EjsS Model.Variables.menu.Width2
+  var camerax2; // EjsS Model.Variables.menu.camerax2
+  var cameray2; // EjsS Model.Variables.menu.cameray2
+  var cameraz2; // EjsS Model.Variables.menu.cameraz2
+  var drawfill; // EjsS Model.Variables.menu.drawfill
+
+  var _privateOdesList;
+  var _ODEi_evolution1;
+  var userEvents1=[];
+
+  _model.getOdes = function() { return [_ODEi_evolution1]; };
+
+  _model.removeEvents = function(){
+    userEvents1=[];
+  };
+
+  function _serialize() { return _model.serialize(); }
+
+  _model._userSerialize = function() {
+    return {
+      range : range,
+      xmin : xmin,
+      xmax : xmax,
+      ymin : ymin,
+      ymax : ymax,
+      zmin : zmin,
+      zmax : zmax,
+      D : D,
+      R : R,
+      t : t,
+      dt : dt,
+      size : size,
+      pi2 : pi2,
+      npt : npt,
+      stroke : stroke,
+      beta : beta,
+      zoom : zoom,
+      font : font,
+      n : n,
+      n2 : n2,
+      x : x,
+      y : y,
+      z : z,
+      phi : phi,
+      v : v,
+      vx : vx,
+      vy : vy,
+      vz : vz,
+      stopped : stopped,
+      x2 : x2,
+      y2 : y2,
+      z2 : z2,
+      x21 : x21,
+      y21 : y21,
+      z21 : z21,
+      x3 : x3,
+      y3 : y3,
+      z3 : z3,
+      vx3 : vx3,
+      vy3 : vy3,
+      vz3 : vz3,
+      x4 : x4,
+      y4 : y4,
+      z4 : z4,
+      x34 : x34,
+      y34 : y34,
+      z34 : z34,
+      l_play : l_play,
+      l_pause : l_pause,
+      l_reset : l_reset,
+      l_init : l_init,
+      label : label,
+      l_step : l_step,
+      l_jump : l_jump,
+      l_viewD : l_viewD,
+      l_inertial : l_inertial,
+      l_noninertial : l_noninertial,
+      axis : axis,
+      cta : cta,
+      T : T,
+      alpha : alpha,
+      alpha2 : alpha2,
+      omega : omega,
+      cs : cs,
+      sc : sc,
+      stage : stage,
+      vr : vr,
+      ax : ax,
+      ay : ay,
+      az : az,
+      G : G,
+      scale : scale,
+      viewtrace : viewtrace,
+      viewd : viewd,
+      connect : connect,
+      inertia : inertia,
+      noninertia : noninertia,
+      Width : Width,
+      Width2 : Width2,
+      camerax2 : camerax2,
+      cameray2 : cameray2,
+      cameraz2 : cameraz2,
+      drawfill : drawfill
+    };
+  };
+
+  function _serializePublic() { return _model.serializePublic(); }
+
+  _model._userSerializePublic = function() {
+    return {
+      range : range,
+      xmin : xmin,
+      xmax : xmax,
+      ymin : ymin,
+      ymax : ymax,
+      zmin : zmin,
+      zmax : zmax,
+      D : D,
+      R : R,
+      t : t,
+      dt : dt,
+      size : size,
+      pi2 : pi2,
+      npt : npt,
+      stroke : stroke,
+      beta : beta,
+      zoom : zoom,
+      font : font,
+      n : n,
+      n2 : n2,
+      x : x,
+      y : y,
+      z : z,
+      phi : phi,
+      v : v,
+      vx : vx,
+      vy : vy,
+      vz : vz,
+      stopped : stopped,
+      x2 : x2,
+      y2 : y2,
+      z2 : z2,
+      x21 : x21,
+      y21 : y21,
+      z21 : z21,
+      x3 : x3,
+      y3 : y3,
+      z3 : z3,
+      vx3 : vx3,
+      vy3 : vy3,
+      vz3 : vz3,
+      x4 : x4,
+      y4 : y4,
+      z4 : z4,
+      x34 : x34,
+      y34 : y34,
+      z34 : z34,
+      l_play : l_play,
+      l_pause : l_pause,
+      l_reset : l_reset,
+      l_init : l_init,
+      label : label,
+      l_step : l_step,
+      l_jump : l_jump,
+      l_viewD : l_viewD,
+      l_inertial : l_inertial,
+      l_noninertial : l_noninertial,
+      axis : axis,
+      cta : cta,
+      T : T,
+      alpha : alpha,
+      alpha2 : alpha2,
+      omega : omega,
+      cs : cs,
+      sc : sc,
+      stage : stage,
+      vr : vr,
+      ax : ax,
+      ay : ay,
+      az : az,
+      G : G,
+      scale : scale,
+      viewtrace : viewtrace,
+      viewd : viewd,
+      connect : connect,
+      inertia : inertia,
+      noninertia : noninertia,
+      Width : Width,
+      Width2 : Width2,
+      camerax2 : camerax2,
+      cameray2 : cameray2,
+      cameraz2 : cameraz2,
+      drawfill : drawfill
+    };
+  };
+
+  _model._readParameters = function(json) {
+    if(typeof json.range != "undefined") range = json.range;
+    if(typeof json.xmin != "undefined") xmin = json.xmin;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.ymin != "undefined") ymin = json.ymin;
+    if(typeof json.ymax != "undefined") ymax = json.ymax;
+    if(typeof json.zmin != "undefined") zmin = json.zmin;
+    if(typeof json.zmax != "undefined") zmax = json.zmax;
+    if(typeof json.D != "undefined") D = json.D;
+    if(typeof json.R != "undefined") R = json.R;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.size != "undefined") size = json.size;
+    if(typeof json.pi2 != "undefined") pi2 = json.pi2;
+    if(typeof json.npt != "undefined") npt = json.npt;
+    if(typeof json.stroke != "undefined") stroke = json.stroke;
+    if(typeof json.beta != "undefined") beta = json.beta;
+    if(typeof json.zoom != "undefined") zoom = json.zoom;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.n2 != "undefined") n2 = json.n2;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.z != "undefined") z = json.z;
+    if(typeof json.phi != "undefined") phi = json.phi;
+    if(typeof json.v != "undefined") v = json.v;
+    if(typeof json.vx != "undefined") vx = json.vx;
+    if(typeof json.vy != "undefined") vy = json.vy;
+    if(typeof json.vz != "undefined") vz = json.vz;
+    if(typeof json.stopped != "undefined") stopped = json.stopped;
+    if(typeof json.x2 != "undefined") x2 = json.x2;
+    if(typeof json.y2 != "undefined") y2 = json.y2;
+    if(typeof json.z2 != "undefined") z2 = json.z2;
+    if(typeof json.x21 != "undefined") x21 = json.x21;
+    if(typeof json.y21 != "undefined") y21 = json.y21;
+    if(typeof json.z21 != "undefined") z21 = json.z21;
+    if(typeof json.x3 != "undefined") x3 = json.x3;
+    if(typeof json.y3 != "undefined") y3 = json.y3;
+    if(typeof json.z3 != "undefined") z3 = json.z3;
+    if(typeof json.vx3 != "undefined") vx3 = json.vx3;
+    if(typeof json.vy3 != "undefined") vy3 = json.vy3;
+    if(typeof json.vz3 != "undefined") vz3 = json.vz3;
+    if(typeof json.x4 != "undefined") x4 = json.x4;
+    if(typeof json.y4 != "undefined") y4 = json.y4;
+    if(typeof json.z4 != "undefined") z4 = json.z4;
+    if(typeof json.x34 != "undefined") x34 = json.x34;
+    if(typeof json.y34 != "undefined") y34 = json.y34;
+    if(typeof json.z34 != "undefined") z34 = json.z34;
+    if(typeof json.l_play != "undefined") l_play = json.l_play;
+    if(typeof json.l_pause != "undefined") l_pause = json.l_pause;
+    if(typeof json.l_reset != "undefined") l_reset = json.l_reset;
+    if(typeof json.l_init != "undefined") l_init = json.l_init;
+    if(typeof json.label != "undefined") label = json.label;
+    if(typeof json.l_step != "undefined") l_step = json.l_step;
+    if(typeof json.l_jump != "undefined") l_jump = json.l_jump;
+    if(typeof json.l_viewD != "undefined") l_viewD = json.l_viewD;
+    if(typeof json.l_inertial != "undefined") l_inertial = json.l_inertial;
+    if(typeof json.l_noninertial != "undefined") l_noninertial = json.l_noninertial;
+    if(typeof json.axis != "undefined") axis = json.axis;
+    if(typeof json.cta != "undefined") cta = json.cta;
+    if(typeof json.T != "undefined") T = json.T;
+    if(typeof json.alpha != "undefined") alpha = json.alpha;
+    if(typeof json.alpha2 != "undefined") alpha2 = json.alpha2;
+    if(typeof json.omega != "undefined") omega = json.omega;
+    if(typeof json.cs != "undefined") cs = json.cs;
+    if(typeof json.sc != "undefined") sc = json.sc;
+    if(typeof json.stage != "undefined") stage = json.stage;
+    if(typeof json.vr != "undefined") vr = json.vr;
+    if(typeof json.ax != "undefined") ax = json.ax;
+    if(typeof json.ay != "undefined") ay = json.ay;
+    if(typeof json.az != "undefined") az = json.az;
+    if(typeof json.G != "undefined") G = json.G;
+    if(typeof json.scale != "undefined") scale = json.scale;
+    if(typeof json.viewtrace != "undefined") viewtrace = json.viewtrace;
+    if(typeof json.viewd != "undefined") viewd = json.viewd;
+    if(typeof json.connect != "undefined") connect = json.connect;
+    if(typeof json.inertia != "undefined") inertia = json.inertia;
+    if(typeof json.noninertia != "undefined") noninertia = json.noninertia;
+    if(typeof json.Width != "undefined") Width = json.Width;
+    if(typeof json.Width2 != "undefined") Width2 = json.Width2;
+    if(typeof json.camerax2 != "undefined") camerax2 = json.camerax2;
+    if(typeof json.cameray2 != "undefined") cameray2 = json.cameray2;
+    if(typeof json.cameraz2 != "undefined") cameraz2 = json.cameraz2;
+    if(typeof json.drawfill != "undefined") drawfill = json.drawfill;
+  };
+
+  _model._readParametersPublic = function(json) {
+    if(typeof json.range != "undefined") range = json.range;
+    if(typeof json.xmin != "undefined") xmin = json.xmin;
+    if(typeof json.xmax != "undefined") xmax = json.xmax;
+    if(typeof json.ymin != "undefined") ymin = json.ymin;
+    if(typeof json.ymax != "undefined") ymax = json.ymax;
+    if(typeof json.zmin != "undefined") zmin = json.zmin;
+    if(typeof json.zmax != "undefined") zmax = json.zmax;
+    if(typeof json.D != "undefined") D = json.D;
+    if(typeof json.R != "undefined") R = json.R;
+    if(typeof json.t != "undefined") t = json.t;
+    if(typeof json.dt != "undefined") dt = json.dt;
+    if(typeof json.size != "undefined") size = json.size;
+    if(typeof json.pi2 != "undefined") pi2 = json.pi2;
+    if(typeof json.npt != "undefined") npt = json.npt;
+    if(typeof json.stroke != "undefined") stroke = json.stroke;
+    if(typeof json.beta != "undefined") beta = json.beta;
+    if(typeof json.zoom != "undefined") zoom = json.zoom;
+    if(typeof json.font != "undefined") font = json.font;
+    if(typeof json.n != "undefined") n = json.n;
+    if(typeof json.n2 != "undefined") n2 = json.n2;
+    if(typeof json.x != "undefined") x = json.x;
+    if(typeof json.y != "undefined") y = json.y;
+    if(typeof json.z != "undefined") z = json.z;
+    if(typeof json.phi != "undefined") phi = json.phi;
+    if(typeof json.v != "undefined") v = json.v;
+    if(typeof json.vx != "undefined") vx = json.vx;
+    if(typeof json.vy != "undefined") vy = json.vy;
+    if(typeof json.vz != "undefined") vz = json.vz;
+    if(typeof json.stopped != "undefined") stopped = json.stopped;
+    if(typeof json.x2 != "undefined") x2 = json.x2;
+    if(typeof json.y2 != "undefined") y2 = json.y2;
+    if(typeof json.z2 != "undefined") z2 = json.z2;
+    if(typeof json.x21 != "undefined") x21 = json.x21;
+    if(typeof json.y21 != "undefined") y21 = json.y21;
+    if(typeof json.z21 != "undefined") z21 = json.z21;
+    if(typeof json.x3 != "undefined") x3 = json.x3;
+    if(typeof json.y3 != "undefined") y3 = json.y3;
+    if(typeof json.z3 != "undefined") z3 = json.z3;
+    if(typeof json.vx3 != "undefined") vx3 = json.vx3;
+    if(typeof json.vy3 != "undefined") vy3 = json.vy3;
+    if(typeof json.vz3 != "undefined") vz3 = json.vz3;
+    if(typeof json.x4 != "undefined") x4 = json.x4;
+    if(typeof json.y4 != "undefined") y4 = json.y4;
+    if(typeof json.z4 != "undefined") z4 = json.z4;
+    if(typeof json.x34 != "undefined") x34 = json.x34;
+    if(typeof json.y34 != "undefined") y34 = json.y34;
+    if(typeof json.z34 != "undefined") z34 = json.z34;
+    if(typeof json.l_play != "undefined") l_play = json.l_play;
+    if(typeof json.l_pause != "undefined") l_pause = json.l_pause;
+    if(typeof json.l_reset != "undefined") l_reset = json.l_reset;
+    if(typeof json.l_init != "undefined") l_init = json.l_init;
+    if(typeof json.label != "undefined") label = json.label;
+    if(typeof json.l_step != "undefined") l_step = json.l_step;
+    if(typeof json.l_jump != "undefined") l_jump = json.l_jump;
+    if(typeof json.l_viewD != "undefined") l_viewD = json.l_viewD;
+    if(typeof json.l_inertial != "undefined") l_inertial = json.l_inertial;
+    if(typeof json.l_noninertial != "undefined") l_noninertial = json.l_noninertial;
+    if(typeof json.axis != "undefined") axis = json.axis;
+    if(typeof json.cta != "undefined") cta = json.cta;
+    if(typeof json.T != "undefined") T = json.T;
+    if(typeof json.alpha != "undefined") alpha = json.alpha;
+    if(typeof json.alpha2 != "undefined") alpha2 = json.alpha2;
+    if(typeof json.omega != "undefined") omega = json.omega;
+    if(typeof json.cs != "undefined") cs = json.cs;
+    if(typeof json.sc != "undefined") sc = json.sc;
+    if(typeof json.stage != "undefined") stage = json.stage;
+    if(typeof json.vr != "undefined") vr = json.vr;
+    if(typeof json.ax != "undefined") ax = json.ax;
+    if(typeof json.ay != "undefined") ay = json.ay;
+    if(typeof json.az != "undefined") az = json.az;
+    if(typeof json.G != "undefined") G = json.G;
+    if(typeof json.scale != "undefined") scale = json.scale;
+    if(typeof json.viewtrace != "undefined") viewtrace = json.viewtrace;
+    if(typeof json.viewd != "undefined") viewd = json.viewd;
+    if(typeof json.connect != "undefined") connect = json.connect;
+    if(typeof json.inertia != "undefined") inertia = json.inertia;
+    if(typeof json.noninertia != "undefined") noninertia = json.noninertia;
+    if(typeof json.Width != "undefined") Width = json.Width;
+    if(typeof json.Width2 != "undefined") Width2 = json.Width2;
+    if(typeof json.camerax2 != "undefined") camerax2 = json.camerax2;
+    if(typeof json.cameray2 != "undefined") cameray2 = json.cameray2;
+    if(typeof json.cameraz2 != "undefined") cameraz2 = json.cameraz2;
+    if(typeof json.drawfill != "undefined") drawfill = json.drawfill;
+  };
+
+  function _unserializePublic(json) { return _model.unserializePublic(json); }
+
+  _model._userUnserializePublic = function(json) {
+    _model._readParametersPublic(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  function _unserialize(json) { return _model.unserialize(json); }
+
+  _model._userUnserialize = function(json) {
+    _model._readParameters(json);
+   _resetSolvers();
+   _model.update();
+  };
+
+  _model.addToReset(function() {
+    __pagesEnabled["Init Page"] = true;
+    __pagesEnabled["undefined"] = true;
+    __pagesEnabled["Evol Page"] = true;
+    __pagesEnabled["Cons Page"] = true;
+    __pagesEnabled["camera2"] = false;
+  });
+
+  _model.addToReset(function() {
+    range = 200; // EjsS Model.Variables.Coordinates.range
+    xmin = -range/2; // EjsS Model.Variables.Coordinates.xmin
+    xmax = range/2; // EjsS Model.Variables.Coordinates.xmax
+    ymin = -range/2; // EjsS Model.Variables.Coordinates.ymin
+    ymax = range/2; // EjsS Model.Variables.Coordinates.ymax
+    zmin = -range/2; // EjsS Model.Variables.Coordinates.zmin
+    zmax = range/2; // EjsS Model.Variables.Coordinates.zmax
+    D = range; // EjsS Model.Variables.Coordinates.D
+    R = D/2; // EjsS Model.Variables.Coordinates.R
+    t = 0.0; // EjsS Model.Variables.Coordinates.t
+    dt = 0.05; // EjsS Model.Variables.Coordinates.dt
+    size = range/40; // EjsS Model.Variables.Coordinates.size
+    pi2 = Math.PI*2; // EjsS Model.Variables.Coordinates.pi2
+    npt = 600; // EjsS Model.Variables.Coordinates.npt
+    stroke = 2.0; // EjsS Model.Variables.Coordinates.stroke
+    beta = Math.PI/6; // EjsS Model.Variables.Coordinates.beta
+    zoom = 1.0; // EjsS Model.Variables.Coordinates.zoom
+  });
+
+  _model.addToReset(function() {
+    font = "normal normal 1.5vw"; // EjsS Model.Variables.Unicode Fonts.font
+  });
+
+  _model.addToReset(function() {
+    n = 6; // EjsS Model.Variables.Basic.n
+    n2 = n/2; // EjsS Model.Variables.Basic.n2
+    x = new Array(n); // EjsS Model.Variables.Basic.x
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.x
+        x[_i0] = 0;  // EjsS Model.Variables.Basic.x
+      }
+    }());
+    y = new Array(n); // EjsS Model.Variables.Basic.y
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.y
+        y[_i0] = 0;  // EjsS Model.Variables.Basic.y
+      }
+    }());
+    z = new Array(n); // EjsS Model.Variables.Basic.z
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.z
+        z[_i0] = 0.0;  // EjsS Model.Variables.Basic.z
+      }
+    }());
+    phi = 3*Math.PI/12; // EjsS Model.Variables.Basic.phi
+    v = 5; // EjsS Model.Variables.Basic.v
+    vx = new Array(n); // EjsS Model.Variables.Basic.vx
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.vx
+        vx[_i0] = 5;  // EjsS Model.Variables.Basic.vx
+      }
+    }());
+    vy = new Array(n); // EjsS Model.Variables.Basic.vy
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.vy
+        vy[_i0] = 0;  // EjsS Model.Variables.Basic.vy
+      }
+    }());
+    vz = new Array(n); // EjsS Model.Variables.Basic.vz
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.vz
+        vz[_i0] = 0.0;  // EjsS Model.Variables.Basic.vz
+      }
+    }());
+    stopped = new Array(n); // EjsS Model.Variables.Basic.stopped
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.stopped
+        stopped[_i0] = true;  // EjsS Model.Variables.Basic.stopped
+      }
+    }());
+    x2 = new Array(n); // EjsS Model.Variables.Basic.x2
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.x2
+        x2[_i0] = 0.0;  // EjsS Model.Variables.Basic.x2
+      }
+    }());
+    y2 = new Array(n); // EjsS Model.Variables.Basic.y2
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.y2
+        y2[_i0] = 0.0;  // EjsS Model.Variables.Basic.y2
+      }
+    }());
+    z2 = new Array(n); // EjsS Model.Variables.Basic.z2
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.z2
+        z2[_i0] = 0.0;  // EjsS Model.Variables.Basic.z2
+      }
+    }());
+    x21 = new Array(n); // EjsS Model.Variables.Basic.x21
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.x21
+        x21[_i0] = 0.0;  // EjsS Model.Variables.Basic.x21
+      }
+    }());
+    y21 = new Array(n); // EjsS Model.Variables.Basic.y21
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.y21
+        y21[_i0] = 0.0;  // EjsS Model.Variables.Basic.y21
+      }
+    }());
+    z21 = new Array(n); // EjsS Model.Variables.Basic.z21
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.z21
+        z21[_i0] = 0.0;  // EjsS Model.Variables.Basic.z21
+      }
+    }());
+    x3 = new Array(n); // EjsS Model.Variables.Basic.x3
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.x3
+        x3[_i0] = 0;  // EjsS Model.Variables.Basic.x3
+      }
+    }());
+    y3 = new Array(n); // EjsS Model.Variables.Basic.y3
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.y3
+        y3[_i0] = 0.0;  // EjsS Model.Variables.Basic.y3
+      }
+    }());
+    z3 = new Array(n); // EjsS Model.Variables.Basic.z3
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.z3
+        z3[_i0] = 0.0;  // EjsS Model.Variables.Basic.z3
+      }
+    }());
+    vx3 = new Array(n); // EjsS Model.Variables.Basic.vx3
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.vx3
+        vx3[_i0] = 0.0;  // EjsS Model.Variables.Basic.vx3
+      }
+    }());
+    vy3 = new Array(n); // EjsS Model.Variables.Basic.vy3
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.vy3
+        vy3[_i0] = 0.0;  // EjsS Model.Variables.Basic.vy3
+      }
+    }());
+    vz3 = new Array(n); // EjsS Model.Variables.Basic.vz3
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.vz3
+        vz3[_i0] = 0.0;  // EjsS Model.Variables.Basic.vz3
+      }
+    }());
+    x4 = new Array(n); // EjsS Model.Variables.Basic.x4
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.x4
+        x4[_i0] = 0;  // EjsS Model.Variables.Basic.x4
+      }
+    }());
+    y4 = new Array(n); // EjsS Model.Variables.Basic.y4
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.y4
+        y4[_i0] = 0.0;  // EjsS Model.Variables.Basic.y4
+      }
+    }());
+    z4 = new Array(n); // EjsS Model.Variables.Basic.z4
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.z4
+        z4[_i0] = 0.0;  // EjsS Model.Variables.Basic.z4
+      }
+    }());
+    x34 = new Array(n); // EjsS Model.Variables.Basic.x34
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.x34
+        x34[_i0] = 0.0;  // EjsS Model.Variables.Basic.x34
+      }
+    }());
+    y34 = new Array(n); // EjsS Model.Variables.Basic.y34
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.y34
+        y34[_i0] = 0.0;  // EjsS Model.Variables.Basic.y34
+      }
+    }());
+    z34 = new Array(n); // EjsS Model.Variables.Basic.z34
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<n; _i0+=1) {  // EjsS Model.Variables.Basic.z34
+        z34[_i0] = 0.0;  // EjsS Model.Variables.Basic.z34
+      }
+    }());
+  });
+
+  _model.addToReset(function() {
+    l_play = "play"; // EjsS Model.Variables.Language.l_play
+    l_pause = "pause"; // EjsS Model.Variables.Language.l_pause
+    l_reset = "reset"; // EjsS Model.Variables.Language.l_reset
+    l_init = "initialize"; // EjsS Model.Variables.Language.l_init
+    label = "play"; // EjsS Model.Variables.Language.label
+    l_step = "step"; // EjsS Model.Variables.Language.l_step
+    l_jump = "jump"; // EjsS Model.Variables.Language.l_jump
+    l_viewD = "view displacement"; // EjsS Model.Variables.Language.l_viewD
+    l_inertial = "Inertial system"; // EjsS Model.Variables.Language.l_inertial
+    l_noninertial = "Noninertial system"; // EjsS Model.Variables.Language.l_noninertial
+  });
+
+  _model.addToReset(function() {
+    axis = new Array(9); // EjsS Model.Variables.View.axis
+    (function () {
+      var _i0;
+      for (_i0=0; _i0<9; _i0+=1) {  // EjsS Model.Variables.View.axis
+        axis[_i0] = 0.0;  // EjsS Model.Variables.View.axis
+      }
+    }());
+    cta = 0.0; // EjsS Model.Variables.View.cta
+    T = 10.0; // EjsS Model.Variables.View.T
+    alpha = 0; // EjsS Model.Variables.View.alpha
+    alpha2 = 0.0; // EjsS Model.Variables.View.alpha2
+    omega = Math.PI*2/T; // EjsS Model.Variables.View.omega
+    cs = 0.0; // EjsS Model.Variables.View.cs
+    sc = 0.0; // EjsS Model.Variables.View.sc
+    stage = 0; // EjsS Model.Variables.View.stage
+    vr = R; // EjsS Model.Variables.View.vr
+    ax = 0.0; // EjsS Model.Variables.View.ax
+    ay = 0.0; // EjsS Model.Variables.View.ay
+    az = 0.0; // EjsS Model.Variables.View.az
+    G = R*R*R*1.8; // EjsS Model.Variables.View.G
+    scale = 0.25; // EjsS Model.Variables.View.scale
+    viewtrace = false; // EjsS Model.Variables.View.viewtrace
+    viewd = false; // EjsS Model.Variables.View.viewd
+    connect = 0; // EjsS Model.Variables.View.connect
+  });
+
+  _model.addToReset(function() {
+    Width = "50%"; // EjsS Model.Variables.menu.Width
+    Width2 = "50%"; // EjsS Model.Variables.menu.Width2
+    camerax2 = Math.cos(alpha)*400; // EjsS Model.Variables.menu.camerax2
+    cameray2 = Math.sin(alpha)*400; // EjsS Model.Variables.menu.cameray2
+    cameraz2 = 0; // EjsS Model.Variables.menu.cameraz2
+  });
+
+  if (_inputParameters) {
+    _inputParameters = _model.parseInputParameters(_inputParameters);
+    if (_inputParameters) _model.addToReset(function() { _model._readParameters(_inputParameters); });
+  }
+
+  _model.addToReset(function() {
+    _privateOdesList=[];
+    _ODEi_evolution1 = _ODE_evolution1();
+    _privateOdesList.push(_ODEi_evolution1);
+  });
+
+  _model.addToReset(function() {
+    _model.setAutoplay(false);
+    _model.setPauseOnPageExit(true);
+    _model.setFPS(20);
+    _model.setStepsPerDisplay(1);
+  });
+
+  function getA (i,x,y,z,id,v) {  // > CustomCode.getA:1
+   var r2,r3,ret,cst;  // > CustomCode.getA:2
+   if(stage!=1 || stopped[i])return 0.;  // > CustomCode.getA:3
+   r2=x[i]*x[i]+y[i]*y[i]+z[i]*z[i];  // > CustomCode.getA:4
+   r3=r2*Math.sqrt(r2);  // > CustomCode.getA:5
+   if((id%3) ==0)ret= -G*x[i]/r3; // id is used as id for x=0 y=1 z=2 return F = Gmm/r^2  // > CustomCode.getA:6
+   else if((id%3)==1)ret= -G*y[i]/r3;  //   // > CustomCode.getA:7
+   else if((id%3)==2)ret= -G*z[i]/r3;  // > CustomCode.getA:8
+   if(id==3)ret+= omega*(2*v[i]+omega*x[i]); // id==3 for Coriolis x  // > CustomCode.getA:9
+   else if(id==4)ret+=omega*(omega*y[i]-2*v[i]); // id==4 for Coriolis y  // > CustomCode.getA:10
+  return ret;  // > CustomCode.getA:11
+  }  // > CustomCode.getA:12
+
+  // code to be copied to EJSS source code under Custom and used in drawingPanel3D and plottingPanel2D  // > CustomCode.change orientation:1
+  // address the problem is height difference is iOS app , epub, and Firefox  // > CustomCode.change orientation:2
+  // user need to change only k and kepub  // > CustomCode.change orientation:3
+  // copy %changeOrientation()% into the Height Field of drawingPanel3D and plottingPanel2D  // > CustomCode.change orientation:4
+  function changeOrientation() {  // > CustomCode.change orientation:5
+     // > CustomCode.change orientation:6
+  var k =0.90 ; // k control height 1 is for full screen, 0.9 shorten etc  // > CustomCode.change orientation:7
+  var kapple =0.90 // control apple app height  // > CustomCode.change orientation:8
+  var kepub =0.90 ;  // > CustomCode.change orientation:9
+  // check platform for Apps  // > CustomCode.change orientation:10
+  try { // allow code to run in Student Learning Space   // > CustomCode.change orientation:11
+    var iOSapp =  (typeof parent.device != 'undefined' && parent.device.platform == "iOS");  // > CustomCode.change orientation:12
+    var Androidapp = (typeof parent.device != 'undefined' && parent.device.platform == "Android");  // > CustomCode.change orientation:13
+  } catch(e) {  // > CustomCode.change orientation:14
+    var iOSapp = false;  // > CustomCode.change orientation:15
+    var Androidapp = false;  // > CustomCode.change orientation:16
+  }  // > CustomCode.change orientation:17
+  // check platform for web browsers  // > CustomCode.change orientation:18
+  var iOS =/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.change orientation:19
+  var iPad =/iPad/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.change orientation:20
+  var iPhone = /iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;  // > CustomCode.change orientation:21
+  var Android= /Android|android/i.test(navigator.userAgent);  // > CustomCode.change orientation:22
+  //navigator  // > CustomCode.change orientation:23
+  var Firefox = navigator.userAgent.indexOf("Firefox") != -1;  // > CustomCode.change orientation:24
+     // > CustomCode.change orientation:25
+  switch (window.orientation) { // using window.orientation as deciding factor  // > CustomCode.change orientation:26
+    case 0:  // > CustomCode.change orientation:27
+    case 180:  // > CustomCode.change orientation:28
+      this.screenOrientation = 'portrait';  // > CustomCode.change orientation:29
+      if (iOSapp){ // does not seems to work  // > CustomCode.change orientation:30
+          // > CustomCode.change orientation:31
+        return window.screen.height*kapple;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.change orientation:32
+        // > CustomCode.change orientation:33
+      }  // > CustomCode.change orientation:34
+      else if (_isEPub){ // does not seems to work  // > CustomCode.change orientation:35
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.change orientation:36
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.change orientation:37
+        // return window.screen.height;  // > CustomCode.change orientation:38
+        //  return window.innerHeight;  // > CustomCode.change orientation:39
+        // return document.documentElement.clientHeight;  // > CustomCode.change orientation:40
+      }  // > CustomCode.change orientation:41
+       // > CustomCode.change orientation:42
+      else {  // > CustomCode.change orientation:43
+         // > CustomCode.change orientation:44
+        return 100*k+"vh";  // > CustomCode.change orientation:45
+      }  // > CustomCode.change orientation:46
+      break;  // > CustomCode.change orientation:47
+    case 90:  // > CustomCode.change orientation:48
+    case -90:  // > CustomCode.change orientation:49
+      this.screenOrientation = 'landscape';  // > CustomCode.change orientation:50
+     // > CustomCode.change orientation:51
+      if (iOSapp){ // App  // > CustomCode.change orientation:52
+        return window.screen.width*kapple;    // > CustomCode.change orientation:53
+        // return window.screen.height;  // > CustomCode.change orientation:54
+        //  return window.innerHeight;  // > CustomCode.change orientation:55
+        //  return document.documentElement.clientHeight;  // > CustomCode.change orientation:56
+      }  // > CustomCode.change orientation:57
+      else if (_isEPub){ // does not seems to work  // > CustomCode.change orientation:58
+        //   return Math.max(window.screen.width,window.screen.height)*0.9;  // > CustomCode.change orientation:59
+        return window.innerHeight*kepub;  //0.1 for app and 0.1 for nonfullscreenapp    // > CustomCode.change orientation:60
+        // return window.screen.height;  // > CustomCode.change orientation:61
+        //  return window.innerHeight;  // > CustomCode.change orientation:62
+        // return document.documentElement.clientHeight;  // > CustomCode.change orientation:63
+      }  // > CustomCode.change orientation:64
+       // > CustomCode.change orientation:65
+      else {  // > CustomCode.change orientation:66
+        return 100*k+"vh";  // > CustomCode.change orientation:67
+        }  // > CustomCode.change orientation:68
+      break;  // > CustomCode.change orientation:69
+    default:  // > CustomCode.change orientation:70
+      this.screenOrientation = 'unknown';  // > CustomCode.change orientation:71
+      //       return (iPad)?""+(window.screen.width+window.screen.height)*0.4:((iPhone)?""+window.screen.width:_view._format(window.innerHeight*0.9,"0"));  // > CustomCode.change orientation:72
+       if (Firefox){  // > CustomCode.change orientation:73
+        return window.innerHeight*k;// number as of 20180831 Firefox does not support vh yet so need a separate line to handle  // > CustomCode.change orientation:74
+        }  // > CustomCode.change orientation:75
+          // > CustomCode.change orientation:76
+        else {  // > CustomCode.change orientation:77
+          return 100*k+"vh"; // string every other solid deployment, Android Android App web chrome etc works in EJSS6.0beta  // > CustomCode.change orientation:78
+          //  works in EjsS_5.3_180131  // > CustomCode.change orientation:79
+        //  window.innerHeight*k; // work on Chrome mobile  // > CustomCode.change orientation:80
+  }  // > CustomCode.change orientation:81
+  }  // > CustomCode.change orientation:82
+     // > CustomCode.change orientation:83
+  }  // > CustomCode.change orientation:84
+
+  /*function playpause () {  // > CustomCode.playpause:1
+   if(label==l_play){  // > CustomCode.playpause:2
+    label=l_pause;  // > CustomCode.playpause:3
+    _play();  // > CustomCode.playpause:4
+   }else{  // > CustomCode.playpause:5
+    label=l_play;  // > CustomCode.playpause:6
+    _pause();  // > CustomCode.playpause:7
+   }  // > CustomCode.playpause:8
+  }*/  // > CustomCode.playpause:9
+  function playpause() {  // > CustomCode.playpause:10
+    if (_isPlaying) {  // > CustomCode.playpause:11
+      _pause();  // > CustomCode.playpause:12
+    } else {  // > CustomCode.playpause:13
+      _play();  // > CustomCode.playpause:14
+    }  // > CustomCode.playpause:15
+  }  // > CustomCode.playpause:16
+
+  function jump () {  // > CustomCode.jump:1
+   if(stage==0){  // > CustomCode.jump:2
+     stage=1;  // > CustomCode.jump:3
+     for(var i=0;i<n;i++)stopped[i]=false;  // > CustomCode.jump:4
+   }  // > CustomCode.jump:5
+  }  // > CustomCode.jump:6
+
+  function zh_tw () {  // > CustomCode.chinese:1
+   l_play="播放";  // > CustomCode.chinese:2
+   l_init="初始化";  // > CustomCode.chinese:3
+   l_reset="重設";  // > CustomCode.chinese:4
+   l_pause="暫停";  // > CustomCode.chinese:5
+   l_step="前進一格";  // > CustomCode.chinese:6
+   l_jump="發射";  // > CustomCode.chinese:7
+   l_viewD="顯示位移";  // > CustomCode.chinese:8
+   l_inertial="慣性座標系";  // > CustomCode.chinese:9
+   l_noninertial="非慣性座標系";  // > CustomCode.chinese:10
+   label=l_play;  // > CustomCode.chinese:11
+   _initialize();  // > CustomCode.chinese:12
+  }  // > CustomCode.chinese:13
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["Init Page"]) return;
+    stage = 0;  // > Initialization.Init Page:1
+    alpha = alpha2 = 0.;  // > Initialization.Init Page:2
+    t = 0.;  // > Initialization.Init Page:3
+    connect = 0;  // > Initialization.Init Page:4
+    viewd = viewtrace = true;  // > Initialization.Init Page:5
+    _view.traceSet1.clear();  // > Initialization.Init Page:6
+    _view.traceSet2.clear();  // > Initialization.Init Page:7
+    _view.traceSet3.clear();  // > Initialization.Init Page:8
+    _view.traceSet4.clear();  // > Initialization.Init Page:9
+    _view.traceSet5.clear();  // > Initialization.Init Page:10
+    _view.traceSet6.clear();  // > Initialization.Init Page:11
+    _view.traceSet7.clear();  // > Initialization.Init Page:12
+    _view.traceSet8.clear();  // > Initialization.Init Page:13
+    _view.traceSet9.clear();  // > Initialization.Init Page:14
+    _view.traceSet10.clear();  // > Initialization.Init Page:15
+    _view.traceSet11.clear();  // > Initialization.Init Page:16
+    _view.traceSet12.clear();  // > Initialization.Init Page:17
+    _view.traceSet1a.clear();  // > Initialization.Init Page:18
+    _view.traceSet2a.clear();  // > Initialization.Init Page:19
+    _view.traceSet3a.clear();  // > Initialization.Init Page:20
+    _view.traceSet4a.clear();  // > Initialization.Init Page:21
+    _view.traceSet5a.clear();  // > Initialization.Init Page:22
+    _view.traceSet6a.clear();  // > Initialization.Init Page:23
+    _view.traceSet7a.clear();  // > Initialization.Init Page:24
+    _view.traceSet8a.clear();  // > Initialization.Init Page:25
+    _view.traceSet9a.clear();  // > Initialization.Init Page:26
+    _view.traceSet10a.clear();  // > Initialization.Init Page:27
+    _view.traceSet11a.clear();  // > Initialization.Init Page:28
+    _view.traceSet12a.clear();  // > Initialization.Init Page:29
+  });
+
+  _model.addToInitialization(function() {
+    if (!__pagesEnabled["undefined"]) return;
+    if (inertia==undefined){  // > Initialization.undefined:1
+      inertia=true;  // > Initialization.undefined:2
+      }  // > Initialization.undefined:3
+    if (noninertia==undefined){  // > Initialization.undefined:4
+      noninertia=true;  // > Initialization.undefined:5
+      }  // > Initialization.undefined:6
+       // > Initialization.undefined:7
+     if (inertia==true&&noninertia==true){  // > Initialization.undefined:8
+      Width="50%";  // > Initialization.undefined:9
+      Width2="50%";  // > Initialization.undefined:10
+      }  // > Initialization.undefined:11
+      else if (inertia==true&&noninertia==false){  // > Initialization.undefined:12
+      Width="100%";  // > Initialization.undefined:13
+      Width2="0%";  // > Initialization.undefined:14
+      }  // > Initialization.undefined:15
+      else if (inertia==false&&noninertia==true){  // > Initialization.undefined:16
+      Width="0%";  // > Initialization.undefined:17
+      Width2="100%";  // > Initialization.undefined:18
+      }  // > Initialization.undefined:19
+        // > Initialization.undefined:20
+        // > Initialization.undefined:21
+      if (drawfill==undefined){  // > Initialization.undefined:22
+        drawfill=false;  // > Initialization.undefined:23
+        }  // > Initialization.undefined:24
+  });
+
+  _model.addToInitialization(function() {
+    _initializeSolvers();
+  });
+
+  _model.addToEvolution(function() {
+    if (!__pagesEnabled["Evol Page"]) return;
+    _ODEi_evolution1.step();
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["Cons Page"]) return;
+    viewd=viewtrace=true;  // > FixedRelations.Cons Page:1
+    if(cta>pi2)cta-=pi2;  // > FixedRelations.Cons Page:2
+    cs=Math.cos(cta);  // > FixedRelations.Cons Page:3
+    sc=Math.sin(cta);  // > FixedRelations.Cons Page:4
+    axis[0]=cs; axis[1]=sc; axis[2]=0.;  // > FixedRelations.Cons Page:5
+    axis[3]=-sc; axis[4]=cs; axis[5]=0.;  // > FixedRelations.Cons Page:6
+    axis[6]=0.; axis[7]=0.; axis[8]=1.;  // > FixedRelations.Cons Page:7
+     var dc,c,c2,r,count,rho,sign,R2,vrho;  // > FixedRelations.Cons Page:8
+     //var phi,dc,c,c2,v,r,count,rho,sign,R2,vrho;  // > FixedRelations.Cons Page:9
+     dc=Math.PI*2/n2;  // > FixedRelations.Cons Page:10
+     R2=1.05*R;  // > FixedRelations.Cons Page:11
+    // phi=3*Math.PI/12;  // > FixedRelations.Cons Page:12
+     rho=R2*Math.sin(phi);  // > FixedRelations.Cons Page:13
+     // trying to slider v  // > FixedRelations.Cons Page:14
+     //vxslider =v;  // > FixedRelations.Cons Page:15
+     v=rho*omega;  // > FixedRelations.Cons Page:16
+     for(var i=0;i<n;i++){  // > FixedRelations.Cons Page:17
+      c=i*dc+cta;  // > FixedRelations.Cons Page:18
+      c2=i*dc;  // > FixedRelations.Cons Page:19
+       x2[i]=rho*Math.cos(c);  // > FixedRelations.Cons Page:20
+       y2[i]=rho*Math.sin(c);  // > FixedRelations.Cons Page:21
+       x4[i]=rho*Math.cos(c2);  // > FixedRelations.Cons Page:22
+       y4[i]=rho*Math.sin(c2);  // > FixedRelations.Cons Page:23
+       z4[i]=z2[i]=R2*Math.cos(phi);  // > FixedRelations.Cons Page:24
+      if(stage==0){  // > FixedRelations.Cons Page:25
+        x[i]=x2[i]; y[i]=y2[i];z[i]=z2[i];  // > FixedRelations.Cons Page:26
+        x3[i]=x4[i]; y3[i]=y4[i];z3[i]=z4[i];  // > FixedRelations.Cons Page:27
+        if(i<n2)sign=1; //n2 number of projectiles  // > FixedRelations.Cons Page:28
+        else sign=-1;  // > FixedRelations.Cons Page:29
+        vx[i]=-v*Math.sin(c)-sign*vr*x[i]/R;   // > FixedRelations.Cons Page:30
+       // console.log(vx);  // > FixedRelations.Cons Page:31
+        vy[i]=v*Math.cos(c)-sign*vr*y[i]/R;  // > FixedRelations.Cons Page:32
+        vz[i]=sign*vr*z[i]/R;  // > FixedRelations.Cons Page:33
+        vrho=sign*vr*Math.cos(phi);  // > FixedRelations.Cons Page:34
+        vx3[i]=-vrho*Math.cos(c2);  // > FixedRelations.Cons Page:35
+        vy3[i]=-vrho*Math.sin(c2);  // > FixedRelations.Cons Page:36
+        vz3[i]=sign*vr*Math.sin(phi);  // > FixedRelations.Cons Page:37
+      }  // > FixedRelations.Cons Page:38
+      x21[i]=x[i]-x2[i];  // > FixedRelations.Cons Page:39
+      y21[i]=y[i]-y2[i];  // > FixedRelations.Cons Page:40
+      z21[i]=z[i]-z2[i];  // > FixedRelations.Cons Page:41
+      x34[i]=x3[i]-x4[i];  // > FixedRelations.Cons Page:42
+      y34[i]=y3[i]-y4[i];  // > FixedRelations.Cons Page:43
+      z34[i]=z3[i]-z4[i];  // > FixedRelations.Cons Page:44
+     }  // > FixedRelations.Cons Page:45
+    if(stage==1){  // > FixedRelations.Cons Page:46
+     connect++;  // > FixedRelations.Cons Page:47
+     count=0;  // > FixedRelations.Cons Page:48
+     for(var i=0;i<n;i++){  // > FixedRelations.Cons Page:49
+      r=Math.sqrt(x[i]*x[i]+y[i]*y[i]+z[i]*z[i]);  // > FixedRelations.Cons Page:50
+      if(r<1.02*R){  // > FixedRelations.Cons Page:51
+        stopped[i]=true;  // > FixedRelations.Cons Page:52
+        vx[i]=vy[i]=vz[i]=0.;   // > FixedRelations.Cons Page:53
+        count++;  // > FixedRelations.Cons Page:54
+      }  // > FixedRelations.Cons Page:55
+     }  // > FixedRelations.Cons Page:56
+     if(count==n){  // > FixedRelations.Cons Page:57
+      viewtrace=viewd=false;  // > FixedRelations.Cons Page:58
+      playpause();  // > FixedRelations.Cons Page:59
+       stage=2;  // > FixedRelations.Cons Page:60
+     }  // > FixedRelations.Cons Page:61
+    }  // > FixedRelations.Cons Page:62
+    if(stage==2 && _isPlaying){  // > FixedRelations.Cons Page:63
+     drawfill=true;  // > FixedRelations.Cons Page:64
+     playpause();  // > FixedRelations.Cons Page:65
+       // > FixedRelations.Cons Page:66
+    }  // > FixedRelations.Cons Page:67
+  });
+
+  _model.addToFixedRelations(function() {
+    if (!__pagesEnabled["camera2"]) return;
+    if (_view.comboBox.getProperty("SelectedOptions")=="Top View"){  // > FixedRelations.camera2:1
+      camerax2=0;  // > FixedRelations.camera2:2
+    cameray2=0;  // > FixedRelations.camera2:3
+    cameraz2=400;  // > FixedRelations.camera2:4
+    }  // > FixedRelations.camera2:5
+    else {  // > FixedRelations.camera2:6
+    //camerax2=Math.cos(alpha)*400;  // > FixedRelations.camera2:7
+    _view.drawingPanel3D2.setCamLocX(Math.cos(alpha)*400);  // > FixedRelations.camera2:8
+    //cameray2=Math.sin(alpha)*400;  // > FixedRelations.camera2:9
+    _view.drawingPanel3D2.setCamLocY(Math.sin(alpha)*400);  // > FixedRelations.camera2:10
+    //cameraz2=0;  // > FixedRelations.camera2:11
+    _view.drawingPanel3D2.setCamLocZ(0);  // > FixedRelations.camera2:12
+      }  // > FixedRelations.camera2:13
+  });
+
+  _model.addToFixedRelations(function() { _isPaused = _model.isPaused(); _isPlaying = _model.isPlaying(); });
+
+  function _initializeSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].initializeSolver();
+  }
+
+  function _automaticResetSolvers() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].automaticResetSolver();
+  }
+
+  _model.resetSolvers = function() {
+    for (var i=0,n=_privateOdesList.length; i<n; i++) _privateOdesList[i].resetSolver();
+  };
+
+  _getODE = function (_odeName) {
+    if (_odeName=="Evol Page") return _ODEi_evolution1;
+    return null;
+  }
+
+  function _getEventSolver(_odeName) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return null;
+    return ode.getEventSolver();
+  }
+
+  function _setSolverClass(_odeName, _engine) {
+    var ode = _getODE(_odeName);
+    if (ode===null) return;
+    if (!_engine.setODE) {
+      var classname = _engine.toLowerCase();
+      if      (classname.indexOf("boga")>=0)   _engine = EJSS_ODE_SOLVERS.bogackiShampine23;
+      else if (classname.indexOf("cash")>=0)   _engine = EJSS_ODE_SOLVERS.cashKarp45;
+      else if (classname.indexOf("dopri5")>=0) _engine = EJSS_ODE_SOLVERS.dopri5;
+      else if (classname.indexOf("dopri8")>=0) _engine = EJSS_ODE_SOLVERS.dopri853;
+      else if (classname.indexOf("richa")>=0)  _engine = EJSS_ODE_SOLVERS.eulerRichardson;
+      else if (classname.indexOf("euler")>=0)  _engine = EJSS_ODE_SOLVERS.euler;
+      else if (classname.indexOf("fehlberg87")>=0) _engine = EJSS_ODE_SOLVERS.fehlberg87;
+      else if (classname.indexOf("fehlberg8")>=0)  _engine = EJSS_ODE_SOLVERS.fehlberg8;
+      else if (classname.indexOf("radau")>=0)   _engine = EJSS_ODE_SOLVERS.radau5;
+      else if (classname.indexOf("runge")>=0)  _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("rk4")>=0)    _engine = EJSS_ODE_SOLVERS.rungeKutta4;
+      else if (classname.indexOf("verlet")>=0) _engine = EJSS_ODE_SOLVERS.velocityVerlet;
+    }
+    if (_engine) ode.setSolverClass(_engine);
+  }
+
+  function _ODE_evolution1() {
+    var __odeSelf = {};
+    var __eventSolver;
+    var __solverClass = EJSS_ODE_SOLVERS.rungeKutta4;
+    var __state=[];
+    var __ignoreErrors=false;
+    var __mustInitialize=true;
+    var __isEnabled=true;
+    var __mustUserReinitialize=false;
+    var __mustReinitialize=true;
+
+    var _xLength;
+    var _yLength;
+    var _zLength;
+    var _vxLength;
+    var _vyLength;
+    var _vzLength;
+    var _x3Length;
+    var _y3Length;
+    var _z3Length;
+    var _vx3Length;
+    var _vy3Length;
+    var _vz3Length;
+
+    __odeSelf._getOdeVars = function (){ return["alpha","cta","x","y","z","vx","vy","vz","x3","y3","z3","vx3","vy3","vz3","t"]};
+
+    __odeSelf.setSolverClass = function(__aSolverClass) {
+      __solverClass = __aSolverClass;
+      __instantiateSolver();
+    };
+
+    function __instantiateSolver() {
+      __state=[];
+      _xLength = x.length;
+      _yLength = y.length;
+      _zLength = z.length;
+      _vxLength = vx.length;
+      _vyLength = vy.length;
+      _vzLength = vz.length;
+      _x3Length = x3.length;
+      _y3Length = y3.length;
+      _z3Length = z3.length;
+      _vx3Length = vx3.length;
+      _vy3Length = vy3.length;
+      _vz3Length = vz3.length;
+      __pushState();
+      __eventSolver = EJSS_ODE_SOLVERS.interpolatorEventSolver(__solverClass(),__odeSelf);
+      __mustInitialize = true;
+    }
+
+    __odeSelf.setEnabled = function(_enabled) { __isEnabled = _enabled; };
+
+    __odeSelf.getIndependentVariableValue = function() { return __eventSolver.getIndependentVariableValue(); };
+
+    __odeSelf.getInternalStepSize = function() { return __eventSolver.getInternalStepSize(); };
+
+    __odeSelf.isAccelerationIndependentOfVelocity = function() { return false; };
+
+    __odeSelf.initializeSolver = function() {
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); return; }
+      __pushState();
+      __eventSolver.initialize(dt);
+      __eventSolver.setBestInterpolation(false);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.removeAllEvents();
+      for(k in userEvents1){__eventSolver.addEvent(userEvents1[k]);}
+      __eventSolver.setEstimateFirstStep(false);
+      __eventSolver.setEnableExceptions(false);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __mustReinitialize = true;
+      __mustInitialize = false;
+    };
+
+    function __pushState() {
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        if (__state[__cIn]!=alpha) __mustReinitialize = true;
+        __state[__cIn++] = alpha;
+        if (__state[__cIn]!=cta) __mustReinitialize = true;
+        __state[__cIn++] = cta;
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_xLength; __j++)
+           if (__state[__n++]!=x[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_xLength; __j++) {
+          __state[__cIn++] = x[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_yLength; __j++)
+           if (__state[__n++]!=y[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_yLength; __j++) {
+          __state[__cIn++] = y[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_zLength; __j++)
+           if (__state[__n++]!=z[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_zLength; __j++) {
+          __state[__cIn++] = z[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_vxLength; __j++)
+           if (__state[__n++]!=vx[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_vxLength; __j++) {
+          __state[__cIn++] = vx[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_vyLength; __j++)
+           if (__state[__n++]!=vy[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_vyLength; __j++) {
+          __state[__cIn++] = vy[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_vzLength; __j++)
+           if (__state[__n++]!=vz[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_vzLength; __j++) {
+          __state[__cIn++] = vz[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_x3Length; __j++)
+           if (__state[__n++]!=x3[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_x3Length; __j++) {
+          __state[__cIn++] = x3[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_y3Length; __j++)
+           if (__state[__n++]!=y3[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_y3Length; __j++) {
+          __state[__cIn++] = y3[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_z3Length; __j++)
+           if (__state[__n++]!=z3[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_z3Length; __j++) {
+          __state[__cIn++] = z3[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_vx3Length; __j++)
+           if (__state[__n++]!=vx3[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_vx3Length; __j++) {
+          __state[__cIn++] = vx3[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_vy3Length; __j++)
+           if (__state[__n++]!=vy3[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_vy3Length; __j++) {
+          __state[__cIn++] = vy3[__j];
+        }
+      if (!__mustReinitialize)
+        for (__j=0,__n=__cIn; __j<_vz3Length; __j++)
+           if (__state[__n++]!=vz3[__j]) { __mustReinitialize = true; break; }
+        for (__j=0;__j<_vz3Length; __j++) {
+          __state[__cIn++] = vz3[__j];
+        }
+        if (__state[__cIn]!=t) __mustReinitialize = true;
+        __state[__cIn++] = t;
+    }
+
+    function __arraysChanged () {
+      if (_xLength != x.length) return true;
+      if (_yLength != y.length) return true;
+      if (_zLength != z.length) return true;
+      if (_vxLength != vx.length) return true;
+      if (_vyLength != vy.length) return true;
+      if (_vzLength != vz.length) return true;
+      if (_x3Length != x3.length) return true;
+      if (_y3Length != y3.length) return true;
+      if (_z3Length != z3.length) return true;
+      if (_vx3Length != vx3.length) return true;
+      if (_vy3Length != vy3.length) return true;
+      if (_vz3Length != vz3.length) return true;
+      return false;
+    }
+
+    __odeSelf.getEventSolver = function() {
+      return __eventSolver;
+    };
+
+    __odeSelf.resetSolver = function() {
+      __mustUserReinitialize = true;
+    };
+
+    __odeSelf.automaticResetSolver = function() {
+      __mustReinitialize = true;
+    };
+
+    function __errorAction () {
+      if (__ignoreErrors) return;
+      console.log (__eventSolver.getErrorMessage());
+      _pause();
+      // Make sure the solver is reinitialized;
+      __mustReinitialize = true;
+    }
+
+    __odeSelf.step = function() { return __privateStep(false); };
+
+    __odeSelf.solverStep = function() { return __privateStep(true); };
+
+    function __privateStep(__takeMaximumStep) {
+      if (!__isEnabled) return 0;
+      if (dt===0) return 0;
+      if (__mustInitialize) __odeSelf.initializeSolver();
+      if (__arraysChanged()) { __instantiateSolver(); __odeSelf.initializeSolver(); }
+      __eventSolver.setStepSize(dt);
+      __eventSolver.setInternalStepSize(dt);
+      __eventSolver.setMaximumInternalSteps(10000);
+      __eventSolver.setTolerances(0.00001,0.00001);
+      __pushState();
+      if (__mustUserReinitialize) { 
+        __eventSolver.userReinitialize();
+        __mustUserReinitialize = false;
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      else if (__mustReinitialize) { 
+        __eventSolver.reinitialize();
+        __mustReinitialize = false;
+        if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      }
+      var __stepTaken = __takeMaximumStep ? __eventSolver.maxStep() : __eventSolver.step();
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        alpha = __state[__cOut++];
+        cta = __state[__cOut++];
+        for (__i=0;__i<_xLength; __i++) {
+          x[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_yLength; __i++) {
+          y[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_zLength; __i++) {
+          z[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vxLength; __i++) {
+          vx[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vyLength; __i++) {
+          vy[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vzLength; __i++) {
+          vz[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_x3Length; __i++) {
+          x3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_y3Length; __i++) {
+          y3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_z3Length; __i++) {
+          z3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vx3Length; __i++) {
+          vx3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vy3Length; __i++) {
+          vy3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vz3Length; __i++) {
+          vz3[__i] = __state[__cOut++];
+        }
+        t = __state[__cOut++];
+      // Check for error
+      if (__eventSolver.getErrorCode()!=EJSS_ODE_SOLVERS.ERROR.NO_ERROR) __errorAction();
+      return __stepTaken;
+    }
+
+    __odeSelf.getState = function() { return __state; };
+
+    __odeSelf.getRate = function(_aState,_aRate) {
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var alpha = _aState[__cOut++];
+        var cta = _aState[__cOut++];
+        var x = [];
+        for (__i=0;__i<_xLength; __i++) {
+          x[__i] = _aState[__cOut++];
+        }
+        var y = [];
+        for (__i=0;__i<_yLength; __i++) {
+          y[__i] = _aState[__cOut++];
+        }
+        var z = [];
+        for (__i=0;__i<_zLength; __i++) {
+          z[__i] = _aState[__cOut++];
+        }
+        var vx = [];
+        for (__i=0;__i<_vxLength; __i++) {
+          vx[__i] = _aState[__cOut++];
+        }
+        var vy = [];
+        for (__i=0;__i<_vyLength; __i++) {
+          vy[__i] = _aState[__cOut++];
+        }
+        var vz = [];
+        for (__i=0;__i<_vzLength; __i++) {
+          vz[__i] = _aState[__cOut++];
+        }
+        var x3 = [];
+        for (__i=0;__i<_x3Length; __i++) {
+          x3[__i] = _aState[__cOut++];
+        }
+        var y3 = [];
+        for (__i=0;__i<_y3Length; __i++) {
+          y3[__i] = _aState[__cOut++];
+        }
+        var z3 = [];
+        for (__i=0;__i<_z3Length; __i++) {
+          z3[__i] = _aState[__cOut++];
+        }
+        var vx3 = [];
+        for (__i=0;__i<_vx3Length; __i++) {
+          vx3[__i] = _aState[__cOut++];
+        }
+        var vy3 = [];
+        for (__i=0;__i<_vy3Length; __i++) {
+          vy3[__i] = _aState[__cOut++];
+        }
+        var vz3 = [];
+        for (__i=0;__i<_vz3Length; __i++) {
+          vz3[__i] = _aState[__cOut++];
+        }
+        var t = _aState[__cOut++];
+      // Compute the rate
+        var __cRate=0;
+        _aRate[__cRate++] = -omega; // Rate for ODE: Evol Page:alpha
+        _aRate[__cRate++] = omega; // Rate for ODE: Evol Page:cta
+        var i;
+        for (i=0;i<_xLength;i++) {
+          _aRate[__cRate++] = Array.isArray(vx[i]) ? vx[i][i] : vx[i]; // Rate for ODE: Evol Page:x
+        }
+        for (i=0;i<_yLength;i++) {
+          _aRate[__cRate++] = Array.isArray(vy[i]) ? vy[i][i] : vy[i]; // Rate for ODE: Evol Page:y
+        }
+        for (i=0;i<_zLength;i++) {
+          _aRate[__cRate++] = Array.isArray(vz[i]) ? vz[i][i] : vz[i]; // Rate for ODE: Evol Page:z
+        }
+        for (i=0;i<_vxLength;i++) {
+          _aRate[__cRate++] = Array.isArray(getA(i,x,y,z,0,vx)) ? getA(i,x,y,z,0,vx)[i] : getA(i,x,y,z,0,vx); // Rate for ODE: Evol Page:vx
+        }
+        for (i=0;i<_vyLength;i++) {
+          _aRate[__cRate++] = Array.isArray(getA(i,x,y,z,1,vy)) ? getA(i,x,y,z,1,vy)[i] : getA(i,x,y,z,1,vy); // Rate for ODE: Evol Page:vy
+        }
+        for (i=0;i<_vzLength;i++) {
+          _aRate[__cRate++] = Array.isArray(getA(i,x,y,z,2,vz)) ? getA(i,x,y,z,2,vz)[i] : getA(i,x,y,z,2,vz); // Rate for ODE: Evol Page:vz
+        }
+        for (i=0;i<_x3Length;i++) {
+          _aRate[__cRate++] = Array.isArray(vx3[i]) ? vx3[i][i] : vx3[i]; // Rate for ODE: Evol Page:x3
+        }
+        for (i=0;i<_y3Length;i++) {
+          _aRate[__cRate++] = Array.isArray(vy3[i]) ? vy3[i][i] : vy3[i]; // Rate for ODE: Evol Page:y3
+        }
+        for (i=0;i<_z3Length;i++) {
+          _aRate[__cRate++] = Array.isArray(vz3[i]) ? vz3[i][i] : vz3[i]; // Rate for ODE: Evol Page:z3
+        }
+        for (i=0;i<_vx3Length;i++) {
+          _aRate[__cRate++] = Array.isArray(getA(i,x3,y3,z3,3,vy3)) ? getA(i,x3,y3,z3,3,vy3)[i] : getA(i,x3,y3,z3,3,vy3); // Rate for ODE: Evol Page:vx3
+        }
+        for (i=0;i<_vy3Length;i++) {
+          _aRate[__cRate++] = Array.isArray(getA(i,x3,y3,z3,4,vx3)) ? getA(i,x3,y3,z3,4,vx3)[i] : getA(i,x3,y3,z3,4,vx3); // Rate for ODE: Evol Page:vy3
+        }
+        for (i=0;i<_vz3Length;i++) {
+          _aRate[__cRate++] = Array.isArray(getA(i,x3,y3,z3,5,vz3)) ? getA(i,x3,y3,z3,5,vz3)[i] : getA(i,x3,y3,z3,5,vz3); // Rate for ODE: Evol Page:vz3
+        }
+        _aRate[__cRate++] = 1; // independent variable
+        return _aRate;
+    }; //end of getRate
+
+    __odeSelf._addEvent = function(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent){
+    var User_Event = function (userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent) {
+      var _eventSelf = {};
+
+      _eventSelf.getTypeOfEvent = function() { return eventType; };
+
+      _eventSelf.getRootFindingMethod = function() { return eventMethod; };
+
+      _eventSelf.getMaxIterations = function() { return maxIter; };
+
+      _eventSelf.getTolerance = function() { return eventTolerance; };
+
+      _eventSelf.evaluate = function(_aState) { 
+      // Extract our variables from _aState
+        var __i=0;
+        var __cOut=0;
+        var alpha = _aState[__cOut++];
+        var cta = _aState[__cOut++];
+        var x = [];
+        for (__i=0;__i<_xLength; __i++) {
+          x[__i] = _aState[__cOut++];
+        }
+        var y = [];
+        for (__i=0;__i<_yLength; __i++) {
+          y[__i] = _aState[__cOut++];
+        }
+        var z = [];
+        for (__i=0;__i<_zLength; __i++) {
+          z[__i] = _aState[__cOut++];
+        }
+        var vx = [];
+        for (__i=0;__i<_vxLength; __i++) {
+          vx[__i] = _aState[__cOut++];
+        }
+        var vy = [];
+        for (__i=0;__i<_vyLength; __i++) {
+          vy[__i] = _aState[__cOut++];
+        }
+        var vz = [];
+        for (__i=0;__i<_vzLength; __i++) {
+          vz[__i] = _aState[__cOut++];
+        }
+        var x3 = [];
+        for (__i=0;__i<_x3Length; __i++) {
+          x3[__i] = _aState[__cOut++];
+        }
+        var y3 = [];
+        for (__i=0;__i<_y3Length; __i++) {
+          y3[__i] = _aState[__cOut++];
+        }
+        var z3 = [];
+        for (__i=0;__i<_z3Length; __i++) {
+          z3[__i] = _aState[__cOut++];
+        }
+        var vx3 = [];
+        for (__i=0;__i<_vx3Length; __i++) {
+          vx3[__i] = _aState[__cOut++];
+        }
+        var vy3 = [];
+        for (__i=0;__i<_vy3Length; __i++) {
+          vy3[__i] = _aState[__cOut++];
+        }
+        var vz3 = [];
+        for (__i=0;__i<_vz3Length; __i++) {
+          vz3[__i] = _aState[__cOut++];
+        }
+        var t = _aState[__cOut++];
+      return eval(userCondition);
+      };
+
+      _eventSelf.action = function() { 
+      // Extract our variables from __state
+        var __i=0;
+        var __cOut=0;
+        alpha = __state[__cOut++];
+        cta = __state[__cOut++];
+        for (__i=0;__i<_xLength; __i++) {
+          x[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_yLength; __i++) {
+          y[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_zLength; __i++) {
+          z[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vxLength; __i++) {
+          vx[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vyLength; __i++) {
+          vy[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vzLength; __i++) {
+          vz[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_x3Length; __i++) {
+          x3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_y3Length; __i++) {
+          y3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_z3Length; __i++) {
+          z3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vx3Length; __i++) {
+          vx3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vy3Length; __i++) {
+          vy3[__i] = __state[__cOut++];
+        }
+        for (__i=0;__i<_vz3Length; __i++) {
+          vz3[__i] = __state[__cOut++];
+        }
+        t = __state[__cOut++];
+        var _returnValue = __userDefinedAction();
+      // Copy our variables to __state[] 
+        var __j=0;
+        var __n=0;
+        var __cIn=0;
+        __state[__cIn++] = alpha;
+        __state[__cIn++] = cta;
+        for (__j=0;__j<_xLength; __j++) {
+          __state[__cIn++] = x[__j];
+        }
+        for (__j=0;__j<_yLength; __j++) {
+          __state[__cIn++] = y[__j];
+        }
+        for (__j=0;__j<_zLength; __j++) {
+          __state[__cIn++] = z[__j];
+        }
+        for (__j=0;__j<_vxLength; __j++) {
+          __state[__cIn++] = vx[__j];
+        }
+        for (__j=0;__j<_vyLength; __j++) {
+          __state[__cIn++] = vy[__j];
+        }
+        for (__j=0;__j<_vzLength; __j++) {
+          __state[__cIn++] = vz[__j];
+        }
+        for (__j=0;__j<_x3Length; __j++) {
+          __state[__cIn++] = x3[__j];
+        }
+        for (__j=0;__j<_y3Length; __j++) {
+          __state[__cIn++] = y3[__j];
+        }
+        for (__j=0;__j<_z3Length; __j++) {
+          __state[__cIn++] = z3[__j];
+        }
+        for (__j=0;__j<_vx3Length; __j++) {
+          __state[__cIn++] = vx3[__j];
+        }
+        for (__j=0;__j<_vy3Length; __j++) {
+          __state[__cIn++] = vy3[__j];
+        }
+        for (__j=0;__j<_vz3Length; __j++) {
+          __state[__cIn++] = vz3[__j];
+        }
+        __state[__cIn++] = t;
+        return _returnValue;
+      };
+
+      function __userDefinedAction() {
+        if (undefined != functions) eval(functions.toString());
+        eval(userAction);
+        return endAtEvent;
+      }
+
+      return _eventSelf;
+    }; // End of event
+
+   userEvents1.push(User_Event(userCondition,userAction,eventType,eventMethod,maxIter,eventTolerance,endAtEvent));
+   }
+
+    __instantiateSolver();
+
+    return __odeSelf;
+  }
+
+  function _historic_alpha(__time) {
+    var __index = 0;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_cta(__time) {
+    var __index = 0 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,__index);
+  }
+
+  function _historic_x(__time) {
+    var __beginIndex = 0 + 1 + 1;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(x.length),__beginIndex,x.ength);
+  }
+
+  function _historic_y(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(y.length),__beginIndex,y.ength);
+  }
+
+  function _historic_z(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(z.length),__beginIndex,z.ength);
+  }
+
+  function _historic_vx(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(vx.length),__beginIndex,vx.ength);
+  }
+
+  function _historic_vy(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(vy.length),__beginIndex,vy.ength);
+  }
+
+  function _historic_vz(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(vz.length),__beginIndex,vz.ength);
+  }
+
+  function _historic_x3(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length + vz.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(x3.length),__beginIndex,x3.ength);
+  }
+
+  function _historic_y3(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length + vz.length + x3.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(y3.length),__beginIndex,y3.ength);
+  }
+
+  function _historic_z3(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length + vz.length + x3.length + y3.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(z3.length),__beginIndex,z3.ength);
+  }
+
+  function _historic_vx3(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length + vz.length + x3.length + y3.length + z3.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(vx3.length),__beginIndex,vx3.ength);
+  }
+
+  function _historic_vy3(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length + vz.length + x3.length + y3.length + z3.length + vx3.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(vy3.length),__beginIndex,vy3.ength);
+  }
+
+  function _historic_vz3(__time) {
+    var __beginIndex = 0 + 1 + 1 + x.length + y.length + z.length + vx.length + vy.length + vz.length + x3.length + y3.length + z3.length + vx3.length + vy3.length;
+    return _ODEi_evolution1.getEventSolver().getStateHistory().interpolate(__time,new Array(vz3.length),__beginIndex,vz3.ength);
+  }
+
+    _model._fontResized = function(iBase,iSize,iDelta) {
+      _view._fontResized(iBase,iSize,iDelta);
+  }; // end of _fontResized
+
+  function _getViews() {
+    var _viewsInfo = [];
+    var _counter = 0;
+    _viewsInfo[_counter++] = { name : "Simulation View", width : 800, height : 600 };
+    return _viewsInfo;
+  } // end of _getViews
+
+  function _selectView(_viewNumber) {
+    _view = null;
+    _view = new Coriolis3D_View(_topFrame,_viewNumber,_libraryPath,_codebasePath);
+    var _view_super_reset = _view._reset;
+    _view._reset = function() {
+      _view_super_reset();
+      switch(_viewNumber) {
+        case -10 : break; // make Lint happy
+        default :
+        case 0:
+          _view.field5.linkProperty("Value",  function() { return vr; }, function(_v) { vr = _v; } ); // Simulation View linking property 'Value' for element 'field5'
+          _view.Adjustvr2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'Adjustvr2'
+          _view.field3.linkProperty("Value",  function() { return phi; }, function(_v) { phi = _v; } ); // Simulation View linking property 'Value' for element 'field3'
+          _view.field3.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'field3'
+          _view.Slidervr2.linkProperty("Value",  function() { return phi; }, function(_v) { phi = _v; } ); // Simulation View linking property 'Value' for element 'Slidervr2'
+          _view.Adjustvr.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'Adjustvr'
+          _view.field.linkProperty("Value",  function() { return omega; }, function(_v) { omega = _v; } ); // Simulation View linking property 'Value' for element 'field'
+          _view.field.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'field'
+          _view.Slidervr.linkProperty("Value",  function() { return omega; }, function(_v) { omega = _v; } ); // Simulation View linking property 'Value' for element 'Slidervr'
+          _view.AdjustT.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'AdjustT'
+          _view.field2.linkProperty("Value",  function() { return T; }, function(_v) { T = _v; } ); // Simulation View linking property 'Value' for element 'field2'
+          _view.field2.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'field2'
+          _view.SliderT.linkProperty("Value",  function() { return T; }, function(_v) { T = _v; } ); // Simulation View linking property 'Value' for element 'SliderT'
+          _view.SliderT.setAction("OnChange", function(_data,_info) {
+  omega=Math.PI*2/T;
+
+}); // Simulation View setting action 'OnChange' for element 'SliderT'
+          _view.comboBox.linkProperty("Options",  function() { return ["both","inertia system","non-inertia system","","Real 3D","Isometric","Front View","Side View","Top View"]; } ); // Simulation View linking property 'Options' for element 'comboBox'
+          _view.comboBox.setAction("OnChange", function(_data,_info) {
+  var opts = _view.comboBox.getProperty("SelectedOptions");  // array of options
+      var option = (opts.length > 0)? opts[0]:""; // selected option 
+  if ( option=="user_defined"){
+    }
+  else if (option=="inertia system" ){
+    inertia=true;
+    noninertia=false;
+    Width="100%";
+    Width2="0%";
+    }
+    else if (option=="non-inertia system" ){
+    inertia=false;
+    noninertia=true;
+    Width="0%";
+    Width2="100%";
+    }
+     else if (option=="both" ){
+    inertia=true;
+    noninertia=true;
+    Width="50%";
+    Width2="50%";
+    }
+   
+  //"PERSPECTIVE_OFF"
+  else if ( option=="Isometric"){
+  _view.drawingPanel3D.setProperty("Projection","PERSPECTIVE_OFF");
+  _view.drawingPanel3D2.setProperty("Projection","PERSPECTIVE_OFF");
+  //_view._reset();
+  }
+  //"PERSPECTIVE_ON"
+  else if ( option=="Real 3D"){
+  _view.drawingPanel3D.setProperty("Projection","PERSPECTIVE_ON");
+  _view.drawingPanel3D2.setProperty("Projection","PERSPECTIVE_ON");
+  //_view._reset();
+  }
+  else if ( option=="Front View"){
+  //_view.drawingPanel3D.setProperty("Projection","PLANAR_XY");
+  _view.drawingPanel3D.setCamLocX(365);
+  _view.drawingPanel3D.setCamLocY(0);
+  _view.drawingPanel3D.setCamLocZ(0);
+  _view.drawingPanel3D.setCamTilt(0); //-90
+  _view.drawingPanel3D.setCamAltitude(0);
+  _view.drawingPanel3D.setCamAzimuth(0);
+  _view.drawingPanel3D2.setCamLocX(365);
+  _view.drawingPanel3D2.setCamLocY(0);
+  _view.drawingPanel3D2.setCamLocZ(0);
+  _view.drawingPanel3D2.setCamTilt(0); //-90
+  _view.drawingPanel3D2.setCamAltitude(0);
+  _view.drawingPanel3D2.setCamAzimuth(0);
+  // new method
+  //rotationangle=0; //release the rotationangle compensated by _view.drawingPanel3D.setCamTilt(0); //-90
+  //_view.drawingPanel3D.setCamTilt(-90);
+  }
+  else if ( option=="Side View"){
+  _view.drawingPanel3D.setProperty("Projection","PERSPECTIVE_OFF");
+  _view.drawingPanel3D2.setProperty("Projection","PERSPECTIVE_OFF");
+  _view.drawingPanel3D.setCamLocX(365);
+  _view.drawingPanel3D.setCamLocY(0);
+  _view.drawingPanel3D.setCamLocZ(0);
+  _view.drawingPanel3D.setCamTilt(0);
+  _view.drawingPanel3D.setCamAltitude(0);
+  _view.drawingPanel3D.setCamAzimuth(90);
+  //rotationangle=0; //release the rotationangle
+  _view.drawingPanel3D2.setCamLocX(365);
+  _view.drawingPanel3D2.setCamLocY(0);
+  _view.drawingPanel3D2.setCamLocZ(0);
+  _view.drawingPanel3D2.setCamTilt(0);
+  _view.drawingPanel3D2.setCamAltitude(0);
+  _view.drawingPanel3D2.setCamAzimuth(90);
+  }
+  else if ( option=="Top View"){
+  _view.drawingPanel3D.setProperty("Projection","PERSPECTIVE_OFF");
+  _view.drawingPanel3D2.setProperty("Projection","PERSPECTIVE_OFF");
+  //_view.drawingPanel3D.setProperty("Projection","PERSPECTIVE_OFF");
+  _view.drawingPanel3D.setCamLocX(365);
+  _view.drawingPanel3D.setCamLocY(0);
+  _view.drawingPanel3D.setCamLocZ(0);
+  _view.drawingPanel3D.setCamTilt(0);
+  _view.drawingPanel3D.setCamAltitude(90);
+  _view.drawingPanel3D.setCamAzimuth(0);
+  //rotationangle=0; //release the rotationangle
+  _view.drawingPanel3D2.setCamLocX(365);
+  _view.drawingPanel3D2.setCamLocY(0);
+  _view.drawingPanel3D2.setCamLocZ(0);
+  _view.drawingPanel3D2.setCamTilt(0);
+  _view.drawingPanel3D2.setCamAltitude(90);
+  _view.drawingPanel3D2.setCamAzimuth(0);
+  }
+  //"PLANAR_XY","PLANAR_XZ","PLANAR_YZ"
+  else if ( option=="PLANAR_XY"){
+  _view.drawingPanel3D.setProperty("Projection","PERSPECTIVE_OFF");
+  //_view.drawingPanel3D.serProperty("CameraY","5");
+  //_view._reset();
+  }
+  else if ( option=="PLANAR_XZ"){
+  _view.drawingPanel3D.setProperty("Projection","PLANAR_XZ");
+  //_view._reset();
+  }
+  else if ( option=="PLANAR_YZ"){
+  _view.drawingPanel3D.setProperty("Projection","PLANAR_YZ");
+  //_view._reset();
+  }
+
+}); // Simulation View setting action 'OnChange' for element 'comboBox'
+          _view.comboBox.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'comboBox'
+          _view.jump.setAction("OnClick", function(_data,_info) {
+  jump();
+
+}); // Simulation View setting action 'OnClick' for element 'jump'
+          _view.jump.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'jump'
+          _view.playPauseButton.setAction("OffClick", _play); // Simulation View setting action 'OffClick' for element 'playPauseButton'
+          _view.playPauseButton.linkProperty("State",  function() { return _isPlaying; } ); // Simulation View linking property 'State' for element 'playPauseButton'
+          _view.playPauseButton.setAction("OnClick", _pause); // Simulation View setting action 'OnClick' for element 'playPauseButton'
+          _view.playPauseButton.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'playPauseButton'
+          _view.initButton.setAction("OnClick", _initialize); // Simulation View setting action 'OnClick' for element 'initButton'
+          _view.initButton.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'initButton'
+          _view.resetButton.setAction("OnPress", _reset); // Simulation View setting action 'OnPress' for element 'resetButton'
+          _view.resetButton.linkProperty("Font",  function() { return font; }, function(_v) { font = _v; } ); // Simulation View linking property 'Font' for element 'resetButton'
+          _view.drawingPanel3D.linkProperty("Height",  function() { return changeOrientation(); }, function(_v) { changeOrientation() = _v; } ); // Simulation View linking property 'Height' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("Width",  function() { return Width; }, function(_v) { Width = _v; } ); // Simulation View linking property 'Width' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("CameraZoomRate",  function() { return zoom; }, function(_v) { zoom = _v; } ); // Simulation View linking property 'CameraZoomRate' for element 'drawingPanel3D'
+          _view.drawingPanel3D.linkProperty("Display",  function() { return inertia?"inline":"none"; } ); // Simulation View linking property 'Display' for element 'drawingPanel3D'
+          _view.sphere.linkProperty("Radius",  function() { return R; }, function(_v) { R = _v; } ); // Simulation View linking property 'Radius' for element 'sphere'
+          _view.sphere.linkProperty("Transformation",  function() { return [[-alpha,0,0,1]]; } ); // Simulation View linking property 'Transformation' for element 'sphere'
+          _view.particleSet3D.linkProperty("NumberOfElements",  function() { return n; }, function(_v) { n = _v; } ); // Simulation View linking property 'NumberOfElements' for element 'particleSet3D'
+          _view.particleSet3D.linkProperty("Radius",  function() { return size; }, function(_v) { size = _v; } ); // Simulation View linking property 'Radius' for element 'particleSet3D'
+          _view.particleSet3D.linkProperty("X",  function() { return x; }, function(_v) { x = _v; } ); // Simulation View linking property 'X' for element 'particleSet3D'
+          _view.particleSet3D.linkProperty("Y",  function() { return y; }, function(_v) { y = _v; } ); // Simulation View linking property 'Y' for element 'particleSet3D'
+          _view.particleSet3D.linkProperty("Z",  function() { return z; }, function(_v) { z = _v; } ); // Simulation View linking property 'Z' for element 'particleSet3D'
+          _view.arrowSet3Dvelocity.linkProperty("Transformation",  function() { return scale; }, function(_v) { scale = _v; } ); // Simulation View linking property 'Transformation' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("SizeX",  function() { return vx; }, function(_v) { vx = _v; } ); // Simulation View linking property 'SizeX' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("X",  function() { return x; }, function(_v) { x = _v; } ); // Simulation View linking property 'X' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("Y",  function() { return y; }, function(_v) { y = _v; } ); // Simulation View linking property 'Y' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("Z",  function() { return z; }, function(_v) { z = _v; } ); // Simulation View linking property 'Z' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("SizeZ",  function() { return vz; }, function(_v) { vz = _v; } ); // Simulation View linking property 'SizeZ' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("Visibility",  function() { return stage==0; } ); // Simulation View linking property 'Visibility' for element 'arrowSet3Dvelocity'
+          _view.arrowSet3Dvelocity.linkProperty("SizeY",  function() { return vy; }, function(_v) { vy = _v; } ); // Simulation View linking property 'SizeY' for element 'arrowSet3Dvelocity'
+          _view.traceSet1.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet1'
+          _view.traceSet1.linkProperty("InputZ",  function() { return z[0]; } ); // Simulation View linking property 'InputZ' for element 'traceSet1'
+          _view.traceSet1.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet1'
+          _view.traceSet1.linkProperty("InputX",  function() { return x[0]; } ); // Simulation View linking property 'InputX' for element 'traceSet1'
+          _view.traceSet1.linkProperty("InputY",  function() { return y[0]; } ); // Simulation View linking property 'InputY' for element 'traceSet1'
+          _view.traceSet2.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet2'
+          _view.traceSet2.linkProperty("InputZ",  function() { return z[1]; } ); // Simulation View linking property 'InputZ' for element 'traceSet2'
+          _view.traceSet2.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet2'
+          _view.traceSet2.linkProperty("InputX",  function() { return x[1]; } ); // Simulation View linking property 'InputX' for element 'traceSet2'
+          _view.traceSet2.linkProperty("InputY",  function() { return y[1]; } ); // Simulation View linking property 'InputY' for element 'traceSet2'
+          _view.traceSet3.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet3'
+          _view.traceSet3.linkProperty("InputZ",  function() { return z[2]; } ); // Simulation View linking property 'InputZ' for element 'traceSet3'
+          _view.traceSet3.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet3'
+          _view.traceSet3.linkProperty("InputX",  function() { return x[2]; } ); // Simulation View linking property 'InputX' for element 'traceSet3'
+          _view.traceSet3.linkProperty("InputY",  function() { return y[2]; } ); // Simulation View linking property 'InputY' for element 'traceSet3'
+          _view.traceSet4.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet4'
+          _view.traceSet4.linkProperty("InputZ",  function() { return z[3]; } ); // Simulation View linking property 'InputZ' for element 'traceSet4'
+          _view.traceSet4.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet4'
+          _view.traceSet4.linkProperty("InputX",  function() { return x[3]; } ); // Simulation View linking property 'InputX' for element 'traceSet4'
+          _view.traceSet4.linkProperty("InputY",  function() { return y[3]; } ); // Simulation View linking property 'InputY' for element 'traceSet4'
+          _view.traceSet5.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet5'
+          _view.traceSet5.linkProperty("InputZ",  function() { return z[4]; } ); // Simulation View linking property 'InputZ' for element 'traceSet5'
+          _view.traceSet5.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet5'
+          _view.traceSet5.linkProperty("InputX",  function() { return x[4]; } ); // Simulation View linking property 'InputX' for element 'traceSet5'
+          _view.traceSet5.linkProperty("InputY",  function() { return y[4]; } ); // Simulation View linking property 'InputY' for element 'traceSet5'
+          _view.traceSet6.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet6'
+          _view.traceSet6.linkProperty("InputZ",  function() { return z[5]; } ); // Simulation View linking property 'InputZ' for element 'traceSet6'
+          _view.traceSet6.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet6'
+          _view.traceSet6.linkProperty("InputX",  function() { return x[5]; } ); // Simulation View linking property 'InputX' for element 'traceSet6'
+          _view.traceSet6.linkProperty("InputY",  function() { return y[5]; } ); // Simulation View linking property 'InputY' for element 'traceSet6'
+          _view.traceSet7.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet7'
+          _view.traceSet7.linkProperty("InputZ",  function() { return z[6]; } ); // Simulation View linking property 'InputZ' for element 'traceSet7'
+          _view.traceSet7.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet7'
+          _view.traceSet7.linkProperty("InputX",  function() { return x[6]; } ); // Simulation View linking property 'InputX' for element 'traceSet7'
+          _view.traceSet7.linkProperty("InputY",  function() { return y[6]; } ); // Simulation View linking property 'InputY' for element 'traceSet7'
+          _view.traceSet8.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet8'
+          _view.traceSet8.linkProperty("InputZ",  function() { return z[7]; } ); // Simulation View linking property 'InputZ' for element 'traceSet8'
+          _view.traceSet8.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet8'
+          _view.traceSet8.linkProperty("InputX",  function() { return x[7]; } ); // Simulation View linking property 'InputX' for element 'traceSet8'
+          _view.traceSet8.linkProperty("InputY",  function() { return y[7]; } ); // Simulation View linking property 'InputY' for element 'traceSet8'
+          _view.traceSet9.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet9'
+          _view.traceSet9.linkProperty("InputZ",  function() { return z[8]; } ); // Simulation View linking property 'InputZ' for element 'traceSet9'
+          _view.traceSet9.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet9'
+          _view.traceSet9.linkProperty("InputX",  function() { return x[8]; } ); // Simulation View linking property 'InputX' for element 'traceSet9'
+          _view.traceSet9.linkProperty("InputY",  function() { return y[8]; } ); // Simulation View linking property 'InputY' for element 'traceSet9'
+          _view.traceSet10.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet10'
+          _view.traceSet10.linkProperty("InputZ",  function() { return z[9]; } ); // Simulation View linking property 'InputZ' for element 'traceSet10'
+          _view.traceSet10.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet10'
+          _view.traceSet10.linkProperty("InputX",  function() { return x[9]; } ); // Simulation View linking property 'InputX' for element 'traceSet10'
+          _view.traceSet10.linkProperty("InputY",  function() { return y[9]; } ); // Simulation View linking property 'InputY' for element 'traceSet10'
+          _view.traceSet11.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet11'
+          _view.traceSet11.linkProperty("InputZ",  function() { return z[10]; } ); // Simulation View linking property 'InputZ' for element 'traceSet11'
+          _view.traceSet11.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet11'
+          _view.traceSet11.linkProperty("InputX",  function() { return x[10]; } ); // Simulation View linking property 'InputX' for element 'traceSet11'
+          _view.traceSet11.linkProperty("InputY",  function() { return y[10]; } ); // Simulation View linking property 'InputY' for element 'traceSet11'
+          _view.traceSet12.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet12'
+          _view.traceSet12.linkProperty("InputZ",  function() { return z[11]; } ); // Simulation View linking property 'InputZ' for element 'traceSet12'
+          _view.traceSet12.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet12'
+          _view.traceSet12.linkProperty("InputX",  function() { return x[11]; } ); // Simulation View linking property 'InputX' for element 'traceSet12'
+          _view.traceSet12.linkProperty("InputY",  function() { return y[11]; } ); // Simulation View linking property 'InputY' for element 'traceSet12'
+          _view.particleSet3D2.linkProperty("NumberOfElements",  function() { return n; }, function(_v) { n = _v; } ); // Simulation View linking property 'NumberOfElements' for element 'particleSet3D2'
+          _view.particleSet3D2.linkProperty("Radius",  function() { return size; }, function(_v) { size = _v; } ); // Simulation View linking property 'Radius' for element 'particleSet3D2'
+          _view.particleSet3D2.linkProperty("X",  function() { return x2; }, function(_v) { x2 = _v; } ); // Simulation View linking property 'X' for element 'particleSet3D2'
+          _view.particleSet3D2.linkProperty("Y",  function() { return y2; }, function(_v) { y2 = _v; } ); // Simulation View linking property 'Y' for element 'particleSet3D2'
+          _view.particleSet3D2.linkProperty("Z",  function() { return z2; }, function(_v) { z2 = _v; } ); // Simulation View linking property 'Z' for element 'particleSet3D2'
+          _view.arrowSet3D2.linkProperty("SizeX",  function() { return x21; }, function(_v) { x21 = _v; } ); // Simulation View linking property 'SizeX' for element 'arrowSet3D2'
+          _view.arrowSet3D2.linkProperty("X",  function() { return x2; }, function(_v) { x2 = _v; } ); // Simulation View linking property 'X' for element 'arrowSet3D2'
+          _view.arrowSet3D2.linkProperty("Y",  function() { return y2; }, function(_v) { y2 = _v; } ); // Simulation View linking property 'Y' for element 'arrowSet3D2'
+          _view.arrowSet3D2.linkProperty("Z",  function() { return z2; }, function(_v) { z2 = _v; } ); // Simulation View linking property 'Z' for element 'arrowSet3D2'
+          _view.arrowSet3D2.linkProperty("SizeZ",  function() { return z21; }, function(_v) { z21 = _v; } ); // Simulation View linking property 'SizeZ' for element 'arrowSet3D2'
+          _view.arrowSet3D2.linkProperty("SizeY",  function() { return y21; }, function(_v) { y21 = _v; } ); // Simulation View linking property 'SizeY' for element 'arrowSet3D2'
+          _view.drawingPanel3D2.linkProperty("Height",  function() { return changeOrientation(); }, function(_v) { changeOrientation() = _v; } ); // Simulation View linking property 'Height' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("Width",  function() { return Width2; }, function(_v) { Width2 = _v; } ); // Simulation View linking property 'Width' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("MinimumX",  function() { return xmin; }, function(_v) { xmin = _v; } ); // Simulation View linking property 'MinimumX' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("MinimumY",  function() { return ymin; }, function(_v) { ymin = _v; } ); // Simulation View linking property 'MinimumY' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("MinimumZ",  function() { return zmin; }, function(_v) { zmin = _v; } ); // Simulation View linking property 'MinimumZ' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("CameraZoomRate",  function() { return zoom; }, function(_v) { zoom = _v; } ); // Simulation View linking property 'CameraZoomRate' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("MaximumZ",  function() { return zmax; }, function(_v) { zmax = _v; } ); // Simulation View linking property 'MaximumZ' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("MaximumY",  function() { return ymax; }, function(_v) { ymax = _v; } ); // Simulation View linking property 'MaximumY' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("MaximumX",  function() { return xmax; }, function(_v) { xmax = _v; } ); // Simulation View linking property 'MaximumX' for element 'drawingPanel3D2'
+          _view.drawingPanel3D2.linkProperty("Display",  function() { return noninertia?"inline":"none"; } ); // Simulation View linking property 'Display' for element 'drawingPanel3D2'
+          _view.sphere2.linkProperty("Radius",  function() { return R; }, function(_v) { R = _v; } ); // Simulation View linking property 'Radius' for element 'sphere2'
+          _view.particleSet3D3.linkProperty("NumberOfElements",  function() { return n; }, function(_v) { n = _v; } ); // Simulation View linking property 'NumberOfElements' for element 'particleSet3D3'
+          _view.particleSet3D3.linkProperty("Radius",  function() { return size; }, function(_v) { size = _v; } ); // Simulation View linking property 'Radius' for element 'particleSet3D3'
+          _view.particleSet3D3.linkProperty("X",  function() { return x3; }, function(_v) { x3 = _v; } ); // Simulation View linking property 'X' for element 'particleSet3D3'
+          _view.particleSet3D3.linkProperty("Y",  function() { return y3; }, function(_v) { y3 = _v; } ); // Simulation View linking property 'Y' for element 'particleSet3D3'
+          _view.particleSet3D3.linkProperty("Z",  function() { return z3; }, function(_v) { z3 = _v; } ); // Simulation View linking property 'Z' for element 'particleSet3D3'
+          _view.arrowSet3D3velocity.linkProperty("Transformation",  function() { return scale; }, function(_v) { scale = _v; } ); // Simulation View linking property 'Transformation' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("SizeX",  function() { return vx3; }, function(_v) { vx3 = _v; } ); // Simulation View linking property 'SizeX' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("X",  function() { return x3; }, function(_v) { x3 = _v; } ); // Simulation View linking property 'X' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("Y",  function() { return y3; }, function(_v) { y3 = _v; } ); // Simulation View linking property 'Y' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("Z",  function() { return z3; }, function(_v) { z3 = _v; } ); // Simulation View linking property 'Z' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("SizeZ",  function() { return vz3; }, function(_v) { vz3 = _v; } ); // Simulation View linking property 'SizeZ' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("Visibility",  function() { return stage==0; } ); // Simulation View linking property 'Visibility' for element 'arrowSet3D3velocity'
+          _view.arrowSet3D3velocity.linkProperty("SizeY",  function() { return vy3; }, function(_v) { vy3 = _v; } ); // Simulation View linking property 'SizeY' for element 'arrowSet3D3velocity'
+          _view.traceSet1a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet1a'
+          _view.traceSet1a.linkProperty("InputZ",  function() { return z3[0]; } ); // Simulation View linking property 'InputZ' for element 'traceSet1a'
+          _view.traceSet1a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet1a'
+          _view.traceSet1a.linkProperty("InputX",  function() { return x3[0]; } ); // Simulation View linking property 'InputX' for element 'traceSet1a'
+          _view.traceSet1a.linkProperty("InputY",  function() { return y3[0]; } ); // Simulation View linking property 'InputY' for element 'traceSet1a'
+          _view.traceSet2a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet2a'
+          _view.traceSet2a.linkProperty("InputZ",  function() { return z3[1]; } ); // Simulation View linking property 'InputZ' for element 'traceSet2a'
+          _view.traceSet2a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet2a'
+          _view.traceSet2a.linkProperty("InputX",  function() { return x3[1]; } ); // Simulation View linking property 'InputX' for element 'traceSet2a'
+          _view.traceSet2a.linkProperty("InputY",  function() { return y3[1]; } ); // Simulation View linking property 'InputY' for element 'traceSet2a'
+          _view.traceSet3a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet3a'
+          _view.traceSet3a.linkProperty("InputZ",  function() { return z3[2]; } ); // Simulation View linking property 'InputZ' for element 'traceSet3a'
+          _view.traceSet3a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet3a'
+          _view.traceSet3a.linkProperty("InputX",  function() { return x3[2]; } ); // Simulation View linking property 'InputX' for element 'traceSet3a'
+          _view.traceSet3a.linkProperty("InputY",  function() { return y3[2]; } ); // Simulation View linking property 'InputY' for element 'traceSet3a'
+          _view.traceSet4a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet4a'
+          _view.traceSet4a.linkProperty("InputZ",  function() { return z3[3]; } ); // Simulation View linking property 'InputZ' for element 'traceSet4a'
+          _view.traceSet4a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet4a'
+          _view.traceSet4a.linkProperty("InputX",  function() { return x3[3]; } ); // Simulation View linking property 'InputX' for element 'traceSet4a'
+          _view.traceSet4a.linkProperty("InputY",  function() { return y3[3]; } ); // Simulation View linking property 'InputY' for element 'traceSet4a'
+          _view.traceSet5a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet5a'
+          _view.traceSet5a.linkProperty("InputZ",  function() { return z3[4]; } ); // Simulation View linking property 'InputZ' for element 'traceSet5a'
+          _view.traceSet5a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet5a'
+          _view.traceSet5a.linkProperty("InputX",  function() { return x3[4]; } ); // Simulation View linking property 'InputX' for element 'traceSet5a'
+          _view.traceSet5a.linkProperty("InputY",  function() { return y3[4]; } ); // Simulation View linking property 'InputY' for element 'traceSet5a'
+          _view.traceSet6a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet6a'
+          _view.traceSet6a.linkProperty("InputZ",  function() { return z3[5]; } ); // Simulation View linking property 'InputZ' for element 'traceSet6a'
+          _view.traceSet6a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet6a'
+          _view.traceSet6a.linkProperty("InputX",  function() { return x3[5]; } ); // Simulation View linking property 'InputX' for element 'traceSet6a'
+          _view.traceSet6a.linkProperty("InputY",  function() { return y3[5]; } ); // Simulation View linking property 'InputY' for element 'traceSet6a'
+          _view.traceSet7a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet7a'
+          _view.traceSet7a.linkProperty("InputZ",  function() { return z3[6]; } ); // Simulation View linking property 'InputZ' for element 'traceSet7a'
+          _view.traceSet7a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet7a'
+          _view.traceSet7a.linkProperty("InputX",  function() { return x3[6]; } ); // Simulation View linking property 'InputX' for element 'traceSet7a'
+          _view.traceSet7a.linkProperty("InputY",  function() { return y3[6]; } ); // Simulation View linking property 'InputY' for element 'traceSet7a'
+          _view.traceSet8a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet8a'
+          _view.traceSet8a.linkProperty("InputZ",  function() { return z3[7]; } ); // Simulation View linking property 'InputZ' for element 'traceSet8a'
+          _view.traceSet8a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet8a'
+          _view.traceSet8a.linkProperty("InputX",  function() { return x3[7]; } ); // Simulation View linking property 'InputX' for element 'traceSet8a'
+          _view.traceSet8a.linkProperty("InputY",  function() { return y3[7]; } ); // Simulation View linking property 'InputY' for element 'traceSet8a'
+          _view.traceSet9a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet9a'
+          _view.traceSet9a.linkProperty("InputZ",  function() { return z3[8]; } ); // Simulation View linking property 'InputZ' for element 'traceSet9a'
+          _view.traceSet9a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet9a'
+          _view.traceSet9a.linkProperty("InputX",  function() { return x3[8]; } ); // Simulation View linking property 'InputX' for element 'traceSet9a'
+          _view.traceSet9a.linkProperty("InputY",  function() { return y3[8]; } ); // Simulation View linking property 'InputY' for element 'traceSet9a'
+          _view.traceSet10a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet10a'
+          _view.traceSet10a.linkProperty("InputZ",  function() { return z3[9]; } ); // Simulation View linking property 'InputZ' for element 'traceSet10a'
+          _view.traceSet10a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet10a'
+          _view.traceSet10a.linkProperty("InputX",  function() { return x3[9]; } ); // Simulation View linking property 'InputX' for element 'traceSet10a'
+          _view.traceSet10a.linkProperty("InputY",  function() { return y3[9]; } ); // Simulation View linking property 'InputY' for element 'traceSet10a'
+          _view.traceSet11a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet11a'
+          _view.traceSet11a.linkProperty("InputZ",  function() { return z3[10]; } ); // Simulation View linking property 'InputZ' for element 'traceSet11a'
+          _view.traceSet11a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet11a'
+          _view.traceSet11a.linkProperty("InputX",  function() { return x3[10]; } ); // Simulation View linking property 'InputX' for element 'traceSet11a'
+          _view.traceSet11a.linkProperty("InputY",  function() { return y3[10]; } ); // Simulation View linking property 'InputY' for element 'traceSet11a'
+          _view.traceSet12a.linkProperty("Maximum",  function() { return npt; }, function(_v) { npt = _v; } ); // Simulation View linking property 'Maximum' for element 'traceSet12a'
+          _view.traceSet12a.linkProperty("InputZ",  function() { return z3[11]; } ); // Simulation View linking property 'InputZ' for element 'traceSet12a'
+          _view.traceSet12a.linkProperty("Connected",  function() { return connect>1; } ); // Simulation View linking property 'Connected' for element 'traceSet12a'
+          _view.traceSet12a.linkProperty("InputX",  function() { return x3[11]; } ); // Simulation View linking property 'InputX' for element 'traceSet12a'
+          _view.traceSet12a.linkProperty("InputY",  function() { return y3[11]; } ); // Simulation View linking property 'InputY' for element 'traceSet12a'
+          _view.particleSet3D4.linkProperty("NumberOfElements",  function() { return n; }, function(_v) { n = _v; } ); // Simulation View linking property 'NumberOfElements' for element 'particleSet3D4'
+          _view.particleSet3D4.linkProperty("Radius",  function() { return size; }, function(_v) { size = _v; } ); // Simulation View linking property 'Radius' for element 'particleSet3D4'
+          _view.particleSet3D4.linkProperty("X",  function() { return x4; }, function(_v) { x4 = _v; } ); // Simulation View linking property 'X' for element 'particleSet3D4'
+          _view.particleSet3D4.linkProperty("Y",  function() { return y4; }, function(_v) { y4 = _v; } ); // Simulation View linking property 'Y' for element 'particleSet3D4'
+          _view.particleSet3D4.linkProperty("Z",  function() { return z4; }, function(_v) { z4 = _v; } ); // Simulation View linking property 'Z' for element 'particleSet3D4'
+          _view.arrowSet3D4.linkProperty("SizeX",  function() { return x34; }, function(_v) { x34 = _v; } ); // Simulation View linking property 'SizeX' for element 'arrowSet3D4'
+          _view.arrowSet3D4.linkProperty("X",  function() { return x4; }, function(_v) { x4 = _v; } ); // Simulation View linking property 'X' for element 'arrowSet3D4'
+          _view.arrowSet3D4.linkProperty("Y",  function() { return y4; }, function(_v) { y4 = _v; } ); // Simulation View linking property 'Y' for element 'arrowSet3D4'
+          _view.arrowSet3D4.linkProperty("Z",  function() { return z4; }, function(_v) { z4 = _v; } ); // Simulation View linking property 'Z' for element 'arrowSet3D4'
+          _view.arrowSet3D4.linkProperty("SizeZ",  function() { return z34; }, function(_v) { z34 = _v; } ); // Simulation View linking property 'SizeZ' for element 'arrowSet3D4'
+          _view.arrowSet3D4.linkProperty("Visibility",  function() { return viewd; }, function(_v) { viewd = _v; } ); // Simulation View linking property 'Visibility' for element 'arrowSet3D4'
+          _view.arrowSet3D4.linkProperty("SizeY",  function() { return y34; }, function(_v) { y34 = _v; } ); // Simulation View linking property 'SizeY' for element 'arrowSet3D4'
+          _view.field42.linkProperty("Value",  function() { return _view.drawingPanel3D.getProperty("CameraX"); } ); // Simulation View linking property 'Value' for element 'field42'
+          _view.field42.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D.setCamLocX(_view.field42.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field42'
+          _view.field43.linkProperty("Value",  function() { return _view.drawingPanel3D.getProperty("CameraY"); } ); // Simulation View linking property 'Value' for element 'field43'
+          _view.field43.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D.setCamLocY(_view.field43.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field43'
+          _view.field4.linkProperty("Value",  function() { return _view.drawingPanel3D.getProperty("CameraZ"); } ); // Simulation View linking property 'Value' for element 'field4'
+          _view.field4.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D.setCamLocZ(_view.field4.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field4'
+          _view.field432.linkProperty("Value",  function() { return _view.drawingPanel3D.getProperty("CameraTilt"); } ); // Simulation View linking property 'Value' for element 'field432'
+          _view.field432.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D.setCamTilt(_view.field432.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field432'
+          _view.field422.linkProperty("Value",  function() { return _view.drawingPanel3D.getProperty("CameraAltitude"); } ); // Simulation View linking property 'Value' for element 'field422'
+          _view.field422.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D.setCamAltitude(_view.field422.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field422'
+          _view.field44.linkProperty("Value",  function() { return _view.drawingPanel3D.getProperty("CameraAzimuth"); } ); // Simulation View linking property 'Value' for element 'field44'
+          _view.field44.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D.setCamAzimuth(_view.field44.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field44'
+          _view.field423.linkProperty("Value",  function() { return _view.drawingPanel3D2.getProperty("CameraX"); } ); // Simulation View linking property 'Value' for element 'field423'
+          _view.field423.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D2.setCamLocX(_view.field423.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field423'
+          _view.field433.linkProperty("Value",  function() { return _view.drawingPanel3D2.getProperty("CameraY"); } ); // Simulation View linking property 'Value' for element 'field433'
+          _view.field433.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D2.setCamLocY(_view.field433.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field433'
+          _view.field45.linkProperty("Value",  function() { return _view.drawingPanel3D2.getProperty("CameraZ"); } ); // Simulation View linking property 'Value' for element 'field45'
+          _view.field45.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D2.setCamLocZ(_view.field45.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field45'
+          _view.field4322.linkProperty("Value",  function() { return _view.drawingPanel3D2.getProperty("CameraTilt"); } ); // Simulation View linking property 'Value' for element 'field4322'
+          _view.field4322.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D2.setCamTilt(_view.field4322.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field4322'
+          _view.field4222.linkProperty("Value",  function() { return _view.drawingPanel3D2.getProperty("CameraAltitude"); } ); // Simulation View linking property 'Value' for element 'field4222'
+          _view.field4222.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D2.setCamAltitude(_view.field4222.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field4222'
+          _view.field442.linkProperty("Value",  function() { return _view.drawingPanel3D2.getProperty("CameraAzimuth"); } ); // Simulation View linking property 'Value' for element 'field442'
+          _view.field442.setAction("OnChange", function(_data,_info) {
+  _view.drawingPanel3D2.setCamAzimuth(_view.field442.getValue());
+
+}); // Simulation View setting action 'OnChange' for element 'field442'
+          break;
+      } // end of switch
+    }; // end of new reset
+
+    _model.setView(_view);
+    _model.reset();
+    _view._enableEPub();
+  } // end of _selectView
+
+  _model.setAutoplay(false);
+  _model.setFPS(20);
+  _model.setStepsPerDisplay(1);
+  _selectView(_model._autoSelectView(_getViews())); // this includes _model.reset()
+  return _model;
+}
+
+function Coriolis3D_View (_topFrame,_viewNumber,_libraryPath,_codebasePath) {
+  var _view;
+  switch(_viewNumber) {
+    case -10 : break; // make Lint happy
+    default :
+    case 0: _view = Coriolis3D_View_0 (_topFrame); break;
+  } // end of switch
+
+  if (_codebasePath) _view._setResourcePath(_codebasePath);
+
+  if (_libraryPath) _view._setLibraryPath(_libraryPath);
+
+
+  return _view;
+} // end of main function
+
+function Coriolis3D_View_0 (_topFrame) {
+  var _view = EJSS_CORE.createView(_topFrame);
+
+  _view._reset = function() {
+    _view._clearAll();
+    _view._addElement(EJSS_INTERFACE.panel,"panel", _view._topFrame) // EJsS HtmlView.Simulation View: declaration of element 'panel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"dubugvalues", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'dubugvalues'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'dubugvalues'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field5", _view.dubugvalues) // EJsS HtmlView.Simulation View: declaration of element 'field5'
+      .setProperty("Format","0.0") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field5'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"vx", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'vx'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'vx'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"Adjustvr2", _view.vx) // EJsS HtmlView.Simulation View: declaration of element 'Adjustvr2'
+      .setProperty("Text","phi=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'Adjustvr2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field3", _view.vx) // EJsS HtmlView.Simulation View: declaration of element 'field3'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field3'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"Slidervr2", _view.vx) // EJsS HtmlView.Simulation View: declaration of element 'Slidervr2'
+      .setProperty("Minimum",-5) // EJsS HtmlView.Simulation View: setting property 'Minimum' for element 'Slidervr2'
+      .setProperty("Maximum",5) // EJsS HtmlView.Simulation View: setting property 'Maximum' for element 'Slidervr2'
+      .setProperty("Tooltip","globe angle") // EJsS HtmlView.Simulation View: setting property 'Tooltip' for element 'Slidervr2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"vrPanel", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'vrPanel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'vrPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"Adjustvr", _view.vrPanel) // EJsS HtmlView.Simulation View: declaration of element 'Adjustvr'
+      .setProperty("Text","ω=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'Adjustvr'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field", _view.vrPanel) // EJsS HtmlView.Simulation View: declaration of element 'field'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"Slidervr", _view.vrPanel) // EJsS HtmlView.Simulation View: declaration of element 'Slidervr'
+      .setProperty("Minimum",-1) // EJsS HtmlView.Simulation View: setting property 'Minimum' for element 'Slidervr'
+      .setProperty("Maximum",1) // EJsS HtmlView.Simulation View: setting property 'Maximum' for element 'Slidervr'
+      .setProperty("Format","ω=0.0") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'Slidervr'
+      .setProperty("Tooltip","globe angular velocity") // EJsS HtmlView.Simulation View: setting property 'Tooltip' for element 'Slidervr'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"TPanel", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'TPanel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'TPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"AdjustT", _view.TPanel) // EJsS HtmlView.Simulation View: declaration of element 'AdjustT'
+      .setProperty("Tooltip","period") // EJsS HtmlView.Simulation View: setting property 'Tooltip' for element 'AdjustT'
+      .setProperty("Text","T") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'AdjustT'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field2", _view.TPanel) // EJsS HtmlView.Simulation View: declaration of element 'field2'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field2'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.slider,"SliderT", _view.TPanel) // EJsS HtmlView.Simulation View: declaration of element 'SliderT'
+      .setProperty("Minimum",7.5) // EJsS HtmlView.Simulation View: setting property 'Minimum' for element 'SliderT'
+      .setProperty("Maximum",15) // EJsS HtmlView.Simulation View: setting property 'Maximum' for element 'SliderT'
+      .setProperty("Format","T=0.0") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'SliderT'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"buttonPanel", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'buttonPanel'
+      .setProperty("CSS",{"display": "inline-block"}) // EJsS HtmlView.Simulation View: setting property 'CSS' for element 'buttonPanel'
+      .setProperty("Display","inline-block") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'buttonPanel'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.comboBox,"comboBox", _view.buttonPanel) // EJsS HtmlView.Simulation View: declaration of element 'comboBox'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"jump", _view.buttonPanel) // EJsS HtmlView.Simulation View: declaration of element 'jump'
+      .setProperty("Tooltip","jump") // EJsS HtmlView.Simulation View: setting property 'Tooltip' for element 'jump'
+      .setProperty("Text","✈") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'jump'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.twoStateButton,"playPauseButton", _view.buttonPanel) // EJsS HtmlView.Simulation View: declaration of element 'playPauseButton'
+      .setProperty("TextOn","❚❚") // EJsS HtmlView.Simulation View: setting property 'TextOn' for element 'playPauseButton'
+      .setProperty("TextOff","▶") // EJsS HtmlView.Simulation View: setting property 'TextOff' for element 'playPauseButton'
+      .setProperty("Tooltip","Play/Pause") // EJsS HtmlView.Simulation View: setting property 'Tooltip' for element 'playPauseButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"initButton", _view.buttonPanel) // EJsS HtmlView.Simulation View: declaration of element 'initButton'
+      .setProperty("Text","⏮") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'initButton'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'initButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.button,"resetButton", _view.buttonPanel) // EJsS HtmlView.Simulation View: declaration of element 'resetButton'
+      .setProperty("Text","↻") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'resetButton'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"drawPanel", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'drawPanel'
+      .setProperty("Height","height") // EJsS HtmlView.Simulation View: setting property 'Height' for element 'drawPanel'
+      .setProperty("Width","width") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'drawPanel'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.drawingPanel,"drawingPanel3D", _view.drawPanel) // EJsS HtmlView.Simulation View: declaration of element 'drawingPanel3D'
+      .setProperty("MinimumX",-100) // EJsS HtmlView.Simulation View: setting property 'MinimumX' for element 'drawingPanel3D'
+      .setProperty("MinimumY",-100) // EJsS HtmlView.Simulation View: setting property 'MinimumY' for element 'drawingPanel3D'
+      .setProperty("MinimumZ",-100) // EJsS HtmlView.Simulation View: setting property 'MinimumZ' for element 'drawingPanel3D'
+      .setProperty("Enabled",true) // EJsS HtmlView.Simulation View: setting property 'Enabled' for element 'drawingPanel3D'
+      .setProperty("DecorationType","CENTERED_AXES") // EJsS HtmlView.Simulation View: setting property 'DecorationType' for element 'drawingPanel3D'
+      .setProperty("MaximumZ",100) // EJsS HtmlView.Simulation View: setting property 'MaximumZ' for element 'drawingPanel3D'
+      .setProperty("MaximumY",100) // EJsS HtmlView.Simulation View: setting property 'MaximumY' for element 'drawingPanel3D'
+      .setProperty("MaximumX",100) // EJsS HtmlView.Simulation View: setting property 'MaximumX' for element 'drawingPanel3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphere,"sphere", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'sphere'
+      .setProperty("TextureUrl","./coriolis/2_no_clouds_2k.jpg") // EJsS HtmlView.Simulation View: setting property 'TextureUrl' for element 'sphere'
+      .setProperty("FillColor","lightGray") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'sphere'
+      .setProperty("X",0) // EJsS HtmlView.Simulation View: setting property 'X' for element 'sphere'
+      .setProperty("LineColor","Yellow") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'sphere'
+      .setProperty("Y",0) // EJsS HtmlView.Simulation View: setting property 'Y' for element 'sphere'
+      .setProperty("Z",0) // EJsS HtmlView.Simulation View: setting property 'Z' for element 'sphere'
+      .setProperty("DrawLines",true) // EJsS HtmlView.Simulation View: setting property 'DrawLines' for element 'sphere'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'sphere'
+      .setProperty("DrawFill",true) // EJsS HtmlView.Simulation View: setting property 'DrawFill' for element 'sphere'
+      .setProperty("Resolution",18) // EJsS HtmlView.Simulation View: setting property 'Resolution' for element 'sphere'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphereSet,"particleSet3D", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'particleSet3D'
+      .setProperty("FillColor","gray") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'particleSet3D'
+      .setProperty("LineColor","darkGray") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'particleSet3D'
+      .setProperty("DrawLines",true) // EJsS HtmlView.Simulation View: setting property 'DrawLines' for element 'particleSet3D'
+      .setProperty("DrawFill",false) // EJsS HtmlView.Simulation View: setting property 'DrawFill' for element 'particleSet3D'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"arrowSet3Dvelocity", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'arrowSet3Dvelocity'
+      .setProperty("ResizesGroup",false) // EJsS HtmlView.Simulation View: setting property 'ResizesGroup' for element 'arrowSet3Dvelocity'
+      .setProperty("FillColor","Magenta") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'arrowSet3Dvelocity'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'arrowSet3Dvelocity'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"traceSets", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'traceSets'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet1", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet1'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet1'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet2", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet2'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet3", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet3'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet3'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet4", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet4'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet4'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet5", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet5'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet5'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet6", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet6'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet6'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet7", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet7'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet7'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet8", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet8'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet8'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet9", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet9'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet9'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet10", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet10'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet10'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet11", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet11'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet11'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet12", _view.traceSets) // EJsS HtmlView.Simulation View: declaration of element 'traceSet12'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet12'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphereSet,"particleSet3D2", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'particleSet3D2'
+      .setProperty("LineColor","pink") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'particleSet3D2'
+      .setProperty("DrawLines",true) // EJsS HtmlView.Simulation View: setting property 'DrawLines' for element 'particleSet3D2'
+      .setProperty("DrawFill",false) // EJsS HtmlView.Simulation View: setting property 'DrawFill' for element 'particleSet3D2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"arrowSet3D2", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'arrowSet3D2'
+      .setProperty("ResizesGroup",false) // EJsS HtmlView.Simulation View: setting property 'ResizesGroup' for element 'arrowSet3D2'
+      .setProperty("FillColor","blue") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'arrowSet3D2'
+      .setProperty("LineColor","blue") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'arrowSet3D2'
+      .setProperty("Visibility",true) // EJsS HtmlView.Simulation View: setting property 'Visibility' for element 'arrowSet3D2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"text3Dinertia", _view.drawingPanel3D) // EJsS HtmlView.Simulation View: declaration of element 'text3Dinertia'
+      .setProperty("SizeX",200) // EJsS HtmlView.Simulation View: setting property 'SizeX' for element 'text3Dinertia'
+      .setProperty("FitText",true) // EJsS HtmlView.Simulation View: setting property 'FitText' for element 'text3Dinertia'
+      .setProperty("X",0) // EJsS HtmlView.Simulation View: setting property 'X' for element 'text3Dinertia'
+      .setProperty("FontColor","Cyan") // EJsS HtmlView.Simulation View: setting property 'FontColor' for element 'text3Dinertia'
+      .setProperty("Y",0) // EJsS HtmlView.Simulation View: setting property 'Y' for element 'text3Dinertia'
+      .setProperty("Z",125) // EJsS HtmlView.Simulation View: setting property 'Z' for element 'text3Dinertia'
+      .setProperty("Text","Stationary Observer Viewpoint") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'text3Dinertia'
+      .setProperty("SizeZ",25) // EJsS HtmlView.Simulation View: setting property 'SizeZ' for element 'text3Dinertia'
+      .setProperty("SizeY",200) // EJsS HtmlView.Simulation View: setting property 'SizeY' for element 'text3Dinertia'
+      .setProperty("Font","normal normal 150px ") // EJsS HtmlView.Simulation View: setting property 'Font' for element 'text3Dinertia'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.drawingPanel,"drawingPanel3D2", _view.drawPanel) // EJsS HtmlView.Simulation View: declaration of element 'drawingPanel3D2'
+      .setProperty("Draggable","ANY") // EJsS HtmlView.Simulation View: setting property 'Draggable' for element 'drawingPanel3D2'
+      .setProperty("Enabled",true) // EJsS HtmlView.Simulation View: setting property 'Enabled' for element 'drawingPanel3D2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphere,"sphere2", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'sphere2'
+      .setProperty("TextureUrl","./coriolis/2_no_clouds_2k.jpg") // EJsS HtmlView.Simulation View: setting property 'TextureUrl' for element 'sphere2'
+      .setProperty("FillColor","lightGray") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'sphere2'
+      .setProperty("X",0) // EJsS HtmlView.Simulation View: setting property 'X' for element 'sphere2'
+      .setProperty("LineColor","Yellow") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'sphere2'
+      .setProperty("Y",0) // EJsS HtmlView.Simulation View: setting property 'Y' for element 'sphere2'
+      .setProperty("Z",0) // EJsS HtmlView.Simulation View: setting property 'Z' for element 'sphere2'
+      .setProperty("DrawLines",true) // EJsS HtmlView.Simulation View: setting property 'DrawLines' for element 'sphere2'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'sphere2'
+      .setProperty("DrawFill",true) // EJsS HtmlView.Simulation View: setting property 'DrawFill' for element 'sphere2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphereSet,"particleSet3D3", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'particleSet3D3'
+      .setProperty("FillColor","gray") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'particleSet3D3'
+      .setProperty("LineColor","darkGray") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'particleSet3D3'
+      .setProperty("DrawLines",true) // EJsS HtmlView.Simulation View: setting property 'DrawLines' for element 'particleSet3D3'
+      .setProperty("DrawFill",false) // EJsS HtmlView.Simulation View: setting property 'DrawFill' for element 'particleSet3D3'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"arrowSet3D3velocity", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'arrowSet3D3velocity'
+      .setProperty("ResizesGroup",false) // EJsS HtmlView.Simulation View: setting property 'ResizesGroup' for element 'arrowSet3D3velocity'
+      .setProperty("FillColor","Magenta") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'arrowSet3D3velocity'
+      .setProperty("LineColor","Magenta") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'arrowSet3D3velocity'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.group,"traceSets2", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'traceSets2'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet1a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet1a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet1a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet1a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet2a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet2a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet2a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet2a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet3a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet3a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet3a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet3a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet4a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet4a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet4a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet4a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet5a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet5a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet5a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet5a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet6a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet6a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet6a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet6a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet7a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet7a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet7a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet7a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet8a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet8a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet8a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet8a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet9a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet9a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet9a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet9a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet10a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet10a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet10a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet10a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet11a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet11a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet11a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet11a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.trail,"traceSet12a", _view.traceSets2) // EJsS HtmlView.Simulation View: declaration of element 'traceSet12a'
+      .setProperty("NoRepeat",true) // EJsS HtmlView.Simulation View: setting property 'NoRepeat' for element 'traceSet12a'
+      .setProperty("LineWidth",3) // EJsS HtmlView.Simulation View: setting property 'LineWidth' for element 'traceSet12a'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.sphereSet,"particleSet3D4", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'particleSet3D4'
+      .setProperty("LineColor","pink") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'particleSet3D4'
+      .setProperty("DrawLines",true) // EJsS HtmlView.Simulation View: setting property 'DrawLines' for element 'particleSet3D4'
+      .setProperty("DrawFill",false) // EJsS HtmlView.Simulation View: setting property 'DrawFill' for element 'particleSet3D4'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.arrowSet,"arrowSet3D4", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'arrowSet3D4'
+      .setProperty("FillColor","blue") // EJsS HtmlView.Simulation View: setting property 'FillColor' for element 'arrowSet3D4'
+      .setProperty("LineColor","blue") // EJsS HtmlView.Simulation View: setting property 'LineColor' for element 'arrowSet3D4'
+      ;
+
+    _view._addElement(EJSS_DRAWING3D.text,"text3Dinertia2", _view.drawingPanel3D2) // EJsS HtmlView.Simulation View: declaration of element 'text3Dinertia2'
+      .setProperty("SizeX",200) // EJsS HtmlView.Simulation View: setting property 'SizeX' for element 'text3Dinertia2'
+      .setProperty("X",0) // EJsS HtmlView.Simulation View: setting property 'X' for element 'text3Dinertia2'
+      .setProperty("FontColor","Cyan") // EJsS HtmlView.Simulation View: setting property 'FontColor' for element 'text3Dinertia2'
+      .setProperty("Y",0) // EJsS HtmlView.Simulation View: setting property 'Y' for element 'text3Dinertia2'
+      .setProperty("Z",120) // EJsS HtmlView.Simulation View: setting property 'Z' for element 'text3Dinertia2'
+      .setProperty("Text","Rotating with Globe Viewpoint") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'text3Dinertia2'
+      .setProperty("SizeZ",25) // EJsS HtmlView.Simulation View: setting property 'SizeZ' for element 'text3Dinertia2'
+      .setProperty("SizeY",200) // EJsS HtmlView.Simulation View: setting property 'SizeY' for element 'text3Dinertia2'
+      .setProperty("Font","normal normal 150px ") // EJsS HtmlView.Simulation View: setting property 'Font' for element 'text3Dinertia2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"debug", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'debug'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'debug'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a", _view.debug) // EJsS HtmlView.Simulation View: declaration of element 'a'
+      .setProperty("Text","CameraX=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field42", _view.debug) // EJsS HtmlView.Simulation View: declaration of element 'field42'
+      .setProperty("Width",30) // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field42'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field42'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a2", _view.debug) // EJsS HtmlView.Simulation View: declaration of element 'a2'
+      .setProperty("Text","CameraY=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field43", _view.debug) // EJsS HtmlView.Simulation View: declaration of element 'field43'
+      .setProperty("Width",30) // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field43'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field43'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a22", _view.debug) // EJsS HtmlView.Simulation View: declaration of element 'a22'
+      .setProperty("Text","CameraZ=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field4", _view.debug) // EJsS HtmlView.Simulation View: declaration of element 'field4'
+      .setProperty("Width",30) // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field4'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field4'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"debug2", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'debug2'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'debug2'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a23", _view.debug2) // EJsS HtmlView.Simulation View: declaration of element 'a23'
+      .setProperty("Text","CameraTilt=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a23'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field432", _view.debug2) // EJsS HtmlView.Simulation View: declaration of element 'field432'
+      .setProperty("Width",30) // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field432'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field432'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a3", _view.debug2) // EJsS HtmlView.Simulation View: declaration of element 'a3'
+      .setProperty("Text","CameraAltitude") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field422", _view.debug2) // EJsS HtmlView.Simulation View: declaration of element 'field422'
+      .setProperty("Width",30) // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field422'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field422'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a222", _view.debug2) // EJsS HtmlView.Simulation View: declaration of element 'a222'
+      .setProperty("Text","CameraAzimuth=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a222'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field44", _view.debug2) // EJsS HtmlView.Simulation View: declaration of element 'field44'
+      .setProperty("Width",30) // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field44'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field44'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"debug3", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'debug3'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'debug3'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a4", _view.debug3) // EJsS HtmlView.Simulation View: declaration of element 'a4'
+      .setProperty("Text","CameraX=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a4'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field423", _view.debug3) // EJsS HtmlView.Simulation View: declaration of element 'field423'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field423'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field423'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a24", _view.debug3) // EJsS HtmlView.Simulation View: declaration of element 'a24'
+      .setProperty("Text","CameraY=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a24'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field433", _view.debug3) // EJsS HtmlView.Simulation View: declaration of element 'field433'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field433'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field433'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a223", _view.debug3) // EJsS HtmlView.Simulation View: declaration of element 'a223'
+      .setProperty("Text","CameraZ=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a223'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field45", _view.debug3) // EJsS HtmlView.Simulation View: declaration of element 'field45'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field45'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field45'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"debug22", _view.panel) // EJsS HtmlView.Simulation View: declaration of element 'debug22'
+      .setProperty("Display","none") // EJsS HtmlView.Simulation View: setting property 'Display' for element 'debug22'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a232", _view.debug22) // EJsS HtmlView.Simulation View: declaration of element 'a232'
+      .setProperty("Text","CameraTilt=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a232'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field4322", _view.debug22) // EJsS HtmlView.Simulation View: declaration of element 'field4322'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field4322'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field4322'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a32", _view.debug22) // EJsS HtmlView.Simulation View: declaration of element 'a32'
+      .setProperty("Text","CameraAltitude") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a32'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field4222", _view.debug22) // EJsS HtmlView.Simulation View: declaration of element 'field4222'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field4222'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field4222'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.imageAndTextButton,"a2222", _view.debug22) // EJsS HtmlView.Simulation View: declaration of element 'a2222'
+      .setProperty("Text","CameraAzimuth=") // EJsS HtmlView.Simulation View: setting property 'Text' for element 'a2222'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.numberField,"field442", _view.debug22) // EJsS HtmlView.Simulation View: declaration of element 'field442'
+      .setProperty("Width","5vw") // EJsS HtmlView.Simulation View: setting property 'Width' for element 'field442'
+      .setProperty("Format","0.00") // EJsS HtmlView.Simulation View: setting property 'Format' for element 'field442'
+      ;
+
+    _view._addElement(EJSS_INTERFACE.panel,"html", _view._topFrame) // EJsS HtmlView.Simulation View: declaration of element 'html'
+      .setProperty("Html","<h2>Coriolis effect</h2> <p>The Coriolis force is a fictitious force exerted on a body when it moves in a rotating reference frame. It is called a fictitious force because it is a by-product of measuring coordinates with respect to a rotating coordinate system as opposed to an actual \"push or pull.\"</p> <p>In physics, the Coriolis effect is a deflection of moving objects when they are viewed in a rotating reference frame. In a reference frame with clockwise rotation, the deflection is to the left of the motion of the object; in one with counter-clockwise rotation, the deflection is to the right. The following simulation help you visualize the Coriolis effect!</p> <p>This applet simulate particles motions observed from an inertia frame and rotating (observer rotates with the frame, so it appears stationary) frame. The spherical body will rotate when you press \"play\" button.</p> <p>The magenta arrows are velocity vectors at different points on the spherical surface. </p> <p>Press \"jump aeroplane\" to shoot out particles. </p> > <p>You can use mouse to change the 3D view.</p> <p>There are six projectiles distributed uniformally.</p> <p>Those 6 circles represent the initial positions (move with the earth) for those six projectiles.</p> <p>Blue arrows shows the final displacement </p> <p>Two sets of six black traces are trajectories viewed from inertial/non-inertial frames.</p>>") // EJsS HtmlView.Simulation View: setting property 'Html' for element 'html'
+      ;
+
+  };
+
+  return _view;
+}
+
+
+//--><!]]></script>
+  </head>
+  <body>
+    <div role="button" id="_topFrame" style="text-align:center"></div>
+  <div id="metadata" class="metadata">
+    <br />
+    <div id="title_author">
+      <hr />
+      <b>Title and author:</b>
+      <p>
+      Coriolos 3D Inertia and non-Inertia System<br />
+     <img alt="Logo" src="coriolis/Screenshot 2019-02-15 at 10.23.48 AM (2).png" />
+      </p>
+      <p>
+      <img alt="author image" src="01authorfu-kwun.hwang.png" />
+      <img alt="author image" src="1authorlookangphoto5050.png" />
+ Fu-Kwun Hwang; Tan Wei Chiong; lookang
+      </p>
+    </div>
+    <hr />
+    <p></p>
+    <div id="copyright_message">
+      <div class="cc_left"  style="float:left">&#169; 2019, Fu-Kwun Hwang; Tan Wei Chiong; lookang. Compiled with EJS 6.0_beta (180814)
+</div>
+      <div class="cc_right" style="float:right">    Released under a <a rel="license" target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/deed.en_US"> <img alt="Creative Commons Attribution-NonCommercial-ShareAlike" src="_ejs_library/images/cc_icon.png" /> </a> license.</div>
+    </div>
+  </div>
+    <script type="text/javascript"><!--//--><![CDATA[//><!--
+      var _model;
+      var _scorm;
+      window.addEventListener('load',
+        function () { 
+          _model =  new Coriolis3D("_topFrame","_ejs_library/",null);
+          if (typeof _isApp !== "undefined" && _isApp) _model.setRunAlways(true);
+          TextResizeDetector.TARGET_ELEMENT_ID = '_topFrame';
+          TextResizeDetector.USER_INIT_FUNC = function () {
+            var iBase = TextResizeDetector.addEventListener(function(e,args) {
+              _model._fontResized(args[0].iBase,args[0].iSize,args[0].iDelta);
+              },null);
+            _model._fontResized(iBase);
+          };
+          _model.onload();
+        }, false);
+    //--><!]]></script>
+  </body>
+</html>

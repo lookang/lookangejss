@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Chess Simulation</title>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S9EWRY1CPJ');
+  </script>
+  <!-- Google AdSense -->
+  <script data-ad-client="ca-pub-0121577198857509" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+  <style>
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    /* Flex layout for game and move history side by side */
+    .game-layout {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .game-left, .game-right {
+      background: #fff;
+      padding: 15px;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .game-left {
+      flex: 1 1 500px;
+      min-width: 300px;
+    }
+    .game-right {
+      flex: 1 1 300px;
+      min-width: 250px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    /* Mode selection styling */
+    #mode-selection {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    #mode-selection label {
+      margin: 0 10px;
+      font-size: 1.1em;
+    }
+    /* Difficulty selection container */
+    #difficulty-container {
+      text-align: center;
+      margin-bottom: 15px;
+      display: none;
+    }
+    /* Board wrapper to hold board and SVG arrow overlay */
+    #board-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    /* Chess board container using CSS grid */
+    #chess-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0;
+      border: 2px solid #333;
+      width: 480px;      /* Fixed width ensures proper display */
+      max-width: 100%;   /* Responsive for smaller screens */
+      position: relative;
+    }
+    /* Each square on the board */
+    .square {
+      width: 100%;
+      padding-top: 100%; /* Maintains square aspect ratio */
+      position: relative;
+      box-sizing: border-box;
+    }
+    /* Square inner: displays the chess pieces */
+    .square-inner {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      cursor: pointer;
+      user-select: none;
+      z-index: 2; /* Ensure pieces appear above the arrow overlay */
+    }
+    /* Alternate square colors */
+    .light {
+      background-color: #eeeed2;
+    }
+    .dark {
+      background-color: #769656;
+    }
+    /* Highlight valid moves with red outline */
+    .highlight {
+      outline: 3px solid red;
+    }
+    /* Reset button styling */
+    #reset-button {
+      display: block;
+      margin: 15px auto;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    /* Move History Section styling */
+    #move-history ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    #move-history li {
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
+      font-family: monospace;
+    }
+    /* Leaderboard styling */
+    #leaderboard-section {
+      margin-top: 20px;
+    }
+    #leaderboard-form {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    #leaderboard-form input, #leaderboard-form button {
+      padding: 8px;
+      font-size: 1em;
+    }
+    #leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    #leaderboard-table th, #leaderboard-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    /* SVG overlay styling for the move arrow */
+    #move-arrow-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1; /* Below pieces (z-index:2) but above board background */
+    }
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      #chess-board {
+        width: 90%;
+      }
+      .square-inner {
+        font-size: 1.5em;
+      }
+      .game-layout {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Interactive Chess Simulation</h1>
+    
+    <div class="game-layout">
+      <!-- Left Column: Game Controls and Board -->
+      <div class="game-left">
+        <!-- Mode Selection -->
+        <div id="mode-selection">
+          <label>
+            <input type="radio" name="mode" value="human" checked /> Against Human
+          </label>
+          <label>
+            <input type="radio" name="mode" value="computer" /> Against Computer
+          </label>
+        </div>
+        
+        <!-- Difficulty Selection (shown only for computer mode) -->
+        <div id="difficulty-container">
+          <label for="difficulty-selection">Select Difficulty:</label>
+          <select id="difficulty-selection">
+            <option value="1">Novice</option>
+            <option value="2">Intermediate</option>
+            <option value="3">Expert</option>
+          </select>
+        </div>
+        
+        <!-- Board Wrapper: Contains the chess board and the SVG arrow overlay -->
+        <div id="board-wrapper">
+          <div id="chess-board"></div>
+          <svg id="move-arrow-svg">
+            <defs>
+              <marker id="arrowhead" markerWidth="5" markerHeight="4" refX="0" refY="2" orient="auto">
+                <polygon points="0 0, 5 2, 0 4" fill="blue" />
+              </marker>
+            </defs>
+            <line id="move-arrow-line" x1="0" y1="0" x2="0" y2="0" stroke="blue" stroke-width="4" marker-end="url(#arrowhead)"/>
+          </svg>
+        </div>
+        
+        <!-- Reset Button -->
+        <button id="reset-button">Reset Game</button>
+        
+        <!-- Game Explanation Section -->
+        <div id="explanation">
+          <h2>How to Play</h2>
+          <p>
+            This interactive chess simulation lets you play either against another human or the computer. Click on a piece to see its possible moves (highlighted in red). When a move is made, a blue arrow shows the move direction. The game ends when a king is captured. In "Against Computer" mode, you can choose the difficulty:
+            Novice (random moves), Intermediate (prefers capturing moves), or Expert (chooses the highest–value capture). Use the Reset button to restart.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Right Column: Move History and Leaderboard -->
+      <div class="game-right">
+        <!-- Move History Section -->
+        <div id="move-history">
+          <h2>Move History</h2>
+          <ul id="move-history-list">
+            <!-- Moves will be appended here -->
+          </ul>
+        </div>
+        <!-- Leaderboard Section -->
+        <div id="leaderboard-section">
+          <h2>Leaderboard</h2>
+          <form id="leaderboard-form">
+            <input type="text" id="player-name" placeholder="Enter your name" required />
+            <button type="submit">Submit Score</button>
+          </form>
+          <table id="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Score (Moves)</th>
+                <th>Time Spent</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Leaderboard rows will be appended here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer with credit -->
+  <footer style="text-align:center; font-size:0.8em; margin-top:20px;">
+    Made by <a href="mailto:weelookang@gmail.com">weelookang@gmail.com</a> using GPTo3-mini
+  </footer>
+
+  <script>
+    /***********************************************
+     * Global Variables and Initial Setup
+     ***********************************************/
+    let board = [];              // 2D array representing the chess board
+    let currentTurn = 'white';   // 'white' or 'black'
+    let gameMode = 'human';      // 'human' or 'computer'
+    let selectedPiece = null;    // Currently selected piece coordinates { row, col }
+    let validMoves = [];         // Array of valid moves for the selected piece
+    let moveCount = 0;           // Count of moves made (score)
+    let moveHistory = [];        // Array to store move history strings
+    let timerInterval = null;    // Interval for timer updates
+    let startTime = null;        // Game start time
+    let gameOver = false;        // Flag to indicate if game has ended
+
+    // Simple piece values for capture evaluation
+    const pieceValue = {
+      pawn: 1,
+      knight: 3,
+      bishop: 3,
+      rook: 5,
+      queen: 9,
+      king: 100
+    };
+
+    // Unicode characters for chess pieces
+    const piecesUnicode = {
+      white: { king: '♔', queen: '♕', rook: '♖', bishop: '♗', knight: '♘', pawn: '♙' },
+      black: { king: '♚', queen: '♛', rook: '♜', bishop: '♝', knight: '♞', pawn: '♟' }
+    };
+
+    /***********************************************
+     * Utility: Convert board coordinates to algebraic notation
+     ***********************************************/
+    function convertToNotation(row, col) {
+      const file = String.fromCharCode('a'.charCodeAt(0) + col);
+      const rank = 8 - row;
+      return file + rank;
+    }
+
+    /***********************************************
+     * Check if the game is over (i.e. a king is missing)
+     ***********************************************/
+    function checkGameOver() {
+      let whiteKingExists = false, blackKingExists = false;
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const piece = board[row][col];
+          if (piece && piece.type === 'king') {
+            if (piece.color === 'white') whiteKingExists = true;
+            if (piece.color === 'black') blackKingExists = true;
+          }
+        }
+      }
+      if (!whiteKingExists || !blackKingExists) {
+        gameOver = true;
+        alert("Game Over: " + (whiteKingExists ? "Black wins!" : "White wins!"));
+      }
+    }
+
+    /***********************************************
+     * Update the Arrow Overlay for the Last Move
+     ***********************************************/
+    function updateArrow(fromRow, fromCol, toRow, toCol) {
+      const fromSquare = document.getElementById(`square-${fromRow}-${fromCol}`);
+      const toSquare = document.getElementById(`square-${toRow}-${toCol}`);
+      const boardWrapper = document.getElementById("board-wrapper");
+      if (!fromSquare || !toSquare || !boardWrapper) return;
+      
+      const boardRect = boardWrapper.getBoundingClientRect();
+      const fromRect = fromSquare.getBoundingClientRect();
+      const toRect = toSquare.getBoundingClientRect();
+      
+      // Calculate center coordinates relative to boardWrapper
+      const x1 = fromRect.left + fromRect.width / 2 - boardRect.left;
+      const y1 = fromRect.top + fromRect.height / 2 - boardRect.top;
+      const x2 = toRect.left + toRect.width / 2 - boardRect.left;
+      const y2 = toRect.top + toRect.height / 2 - boardRect.top;
+      
+      const arrowLine = document.getElementById("move-arrow-line");
+      arrowLine.setAttribute("x1", x1);
+      arrowLine.setAttribute("y1", y1);
+      arrowLine.setAttribute("x2", x2);
+      arrowLine.setAttribute("y2", y2);
+    }
+
+    /***********************************************
+     * Initialization Function: Sets up the game
+     ***********************************************/
+    function initGame() {
+      board = Array.from({ length: 8 }, () => Array(8).fill(null));
+      gameOver = false;
+      
+      // Place Black pieces (top rows)
+      board[0] = [
+        { type: 'rook', color: 'black' },
+        { type: 'knight', color: 'black' },
+        { type: 'bishop', color: 'black' },
+        { type: 'queen', color: 'black' },
+        { type: 'king', color: 'black' },
+        { type: 'bishop', color: 'black' },
+        { type: 'knight', color: 'black' },
+        { type: 'rook', color: 'black' }
+      ];
+      board[1] = Array(8).fill({ type: 'pawn', color: 'black' });
+      
+      // Place White pieces (bottom rows)
+      board[6] = Array(8).fill({ type: 'pawn', color: 'white' });
+      board[7] = [
+        { type: 'rook', color: 'white' },
+        { type: 'knight', color: 'white' },
+        { type: 'bishop', color: 'white' },
+        { type: 'queen', color: 'white' },
+        { type: 'king', color: 'white' },
+        { type: 'bishop', color: 'white' },
+        { type: 'knight', color: 'white' },
+        { type: 'rook', color: 'white' }
+      ];
+      
+      // Clear intermediate rows (2 to 5)
+      for (let i = 2; i <= 5; i++) {
+        board[i] = Array(8).fill(null);
+      }
+      
+      currentTurn = 'white';
+      selectedPiece = null;
+      validMoves = [];
+      moveCount = 0;
+      moveHistory = [];
+      updateMoveHistory(); // Clear move history display
+      
+      // Reset arrow overlay
+      const arrowLine = document.getElementById("move-arrow-line");
+      arrowLine.setAttribute("x1", 0);
+      arrowLine.setAttribute("y1", 0);
+      arrowLine.setAttribute("x2", 0);
+      arrowLine.setAttribute("y2", 0);
+      
+      startTime = Date.now();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(updateTimer, 1000);
+      renderBoard();
+    }
+
+    /***********************************************
+     * Render the Chess Board on the Page
+     ***********************************************/
+    function renderBoard() {
+      const boardContainer = document.getElementById('chess-board');
+      boardContainer.innerHTML = ''; // Clear previous board
+      
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement('div');
+          square.classList.add('square');
+          square.classList.add((row + col) % 2 === 0 ? 'light' : 'dark');
+          
+          const squareInner = document.createElement('div');
+          squareInner.classList.add('square-inner');
+          // Set an id for each square to compute arrow positions
+          squareInner.id = `square-${row}-${col}`;
+          squareInner.dataset.row = row;
+          squareInner.dataset.col = col;
+          
+          if (validMoves.some(move => move.row === row && move.col === col)) {
+            squareInner.classList.add('highlight');
+          }
+          
+          const piece = board[row][col];
+          if (piece) {
+            squareInner.textContent = piecesUnicode[piece.color][piece.type];
+          }
+          
+          squareInner.addEventListener('click', handleSquareClick);
+          square.appendChild(squareInner);
+          boardContainer.appendChild(square);
+        }
+      }
+    }
+
+    /***********************************************
+     * Calculate Valid Moves for a Piece at (row, col)
+     * (Simplified version; does not cover all chess rules)
+     ***********************************************/
+    function getValidMoves(row, col) {
+      const moves = [];
+      const piece = board[row][col];
+      if (!piece) return moves;
+      
+      const inBounds = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+      const canMoveTo = (r, c) => {
+        if (!inBounds(r, c)) return false;
+        const target = board[r][c];
+        return (!target || target.color !== piece.color);
+      };
+      
+      if (piece.type === 'pawn') {
+        const direction = piece.color === 'white' ? -1 : 1;
+        const startRow = piece.color === 'white' ? 6 : 1;
+        if (inBounds(row + direction, col) && !board[row + direction][col]) {
+          moves.push({ row: row + direction, col: col });
+          if (row === startRow && !board[row + 2 * direction][col]) {
+            moves.push({ row: row + 2 * direction, col: col });
+          }
+        }
+        if (inBounds(row + direction, col - 1) && board[row + direction][col - 1] && board[row + direction][col - 1].color !== piece.color) {
+          moves.push({ row: row + direction, col: col - 1 });
+        }
+        if (inBounds(row + direction, col + 1) && board[row + direction][col + 1] && board[row + direction][col + 1].color !== piece.color) {
+          moves.push({ row: row + direction, col: col + 1 });
+        }
+      } else if (piece.type === 'knight') {
+        const offsets = [
+          { r: -2, c: -1 }, { r: -2, c: 1 },
+          { r: -1, c: -2 }, { r: -1, c: 2 },
+          { r: 1, c: -2 },  { r: 1, c: 2 },
+          { r: 2, c: -1 },  { r: 2, c: 1 }
+        ];
+        offsets.forEach(offset => {
+          const newRow = row + offset.r;
+          const newCol = col + offset.c;
+          if (canMoveTo(newRow, newCol)) moves.push({ row: newRow, col: newCol });
+        });
+      } else if (piece.type === 'bishop' || piece.type === 'rook' || piece.type === 'queen') {
+        let directions = [];
+        if (piece.type === 'bishop') {
+          directions = [ { r: -1, c: -1 }, { r: -1, c: 1 }, { r: 1, c: -1 }, { r: 1, c: 1 } ];
+        } else if (piece.type === 'rook') {
+          directions = [ { r: -1, c: 0 }, { r: 1, c: 0 }, { r: 0, c: -1 }, { r: 0, c: 1 } ];
+        } else if (piece.type === 'queen') {
+          directions = [ { r: -1, c: -1 }, { r: -1, c: 1 }, { r: 1, c: -1 }, { r: 1, c: 1 },
+                         { r: -1, c: 0 }, { r: 1, c: 0 }, { r: 0, c: -1 }, { r: 0, c: 1 } ];
+        }
+        directions.forEach(dir => {
+          let r = row + dir.r, c = col + dir.c;
+          while (inBounds(r, c)) {
+            if (board[r][c]) {
+              if (board[r][c].color !== piece.color) moves.push({ row: r, col: c });
+              break;
+            }
+            moves.push({ row: r, col: c });
+            r += dir.r;
+            c += dir.c;
+          }
+        });
+      } else if (piece.type === 'king') {
+        const offsets = [
+          { r: -1, c: -1 }, { r: -1, c: 0 }, { r: -1, c: 1 },
+          { r: 0, c: -1 },              { r: 0, c: 1 },
+          { r: 1, c: -1 }, { r: 1, c: 0 }, { r: 1, c: 1 }
+        ];
+        offsets.forEach(offset => {
+          const newRow = row + offset.r;
+          const newCol = col + offset.c;
+          if (canMoveTo(newRow, newCol)) moves.push({ row: newRow, col: newCol });
+        });
+      }
+      return moves;
+    }
+
+    /***********************************************
+     * Log a Move in the History and Update Display
+     ***********************************************/
+    function logMove(piece, fromRow, fromCol, toRow, toCol) {
+      const fromNotation = convertToNotation(fromRow, fromCol);
+      const toNotation = convertToNotation(toRow, toCol);
+      const moveString = `${piece.color.charAt(0).toUpperCase() + piece.color.slice(1)} ${piece.type} : ${fromNotation} → ${toNotation}`;
+      moveHistory.push(moveString);
+      updateMoveHistory();
+      updateArrow(fromRow, fromCol, toRow, toCol);
+    }
+
+    /***********************************************
+     * Update the Move History Section in the DOM
+     ***********************************************/
+    function updateMoveHistory() {
+      const moveList = document.getElementById('move-history-list');
+      moveList.innerHTML = '';
+      moveHistory.forEach((move, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${index + 1}. ${move}`;
+        moveList.appendChild(li);
+      });
+    }
+
+    /***********************************************
+     * Handle Click on a Square
+     ***********************************************/
+    function handleSquareClick(event) {
+      if (gameOver) return;  // Do nothing if game is over
+
+      const square = event.currentTarget;
+      const row = parseInt(square.dataset.row);
+      const col = parseInt(square.dataset.col);
+      const clickedPiece = board[row][col];
+
+      // If a valid move square is clicked, execute the move.
+      if (selectedPiece && validMoves.some(move => move.row === row && move.col === col)) {
+        const movingPiece = board[selectedPiece.row][selectedPiece.col];
+        logMove(movingPiece, selectedPiece.row, selectedPiece.col, row, col);
+        movePiece(selectedPiece.row, selectedPiece.col, row, col);
+        selectedPiece = null;
+        validMoves = [];
+        renderBoard();
+
+        // In computer mode, let the computer move if game is not over.
+        if (gameMode === 'computer' && currentTurn === 'black' && !gameOver) {
+          setTimeout(computerMove, 500);
+        }
+        return;
+      }
+
+      // If clicking on a piece that belongs to the current player, select it and highlight valid moves.
+      if (clickedPiece && clickedPiece.color === currentTurn) {
+        selectedPiece = { row, col };
+        validMoves = getValidMoves(row, col);
+      } else {
+        selectedPiece = null;
+        validMoves = [];
+      }
+      renderBoard();
+    }
+
+    /***********************************************
+     * Move a Piece from (fromRow, fromCol) to (toRow, toCol)
+     ***********************************************/
+    function movePiece(fromRow, fromCol, toRow, toCol) {
+      board[toRow][toCol] = board[fromRow][fromCol];
+      board[fromRow][fromCol] = null;
+      moveCount++;
+      currentTurn = currentTurn === 'white' ? 'black' : 'white';
+      checkGameOver();
+    }
+
+    /***********************************************
+     * Computer Move: Executes a move for black pieces based on selected difficulty
+     ***********************************************/
+    function computerMove() {
+      if (gameOver) return;
+      
+      const moves = [];
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const piece = board[row][col];
+          if (piece && piece.color === 'black') {
+            const pieceMoves = getValidMoves(row, col);
+            pieceMoves.forEach(move => {
+              moves.push({
+                fromRow: row,
+                fromCol: col,
+                toRow: move.row,
+                toCol: move.col,
+                piece: piece,
+                target: board[move.row][move.col]  // may be null or an opponent piece
+              });
+            });
+          }
+        }
+      }
+      if (moves.length === 0) {
+        alert('Game Over: No valid moves for computer.');
+        gameOver = true;
+        return;
+      }
+      
+      // Get the selected difficulty level (default novice = 1)
+      const difficultySelect = document.getElementById('difficulty-selection');
+      const difficulty = difficultySelect ? parseInt(difficultySelect.value) : 1;
+      
+      let chosenMove;
+      if (difficulty === 1) {
+        // Novice: Random move among all available moves.
+        chosenMove = moves[Math.floor(Math.random() * moves.length)];
+      } else if (difficulty === 2) {
+        // Intermediate: If any capturing moves available, choose one at random; otherwise, random.
+        const capturingMoves = moves.filter(m => m.target !== null);
+        if (capturingMoves.length > 0) {
+          chosenMove = capturingMoves[Math.floor(Math.random() * capturingMoves.length)];
+        } else {
+          chosenMove = moves[Math.floor(Math.random() * moves.length)];
+        }
+      } else if (difficulty === 3) {
+        // Expert: If capturing moves available, choose the one capturing the highest value piece.
+        const capturingMoves = moves.filter(m => m.target !== null);
+        if (capturingMoves.length > 0) {
+          chosenMove = capturingMoves.reduce((best, move) => {
+            const value = pieceValue[move.target.type] || 0;
+            const bestValue = best && best.target ? (pieceValue[best.target.type] || 0) : -1;
+            return (value > bestValue) ? move : best;
+          }, null);
+        } else {
+          chosenMove = moves[Math.floor(Math.random() * moves.length)];
+        }
+      }
+      
+      logMove(chosenMove.piece, chosenMove.fromRow, chosenMove.fromCol, chosenMove.toRow, chosenMove.toCol);
+      movePiece(chosenMove.fromRow, chosenMove.fromCol, chosenMove.toRow, chosenMove.toCol);
+      renderBoard();
+    }
+
+    /***********************************************
+     * Update Timer: Displays time elapsed (logged to console)
+     ***********************************************/
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      console.log("Time Elapsed: " + elapsed + " seconds");
+    }
+
+    /***********************************************
+     * Leaderboard: Handle Form Submission
+     ***********************************************/
+    document.getElementById('leaderboard-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nameInput = document.getElementById('player-name');
+      const playerName = nameInput.value.trim();
+      if (!playerName) return;
+      
+      const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+      const score = moveCount;
+      const tbody = document.querySelector('#leaderboard-table tbody');
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${playerName}</td><td>${score}</td><td>${timeSpent} sec</td>`;
+      tbody.appendChild(row);
+      nameInput.value = '';
+    });
+
+    /***********************************************
+     * Mode Selection Listener: Updates game mode and shows/hides difficulty selection
+     ***********************************************/
+    document.querySelectorAll('input[name="mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        gameMode = e.target.value;
+        // Show difficulty container only when computer mode is selected
+        document.getElementById('difficulty-container').style.display = (gameMode === 'computer') ? 'block' : 'none';
+        initGame();
+      });
+    });
+
+    /***********************************************
+     * Reset Button: Restart the game
+     ***********************************************/
+    document.getElementById('reset-button').addEventListener('click', () => {
+      initGame();
+    });
+
+    /***********************************************
+     * Start the Game on Page Load
+     ***********************************************/
+    initGame();
+
+    /***********************************************
+     * Suggestions for Further Enhancements:
+     * 1. Add smooth animations for piece movement.
+     * 2. Implement drag-and-drop for moving pieces.
+     * 3. Enhance computer AI with a proper chess engine.
+     * 4. Display the timer visibly on the page.
+     * 5. Implement full chess rules (castling, en passant, check detection).
+     * 6. Add undo functionality.
+     ***********************************************/
+  </script>
+</body>
+</html>

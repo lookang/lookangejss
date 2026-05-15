@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Spin & Entanglement</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <style>
+      @font-face {
+        font-family: 'LucideIcons';
+        src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf) format('truetype');
+      }
+      .lucide {
+        font-family: 'LucideIcons';
+        font-size: 1.25rem;
+        line-height: 1;
+        vertical-align: middle;
+      }
+      canvas {
+        border: 1px solid #d1d5db; /* gray-300 */
+        border-radius: 0.375rem; /* rounded-md */
+        background-color: #f9fafb; /* gray-50 */
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      @media (max-width: 640px) {
+        #qubitCanvas {
+          width: 120px;
+          height: 120px;
+        }
+        .entangled-canvas {
+          width: 80px;
+          height: 80px;
+        }
+      }
+      button, select {
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+      }
+      select:disabled, button:disabled {
+          cursor: not-allowed;
+          opacity: 0.6;
+      }
+       select option:disabled {
+           color: #9ca3af; /* gray-400 */
+       }
+      button:hover:not(:disabled), select:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+       button:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+      .hidden-canvas {
+          display: none;
+      }
+       #messageBox {
+           transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+           transform: translateX(100%); /* Start off-screen */
+       }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4 md:p-8 flex flex-col items-center min-h-screen">
+
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 text-center px-2">Quantum Spin & Entanglement Explorer</h1>
+
+    <div class="w-full max-w-4xl bg-white p-6 rounded-lg shadow-lg mb-8">
+        <h2 class="text-xl font-semibold text-gray-700 mb-3">Single Qubit</h2>
+        <p class="text-gray-600 mb-4">
+            A qubit, like an electron, can have a property called 'spin'. We simplify this to 'spin up' (<span class="font-mono text-blue-600">|↑⟩</span> or <span class="font-mono text-blue-600">|1⟩</span>) or 'spin down' (<span class="font-mono text-red-600">|↓⟩</span> or <span class="font-mono text-red-600">|0⟩</span>). Before measurement, a qubit exists in a <strong class="text-purple-600">superposition</strong> - a combination of both states, represented below by faint up and down arrows. Measurement forces it into one definite state.
+        </p>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-8">
+            <canvas id="qubitCanvas" width="150" height="150"></canvas>
+            <div class="flex flex-col gap-3">
+                <button id="initQubitBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow flex items-center justify-center gap-2">
+                    <span class="lucide">refresh-cw</span> Initialize Qubit
+                </button>
+                <button id="measureQubitBtn" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg shadow flex items-center justify-center gap-2">
+                    <span class="lucide">eye</span> Measure Qubit
+                </button>
+                <div id="qubitStateText" class="text-center text-gray-700 font-medium mt-2 h-6">State: Superposition</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full max-w-6xl bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-semibold text-gray-700 mb-3">Entanglement</h2>
+        <p class="text-gray-600 mb-4">
+            Multiple qubits can become <strong class="text-pink-600">entangled</strong>. Their fates are linked. Measuring one instantly influences the state of the others based on the entanglement type: 'Same Spins' (all identical), 'Opposite Spins' (N=2 only, opposite results), or 'Alternate Spins' (spins alternate along the chain).
+        </p>
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 sm:mb-6 justify-center items-center">
+            <div class="flex flex-col gap-1">
+                <label for="numQubitsSelect" class="text-sm font-medium text-gray-600">Number of Qubits:</label>
+                <select id="numQubitsSelect" class="border border-gray-300 rounded-lg p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                    <option value="2" selected>2 Qubits</option>
+                    <option value="4">4 Qubits</option>
+                    <option value="8">8 Qubits</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label for="entanglementTypeSelect" class="text-sm font-medium text-gray-600">Entanglement Type:</label>
+                <select id="entanglementTypeSelect" class="border border-gray-300 rounded-lg p-2 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                    <option value="same" selected>Same Spins (GHZ)</option>
+                    <option value="alternate">Alternate Spins</option>
+                    <option value="opposite">Opposite Spins (N=2 only)</option>
+                </select>
+            </div>
+             <div class="flex flex-col gap-3 mt-4 sm:mt-0 sm:ml-4">
+                 <button id="initEntangledBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow flex items-center justify-center gap-2">
+                    <span class="lucide">link-2</span> Create/Reset Pair
+                </button>
+                <button id="measureEntangledBtn" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg shadow flex items-center justify-center gap-2">
+                   <span class="lucide">eye</span> Measure All
+                </button>
+            </div>
+        </div>
+         <div id="entanglementVisuals" class="mt-4 flex flex-wrap justify-center gap-4 items-center min-h-[116px]">
+             </div>
+         <div id="entangledStateText" class="text-center text-gray-700 font-medium mt-4 h-6">State: Select options and Create Pair</div>
+    </div>
+
+    <div id="messageBox" class="fixed bottom-4 right-4 bg-gray-800 text-white p-4 rounded-lg shadow-md opacity-0 transition-opacity duration-500 max-w-xs z-50">
+        <p id="messageText"></p>
+    </div>
+
+    <footer class="w-full max-w-6xl text-center text-sm text-gray-500 mt-8 py-4 border-t border-gray-300">
+        <p class="mb-2">
+            created by weelookang@gmail.com using Gemini 2.5 Pro
+        </p>
+        <p>
+            For more resources, check out
+            <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/06-modern-physics" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+                https://sg.iwant2study.org/ospsg/index.php/interactive-resources/physics/06-modern-physics
+            </a>
+        </p>
+    </footer>
+
+    <script>
+        // --- Constants and State ---
+        const STATE_SUPERPOSITION = -1;
+        const STATE_UP = 1; // |1> (Blue)
+        const STATE_DOWN = 0; // |0> (Red)
+
+        let qubitState = STATE_SUPERPOSITION;
+
+        // Entanglement state
+        let numEntangledQubits = 2;
+        let entanglementType = 'same'; // 'same', 'opposite', 'alternate'
+        let entangledStates = [];
+        let entangledCanvases = [];
+        let entangledCtxs = [];
+        let isEntangledInitialized = false;
+
+        const MAX_QUBITS = 8;
+
+        // --- DOM References ---
+        const qubitCanvas = document.getElementById('qubitCanvas');
+        const qubitCtx = qubitCanvas.getContext('2d');
+        const entanglementVisualsContainer = document.getElementById('entanglementVisuals');
+        const numQubitsSelect = document.getElementById('numQubitsSelect');
+        const entanglementTypeSelect = document.getElementById('entanglementTypeSelect');
+        const oppositeSpinOption = entanglementTypeSelect.querySelector('option[value="opposite"]');
+        const initEntangledBtn = document.getElementById('initEntangledBtn');
+        const measureEntangledBtn = document.getElementById('measureEntangledBtn');
+        const entangledStateText = document.getElementById('entangledStateText');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+
+        // Create entanglement canvases dynamically
+        for (let i = 0; i < MAX_QUBITS; i++) {
+            const canvas = document.createElement('canvas');
+            canvas.width = window.innerWidth < 640 ? 80 : 100;
+            canvas.height = window.innerWidth < 640 ? 80 : 100;
+            canvas.classList.add('entangled-canvas');
+            canvas.id = `entangledCanvas${i}`;
+            canvas.classList.add('hidden-canvas'); // Start hidden
+            entanglementVisualsContainer.appendChild(canvas);
+            entangledCanvases.push(canvas);
+            entangledCtxs.push(canvas.getContext('2d'));
+        }
+
+        // --- Canvas Drawing Globals ---
+        const canvasWidth = entangledCanvases[0].width;
+        const canvasHeight = entangledCanvases[0].height;
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
+        const radius = canvasWidth / 3.5;
+        const arrowLength = radius * 0.8;
+        const arrowHeadSize = 6;
+
+        // --- Drawing Functions ---
+        function clearCanvas(ctx) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.fillStyle = '#f9fafb';
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        }
+
+        function drawArrow(ctx, angle, color, alpha = 1.0) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.translate(centerX, centerY);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -arrowLength);
+            ctx.moveTo(0, -arrowLength);
+            ctx.lineTo(-arrowHeadSize / 2, -arrowLength + arrowHeadSize);
+            ctx.moveTo(0, -arrowLength);
+            ctx.lineTo(arrowHeadSize / 2, -arrowLength + arrowHeadSize);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawSuperposition(ctx, color) {
+             const alpha = 0.5;
+             drawArrow(ctx, Math.PI, color, alpha);
+             drawArrow(ctx, 0, color, alpha);
+        }
+
+        function drawQubit(ctx, state) {
+            clearCanvas(ctx);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#9ca3af';
+            ctx.stroke();
+
+            switch (state) {
+                case STATE_UP: drawArrow(ctx, 0, '#2563eb'); break;
+                case STATE_DOWN: drawArrow(ctx, Math.PI, '#dc2626'); break;
+                case STATE_SUPERPOSITION: drawSuperposition(ctx, '#9333ea'); break;
+            }
+        }
+
+        // --- Update UI Functions ---
+        function updateSingleQubitUI() {
+            const singleQubitCtx = qubitCanvas.getContext('2d');
+            const tempW = singleQubitCtx.canvas.width, tempH = singleQubitCtx.canvas.height;
+            const tempCX = tempW / 2, tempCY = tempH / 2;
+            const tempR = tempW / 3, tempAL = tempR * 0.8, tempAHS = 8;
+            const gW = canvasWidth, gH = canvasHeight, gCX = centerX, gCY = centerY, gR = radius, gAL = arrowLength, gAHS = arrowHeadSize;
+            const tempDrawParams = { canvasWidth: tempW, canvasHeight: tempH, centerX: tempCX, centerY: tempCY, radius: tempR, arrowLength: tempAL, arrowHeadSize: tempAHS };
+
+            Object.assign(window, tempDrawParams);
+            drawQubit(singleQubitCtx, qubitState);
+            Object.assign(window, { canvasWidth: gW, canvasHeight: gH, centerX: gCX, centerY: gCY, radius: gR, arrowLength: gAL, arrowHeadSize: gAHS });
+
+            const textEl = document.getElementById('qubitStateText');
+            switch (qubitState) {
+                case STATE_UP: textEl.innerHTML = 'State: Measured <span class="font-mono text-blue-600">|↑⟩ (|1⟩)</span>'; break;
+                case STATE_DOWN: textEl.innerHTML = 'State: Measured <span class="font-mono text-red-600">|↓⟩ (|0⟩)</span>'; break;
+                case STATE_SUPERPOSITION: textEl.innerHTML = 'State: <strong class="text-purple-600">Superposition</strong>'; break;
+            }
+        }
+
+        function updateEntangledUI() {
+             if (!isEntangledInitialized) {
+                 entangledStateText.innerHTML = 'State: Select options and Create/Reset Pair';
+                 entangledCanvases.forEach(canvas => canvas.classList.add('hidden-canvas'));
+                 return;
+             }
+             let stateSummary = 'State: ';
+             let measured = false;
+             for(let i = 0; i < MAX_QUBITS; i++) {
+                 if (i < numEntangledQubits) {
+                     entangledCanvases[i].classList.remove('hidden-canvas');
+                     drawQubit(entangledCtxs[i], entangledStates[i]);
+                     if (entangledStates[i] !== STATE_SUPERPOSITION) {
+                         measured = true;
+                         const stateStr = entangledStates[i] === STATE_UP ? '<span class="font-mono text-blue-600">|↑⟩</span>' : '<span class="font-mono text-red-600">|↓⟩</span>';
+                         stateSummary += stateStr;
+                     }
+                 } else {
+                     entangledCanvases[i].classList.add('hidden-canvas');
+                 }
+             }
+             if (measured) {
+                 entangledStateText.innerHTML = stateSummary;
+             } else {
+                  entangledStateText.innerHTML = `State: <strong class="text-pink-600">${numEntangledQubits}-Qubit Entangled Superposition</strong>`;
+             }
+        }
+
+        // --- Message Box Function ---
+        let messageTimeout;
+        function showMessage(message, duration = 3000) {
+            messageText.textContent = message;
+            messageBox.style.opacity = '1';
+            messageBox.style.transform = 'translateX(0)';
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
+                messageBox.style.opacity = '0';
+                messageBox.style.transform = 'translateX(100%)';
+            }, duration);
+        }
+
+        // --- Core Logic Functions ---
+        function updateEntanglementTypeOptions() {
+            const currentNumQubits = parseInt(numQubitsSelect.value);
+            if (currentNumQubits === 2) {
+                oppositeSpinOption.disabled = false;
+            } else {
+                oppositeSpinOption.disabled = true;
+                if (entanglementTypeSelect.value === 'opposite') {
+                    entanglementTypeSelect.value = 'same';
+                    showMessage("Switched to 'Same Spins' type (required for N≠2).", 3500);
+                }
+            }
+        }
+
+        function initializeEntanglement() {
+            updateEntanglementTypeOptions();
+            numEntangledQubits = parseInt(numQubitsSelect.value);
+            entanglementType = entanglementTypeSelect.value;
+            entangledStates = new Array(numEntangledQubits).fill(STATE_SUPERPOSITION);
+            isEntangledInitialized = true;
+            updateEntangledUI();
+            let typeName = entanglementType;
+            if (typeName === 'same') typeName = 'Same Spins (GHZ)';
+            if (typeName === 'opposite') typeName = 'Opposite Spins';
+            if (typeName === 'alternate') typeName = 'Alternate Spins';
+            showMessage(`${numEntangledQubits}-qubit entangled pair created (${typeName} type).`);
+        }
+
+        function measureEntanglement() {
+            if (!isEntangledInitialized || (entangledStates.length > 0 && entangledStates[0] !== STATE_SUPERPOSITION) ) {
+                 showMessage(isEntangledInitialized ? "Pair already measured." : "Create an entangled pair first.");
+                 return;
+             }
+             if (!isEntangledInitialized || entangledStates.length === 0) {
+                 showMessage("Create an entangled pair first.");
+                 return;
+             }
+            numEntangledQubits = parseInt(numQubitsSelect.value);
+            entanglementType = entanglementTypeSelect.value;
+            const measure0 = Math.random() < 0.5 ? STATE_DOWN : STATE_UP;
+            entangledStates[0] = measure0;
+            for (let i = 1; i < numEntangledQubits; i++) {
+                if (entanglementType === 'same') {
+                    entangledStates[i] = measure0;
+                } else if (entanglementType === 'alternate') {
+                    entangledStates[i] = (entangledStates[i-1] === STATE_DOWN) ? STATE_UP : STATE_DOWN;
+                } else { // type === 'opposite'
+                    entangledStates[i] = (measure0 === STATE_DOWN) ? STATE_UP : STATE_DOWN;
+                }
+            }
+            updateEntangledUI();
+            let typeName = entanglementType;
+            if (typeName === 'same') typeName = 'Same Spins (GHZ)';
+            if (typeName === 'opposite') typeName = 'Opposite Spins';
+            if (typeName === 'alternate') typeName = 'Alternate Spins';
+            let outcomeMsg = `Measured ${numEntangledQubits} qubits (${typeName}): `;
+             outcomeMsg += entangledStates.map(s => s === STATE_UP ? "|↑⟩" : "|↓⟩").join('');
+             showMessage(outcomeMsg, 5000);
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('initQubitBtn').addEventListener('click', () => {
+            qubitState = STATE_SUPERPOSITION;
+            updateSingleQubitUI();
+            showMessage("Single qubit initialized in superposition.");
+        });
+        document.getElementById('measureQubitBtn').addEventListener('click', () => {
+            if (qubitState === STATE_SUPERPOSITION) {
+                qubitState = Math.random() < 0.5 ? STATE_DOWN : STATE_UP;
+                updateSingleQubitUI();
+                const outcome = qubitState === STATE_UP ? "|↑⟩ (|1⟩)" : "|↓⟩ (|0⟩)";
+                 showMessage(`Measurement collapsed state to ${outcome}.`);
+            } else {
+                 showMessage("Single qubit already measured.");
+            }
+        });
+        numQubitsSelect.addEventListener('change', initializeEntanglement);
+        entanglementTypeSelect.addEventListener('change', initializeEntanglement);
+        initEntangledBtn.addEventListener('click', initializeEntanglement);
+        measureEntangledBtn.addEventListener('click', measureEntanglement);
+
+        // --- Initial Setup ---
+        window.onload = () => {
+            qubitState = STATE_SUPERPOSITION;
+            updateSingleQubitUI();
+            updateEntanglementTypeOptions();
+            initializeEntanglement();
+            showMessage("Interactive loaded. Explore quantum states!", 5000);
+        };
+    </script>
+
+</body>
+</html>

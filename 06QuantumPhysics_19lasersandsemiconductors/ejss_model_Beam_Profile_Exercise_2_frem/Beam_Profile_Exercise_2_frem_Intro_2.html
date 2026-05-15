@@ -1,0 +1,459 @@
+<html>
+  <head>
+    <title> Beam_Profile_Exercise_2.py</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Beam_Profile_Exercise_2.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file will generate a filled contour plot of
+    </p>
+    <p style="margin-top: 0">
+      # the irradiance I(x,y) of the TEM00 Gaussian Mode of a laser
+    </p>
+    <p style="margin-top: 0">
+      # versus x and y.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file will also generate a filled contour plot of
+    </p>
+    <p style="margin-top: 0">
+      # the scaled irradiance I(x,y)/I_max of the TEM00 Gaussian Mode of a 
+      laser
+    </p>
+    <p style="margin-top: 0">
+      # versus scaled x and scaled y.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Written by:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # with contributions from graduate student
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Najwa Sulaiman
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # nsulaima@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20160529 ERB
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      from pylab import 
+      xlim,xlabel,ylim,ylabel,show,contourf,colorbar,figure,title
+    </p>
+    <p style="margin-top: 0">
+      from matplotlib.colors import LinearSegmentedColormap
+    </p>
+    <p style="margin-top: 0">
+      from numpy import linspace,meshgrid,exp,sqrt,pi,amax
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the colormaps for these contour plots.
+    </p>
+    <p style="margin-top: 0">
+      # For a HeNe laser beam profile, we might want red to be bright
+    </p>
+    <p style="margin-top: 0">
+      # and black to be dark. This is the color map labeled
+    </p>
+    <p style="margin-top: 0">
+      # black_red1.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # If instead we want white to be dark,
+    </p>
+    <p style="margin-top: 0">
+      # then we use the color map labeled white_red1.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # The first digit in each 3-tuple is the scaled intensity
+    </p>
+    <p style="margin-top: 0">
+      # (0 for lowest value, 1 for highest value).
+    </p>
+    <p style="margin-top: 0">
+      # The second two digits are identical and represent the
+    </p>
+    <p style="margin-top: 0">
+      # R-, G-, or B-value at that scaled intensity. Here,the
+    </p>
+    <p style="margin-top: 0">
+      # R-value increases linearly with intensity while the
+    </p>
+    <p style="margin-top: 0">
+      # G- and B-values are always zero.
+    </p>
+    <p style="margin-top: 0">
+      cdict1 = {'red': ((0.0, 0.0, 0.0),
+    </p>
+    <p style="margin-top: 0">
+      (1.0, 1.0, 1.0)),
+    </p>
+    <p style="margin-top: 0">
+      'green': ((0.0, 0.0, 0.0),
+    </p>
+    <p style="margin-top: 0">
+      (1.0, 0.0, 0.0)),
+    </p>
+    <p style="margin-top: 0">
+      'blue': ((0.0, 0.0, 0.0),
+    </p>
+    <p style="margin-top: 0">
+      (1.0, 0.0, 0.0))}
+    </p>
+    <p style="margin-top: 0">
+      black_red1 = LinearSegmentedColormap('Black_Red1',cdict1)
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      cdict2 = {'red': ((0.0, 1.0, 1.0),
+    </p>
+    <p style="margin-top: 0">
+      (1.0, 1.0, 1.0)),
+    </p>
+    <p style="margin-top: 0">
+      'green': ((0.0, 1.0, 1.0),
+    </p>
+    <p style="margin-top: 0">
+      (1.0, 0.0, 0.0)),
+    </p>
+    <p style="margin-top: 0">
+      'blue': ((0.0, 1.0, 1.0),
+    </p>
+    <p style="margin-top: 0">
+      (1.0, 0.0, 0.0))}
+    </p>
+    <p style="margin-top: 0">
+      white_red1 = LinearSegmentedColormap('White_Red1',cdict2)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #x and y array values to be used later
+    </p>
+    <p style="margin-top: 0">
+      max_x = 2.0 # maximum value of x position [mm]
+    </p>
+    <p style="margin-top: 0">
+      min_x = -2.0 # minimum value of x position [mm]
+    </p>
+    <p style="margin-top: 0">
+      max_y = max_x # maximum value of y position [mm]
+    </p>
+    <p style="margin-top: 0">
+      min_y = min_x # minimum value of y position [mm]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      Npts = 81
+    </p>
+    <p style="margin-top: 0">
+      x = linspace(min_x,max_x,Npts) #x data point array
+    </p>
+    <p style="margin-top: 0">
+      y = linspace(min_y,max_y,Npts) #y data point array
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # create mesh of points on which irradiance is evaluated
+    </p>
+    <p style="margin-top: 0">
+      X, Y = meshgrid(x,y)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Now scale the x and y values by the beam width w0
+    </p>
+    <p style="margin-top: 0">
+      w0 = 0.5 # beam width w0 [mm]
+    </p>
+    <p style="margin-top: 0">
+      scaled_x = x/w0
+    </p>
+    <p style="margin-top: 0">
+      scaled_y = y/w0
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #creating grid table for function to be set on
+    </p>
+    <p style="margin-top: 0">
+      Xsc, Ysc = meshgrid(scaled_x,scaled_y)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # other inputs
+    </p>
+    <p style="margin-top: 0">
+      P_0 = 1.00 # laser power [mW]
+    </p>
+    <p style="margin-top: 0">
+      I_0 = 2.00*P_0/(pi*w0*w0) # maximum irradiance [mW/mm2]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      I = I_0 * exp(-2.0*(X*X + Y*Y))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # define the scaled irradiance
+    </p>
+    <p style="margin-top: 0">
+      Imax = amax(I)
+    </p>
+    <p style="margin-top: 0">
+      Isc = I/Imax
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the contour plot of irradiance
+    </p>
+    <p style="margin-top: 0">
+      # versus x and y with black as dark and red as bright
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Use the colormap black_red1
+    </p>
+    <p style="margin-top: 0">
+      contourf(X,Y,I,100,cmap=black_red1)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the limits of the horizontal axis
+    </p>
+    <p style="margin-top: 0">
+      xlim(min_x,max_x)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the horizontal axis, with units
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;$x$ [mm]&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the limits of the vertical axis
+    </p>
+    <p style="margin-top: 0">
+      ylim(min_y,max_y)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the vertical axis, with units
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;$y$ [mm]&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot title
+    </p>
+    <p style="margin-top: 0">
+      title('$w_0 = $%s mm, $P_0 = $%s mW'%(w0,P_0))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Show the colorbar
+    </p>
+    <p style="margin-top: 0">
+      colorbar(label='Irradiance [mW/mm$^2$]')
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Generate the contour plot of scaled irradiance
+    </p>
+    <p style="margin-top: 0">
+      # versus scaled x and scaled y with black as dark and red as bright
+    </p>
+    <p style="margin-top: 0">
+      figure()
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Use the colormap black_red1
+    </p>
+    <p style="margin-top: 0">
+      contourf(Xsc,Ysc,Isc,100,cmap=black_red1)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the limits of the horizontal axis
+    </p>
+    <p style="margin-top: 0">
+      xlim(min_x,max_x)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the horizontal axis, with units
+    </p>
+    <p style="margin-top: 0">
+      xlabel(&quot;$\\tilde{x}\equiv x/w_0$&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Define the limits of the vertical axis
+    </p>
+    <p style="margin-top: 0">
+      ylim(min_y,max_y)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Label the vertical axis, with units
+    </p>
+    <p style="margin-top: 0">
+      ylabel(&quot;$\\tilde{y}\equiv y/w_0$&quot;, size = 16)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Plot title
+    </p>
+    <p style="margin-top: 0">
+      title('$w_0 = $%s mm, $P_0 = $%s mW'%(w0,P_0))
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Show the colorbar
+    </p>
+    <p style="margin-top: 0">
+      colorbar(label='Scaled irradiance')
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      show()
+    </p>
+  
+  </body>
+</html>

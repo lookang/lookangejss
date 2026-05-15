@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Game</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #121212;
+            color: #d3d3d3;
+            text-align: center;
+            margin-top: 50px;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        #game {
+            display: inline-block;
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        #title {
+            font-size: 36px;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        #word-display {
+            font-size: 28px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            line-height: 1.5;
+        }
+
+        .word {
+            margin: 0 5px;
+        }
+
+        .correct {
+            color: #4CAF50;
+        }
+
+        .incorrect {
+            color: #F44336;
+        }
+
+        .current-word {
+            color: #fff;
+        }
+
+        #timer {
+            font-size: 24px;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        #analysis {
+            margin-top: 30px;
+            display: none;
+        }
+
+        #footer {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: #d3d3d3;
+            font-size: 14px;
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+    <!-- Google Analytics -->
+    <script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-S9EWRY1CPJ');
+    </script>
+    <!-- Google AdSense -->
+    <script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+<body>
+    <div id="game">
+        <div id="title">Typing Game</div>
+        <div id="timer">30</div>
+        <div id="word-display"></div>
+    </div>
+
+    <div id="analysis">
+        <h2>Analysis</h2>
+        <p>Words per Minute (WPM): <span id="wpm">0</span></p>
+        <p>Accuracy: <span id="accuracy">0%</span></p>
+        <p>Characters: <span id="characters">0/0</span></p>
+    </div>
+
+    <!-- Footer -->
+    <div id="footer">Created by weelookang@gmail.com</div>
+
+    <script>
+        const wordDisplay = document.getElementById('word-display');
+        const timerDisplay = document.getElementById('timer');
+        const analysisDiv = document.getElementById('analysis');
+        const wpmDisplay = document.getElementById('wpm');
+        const accuracyDisplay = document.getElementById('accuracy');
+        const charactersDisplay = document.getElementById('characters');
+
+        let words = ['same', 'old', 'have', 'can', 'or', 'more', 'large', 'place', 'must', 'they', 'could', 'home', 'time', 'go', 'plan', 'use', 'no', 'down', 'face', 'move', 'after', 'state', 'program', 'move', 'after', 'old', 'more', 'what', 'just', 'back', 'right', 'order', 'play', 'over', 'man', 'long', 'want', 'last', 'of', 'think', 'eye', 'without', 'like', 'or', 'with', 'increase'];
+        let currentWordIndex = 0;
+        let currentCharIndex = 0;
+        let totalTyped = 0;
+        let correctTyped = 0;
+        let incorrectTyped = 0;
+        let timeLeft = 30;
+        let isGameOver = false;
+
+        function startGame() {
+            resetGame();
+            displayWords();
+            document.addEventListener('keydown', handleTyping);
+            let timerInterval = setInterval(updateTimer, 1000);
+            setTimeout(() => {
+                endGame(timerInterval);
+            }, 30000); // End the game after 30 seconds
+        }
+
+        function resetGame() {
+            totalTyped = 0;
+            correctTyped = 0;
+            incorrectTyped = 0;
+            currentWordIndex = 0;
+            currentCharIndex = 0;
+            timeLeft = 30;
+            isGameOver = false;
+            wordDisplay.innerHTML = '';
+            analysisDiv.style.display = 'none';
+        }
+
+        function displayWords() {
+            wordDisplay.innerHTML = '';
+            for (let i = 0; i < 30; i++) {
+                const word = document.createElement('span');
+                word.classList.add('word');
+                word.textContent = words[i];
+                wordDisplay.appendChild(word);
+            }
+            document.querySelectorAll('.word')[currentWordIndex].classList.add('current-word');
+        }
+
+        function handleTyping(event) {
+            if (isGameOver) return;
+            
+            const currentWordElement = document.querySelectorAll('.word')[currentWordIndex];
+            const currentWord = currentWordElement.textContent;
+
+            if (event.key === ' ') {
+                // When space is pressed, move to the next word if the user finished the current word
+                if (currentCharIndex === currentWord.length) {
+                    currentWordElement.classList.remove('current-word');
+                    currentWordIndex++;
+                    currentCharIndex = 0;
+                    if (currentWordIndex < words.length) {
+                        document.querySelectorAll('.word')[currentWordIndex].classList.add('current-word');
+                    }
+                }
+                event.preventDefault();
+                return;
+            }
+
+            if (event.key.length === 1 && !event.ctrlKey && !event.altKey) {
+                // Handle typing of each character
+                const typedChar = event.key;
+                totalTyped++;
+
+                if (currentCharIndex < currentWord.length) {
+                    const correctChar = currentWord.charAt(currentCharIndex);
+                    if (typedChar === correctChar) {
+                        correctTyped++;
+                        currentWordElement.innerHTML = insertCharacter(currentWordElement.textContent, currentCharIndex, `<span class="correct">${typedChar}</span>`);
+                    } else {
+                        incorrectTyped++;
+                        currentWordElement.innerHTML = insertCharacter(currentWordElement.textContent, currentCharIndex, `<span class="incorrect">${typedChar}</span>`);
+                    }
+                    currentCharIndex++;
+                }
+            }
+        }
+
+        // Helper function to properly insert spans without breaking HTML
+        function insertCharacter(text, index, char) {
+            return text.substring(0, index) + char + text.substring(index + 1);
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+
+            if (timeLeft === 0) {
+                isGameOver = true;
+            }
+        }
+
+        function endGame(timerInterval) {
+            clearInterval(timerInterval);
+            document.removeEventListener('keydown', handleTyping);
+            displayAnalysis();
+        }
+
+        function displayAnalysis() {
+            const wpm = (correctTyped / 5) / 0.5; // Since the time is 30 seconds (0.5 minutes)
+            const accuracy = totalTyped === 0 ? 0 : (correctTyped / totalTyped) * 100;
+
+            wpmDisplay.textContent = Math.round(wpm);
+            accuracyDisplay.textContent = Math.round(accuracy) + '%';
+            charactersDisplay.textContent = `${correctTyped}/${incorrectTyped}`;
+
+            analysisDiv.style.display = 'block'; // Show analysis
+        }
+
+        // Start the game when the page loads
+        startGame();
+    </script>
+</body>
+</html>

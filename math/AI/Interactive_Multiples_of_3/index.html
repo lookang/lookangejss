@@ -1,281 +1,473 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Multiples of 3</title>
-    <meta name="description" content="An interactive web application to learn multiples of 3 with a fun, engaging interface.">
-    <meta name="keywords" content="multiples, 3, math, interactive, learning, education, primary school, elementary, fun, game">
-    <meta name="author" content="Lookang">
-    <link rel="icon" href="https://www.compadre.org/osp/items/detail.cfm?ID=13010&T=1" type="image/x-icon">
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-L0J3D3X9W8"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-L0J3D3X9W8');
-    </script>
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2065224061704143"
-            crossorigin="anonymous"></script>
-    <style>
-        body {
-            font-family: 'Comic Sans MS', cursive, sans-serif; /* Fun font */
-            background: linear-gradient(to right, #ffecd2, #fcb69f); /* Soft, warm gradient */
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-x: hidden; /* Prevent horizontal scroll */
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Multiples of 3</title>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+
+<style>
+    /* Ensures the layout uses the full iframe space and is fluid */
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    /* Base styling and layout */
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        background-color: #f8f9fa; /* Light background for the whole page */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Main container using flexbox for vertical arrangement */
+    .container {
+        background: #ffffff;
+        padding: 1rem;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+    }
+    
+    .content-wrapper {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* Align content to the top */
+        min-height: 0; /* Important for flex-grow to work correctly with overflow */
+    }
+
+    /* Color-coded info boxes */
+    .info-container {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin: 1rem 0 0.5rem 0;
+    }
+    .info-box {
+        padding: 0.5rem 1rem;
+        border: 3px solid;
+        border-radius: 12px;
+        min-width: 150px;
+    }
+    .info-box h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: clamp(0.8rem, 2.5vh, 1rem); /* Dynamic font size */
+        font-weight: 600;
+    }
+    .info-box p {
+        margin: 0;
+        font-size: clamp(1.5rem, 6vh, 2.5rem); /* Dynamic font size */
+        font-weight: bold;
+    }
+    #groups-box {
+        border-color: #0d6efd;
+        color: #0d6efd;
+    }
+    #items-box {
+        border-color: #fd7e14;
+        color: #fd7e14;
+    }
+    
+    .tooltip-text {
+        color: #6c757d;
+        font-size: clamp(0.75rem, 2vh, 0.9rem);
+        margin-bottom: 1.5rem;
+    }
+
+    /* Equation styling */
+    .equation-display {
+        font-size: clamp(3rem, 10vh, 5rem);
+        font-weight: bold;
+        color: #343a40;
+        margin-bottom: 1rem;
+    }
+    .equation-display .groups-color { color: #0d6efd; }
+    .equation-display .items-color { color: #fd7e14; }
+
+    /* Visual area for accumulating dinosaur groups */
+    .visual-area {
+        flex-grow: 1; /* This makes the area fill the available space */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-content: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        overflow-y: auto; /* Enables scrolling when content overflows */
+        min-height: 80px; /* Ensures it has a minimum size */
+    }
+    .dino-group {
+        display: flex;
+        gap: 5px;
+        padding: 8px;
+        border: 3px dashed #0d6efd;
+        border-radius: 10px;
+        animation: grow-in 0.5s ease-out;
+    }
+    @keyframes grow-in {
+        from { transform: scale(0.5); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+    .dino-emoji {
+        font-size: clamp(2rem, 5vh, 2.5rem);
+    }
+
+    /* Controls with touch-friendly buttons */
+    .controls {
+        padding-top: 1rem;
+        display: flex; /* Use flexbox for alignment */
+        justify-content: center; /* Center buttons horizontally */
+        align-items: center; /* Align items vertically */
+        gap: 0.5rem; /* Space between elements */
+    }
+    .timer-display {
+        font-size: clamp(1rem, 3vh, 1.2rem);
+        font-weight: bold;
+        color: #343a40;
+        margin-right: 0.5rem; /* Space between timer and button */
+        min-width: 60px; /* Ensure enough space for MM:SS */
+        text-align: right; /* Align text to the right */
+    }
+    button {
+        border: none;
+        padding: 1rem 2rem;
+        font-size: clamp(1rem, 3vh, 1.2rem);
+        font-weight: bold;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        min-height: 48px;
+        margin: 0.25rem;
+    }
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    #next-btn { background-color: #0d6efd; color: white; }
+    #reset-btn { background-color: #dc3545; color: white; }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
         .container {
-            background-color: #fff;
-            border-radius: 25px; /* More rounded corners */
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2); /* Stronger shadow */
-            padding: 40px;
-            text-align: center;
-            max-width: 900px; /* Wider container */
-            width: 100%;
-            position: relative;
-            overflow: hidden;
-            animation: fadeIn 1s ease-out;
+            padding: 0.5rem;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .info-container {
+            flex-direction: column; /* Stack info boxes vertically */
+            gap: 0.75rem;
+            margin: 0.5rem 0;
         }
-        h1 {
-            color: #ff6f61; /* Vibrant coral */
-            margin-bottom: 20px;
-            font-size: 2.8em; /* Larger heading */
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+
+        .info-box {
+            min-width: unset; /* Remove fixed min-width */
+            width: 80%; /* Allow boxes to take more width */
+            margin: 0 auto; /* Center them */
+            padding: 0.75rem;
         }
-        .equation-area {
-            background-color: #e0f7fa; /* Light blue */
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            font-size: 2.2em; /* Larger equation text */
-            color: #00796b; /* Dark teal */
-            min-height: 80px; /* Ensure space even when empty */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease;
+
+        .info-box h4 {
+            font-size: 0.45rem; /* Even smaller font for titles */
         }
-        .equation-area.correct {
-            background-color: #c8e6c9; /* Light green for correct */
+
+        .info-box p {
+            font-size: 0.9rem; /* Even smaller font for numbers */
         }
-        .equation-area.incorrect {
-            background-color: #ffcdd2; /* Light red for incorrect */
+
+        .info-container {
+            margin: 0.25rem 0; /* Reduce margin for info container */
+            gap: 0.5rem; /* Reduce gap between info boxes */
         }
+
+        .info-box {
+            padding: 0.5rem; /* Reduce padding for info boxes */
+        }
+
+        .tooltip-text {
+            font-size: 0.55rem; /* Further reduce tooltip text size */
+            margin-bottom: 0.3rem;
+        }
+
+        .equation-display {
+            font-size: 1.3rem; /* Further smaller equation font */
+            margin-bottom: 0.2rem;
+        }
+
         .visual-area {
-            margin: 30px 0;
-            min-height: 150px; /* Ample space for visuals */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 15px; /* Space between items */
+            gap: 0.05rem; /* Further reduce gap between dino groups */
+            padding: 0.05rem; /* Further reduce padding */
+            min-height: 100px; /* Increase min-height for visual area */
         }
+
         .dino-group {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #ffe0b2; /* Light orange */
-            border-radius: 10px;
-            padding: 10px 15px;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
+            padding: 0.5px; /* Further reduce padding within dino groups */
+            gap: 0.25px; /* Further reduce gap between dinosaurs in a group */
         }
-        .dino-group:hover {
-            transform: translateY(-5px); /* Subtle hover effect */
-        }
+
         .dino-emoji {
-            font-size: 3em; /* Large emoji */
-            margin-right: 10px;
+            font-size: 0.9rem; /* Further smaller dinosaur emojis */
         }
-        .dino-count {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #e65100; /* Dark orange */
-        }
+
         .controls {
-            margin-top: 30px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px; /* Space between buttons */
+            flex-wrap: wrap; /* Allow buttons to wrap */
+            padding-top: 0.3rem; /* Reduce padding top for controls */
+            gap: 0.15rem; /* Reduce gap between controls */
         }
+
+        .timer-display {
+            font-size: 0.9rem; /* Smaller timer font */
+            margin-right: 0;
+            width: 100%; /* Take full width */
+            text-align: center; /* Center timer */
+            margin-bottom: 0.3rem;
+        }
+
         button {
-            background-color: #4CAF50; /* Green */
-            color: white;
-            border: none;
-            border-radius: 10px; /* Rounded buttons */
-            padding: 15px 30px;
-            font-size: 1.5em; /* Larger button text */
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            padding: 0.6rem 1.2rem; /* Smaller button padding */
+            font-size: 0.9rem; /* Smaller button font */
+            min-height: 35px; /* Smaller min-height for buttons */
+            margin: 0.1rem;
+            flex-grow: 1; /* Allow buttons to grow and fill space */
         }
-        button:hover {
-            background-color: #45a049; /* Darker green on hover */
-            transform: translateY(-3px); /* Lift effect */
+    }
+
+    /* Animation for "Song playing....." */
+    .playing-animation {
+        animation: pulse-glow 1.5s infinite alternate;
+        color: #28a745 !important;
+    }
+
+    @keyframes pulse-glow {
+        from { 
+            transform: scale(1); 
+            opacity: 0.8;
+            text-shadow: 0 0 5px #28a745;
         }
-        button:active {
-            transform: translateY(0); /* Press effect */
+        to { 
+            transform: scale(1.05); 
+            opacity: 1;
+            text-shadow: 0 0 20px #28a745, 0 0 30px #28a745;
         }
-        button#nextButton {
-            background-color: #2196F3; /* Blue */
-        }
-        button#nextButton:hover {
-            background-color: #1976D2;
-        }
-        button#playAudioButton {
-            background-color: #f44336; /* Red */
-        }
-        button#playAudioButton:hover {
-            background-color: #d32f2f;
-        }
-        .info-text {
-            margin-top: 25px;
-            font-size: 1.1em;
-            color: #555;
-            line-height: 1.6;
-        }
-        .footer {
-            margin-top: 40px;
-            font-size: 0.9em;
-            color: #777;
-        }
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .container {
-                padding: 25px;
-            }
-            h1 {
-                font-size: 2em;
-            }
-            .equation-area {
-                font-size: 1.5em;
-                min-height: 60px;
-            }
-            .dino-emoji {
-                font-size: 2.5em;
-            }
-            .dino-count {
-                font-size: 1.5em;
-            }
-            button {
-                padding: 12px 25px;
-                font-size: 1.2em;
-            }
-            .info-text {
-                font-size: 1em;
-            }
-        }
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-                border-radius: 15px;
-            }
-            h1 {
-                font-size: 1.8em;
-            }
-            .equation-area {
-                font-size: 1.3em;
-                min-height: 50px;
-            }
-            .dino-emoji {
-                font-size: 2em;
-            }
-            .dino-count {
-                font-size: 1.2em;
-            }
-            button {
-                width: 100%; /* Full width buttons on small screens */
-                margin-bottom: 10px;
-            }
-            .controls {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>Interactive Multiples of 3</h1>
-        <p class="info-text">Explore the multiples of 3! Click 'Next Multiple' to see the next one, or 'Play Audio' to hear the song.</p>
-        
-        <div class="equation-area" id="equationArea"></div>
-        
-        <div class="visual-area" id="visualArea">
-            <!-- Dinosaurs will be added here by JavaScript -->
-        </div>
 
-        <div class="controls">
-            <button id="nextButton">Next Multiple</button>
-            <button id="playAudioButton">Play Audio</button>
+<div class="container">
+    <div class="content-wrapper">
+        <div class="info-container">
+            <div class="info-box" id="groups-box">
+                <h4>Number of Groups</h4>
+                <p id="groups-count">?</p>
+            </div>
+            <div class="info-box" id="items-box">
+                <h4>Items in Each Group</h4>
+                <p id="items-count">?</p>
+            </div>
+        </div>
+        
+        <div class="tooltip-text">Learn Multiples: Understand groups and items by counting dinosaurs!</div>
+
+        <div class="equation-display" id="equation-display">Click a button to start!</div>
+        
+        <div class="visual-area" id="visual-area">
+            <!-- Dinosaur groups will accumulate here -->
         </div>
     </div>
 
-    <div class="footer">
-        <p>&copy; 2023 Lookang. All rights reserved.</p>
+    <div class="controls">
+        <div id="timer-display" class="timer-display">00:00</div>
+        <button id="play-song-btn">Play Song</button>
+        <button id="next-btn">Next Multiple</button>
+        <button id="reset-btn">Reset</button>
     </div>
 
-    <audio id="multiplesAudio" src="Count.mp3" preload="auto"></audio>
+    <div class="credits">
+        <p>made by lookang, using Gemini 2.5 Pro, Flash, Cline Bot, Trae with Flash, music by Riffusion and Suno.</p>
+        <p>for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/whole-numbers/3-multiplication-and-division" target="_blank">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mathematics/numbers-and-algebra/whole-numbers/3-multiplication-and-division</a></p>
+    </div>
+</div>
 
-    <script>
-        const equationArea = document.getElementById('equationArea');
-        const visualArea = document.getElementById('visualArea');
-        const nextButton = document.getElementById('nextButton');
-        const playAudioButton = document.getElementById('playAudioButton');
-        const multiplesAudio = document.getElementById('multiplesAudio');
+<audio id="background-music">
+    <source src="Count.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+</audio>
 
-        let currentMultipleIndex = 0;
-        const multiples = [];
-        for (let i = 1; i <= 12; i++) {
-            multiples.push({ factor: i, product: i * 3 });
-        }
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const equationDisplay = document.getElementById('equation-display');
+        const visualArea = document.getElementById('visual-area');
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const playSongBtn = document.getElementById('play-song-btn');
+        const backgroundMusic = document.getElementById('background-music');
+        const groupsCount = document.getElementById('groups-count');
+        const itemsCount = document.getElementById('items-count');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        const dinoEmojis = ['🦖', '🦕', '🐉'];
+        const currentMultiple = 3; // This will change for each file
+        let multiplier = 0;
+        let isPlaying = false;
+        let currentSyncIndex = 0;
 
-        function updateDisplay() {
-            const { factor, product } = multiples[currentMultipleIndex];
-            equationArea.textContent = `${factor} x 3 = ${product}`;
-            renderDinosaurs(factor);
-        }
+        // Define synchronization points (timestamp in seconds, corresponding multiplier)
+        const syncPoints = [
+            { time: 32, multiplier: 1 },
+            { time: 44, multiplier: 2 },
+            { time: 52, multiplier: 3 },
+            { time: 56, multiplier: 4 },
+            { time: 61, multiplier: 5 },
+            { time: 65, multiplier: 6 },
+            { time: 77, multiplier: 7 },
+            { time: 85, multiplier: 8 },
+            { time: 92, multiplier: 9 },
+            { time: 96, multiplier: 10 },
+            { time: 100, multiplier: 11 },
+            { time: 104, multiplier: 12 }
+        ];
 
-        function renderDinosaurs(count) {
-            visualArea.innerHTML = '';
-            for (let i = 0; i < count; i++) {
-                const dinoGroup = document.createElement('div');
-                dinoGroup.classList.add('dino-group');
-                dinoGroup.innerHTML = `
-                    <span class="dino-emoji">🦖</span>
-                    <span class="dino-count">3</span>
-                `;
-                visualArea.appendChild(dinoGroup);
+        const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            const formattedMinutes = String(minutes).padStart(2, '0');
+            const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+            return `${formattedMinutes}:${formattedSeconds}`;
+        };
+
+        const addGroup = () => {
+            const groupDiv = document.createElement('div');
+            groupDiv.classList.add('dino-group');
+            
+            for (let i = 0; i < currentMultiple; i++) {
+                const dinoSpan = document.createElement('span');
+                dinoSpan.classList.add('dino-emoji');
+                dinoSpan.textContent = dinoEmojis[i % dinoEmojis.length];
+                groupDiv.appendChild(dinoSpan);
             }
-        }
+            
+            visualArea.appendChild(groupDiv);
+            visualArea.scrollTop = visualArea.scrollHeight;
+        };
 
-        nextButton.addEventListener('click', () => {
-            currentMultipleIndex = (currentMultipleIndex + 1) % multiples.length;
+        const updateDisplay = () => {
+            console.log(`updateDisplay called: isPlaying=${isPlaying}, multiplier=${multiplier}, currentTime=${backgroundMusic.currentTime}`);
+            if (isPlaying && multiplier === 0) { // If song is playing but no multiple yet
+                equationDisplay.innerHTML = "Song is playing.....";
+                equationDisplay.classList.add('playing-animation');
+                groupsCount.textContent = "?";
+                itemsCount.textContent = "?";
+                visualArea.innerHTML = '';
+                // timerDisplay.textContent is updated by timeupdate listener
+                return;
+            }
+
+            if (multiplier === 0) { // If song is not playing and no multiple
+                equationDisplay.innerHTML = "Click a button to start!";
+                equationDisplay.classList.remove('playing-animation');
+                groupsCount.textContent = "?";
+                itemsCount.textContent = "?";
+                visualArea.innerHTML = '';
+                timerDisplay.textContent = '00:00';
+                return;
+            }
+
+            // If multiplier is not 0, display the equation
+            equationDisplay.innerHTML = `
+                <span class="groups-color">${multiplier}</span> x 
+                <span class="items-color">${currentMultiple}</span> = 
+                ${multiplier * currentMultiple}
+            `;
+            equationDisplay.classList.remove('playing-animation'); // Remove animation if equation is shown
+            groupsCount.textContent = multiplier;
+            itemsCount.textContent = currentMultiple;
+            
+            visualArea.innerHTML = '';
+            for (let i = 0; i < multiplier; i++) {
+                addGroup();
+            }
+        };
+
+        nextBtn.addEventListener('click', () => {
+            if (isPlaying) return;
+            if (multiplier >= 20) return;
+            multiplier++;
             updateDisplay();
         });
 
-        playAudioButton.addEventListener('click', () => {
-            multiplesAudio.play();
+        resetBtn.addEventListener('click', () => {
+            if (isPlaying) return;
+            multiplier = 0;
+            updateDisplay();
         });
 
-        // Initial display
+        playSongBtn.addEventListener('click', () => {
+            if (isPlaying) {
+                backgroundMusic.pause();
+                playSongBtn.textContent = 'Play Song';
+                nextBtn.disabled = false;
+                resetBtn.disabled = false;
+                isPlaying = false;
+                updateDisplay(); // Update display to reflect paused state
+            } else {
+                isPlaying = true;
+                backgroundMusic.play();
+                console.log(`Song started playing. isPlaying=${isPlaying}`);
+                playSongBtn.textContent = 'Pause Song';
+                nextBtn.disabled = true;
+                resetBtn.disabled = true;
+                // Immediately show "Song is playing....."
+                equationDisplay.innerHTML = "Song is playing.....";
+                equationDisplay.classList.add('playing-animation');
+                // No need to call updateDisplay here, timeupdate will handle it
+            }
+        });
+
+        backgroundMusic.addEventListener('timeupdate', () => {
+            const currentTime = backgroundMusic.currentTime;
+            timerDisplay.textContent = formatTime(currentTime);
+
+            if (currentSyncIndex < syncPoints.length) {
+                const point = syncPoints[currentSyncIndex];
+                if (currentTime >= point.time) {
+                    multiplier = point.multiplier;
+                    console.log(`Sync point hit: time=${currentTime}, multiplier=${multiplier}. Calling updateDisplay.`);
+                    updateDisplay();
+                    currentSyncIndex++;
+                }
+            }
+        });
+
+        backgroundMusic.addEventListener('ended', () => {
+            isPlaying = false;
+            playSongBtn.textContent = 'Play Song';
+            nextBtn.disabled = false;
+            resetBtn.disabled = false;
+            multiplier = 0;
+            currentSyncIndex = 0; // Reset sync index
+            updateDisplay(); // Update display to reflect ended state
+        });
+
         updateDisplay();
-    </script>
+    });
+</script>
+
 </body>
 </html>

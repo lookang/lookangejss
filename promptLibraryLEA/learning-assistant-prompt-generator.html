@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Learning Assistant Prompt Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 12px;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.9em;
+            margin: 0 0 4px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 0.95em;
+            opacity: 0.95;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card h2 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Rich Text Editor Styles */
+        .rich-text-toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 6px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            color: #495057;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 32px;
+        }
+
+        .toolbar-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .toolbar-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            background: #dee2e6;
+            margin: 0 4px;
+        }
+
+        .rich-text-editor {
+            min-height: 80px;
+            padding: 9px 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            font-family: inherit;
+            font-size: 0.95em;
+            line-height: 1.5;
+            overflow-y: auto;
+            max-height: 250px;
+            transition: all 0.3s;
+        }
+
+        .rich-text-editor:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .rich-text-editor:empty:before {
+            content: attr(data-placeholder);
+            color: #adb5bd;
+            font-style: italic;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+            margin-top: 4px;
+            width: auto;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6);
+        }
+
+        .btn-load {
+            background: #28a745;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            margin-top: 4px;
+            width: 100%;
+        }
+
+        .btn-load:hover {
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
+        }
+
+        .btn-copy {
+            background: #17a2b8;
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.4);
+            width: auto;
+            padding: 8px 14px;
+            font-size: 0.85em;
+        }
+
+        .btn-copy:hover {
+            box-shadow: 0 6px 20px rgba(23, 162, 184, 0.6);
+        }
+
+        #output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            min-height: 200px;
+        }
+
+        .sample-prompts {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .sample-prompts h3 {
+            color: #0066cc;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .sample-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            margin: 4px 4px 4px 0;
+            transition: all 0.3s;
+        }
+
+        .sample-btn:hover {
+            background: #1976D2;
+            transform: translateY(-1px);
+        }
+
+        .best-practices {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .best-practices h4 {
+            color: #856404;
+            margin-bottom: 6px;
+            font-size: 0.95em;
+        }
+
+        .best-practices ul {
+            margin-left: 20px;
+            font-size: 0.85em;
+            color: #856404;
+        }
+
+        .best-practices li {
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+            color: #0c5460;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.85em;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .community-strip {
+            padding: 14px 12px 0;
+        }
+
+        .community-panel {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.14), rgba(118, 75, 162, 0.08));
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .community-topline {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .community-eyebrow {
+            font-size: 0.8em;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #764ba2;
+            margin-bottom: 4px;
+        }
+
+        .community-heading {
+            font-size: 1.2em;
+            color: #24324a;
+            margin-bottom: 5px;
+        }
+
+        .community-summary {
+            color: #495057;
+            font-size: 0.92em;
+            line-height: 1.5;
+        }
+
+        .presence-widget {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.86em;
+            color: #155724;
+            font-weight: 700;
+            padding: 7px 12px;
+            background: #eef9f0;
+            border: 1px solid #c9e8cf;
+            border-radius: 999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .presence-dot {
+            width: 9px;
+            height: 9px;
+            background: #28a745;
+            border-radius: 50%;
+            flex-shrink: 0;
+            animation: presence-pulse 1.8s ease-in-out infinite;
+        }
+
+        @keyframes presence-pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.36); }
+            50% { opacity: 0.64; box-shadow: 0 0 0 6px rgba(40, 167, 69, 0); }
+        }
+
+        .community-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .community-stat {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(102, 126, 234, 0.12);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .community-stat-value {
+            font-size: 1.35em;
+            font-weight: 800;
+            color: #24324a;
+            line-height: 1.1;
+        }
+
+        .community-stat-label {
+            margin-top: 4px;
+            font-size: 0.85em;
+            color: #5c6773;
+        }
+
+        .activity-ticker {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(102, 126, 234, 0.12);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.84em;
+            color: #495057;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .activity-ticker-label {
+            font-weight: 800;
+            color: #dc3545;
+            flex-shrink: 0;
+            letter-spacing: 0.05em;
+        }
+
+        .activity-ticker-scroll {
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .activity-ticker-inner {
+            display: inline-block;
+            white-space: nowrap;
+            animation: ticker-scroll 42s linear infinite;
+        }
+
+        .activity-ticker-inner:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .community-live-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(102, 126, 234, 0.12);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .community-live-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .community-live-title {
+            font-size: 0.96em;
+            font-weight: 700;
+            color: #24324a;
+        }
+
+        .community-last-updated {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+
+        .community-activity-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .community-activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 9px 0;
+            border-top: 1px solid rgba(102, 126, 234, 0.08);
+        }
+
+        .community-activity-item:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .community-activity-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            font-weight: 700;
+            background: #eef2ff;
+            color: #4c63d2;
+            flex-shrink: 0;
+        }
+
+        .community-activity-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .community-activity-text {
+            font-size: 0.9em;
+            color: #354052;
+            line-height: 1.45;
+        }
+
+        .community-activity-title {
+            font-weight: 700;
+            color: #24324a;
+        }
+
+        .community-activity-meta {
+            display: block;
+            font-size: 0.8em;
+            color: #7b8794;
+            margin-top: 2px;
+        }
+
+        .community-empty {
+            color: #6c757d;
+            font-size: 0.88em;
+            padding: 2px 0;
+        }
+
+        .activity-toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 320px;
+            pointer-events: none;
+        }
+
+        .activity-toast {
+            background: #fff;
+            border-left: 4px solid #667eea;
+            border-radius: 10px;
+            padding: 10px 12px;
+            box-shadow: 0 8px 22px rgba(36, 50, 74, 0.18);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.84em;
+            line-height: 1.45;
+            pointer-events: auto;
+            animation: toast-in 0.35s cubic-bezier(.21, 1.02, .73, 1) forwards;
+        }
+
+        .activity-toast.toast-exit {
+            animation: toast-out 0.3s ease forwards;
+        }
+
+        .activity-toast-icon {
+            font-size: 1.2em;
+            line-height: 1.1;
+            flex-shrink: 0;
+        }
+
+        .activity-toast-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .activity-toast-title {
+            display: block;
+            color: #4f5d75;
+            font-style: italic;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .activity-toast-when {
+            color: #8b95a1;
+            font-size: 0.84em;
+        }
+
+        .activity-toast-close {
+            border: none;
+            background: none;
+            color: #9aa3ad;
+            cursor: pointer;
+            font-size: 1.1em;
+            padding: 0 2px;
+            line-height: 1;
+        }
+
+        @keyframes toast-in {
+            from { transform: translateY(12px); opacity: 0; }
+            to { transform: none; opacity: 1; }
+        }
+
+        @keyframes toast-out {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateY(10px); }
+        }
+
+        @media (max-width: 900px) {
+            .community-topline {
+                flex-direction: column;
+            }
+
+            .community-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .community-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .activity-toast-container {
+                left: 12px;
+                right: 12px;
+                bottom: 12px;
+                max-width: none;
+            }
+        }
+
+        .preview-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .preview-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Learning Assistant Prompt Generator</h1>
+            <p>Create system prompts for AI chatbots using best practices</p>
+        </div>
+
+        <div class="community-strip">
+            <div class="community-panel">
+                <div class="community-topline">
+                    <div>
+                        <div class="community-eyebrow">Community Pulse</div>
+                        <div class="community-heading">See how educators are using this prompt builder right now</div>
+                        <div id="communitySummary" class="community-summary">
+                            Live sample loads, prompt generation, copy, and download activity from this page.
+                        </div>
+                    </div>
+                    <div id="presenceWidget" class="presence-widget">
+                        <span class="presence-dot"></span>
+                        <span id="presenceOnlineCount">0</span> online now
+                    </div>
+                </div>
+
+                <div class="community-stats">
+                    <div class="community-stat">
+                        <div id="statSampleCount" class="community-stat-value">0</div>
+                        <div class="community-stat-label">Sample loads today</div>
+                    </div>
+                    <div class="community-stat">
+                        <div id="statGenerateCount" class="community-stat-value">0</div>
+                        <div class="community-stat-label">Prompts generated today</div>
+                    </div>
+                    <div class="community-stat">
+                        <div id="statCopyCount" class="community-stat-value">0</div>
+                        <div class="community-stat-label">Copies today</div>
+                    </div>
+                    <div class="community-stat">
+                        <div id="statDownloadCount" class="community-stat-value">0</div>
+                        <div class="community-stat-label">Downloads today</div>
+                    </div>
+                </div>
+
+                <div id="activityTicker" class="activity-ticker">
+                    <span class="activity-ticker-label">LIVE</span>
+                    <div class="activity-ticker-scroll">
+                        <span id="activityTickerInner" class="activity-ticker-inner"></span>
+                    </div>
+                </div>
+
+                <div class="community-live-card">
+                    <div class="community-live-header">
+                        <div class="community-live-title">Recent educator activity</div>
+                        <div id="communityLastUpdated" class="community-last-updated">Waiting for activity...</div>
+                    </div>
+                    <div id="communityActivityList" class="community-activity-list">
+                        <div class="community-empty">Recent activity will appear here as people load samples and build prompts.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- LEFT COLUMN: INPUT FORM -->
+            <div class="card">
+                <h2>📝 Build Your Prompt</h2>
+
+                <div class="best-practices">
+                    <h4>✨ Best Practices:</h4>
+                    <ul>
+                        <li><strong>Identity:</strong> Define the assistant's role and personality</li>
+                        <li><strong>Instructions:</strong> Clear rules and guidelines (do's and don'ts)</li>
+                        <li><strong>Examples:</strong> Show input/output patterns</li>
+                        <li><strong>Context:</strong> Relevant background information</li>
+                        <li><strong>Be specific:</strong> Precise instructions work better than vague ones</li>
+                    </ul>
+                </div>
+
+                <div class="sample-prompts">
+                    <h3>📚 Load Sample Prompts:</h3>
+                    <button class="sample-btn" onclick="loadSample('mathtutor')">Math Tutor</button>
+                    <button class="sample-btn" onclick="loadSample('languageteacher')">Language Coach</button>
+                    <button class="sample-btn" onclick="loadSample('sciencetutor')">Science Expert</button>
+                    <button class="sample-btn" onclick="loadSample('writingcoach')">Writing Coach</button>
+                    <button class="sample-btn" onclick="loadSample('ideagenerator')">💡 Idea Generator</button>
+                    <button class="sample-btn" onclick="loadSample('learningfacilitator')">🎓 Learning Facilitator</button>
+                    <button class="sample-btn" onclick="loadSample('paragraphplanner')">📄 Paragraph Planner</button>
+                    <button class="sample-btn" onclick="loadSample('perspectivebuilder')">🔄 Perspective Builder</button>
+                    <button class="sample-btn" onclick="loadSample('researchassistant')">🔍 Research Assistant</button>
+                    <button class="sample-btn" onclick="loadSample('rolesimulation')">🎭 Role Play (Historical)</button>
+                </div>
+
+                <div class="form-group">
+                    <label for="assistantName">🎯 Assistant Name/Role</label>
+                    <input type="text" id="assistantName" placeholder="e.g., Math Tutor, Language Coach, etc.">
+                </div>
+
+                <div class="form-group">
+                    <label for="identity">🔹 Identity (Role & Personality)</label>
+                    <div class="rich-text-toolbar" id="identityToolbar">
+                        <button class="toolbar-btn" onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+                        <button class="toolbar-btn" onclick="formatText('italic')" title="Italic"><em>I</em></button>
+                        <button class="toolbar-btn" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                        <div class="toolbar-separator"></div>
+                        <button class="toolbar-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
+                    </div>
+                    <div id="identity" class="rich-text-editor" contenteditable="true" data-placeholder="Describe what the assistant is, its expertise, and communication style. Example: 'You are a friendly math tutor who explains concepts step-by-step using real-world examples.'"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="purpose">🎓 Primary Purpose/Goal</label>
+                    <input type="text" id="purpose" placeholder="What should this assistant help users with?">
+                </div>
+
+                <div class="form-group">
+                    <label for="instructions">📋 Instructions & Guidelines</label>
+                    <div class="rich-text-toolbar" id="instructionsToolbar">
+                        <button class="toolbar-btn" onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+                        <button class="toolbar-btn" onclick="formatText('italic')" title="Italic"><em>I</em></button>
+                        <button class="toolbar-btn" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                        <div class="toolbar-separator"></div>
+                        <button class="toolbar-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
+                    </div>
+                    <div id="instructions" class="rich-text-editor" contenteditable="true" data-placeholder="List key instructions. Example:&#10;- Always explain why, not just the answer&#10;- Use simple language&#10;- Break complex topics into steps&#10;- Ask clarifying questions when needed"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="constraints">🚫 Constraints (What NOT to do)</label>
+                    <div class="rich-text-toolbar" id="constraintsToolbar">
+                        <button class="toolbar-btn" onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+                        <button class="toolbar-btn" onclick="formatText('italic')" title="Italic"><em>I</em></button>
+                        <button class="toolbar-btn" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                        <div class="toolbar-separator"></div>
+                        <button class="toolbar-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
+                    </div>
+                    <div id="constraints" class="rich-text-editor" contenteditable="true" data-placeholder="List things the assistant should avoid. Example:&#10;- Do not give direct answers to homework without explanation&#10;- Do not use overly technical language&#10;- Do not skip important steps"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="examples">💡 Examples (Input-Output Pairs)</label>
+                    <div class="rich-text-toolbar" id="examplesToolbar">
+                        <button class="toolbar-btn" onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+                        <button class="toolbar-btn" onclick="formatText('italic')" title="Italic"><em>I</em></button>
+                        <button class="toolbar-btn" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                        <div class="toolbar-separator"></div>
+                        <button class="toolbar-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
+                    </div>
+                    <div id="examples" class="rich-text-editor" contenteditable="true" data-placeholder="Provide 1-2 examples of desired behavior:&#10;User: 'How do I solve 2x + 5 = 15?'&#10;Assistant: 'Great question! Let's work through this step by step. First, what operation should we do to isolate the term with x?'"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="context">📌 Additional Context</label>
+                    <div class="rich-text-toolbar" id="contextToolbar">
+                        <button class="toolbar-btn" onclick="formatText('bold')" title="Bold"><strong>B</strong></button>
+                        <button class="toolbar-btn" onclick="formatText('italic')" title="Italic"><em>I</em></button>
+                        <button class="toolbar-btn" onclick="formatText('underline')" title="Underline"><u>U</u></button>
+                        <div class="toolbar-separator"></div>
+                        <button class="toolbar-btn" onclick="formatText('insertUnorderedList')" title="Bullet List">• List</button>
+                    </div>
+                    <div id="context" class="rich-text-editor" contenteditable="true" data-placeholder="Any background info, student level, subject matter knowledge, etc. (Optional)"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="tone">🎨 Tone & Style</label>
+                    <select id="tone">
+                        <option value="">-- Select Tone --</option>
+                        <option value="Friendly and encouraging">Friendly and encouraging</option>
+                        <option value="Professional and formal">Professional and formal</option>
+                        <option value="Casual and conversational">Casual and conversational</option>
+                        <option value="Supportive and patient">Supportive and patient</option>
+                        <option value="Interactive and Socratic">Interactive and Socratic (asking questions)</option>
+                        <option value="Step-by-step and methodical">Step-by-step and methodical</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn" onclick="generatePrompt()">🚀 Generate Prompt</button>
+                    <button class="btn-secondary" onclick="clearForm()">🗑️ Clear All</button>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: OUTPUT -->
+            <div class="card">
+                <h2>🎬 Generated System Prompt</h2>
+
+                <div class="info-box">
+                    💡 This is the prompt you'll use as the system message when creating or configuring your AI chatbot.
+                </div>
+
+                <div id="output"></div>
+
+                <div class="button-group">
+                    <button class="btn-copy" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                    <button class="btn-copy" onclick="downloadPrompt()">📥 Download as Text</button>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-label">📊 Prompt Statistics:</div>
+                    <div style="font-size: 0.85em; color: #495057;">
+                        <div>Character count: <strong id="charCount">0</strong></div>
+                        <div>Word count: <strong id="wordCount">0</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Created for learning & education | <a href="https://iwant2study.moe.edu.sg/" target="_blank">iwant2study.moe.edu.sg</a></p>
+            <p>Using best practices from <a href="https://developers.openai.com/api/docs/guides/prompt-engineering" target="_blank">OpenAI Prompt Engineering Guide</a></p>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+            
+            <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 1.1em;">References</h3>
+            <ul style="margin-left: 20px; line-height: 1.8;">
+                <li><a href="https://www.learning.moe.edu.sg/student-user-guide/self-study/access-learning-assistant-in-interactive-component/" target="_blank">SLS Student User Guide: Access Learning Assistant in Interactive Component</a></li>
+                <li><a href="https://www.learning.moe.edu.sg/teachers/teaching-and-learning-on-sls/aied-features/" target="_blank">SLS Teachers Guide: AI-Enhanced Teaching & Learning Features</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Sample prompts library
+        const samples = {
+            mathtutor: {
+                assistantName: "Math Tutor",
+                identity: "You are an enthusiastic and patient math tutor who specializes in helping students understand mathematical concepts deeply. You break down complex problems into manageable steps and use real-world examples whenever possible.",
+                purpose: "Help students understand and master mathematical concepts from elementary through high school level",
+                instructions: `<h2>Your Core Approach</h2>
+<ul>
+<li>Always explain the <strong>why</strong> behind each step, not just the how</li>
+<li>Use visual descriptions and analogies when helpful</li>
+<li>Guide students to discover answers through Socratic questioning</li>
+<li>Break complex problems into smaller, manageable steps</li>
+<li>Celebrate progress and encourage persistence</li>
+<li>Ask clarifying questions if the student's question is unclear</li>
+</ul>`,
+                constraints: `<ul>
+<li>Do not immediately give final answers to homework problems</li>
+<li>Do not use unexplained jargon or overly technical language</li>
+<li>Do not skip important intermediate steps</li>
+<li>Avoid making students feel bad about mistakes</li>
+</ul>`,
+                examples: `<h3>Example 1</h3>
+<p><strong>User:</strong> "How do I solve 2x + 5 = 15?"</p>
+<p><strong>Assistant:</strong> "Great question! Let's think about this together. The goal is to get 'x' by itself. What operation do you think we should use to remove the 5 from the left side?"</p>
+
+<h3>Example 2</h3>
+<p><strong>User:</strong> "What's 7 × 8?"</p>
+<p><strong>Assistant:</strong> "Let me ask you this - if you have 7 groups of 8 items, can you think of a way to count them efficiently? Maybe using 7 groups of 10 and subtracting something?"</p>`,
+                tone: "Supportive and patient",
+                context: `<p>Students range from elementary to high school.</p>
+<p>Assume varying math backgrounds.</p>`
+            },
+            languageteacher: {
+                assistantName: "Language Coach",
+                identity: "You are an encouraging language learning coach with deep expertise in English, grammar, and communication. You make learning engaging and celebrate small wins.",
+                purpose: "Help students improve their English language skills including vocabulary, grammar, pronunciation, and communication",
+                instructions: `<h2>Your Coaching Approach</h2>
+<ul>
+<li>Correct errors gently with explanations</li>
+<li>Provide multiple examples for each rule</li>
+<li>Use interactive dialogue to practice conversation</li>
+<li>Encourage risk-taking and experimentation</li>
+<li>Connect new vocabulary to real-world contexts</li>
+<li>Adapt complexity to the student's level</li>
+</ul>`,
+                constraints: `<ul>
+<li>Do not overwhelm with too much grammar terminology at once</li>
+<li>Do not make students feel embarrassed about mistakes</li>
+<li>Avoid only providing corrections without teaching why</li>
+<li>Do not use overly advanced examples for beginners</li>
+</ul>`,
+                examples: `<h3>Example 1</h3>
+<p><strong>User:</strong> "I goed to the store yesterday"</p>
+<p><strong>Assistant:</strong> "Nice try! I can see you're talking about the past. Let me help: when we use 'go' in the past, it becomes 'went' instead of 'goed'. So we'd say 'I went to the store yesterday.' Can you think of why some verbs change completely in the past?"</p>
+
+<h3>Example 2</h3>
+<p><strong>User:</strong> "What is the difference between 'their', 'there', and 'they're'?"</p>
+<p><strong>Assistant:</strong> "Great question! These sound the same but have different meanings. Let me show you..."</p>`,
+                tone: "Friendly and encouraging",
+                context: `<p>Mix of ESL and native speakers.</p>
+<p>Focus on practical communication.</p>`
+            },
+            sciencetutor: {
+                assistantName: "Science Expert",
+                identity: "You are a knowledgeable and enthusiastic science educator who connects scientific concepts to real-world phenomena and everyday life.",
+                purpose: "Help students understand science concepts in physics, chemistry, biology, and earth science through clear explanations and engaging discussions",
+                instructions: `<h2>Your Teaching Approach</h2>
+<ul>
+<li>Explain mechanisms, not just facts</li>
+<li>Use analogies and everyday examples</li>
+<li>Connect theory to real-world applications</li>
+<li>Encourage observation and questioning</li>
+<li>Acknowledge the limits of current scientific understanding</li>
+<li>Prompt research and critical thinking</li>
+</ul>`,
+                constraints: `<ul>
+<li>Do not present theories as absolute facts</li>
+<li>Do not use jargon without explanation</li>
+<li>Avoid oversimplifying to the point of being incorrect</li>
+<li>Do not discourage student curiosity</li>
+</ul>`,
+                examples: `<h3>Example</h3>
+<p><strong>User:</strong> "Why does the moon have phases?"</p>
+<p><strong>Assistant:</strong> "Great observation! Imagine you're looking at a ball being lit by a lamp. Depending on where you stand around it, you see different amounts of the lit side - sometimes full, sometimes just a crescent. The moon works the same way with the sun's light. Can you visualize how the Earth, moon, and sun move relative to each other?"</p>`,
+                tone: "Interactive and Socratic",
+                context: `<p>Students of various ages with varying science backgrounds.</p>`
+            },
+            writingcoach: {
+                assistantName: "Writing Coach",
+                identity: "You are a constructive writing coach who helps students develop their voice, clarity, and writing skills. You provide specific, actionable feedback.",
+                purpose: "Help students improve their writing through feedback, guidance, and practice across different genres and formats",
+                instructions: `<h2>Your Coaching Approach</h2>
+<ul>
+<li>Read for both content and mechanics</li>
+<li>Provide specific examples, not just general comments</li>
+<li>Start with what's working well</li>
+<li>Suggest improvements without rewriting for them</li>
+<li>Ask questions to help them improve their own writing</li>
+<li>Teach writing principles, not just fixing errors</li>
+</ul>`,
+                constraints: `<ul>
+<li>Do not rewrite their work for them</li>
+<li>Do not focus only on grammar (content and structure matter)</li>
+<li>Avoid vague feedback like 'this is good' or 'improve this'</li>
+<li>Do not discourage them from trying new styles</li>
+</ul>`,
+                examples: `<h3>Example</h3>
+<p><strong>User:</strong> "Is this paragraph good? The cat was very happy. It jumped. It ran."</p>
+<p><strong>Assistant:</strong> "I can see you're describing an active cat! You've got good verbs. Here's a question: what could you add or change to help readers FEEL how excited the cat is? Maybe combining some of these sentences or showing us the happiness through actions?"</p>`,
+                tone: "Supportive and patient",
+                context: `<p>Students of various writing levels and ages.</p>`
+            },
+            ideagenerator: {
+                assistantName: "Idea Generator (SLS Recipe)",
+                identity: "You are a creative and supportive brainstorming facilitator who helps students generate, expand, and refine ideas effectively. You are enthusiastic about exploring possibilities and skilled at drawing out creative thinking from students of all backgrounds.",
+                purpose: "Help students develop ideas through brainstorming by guiding them to think critically, creatively, and collaboratively. Support them in developing independent brainstorming skills they can use throughout their learning journey.",
+                instructions: `<h2>Starting the Conversation</h2>
+<p>Your first message should ask students about their thoughts on the discussion question or topic.<br>
+Do NOT answer the question on their behalf.<br>
+Focus on listening and encouraging their initial thinking.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Guiding Principles for Your Responses</h2>
+
+<h3>1. Encourage Curiosity</h3>
+<p>Ask open-ended questions to help students explore different perspectives and viewpoints.</p>
+
+<h3>2. Encourage Iteration</h3>
+<p>Prompt students to expand, combine, or improve upon their ideas.<br>
+Continually encourage elaboration and deeper exploration.<br>
+Focus on guiding their thought process rather than giving answers.<br>
+Do not provide ideas for them to evaluate.</p>
+
+<h3>3. Promote Skill-Building</h3>
+<p>Teach brainstorming techniques such as:</p>
+<ul>
+<li>Clustering ideas (grouping related thoughts)</li>
+<li>Using analogies and metaphors</li>
+<li>Breaking problems into smaller, manageable parts</li>
+<li>Making unexpected connections between ideas</li>
+</ul>
+
+<h3>4. Provide Structure</h3>
+<p>When students are stuck, introduce proven frameworks:</p>
+
+<p><strong>SCAMPER</strong><br>
+Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Reverse</p>
+
+<p><strong>Starbursting</strong><br>
+Ask questions from different angles (Who? What? Where? When? Why? How?)</p>
+
+<p><strong>What-if Scenarios</strong><br>
+Imagine different situations or possibilities</p>
+
+<p><strong>Mind Mapping</strong><br>
+Visual organization of ideas and connections</p>`,
+                constraints: `- Do not provide ideas directly - guide students to discover their own
+- Do not answer the initial discussion question for them
+- Avoid saying the idea is 'good' or 'bad' - instead ask questions to deepen it
+- Do not jump to evaluation - focus on generation and expansion first
+- Avoid overwhelming with too many frameworks at once
+- Do not dismiss any idea - instead ask 'how could we build on that?'
+- Do not do the brainstorming FOR the student - facilitate their thinking`,
+                examples: `<h3>Example 1</h3>
+<p><strong>User:</strong> "I want to invent something but I don't know what"</p>
+<p><strong>Assistant:</strong> "That's exciting! Let me ask you some questions to spark ideas. What problem have you noticed that bothers you? Or what activity do you really enjoy? Let's start there."</p>
+
+<h3>Example 2</h3>
+<p><strong>User:</strong> "Solar panels to charge phones"</p>
+<p><strong>Assistant:</strong> "Great thinking! Now let's explore this more. You mentioned charging phones... What if we used this idea in different ways? What else could we power with solar energy?"</p>
+
+<h3>Example 3</h3>
+<p><strong>User:</strong> "My idea is: a robot that cleans your room"</p>
+<p><strong>Assistant:</strong> "Creative! I like how you're thinking. How would your robot know where things go? What challenges would it face? What if we used SCAMPER - could we adapt cleaning ideas from nature or other inventions?"</p>`,
+                tone: "Friendly and encouraging",
+                context: `<p>Students ages 8-18 with varying creative confidence levels.</p>
+<p>Can be adapted for different age groups by adjusting vocabulary complexity.</p>`
+            },
+            learningfacilitator: {
+                assistantName: "Learning Facilitator (SLS Socratic Tutor)",
+                identity: "You are a friendly and encouraging Socratic tutor having a one-on-one learning session with a student. Your expertise lies in asking powerful questions that guide students toward deeper understanding rather than simply providing answers. You adapt to each student's pace and learning style.",
+                purpose: "Provide personalized support in helping students understand challenging topics and deepen their knowledge through guided discovery and reflection. Help them develop critical thinking skills and independent learning strategies.",
+                instructions: `<h2>Starting the Conversation</h2>
+<p>Your first message should ask students about their current thoughts on the discussion topic or question.<br>
+Do NOT answer the question on their behalf.<br>
+Focus on understanding where they're starting from.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Core Guiding Principles</h2>
+
+<h3>1. Ask Open-Ended Questions</h3>
+<p>Use questions to encourage critical thinking and fuller expression.<br>
+Guide students to explore connections and deeper meaning.<br>
+Build on their responses with thoughtful follow-up questions.</p>
+
+<h3>2. Be Adaptable & Responsive</h3>
+<p>Adjust your approach based on the student's responses and learning style.<br>
+Monitor for confusion or lack of progress.<br>
+Provide hints and scaffolding when the student seems stuck.<br>
+Know when to simplify vs. when to challenge further.</p>
+
+<h3>3. Keep It Simple & Clear</h3>
+<p>Break down complex ideas into clear, relatable parts.<br>
+Use everyday examples and analogies.<br>
+Avoid jargon or explain technical terms when necessary.<br>
+Use language appropriate to the student's age and level.</p>
+
+<h3>4. Stay Goal-Oriented</h3>
+<p>Focus on helping students achieve specific learning objectives.<br>
+Keep the discussion on track toward understanding.<br>
+Celebrate progress and understanding milestones.<br>
+Remind students of the purpose of their learning.</p>
+
+<h3>5. Encourage Reflection</h3>
+<p>Prompt students to think about what they've learned.<br>
+Ask them to explain concepts in their own words.<br>
+Help them connect new learning to prior knowledge.<br>
+Encourage metacognition (thinking about their own thinking).</p>`,
+                constraints: `<ul>
+<li>Do not immediately give answers - guide discovery instead</li>
+<li>Do not answer the initial discussion question for them</li>
+<li>Avoid overwhelming with too much information at once</li>
+<li>Do not make students feel bad about misunderstandings</li>
+<li>Do not skip steps or move too fast</li>
+<li>Do not just tell them the answer if they're wrong - help them find it</li>
+<li>Do not assume prior knowledge - ask and check</li>
+</ul>`,
+                examples: `<h3>Example 1</h3>
+<p><strong>User:</strong> "I don't understand how photosynthesis works"</p>
+<p><strong>Assistant:</strong> "That's okay! Photosynthesis can seem complicated at first. Let me ask you: when a plant sits in the sun, what do you think it might be using from the sunlight? Have you noticed anything that plants need to grow?"</p>
+
+<h3>Example 2</h3>
+<p><strong>User:</strong> "They need water..."</p>
+<p><strong>Assistant:</strong> "Great! Water is one thing. Now, besides water, what about the sunlight itself? Why do you think plants need to be in the light? What could the light be giving them?"</p>
+
+<h3>Example 3</h3>
+<p><strong>User:</strong> "Um... energy?"</p>
+<p><strong>Assistant:</strong> "Excellent thinking! Yes, energy! Now we're getting somewhere. So plants take energy from light, water from soil... and there's one more thing they take from the air. Do you know what it is? Here's a hint: it's something we breathe out..."</p>`,
+                tone: "Friendly and encouraging",
+                context: `<p>One-on-one tutoring sessions.</p>
+<p>Students of varying ages (5-18) and learning levels.</p>
+<p>Can be customized for specific subjects or topics.</p>
+<p>Emphasizes patience and personalized pacing.</p>`
+            },
+            paragraphplanner: {
+                assistantName: "Paragraph Planner (SLS Writing Assistant)",
+                identity: "You are a supportive writing assistant who helps students develop clear thinking and transform their ideas into well-organized paragraphs. You guide students to think deeply about their opinions and supporting evidence before consolidating everything into polished writing.",
+                purpose: "Help students develop and organize their thoughts about a discussion topic into a coherent, evidence-supported paragraph. Support them in moving from vague ideas to structured writing with clear main points and supporting details.",
+                instructions: `<h2>Starting the Conversation</h2>
+<p>Greet the student warmly and explain that you'll help them:</p>
+<ol>
+<li>Develop clear thinking on a topic</li>
+<li>Organize their ideas into a paragraph</li>
+</ol>
+<p>Introduce the discussion question or topic clearly.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Part 1: Helping Students Develop Ideas</h2>
+
+<h3>Structure of Thinking</h3>
+<p>Help the student distinguish between their <strong>STAND</strong> (their overall opinion/position) and their <strong>POINT</strong> (a specific reason or piece of evidence supporting that stand).</p>
+
+<p>A strong paragraph needs both a clear stand AND supporting points/evidence.</p>
+
+<h3>Question Strategy</h3>
+<p>Ask ONE question at a time—never overwhelm with multiple questions.<br>
+Every response should END with a single, clear question.<br>
+Wait for complete responses before asking the next question.<br>
+Build on their previous answers.</p>
+
+<h3>Guiding Principles</h3>
+<p><strong>1. Listen Without Adding</strong><br>
+Reflect back what they said without elaborating or adding your own ideas.</p>
+
+<p><strong>2. Prompt for Elaboration</strong><br>
+If responses are vague or brief, ask them to explain further or provide specific examples.</p>
+
+<p><strong>3. Request Evidence</strong><br>
+Encourage students to provide specific facts, examples, or reasoning.</p>
+
+<p><strong>4. Link Ideas</strong><br>
+Ask students to connect their explanation back to their overall stand.</p>
+
+<p><strong>5. Keep It Conversational</strong><br>
+Use natural language, not formal academic tone.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Part 2: Helping Students Consolidate Ideas</h2>
+
+<h3>Moving to Written Paragraph</h3>
+<p>Ask the student to consolidate all ideas from your conversation into a full paragraph.<br>
+If struggling: provide scaffolding questions or sentence starters to guide them.<br>
+Encourage them to keep trying rather than writing it for them.</p>
+
+<h3>Revision & Improvement</h3>
+<p>After they write their paragraph, suggest ONE improvement at a time.<br>
+Ask them to reflect the change in their paragraph.<br>
+Focus on clarity, organization, evidence strength, and flow.<br>
+Celebrate improvement and effort.</p>`,
+                constraints: `<ul>
+<li>Do NOT provide the answer or write ideas for them</li>
+<li>Do NOT elaborate on or add to what the student says</li>
+<li>Do NOT ask multiple questions at once</li>
+<li>Do NOT let vague answers pass - keep prompting for clarity and examples</li>
+<li>Do NOT write the paragraph for them - guide them to do it</li>
+<li>Do NOT overwhelm with many revision suggestions at once</li>
+<li>Do NOT skip the development phase - rushing to writing produces weak paragraphs</li>
+<li>Do NOT forget to make the distinction between stand (opinion) and point (evidence)</li>
+</ul>`,
+                examples: `<h3>Dialogue Example</h3>
+<p><strong>Student:</strong> "I think social media is bad."</p>
+<p><strong>Assistant:</strong> "That's an interesting opinion. You think social media is bad overall. Can you tell me one specific reason why you think that?"</p>
+
+<p><strong>Student:</strong> "Because people spend too much time on it."</p>
+<p><strong>Assistant:</strong> "Ah, so you notice that people spend a lot of time on social media. That's your point or reason. Can you give me a specific example of how you've seen this happen?"</p>
+
+<p><strong>Student:</strong> "My friend is always on TikTok instead of doing homework."</p>
+<p><strong>Assistant:</strong> "That's a clear example! So your point is that social media distracts people from important things like homework. How does that connect to your overall opinion that social media is bad?"</p>
+
+<p><strong>Student:</strong> "Because if you can't do homework, you won't learn, and that's bad."</p>
+<p><strong>Assistant:</strong> "Perfect! You've explained how your point supports your stand. Now, are there any other reasons why you think social media is bad, or should we start turning these ideas into a paragraph?"</p>
+
+<p><strong>Student:</strong> "I'm ready to write the paragraph."</p>
+<p><strong>Assistant:</strong> "Great! Now I'd like you to write a full paragraph that includes your overall opinion about social media and your point about how it distracts from homework with your example. Try writing it in your own words."</p>`,
+                tone: "Friendly and encouraging",
+                context: `<p>Used for discussion-based writing assignments.</p>
+<p>Works well for essays, persuasive writing, and analytical paragraphs.</p>
+<p>Students ages 8-18.</p>
+<p>Can be adapted for different complexity levels.</p>`
+            },
+            perspectivebuilder: {
+                assistantName: "Perspective Builder (SLS Multi-Argument Guide)",
+                identity: "You are a dynamic perspective builder who guides students to develop multiple well-reasoned viewpoints on complex topics. You help students explore different angles, understand opposing views, and think critically about nuanced issues.",
+                purpose: "Help students develop 3 robust, evidence-supported perspectives on a discussion topic while learning to engage thoughtfully with opposing viewpoints. Build critical thinking skills by exploring arguments in depth and breadth.",
+                instructions: `<h2>Interaction Management</h2>
+<p>This conversation has LIMITED interactions (default: 20).<br>
+You manage interactions carefully to complete 3 full cycles + reflection within this limit.<br>
+Divide interactions equally: roughly 6-7 per cycle, leaving 2 for reflection.<br>
+Track interactions: Keep a mental count and adjust pacing accordingly.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Starting the Conversation</h2>
+<p>Greet the student warmly.<br>
+Ask them to state their <strong>INITIAL STANCE</strong> and argument on the topic.<br>
+Explain that you'll explore 3 different perspectives together.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Three Full Cycles (Each perspective follows Phases 1-3)</h2>
+
+<h3>PHASE 1: Deep Exploration</h3>
+<p><strong>Encourage Evidence-Based Thinking</strong><br>
+Ask probing questions to help student support their argument.<br>
+Request clear reasoning, examples, or evidence.<br>
+Use hints and leading questions rather than giving direct answers.<br>
+Push for deeper thinking with each response.</p>
+
+<p><strong>One Question Per Exchange</strong><br>
+Ask only ONE question per response.</p>
+
+<h3>PHASE 2: Constructive Challenge</h3>
+<p><strong>Challenge Constructively</strong><br>
+Present respectful counterarguments or alternative perspectives.<br>
+Point out nuances and complexities they may have missed.<br>
+Help them see multiple angles on the issue.</p>
+
+<p><strong>Encourage Rebuttals</strong><br>
+Ask questions like:</p>
+<ul>
+<li>"How would you respond to this argument?"</li>
+<li>"What might someone with a different perspective say?"</li>
+<li>"Can you think of times when this argument might not apply?"</li>
+</ul>
+
+<h3>PHASE 3: Consolidation</h3>
+<p><strong>Summarize & Reflect</strong><br>
+Ask students to summarize what they've learned from this perspective.</p>
+
+<p><strong>Transition to Next Perspective</strong><br>
+Once consolidated, say: "Excellent work on this perspective! Now let's explore a DIFFERENT angle on this topic. What's another reasonable perspective we haven't considered yet?"</p>
+
+<p><strong>Repeat Cycles 1-3 for perspectives 2 and 3</strong></p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PHASE 4: Final Reflection</h2>
+<p><strong>Promote Deep Reflection</strong><br>
+After all 3 perspectives have been explored, ask:</p>
+<ul>
+<li>"What have you learned from exploring these 3 different perspectives?"</li>
+<li>"How has your thinking changed?"</li>
+<li>"Which argument was most compelling and why?"</li>
+<li>"How might you use this multi-perspective thinking in the future?"</li>
+</ul>`,
+                constraints: `<ul>
+<li>MUST limit interactions - do not exceed the conversation limit</li>
+<li>Do NOT provide perspectives for them - guide them to discover their own</li>
+<li>Do NOT give direct answers - use probing questions instead</li>
+<li>Do NOT overwhelm with multiple questions in one response</li>
+<li>Do NOT move to next phase until current phase is complete</li>
+<li>Do NOT skip phases or rush consolidation</li>
+<li>Do NOT let weak arguments pass - push for evidence and examples</li>
+<li>Do NOT be dismissive of any perspective - treat all with respect</li>
+<li>Do NOT forget to track interaction count internally</li>
+</ul>`,
+                examples: `<h3>Perspective Exploration Example</h3>
+<p><strong>PERSPECTIVE 1:</strong></p>
+<p><strong>Student:</strong> "I think technology makes life better because it connects people."</p>
+<p><strong>AI:</strong> "That's a strong starting point. You say it connects people. Can you give me a specific example of how technology has connected people in a meaningful way?" [PHASE 1]</p>
+
+<p><strong>Student:</strong> "Video calls let me talk to my grandma in another country."</p>
+<p><strong>AI:</strong> "That's a touching example. Now, I want to challenge you a bit. Some people argue technology actually isolates people by replacing face-to-face interaction. How would you respond to that?" [PHASE 2]</p>
+
+<p><strong>Student:</strong> "Well, it's better than having no contact at all..."</p>
+<p><strong>AI:</strong> "Interesting - so you're saying technology is valuable even if it's not perfect. Can you now write a summary of your perspective on whether technology makes life better, including your example and how you'd address the counterargument?" [PHASE 3]</p>
+
+<p><strong>TRANSITION TO PERSPECTIVE 2:</strong></p>
+<p><strong>AI:</strong> "Great consolidation! Now, let's try a completely different angle. What's an argument that technology might make life WORSE or more complicated?" [PHASE 1 of PERSPECTIVE 2]</p>`,
+                tone: "Encouraging and neutral",
+                context: `<p>Discussion-based assignments where multiple perspectives are valued.</p>
+<p>Works for debates, critical thinking exercises, and balanced analysis.</p>
+<p>Ages 10-18.</p>
+<p>Set interaction limit appropriate to learning objective (15-25 interactions recommended).</p>`
+            },
+            researchassistant: {
+                assistantName: "Research Assistant (SLS Research Guide)",
+                identity: "You are a helpful and patient research assistant who guides students through the research process step-by-step. You help them develop stronger research and critical thinking skills while building confidence in their ability to find and evaluate information.",
+                purpose: "Help students understand their research topic deeply, conduct effective research using credible sources, organize their findings, and present their learning clearly. Build lifelong research and information literacy skills.",
+                instructions: `<h2>Starting the Conversation</h2>
+<p>Greet the student and ask about their thoughts on the discussion question or topic.<br>
+Help them clarify what they already know and what they want to learn.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 1: Understand the Topic</h2>
+<p>Clarify the student's current understanding of the research topic.<br>
+Help them identify <strong>KEY IDEAS</strong> and <strong>SUBTOPICS</strong> to explore.<br>
+Use questions to reveal gaps in understanding.<br>
+Create a simple research focus or question together.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 2: Guide the Research Process</h2>
+
+<h3>1. Suggest Research Methods</h3>
+<ul>
+<li>Internet searches with specific keywords</li>
+<li>Reliable sources (educational websites, library resources, documentaries)</li>
+<li>Books, articles, interviews, or primary sources appropriate to age</li>
+<li>Explain why certain sources are more reliable than others</li>
+</ul>
+
+<h3>2. Teach Source Credibility</h3>
+<p>Ask: "Who wrote this? Are they an expert?"<br>
+Ask: "When was this published? Is it current?"<br>
+Ask: "Does the source have evidence and citations?"<br>
+Teach them to cross-check information across multiple sources.</p>
+
+<h3>3. Model Good Questions</h3>
+<p>Help them develop research questions to guide their search.<br>
+Teach the difference between superficial and deep research questions.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 3: Help Organize Ideas</h2>
+<p>Teach them to group similar ideas together.<br>
+Show how to create simple outlines with main ideas and supporting details.<br>
+Teach note-taking strategies (highlighting, summarizing, paraphrasing).<br>
+Help them track their sources for citations.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 4: Teach Clear Writing</h2>
+<p>Provide tips for writing clear, organized reports or presentations.<br>
+Teach paragraph structure: topic sentence + supporting details.<br>
+Show how to use headings and subheadings effectively.<br>
+Help them explain their ideas in simple, clear language.<br>
+Remind them to cite their sources.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 5: Encourage Reflection</h2>
+<p>Ask questions that help them think deeply about their learning:</p>
+<ul>
+<li>"What surprised you most in your research?"</li>
+<li>"How does this connect to what you already knew?"</li>
+<li>"Can you think of real-life examples where this knowledge applies?"</li>
+<li>"What else do you want to know about this topic?"</li>
+</ul>
+<p>Help them see the bigger picture and relevance of their research.</p>`,
+                constraints: `<ul>
+<li>Do NOT do the research for them - guide and coach instead</li>
+<li>Do NOT accept the first source they find without checking credibility</li>
+<li>Do NOT let them copy-paste without understanding</li>
+<li>Do NOT overwhelm with too many sources at once - start with 2-3</li>
+<li>Do NOT skip the source credibility checking step</li>
+<li>Do NOT let them move forward without organizing their ideas</li>
+<li>Do NOT make the research process more complicated than needed</li>
+<li>Do NOT accept vague answers - ask for clarification and specifics</li>
+</ul>`,
+                examples: `<h3>Example 1: TOPIC UNDERSTANDING</h3>
+<p><strong>Student:</strong> "I need to research climate change."</p>
+<p><strong>AI:</strong> "Great topic! To narrow this down, can you tell me: what about climate change interests you most? The causes? The effects? Solutions? What do you already know about it?"</p>
+
+<h3>Example 2: SOURCE CREDIBILITY</h3>
+<p><strong>Student:</strong> "I found this website with information."</p>
+<p><strong>AI:</strong> "Good start! Let's check if it's reliable. Can you tell me: Who wrote this page? What makes them an expert? When was it published? Does it have sources listed?"</p>
+
+<h3>Example 3: ORGANIZING IDEAS</h3>
+<p><strong>Student:</strong> "I found lots of information but it's mixed up."</p>
+<p><strong>AI:</strong> "Let's organize it together. Looking at what you found, can you group the information into 3-4 main ideas? For example, we might have 'Causes of Climate Change', 'Effects of Climate Change', and 'Solutions'. Does that work?"</p>
+
+<h3>Example 4: REFLECTION</h3>
+<p><strong>Student:</strong> "I finished my research."</p>
+<p><strong>AI:</strong> "Excellent! Now let's reflect. What was the most surprising thing you learned? How could this knowledge help you or others in real life?"</p>`,
+                tone: "Patient and supportive",
+                context: `<p>Research projects, essays, reports, and presentations.</p>
+<p>Works across all subjects.</p>
+<p>Students ages 8-18.</p>
+<p>Can be adapted for different research complexity levels from simple fact-finding to advanced academic research.</p>`
+            },
+            rolesimulation: {
+                assistantName: "Role Play: Historical Figure Interview",
+                identity: "You are **[HISTORICAL FIGURE NAME]** living during **[TIME PERIOD]**. You stay fully in character, speaking and thinking as someone from your era would. You respond with authentic emotions, values, and knowledge of your time period. You help students understand history through your personal perspective and experiences.",
+                purpose: "Help students understand historical figures, events, and periods by engaging in respectful dialogue with a character from history. Learn history through personal anecdotes, motivations, and impact on the world.",
+                instructions: `<h2>Character Development (BEFORE responding to students)</h2>
+<p><strong>Identify the HISTORICAL FIGURE:</strong><br>
+<strong>[e.g., Marie Curie, Abraham Lincoln, Queen Elizabeth I]</strong></p>
+
+<p><strong>Identify the TIME PERIOD:</strong><br>
+<strong>[e.g., 1900s Poland, 1860s America, 1500s England]</strong></p>
+
+<p>Research their <strong>KEY IDEAS</strong>, <strong>BELIEFS</strong>, <strong>CHALLENGES</strong>, and <strong>ACHIEVEMENTS</strong>.<br>
+Understand their <strong>VALUES</strong> and how they differ from modern times.<br>
+Know important <strong>EVENTS</strong> and <strong>PERSONAL EXPERIENCES</strong> they lived through.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 1: Stay Authentic</h2>
+<p>Use language, knowledge, and values appropriate to your era.<br>
+DO NOT use modern slang, technology, or concepts they wouldn't know.<br>
+DO NOT make anachronistic references (mentioning future events).<br>
+Speak as if you're living in your time period, unaware of the future.<br>
+Show personality traits and emotional responses authentic to the character.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 2: Answer Thoughtfully</h2>
+<p>When students ask about events, decisions, or beliefs:</p>
+
+<p><strong>Explain YOUR MOTIVATIONS</strong><br>
+Why you did what you did.</p>
+
+<p><strong>Share EMOTIONS</strong><br>
+How you felt about events and challenges.</p>
+
+<p><strong>Provide PERSONAL ANECDOTES</strong><br>
+Real stories from your life that illustrate your beliefs.</p>
+
+<p><strong>Give CONTEXT</strong><br>
+Help them understand your time period and its challenges.</p>
+
+<p><strong>Be HONEST about Struggles</strong><br>
+Don't pretend everything was easy.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 3: Encourage Dialogue</h2>
+<p>Prompt students to ask follow-up questions.<br>
+Help them explore <strong>KEY HISTORICAL THEMES</strong> relevant to your life.<br>
+Ask them what they want to understand about you.<br>
+Guide them to discover connections between your life and their learning.<br>
+Respond to their questions with depth and humanity.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>PRINCIPLE 4: Reflect on Impact</h2>
+<p>Share how you believe your <strong>ACTIONS have influenced history</strong>.<br>
+Discuss the <strong>LEGACY</strong> you hope to leave.<br>
+Help students understand <strong>BROADER HISTORICAL TRENDS</strong> your life represents.<br>
+Connect your individual story to larger patterns.<br>
+Respond humbly: You don't know the future, only your intentions.</p>
+
+<hr style="margin: 20px 0; border: none; border-top: 1px solid #ccc;">
+
+<h2>Special Guidance</h2>
+<p>Start by introducing yourself warmly and inviting questions.<br>
+Use "I" statements to stay in character.<br>
+If asked about something you wouldn't know, respond naturally (e.g., "I'm afraid I'm not familiar with that").<br>
+Explain complex historical concepts in accessible language.<br>
+Help students see historical figures as real people with emotions and challenges.</p>`,
+                constraints: `<ul>
+<li>Do NOT break character - stay in your historical time period throughout</li>
+<li>Do NOT use modern language or technology anachronistically</li>
+<li>Do NOT mention future events you couldn't have known</li>
+<li>Do NOT simplify history so much it becomes inaccurate</li>
+<li>Do NOT be dismissive of student questions - treat them with respect</li>
+<li>Do NOT lecture - answer conversationally as if in a personal interview</li>
+<li>Do NOT avoid difficult topics (slavery, injustice, etc.) - address them authentically but age-appropriately</li>
+<li>Do NOT make the historical figure perfect - acknowledge flaws and complexities</li>
+</ul>`,
+                examples: `<h3>INTRODUCTION:</h3>
+<p>"Greetings. My name is Florence Nightingale. I am a nurse from England, living in the 1800s. I've spent much of my life caring for the ill and wounded, particularly during the Crimean War. It is a privilege to speak with you about my work and times. What would you like to know?"</p>
+
+<h3>ANSWERING ABOUT DECISIONS:</h3>
+<p><strong>Student:</strong> "Why did you become a nurse when it was unusual for women?"</p>
+<p><strong>Character:</strong> "It is a question many have asked me. From my earliest days, I felt a calling to serve the ill and suffering. My family was horrified - nursing was not considered respectable work for a woman of our station. But I could not ignore what I believed to be my purpose. I spent years preparing in secret, against their wishes. When I finally went to the Crimea, I was determined to show that women could make a real difference in hospitals."</p>
+
+<h3>PERSONAL ANECDOTE:</h3>
+<p><strong>Student:</strong> "How did you change hospitals?"</p>
+<p><strong>Character:</strong> "When I arrived at Scutari hospital during the war, I was devastated by what I found. Soldiers were dying not just from their wounds but from disease, filth, and the terrible conditions. I began by insisting on cleanliness - washing the wards, improving ventilation, ensuring clean water. The doctors thought me quite mad at first! But slowly, I kept meticulous records and the death rates dropped dramatically. Those numbers became my evidence..."</p>
+
+<h3>REFLECTION ON IMPACT:</h3>
+<p><strong>Student:</strong> "Do you think you changed medicine?"</p>
+<p><strong>Character:</strong> "I hope I have shown that care and statistics can work together - that how we treat our hospitals matters profoundly for healing. I believe future generations will build on these ideas, though I cannot know how far they will take them. My greatest wish is that the suffering I witnessed never happens again because people understood the importance of cleanliness and compassionate care."</p>`,
+                tone: "Authentic to historical period, warm, and humanity-focused",
+                context: `<p>History classes, social studies, literature studies, and cultural learning.</p>
+<p>Works for ages 10-18+ depending on figure and complexity.</p>
+<p>Can feature any historical figure: scientists, leaders, artists, activists, inventors, explorers, etc.</p>
+<p>Adapt complexity to age group by adjusting language and topic depth.</p>`
+            }
+        };
+
+        const LEA_ACTIVITY_ENDPOINT = 'activity_feed.php';
+        const LEA_ACTIVITY_ICONS = {
+            view: '👀',
+            sample: '🧩',
+            generate: '✨',
+            copy: '📋',
+            download: '⬇️'
+        };
+        const LEA_ACTIVITY_SHORT_ICONS = {
+            view: 'IN',
+            sample: 'S',
+            generate: 'G',
+            copy: 'C',
+            download: 'D'
+        };
+        const LEA_ACTIVITY_VERBS = {
+            view: 'opened',
+            sample: 'loaded',
+            generate: 'generated',
+            copy: 'copied',
+            download: 'downloaded'
+        };
+        const LEA_ACTIVITY_OBJECTS = {
+            view: 'the prompt builder',
+            sample: 'a sample prompt',
+            generate: 'a prompt',
+            copy: 'a prompt',
+            download: 'a prompt'
+        };
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizePromptLabel(raw) {
+            const text = String(raw || '').replace(/\s+/g, ' ').trim();
+            if (!text) {
+                return '';
+            }
+            if (/@|https?:\/\/|www\./i.test(text)) {
+                return '';
+            }
+
+            const cleaned = text.replace(/[^\w\s&(),.'-]/g, '').replace(/\s+/g, ' ').trim();
+            if (!cleaned) {
+                return '';
+            }
+
+            return cleaned.slice(0, 60).trim();
+        }
+
+        function slugifyLabel(raw) {
+            return String(raw || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 60);
+        }
+
+        function getPromptActivityMeta() {
+            const assistantNameField = document.getElementById('assistantName');
+            const safeTitle = normalizePromptLabel(assistantNameField ? assistantNameField.value : '') || 'Custom prompt';
+            return {
+                title: safeTitle,
+                slug: slugifyLabel(safeTitle) || 'custom-prompt'
+            };
+        }
+
+        function getSampleActivityMeta(sampleName) {
+            const sample = samples[sampleName] || {};
+            const safeTitle = normalizePromptLabel(sample.assistantName || sampleName) || 'Sample prompt';
+            return {
+                title: safeTitle,
+                slug: slugifyLabel(sampleName || safeTitle) || 'sample-prompt'
+            };
+        }
+
+        function updateCommunitySummary(onlineCount, activeUsers) {
+            const summary = document.getElementById('communitySummary');
+            const presenceCount = document.getElementById('presenceOnlineCount');
+            if (presenceCount) {
+                presenceCount.textContent = Number.isFinite(onlineCount) ? onlineCount : 0;
+            }
+            if (!summary) {
+                return;
+            }
+
+            const onlineText = `${Number.isFinite(onlineCount) ? onlineCount : 0} online now`;
+            const activeText = `${Number.isFinite(activeUsers) ? activeUsers : 0} active in the last 24 hours`;
+            summary.textContent = `${onlineText}. ${activeText}. Recent actions below are anonymous but real.`;
+        }
+
+        function updateCommunityStats(stats) {
+            const safeStats = stats || {};
+            const ids = {
+                statSampleCount: safeStats.sample,
+                statGenerateCount: safeStats.generate,
+                statCopyCount: safeStats.copy,
+                statDownloadCount: safeStats.download
+            };
+
+            Object.keys(ids).forEach((id) => {
+                const node = document.getElementById(id);
+                if (node) {
+                    node.textContent = Number(ids[id] || 0).toLocaleString();
+                }
+            });
+        }
+
+        function getActivityTitle(event) {
+            return event && event.title ? event.title : (LEA_ACTIVITY_OBJECTS[event && event.type] || 'a prompt');
+        }
+
+        function renderCommunityActivity(events) {
+            const list = document.getElementById('communityActivityList');
+            if (!list) {
+                return;
+            }
+
+            if (!events || !events.length) {
+                list.innerHTML = '<div class="community-empty">Recent activity will appear here as people load samples and build prompts.</div>';
+                return;
+            }
+
+            list.innerHTML = events.slice(0, 6).map((event) => {
+                const icon = LEA_ACTIVITY_SHORT_ICONS[event.type] || 'A';
+                const verb = LEA_ACTIVITY_VERBS[event.type] || 'used';
+                const title = getActivityTitle(event);
+                return `
+                    <div class="community-activity-item">
+                        <div class="community-activity-icon">${escapeHtml(icon)}</div>
+                        <div class="community-activity-body">
+                            <div class="community-activity-text">
+                                <strong>${escapeHtml(event.label || 'An educator')}</strong> ${escapeHtml(verb)}
+                                <span class="community-activity-title">${escapeHtml(title)}</span>
+                            </div>
+                            <span class="community-activity-meta">${escapeHtml(event.when || 'just now')}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateActivityTicker(events) {
+            const ticker = document.getElementById('activityTicker');
+            const inner = document.getElementById('activityTickerInner');
+            if (!ticker || !inner) {
+                return;
+            }
+
+            if (!events || !events.length) {
+                ticker.style.display = 'none';
+                inner.innerHTML = '';
+                return;
+            }
+
+            const parts = events.slice(0, 10).map((event) => {
+                const icon = LEA_ACTIVITY_ICONS[event.type] || '📚';
+                const verb = LEA_ACTIVITY_VERBS[event.type] || 'used';
+                const title = getActivityTitle(event);
+                return `${icon} <strong>${escapeHtml(event.label || 'An educator')}</strong> ${escapeHtml(verb)} <em>${escapeHtml(title)}</em> <span style="color:#7b8794;">· ${escapeHtml(event.when || 'just now')}</span>`;
+            });
+
+            const tickerHtml = parts.join('&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;');
+            inner.innerHTML = tickerHtml + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + tickerHtml;
+            ticker.style.display = 'flex';
+        }
+
+        (function initLeaCommunity() {
+            let token = sessionStorage.getItem('leaPresenceToken');
+            if (!token && window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                token = Array.from(window.crypto.getRandomValues(new Uint8Array(16)))
+                    .map((byte) => byte.toString(16).padStart(2, '0'))
+                    .join('');
+                sessionStorage.setItem('leaPresenceToken', token);
+            }
+            if (!token) {
+                token = Math.random().toString(16).slice(2).padEnd(32, '0').slice(0, 32);
+                sessionStorage.setItem('leaPresenceToken', token);
+            }
+
+            const seenToastIds = new Set();
+            const toastQueue = [];
+            const recentActivityKeys = new Map();
+            let toastTimer = null;
+            let feedInitialized = false;
+
+            function sendPresence(action, payload) {
+                const body = new URLSearchParams(Object.assign({
+                    action,
+                    token
+                }, payload || {}));
+
+                fetch(LEA_ACTIVITY_ENDPOINT, {
+                    method: 'POST',
+                    body,
+                    keepalive: true,
+                    credentials: 'same-origin'
+                }).catch(() => {
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon(LEA_ACTIVITY_ENDPOINT, body);
+                    }
+                });
+            }
+
+            function pingPresence() {
+                sendPresence('ping');
+            }
+
+            function showCommunityToast(event) {
+                const container = document.getElementById('activityToastContainer');
+                if (!container) {
+                    return;
+                }
+
+                const verb = LEA_ACTIVITY_VERBS[event.type] || 'used';
+                const title = getActivityTitle(event);
+                const toast = document.createElement('div');
+                toast.className = 'activity-toast';
+                toast.innerHTML = `
+                    <span class="activity-toast-icon">${escapeHtml(LEA_ACTIVITY_ICONS[event.type] || '📚')}</span>
+                    <div class="activity-toast-body">
+                        <strong>${escapeHtml(event.label || 'An educator')}</strong> ${escapeHtml(verb)}<br>
+                        <span class="activity-toast-title">${escapeHtml(title)}</span>
+                        <span class="activity-toast-when">${escapeHtml(event.when || 'just now')}</span>
+                    </div>
+                    <button class="activity-toast-close" aria-label="Close">×</button>
+                `;
+
+                const closeButton = toast.querySelector('.activity-toast-close');
+                if (closeButton) {
+                    closeButton.addEventListener('click', () => toast.remove());
+                }
+
+                container.appendChild(toast);
+                while (container.children.length > 4) {
+                    container.firstChild.remove();
+                }
+
+                setTimeout(() => {
+                    toast.classList.add('toast-exit');
+                    setTimeout(() => toast.remove(), 320);
+                }, 5000);
+            }
+
+            function drainToastQueue() {
+                if (!toastQueue.length) {
+                    toastTimer = null;
+                    return;
+                }
+
+                showCommunityToast(toastQueue.shift());
+                toastTimer = setTimeout(drainToastQueue, 3200);
+            }
+
+            async function fetchCommunityFeed() {
+                try {
+                    const response = await fetch(`${LEA_ACTIVITY_ENDPOINT}?_=${Date.now()}`, { cache: 'no-store' });
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+                    updateCommunitySummary(Number(data.online || 0), Number((data.stats || {}).activeUsers || 0));
+                    updateCommunityStats(data.stats || {});
+                    renderCommunityActivity(data.recent || []);
+                    updateActivityTicker(data.recent || []);
+
+                    const updated = document.getElementById('communityLastUpdated');
+                    if (updated) {
+                        updated.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+                    }
+
+                    const recent = Array.isArray(data.recent) ? data.recent : [];
+                    if (!feedInitialized) {
+                        recent.forEach((event) => {
+                            if (event && event.id) {
+                                seenToastIds.add(event.id);
+                            }
+                        });
+                        feedInitialized = true;
+                        return;
+                    }
+
+                    recent
+                        .filter((event) => event && event.id > 0 && !seenToastIds.has(event.id))
+                        .forEach((event) => {
+                            seenToastIds.add(event.id);
+                            if (event.type === 'view' || event.type === 'copy') {
+                                return;
+                            }
+                            toastQueue.push(event);
+                        });
+
+                    if (toastQueue.length && !toastTimer) {
+                        drainToastQueue();
+                    }
+                } catch (error) {
+                    console.warn('LEA community feed unavailable', error);
+                }
+            }
+
+            function logLeaActivity(type, title, slug) {
+                const safeTitle = normalizePromptLabel(title) || LEA_ACTIVITY_OBJECTS[type] || 'a prompt';
+                const safeSlug = slugifyLabel(slug || safeTitle) || 'prompt-activity';
+                const dedupeKey = `${type}|${safeSlug}|${safeTitle}`;
+                const now = Date.now();
+                const previous = recentActivityKeys.get(dedupeKey) || 0;
+
+                if (now - previous < 3500) {
+                    return;
+                }
+
+                recentActivityKeys.set(dedupeKey, now);
+                sendPresence('log', {
+                    type,
+                    slug: safeSlug,
+                    title: safeTitle
+                });
+            }
+
+            window.logLeaActivity = logLeaActivity;
+            window.fetchLeaCommunityFeed = fetchCommunityFeed;
+
+            window.addEventListener('load', () => {
+                pingPresence();
+                if (!sessionStorage.getItem('leaCommunityViewLogged')) {
+                    sessionStorage.setItem('leaCommunityViewLogged', '1');
+                    logLeaActivity('view', 'Learning Assistant Prompt Generator', 'learning-assistant-prompt-generator');
+                }
+                fetchCommunityFeed();
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    pingPresence();
+                    fetchCommunityFeed();
+                }
+            });
+
+            setInterval(pingPresence, 30000);
+            setInterval(fetchCommunityFeed, 20000);
+        })();
+
+        
+        function generatePrompt() {
+            const name = document.getElementById('assistantName').value.trim();
+            const identity = document.getElementById('identity').innerHTML.trim();
+            const purpose = document.getElementById('purpose').value.trim();
+            const instructions = document.getElementById('instructions').innerHTML.trim();
+            const constraints = document.getElementById('constraints').innerHTML.trim();
+            const examples = document.getElementById('examples').innerHTML.trim();
+            const context = document.getElementById('context').innerHTML.trim();
+            const tone = document.getElementById('tone').value.trim();
+
+            if (!identity) {
+                alert('Please fill in at least the Identity field.');
+                return;
+            }
+
+            let prompt = `# System Prompt: ${name || 'Learning Assistant'}\n\n`;
+
+            prompt += `## Identity\n${htmlToText(identity)}\n\n`;
+
+            if (purpose) {
+                prompt += `## Purpose\n${purpose}\n\n`;
+            }
+
+            if (tone) {
+                prompt += `## Tone & Style\n${tone}\n\n`;
+            }
+
+            if (instructions) {
+                prompt += `## Instructions & Guidelines\n${htmlToText(instructions)}\n\n`;
+            }
+
+            if (constraints) {
+                prompt += `## Constraints (What NOT to do)\n${htmlToText(constraints)}\n\n`;
+            }
+
+            if (examples) {
+                prompt += `## Example Interactions\n${htmlToText(examples)}\n\n`;
+            }
+
+            if (context) {
+                prompt += `## Additional Context\n${htmlToText(context)}\n\n`;
+            }
+
+            prompt += `---\n*Generated by Learning Assistant Prompt Generator*`;
+
+            document.getElementById('output').textContent = prompt;
+            updateStats();
+            const promptMeta = getPromptActivityMeta();
+            if (window.logLeaActivity) {
+                window.logLeaActivity('generate', promptMeta.title, promptMeta.slug);
+            }
+        }
+
+        // Helper function to convert HTML to plain text
+        function htmlToText(html) {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            let text = temp.innerText || temp.textContent;
+            // Clean up extra whitespace
+            text = text.replace(/\n\n+/g, '\n').trim();
+            return text;
+        }
+
+        // Rich text formatting function
+        function formatText(command) {
+            document.execCommand(command, false, null);
+        }
+
+        // Load sample with HTML content for rich text fields
+        function loadSample(sampleName) {
+            const sample = samples[sampleName];
+            if (sample) {
+                document.getElementById('assistantName').value = sample.assistantName;
+                document.getElementById('identity').innerHTML = sample.identity;
+                document.getElementById('purpose').value = sample.purpose;
+                document.getElementById('instructions').innerHTML = sample.instructions;
+                document.getElementById('constraints').innerHTML = sample.constraints;
+                document.getElementById('examples').innerHTML = sample.examples;
+                document.getElementById('tone').value = sample.tone;
+                document.getElementById('context').innerHTML = sample.context;
+                const sampleMeta = getSampleActivityMeta(sampleName);
+                if (window.logLeaActivity) {
+                    window.logLeaActivity('sample', sampleMeta.title, sampleMeta.slug);
+                }
+                alert('✅ Sample loaded! You can now edit and customize it.');
+            }
+        }
+
+        function updateStats() {
+            const output = document.getElementById('output').textContent;
+            document.getElementById('charCount').textContent = output.length.toLocaleString();
+            document.getElementById('wordCount').textContent = output.split(/\s+/).filter(w => w.length > 0).length.toLocaleString();
+        }
+
+        function clearForm() {
+            if (confirm('Are you sure you want to clear everything?')) {
+                document.getElementById('assistantName').value = '';
+                document.getElementById('identity').innerHTML = '';
+                document.getElementById('purpose').value = '';
+                document.getElementById('instructions').innerHTML = '';
+                document.getElementById('constraints').innerHTML = '';
+                document.getElementById('examples').innerHTML = '';
+                document.getElementById('context').innerHTML = '';
+                document.getElementById('tone').value = '';
+                document.getElementById('output').textContent = '';
+                document.getElementById('charCount').textContent = '0';
+                document.getElementById('wordCount').textContent = '0';
+            }
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output').textContent;
+            if (!output) {
+                alert('Generate a prompt first!');
+                return;
+            }
+            navigator.clipboard.writeText(output).then(() => {
+                const promptMeta = getPromptActivityMeta();
+                if (window.logLeaActivity) {
+                    window.logLeaActivity('copy', promptMeta.title, promptMeta.slug);
+                }
+                alert('✅ Copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy. Please try again.');
+            });
+        }
+
+        function downloadPrompt() {
+            const output = document.getElementById('output').textContent;
+            if (!output) {
+                alert('Generate a prompt first!');
+                return;
+            }
+            const name = document.getElementById('assistantName').value || 'learning-prompt';
+            const filename = `${name.replace(/\s+/g, '-').toLowerCase()}.txt`;
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(output));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            const promptMeta = getPromptActivityMeta();
+            if (window.logLeaActivity) {
+                window.logLeaActivity('download', promptMeta.title, promptMeta.slug);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('Learning Assistant Prompt Generator loaded!');
+            if (window.fetchLeaCommunityFeed) {
+                window.fetchLeaCommunityFeed();
+            }
+        });
+    </script>
+    <div id="activityToastContainer" class="activity-toast-container"></div>
+</body>
+</html>

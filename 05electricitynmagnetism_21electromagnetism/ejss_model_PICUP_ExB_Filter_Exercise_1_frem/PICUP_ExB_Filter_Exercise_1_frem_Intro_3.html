@@ -1,0 +1,213 @@
+<html>
+  <head>
+    <title> ExB_Filter_Exercise_1.py with Bug Fix</title>
+    <link rel="stylesheet" type="text/css" href="_ejs_library/css/ejss.css"></link>
+  </head>
+  <body > 
+
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # ExB_Filter_Exercise_1.py
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # This file is used to calculate
+    </p>
+    <p style="margin-top: 0">
+      # the Cartesian components of the acceleration of
+    </p>
+    <p style="margin-top: 0">
+      # a charged particle through
+    </p>
+    <p style="margin-top: 0">
+      # an E x B velocity filter.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Here, it is assumed that the axis of the filter
+    </p>
+    <p style="margin-top: 0">
+      # is aligned with the z-axis, that the magnetic field
+    </p>
+    <p style="margin-top: 0">
+      # is along the +x-direction, and that the electric field
+    </p>
+    <p style="margin-top: 0">
+      # is along the -y-direction.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # By:
+    </p>
+    <p style="margin-top: 0">
+      # Ernest R. Behringer
+    </p>
+    <p style="margin-top: 0">
+      # Department of Physics and Astronomy
+    </p>
+    <p style="margin-top: 0">
+      # Eastern Michigan University
+    </p>
+    <p style="margin-top: 0">
+      # Ypsilanti, MI 48197
+    </p>
+    <p style="margin-top: 0">
+      # (734) 487-8799 (Office)
+    </p>
+    <p style="margin-top: 0">
+      # ebehringe@emich.edu
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Last updated:
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # 20110309 = March 9, 2011 ERB Initial writing in Matlab.
+    </p>
+    <p style="margin-top: 0">
+      # 20160616 ERB conversion from Matlab.
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      from numpy import sqrt
+    </p>
+    <p style="margin-top: 0">
+      import time
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Initialize parameter values
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      q = 1.60e-19 # particle charge [C]
+    </p>
+    <p style="margin-top: 0">
+      m = 7.0*1.67e-27 # particle mass [kg]
+    </p>
+    <p style="margin-top: 0">
+      KE_eV = 100.0 # particle kinetic energy [eV]
+    </p>
+    <p style="margin-top: 0">
+      Ex = 0.0 # Ex = electric field in the +x direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Ey = -105.0 # Ey = electric field in the +y direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Ez = 0.0 # Ez = electric field in the +z direction [N/C]
+    </p>
+    <p style="margin-top: 0">
+      Bx = 0.002 # Bx = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      By = 0.0 # By = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      Bz = 0.0 # Bz = magnetic field in the +x direction [T]
+    </p>
+    <p style="margin-top: 0">
+      D = 2.0 # D = diameter of the exit aperture [mm]
+    </p>
+    <p style="margin-top: 0">
+      L = 0.25 # L = length of the crossed field region [mm]
+    </p>
+    <p style="margin-top: 0">
+      u = [1.0,1.0,100.0]/sqrt(10002.0) # direction of the velocity vector
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      # Derived quantities
+    </p>
+    <p style="margin-top: 0">
+      qoverm = q/m # charge to mass ratio [C/kg]
+    </p>
+    <p style="margin-top: 0">
+      KE = KE_eV*1.602e-19 # particle kinetic energy [J]
+    </p>
+    <p style="margin-top: 0">
+      vmag = sqrt(2.0*KE/m) # particle velocity magnitude [m/s]
+    </p>
+    <p style="margin-top: 0">
+      v1x = vmag*u[0] # v1x = x-component of the initial velocity [m/s]
+    </p>
+    <p style="margin-top: 0">
+      v1y = vmag*u[1] # v1y = y-component of the initial velocity [m/s]
+    </p>
+    <p style="margin-top: 0">
+      v1z = vmag*u[2] # v1z = z-component of the initial velocity [m/s]
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      # Calculate the Cartesian components of the acceleration
+    </p>
+    <p style="margin-top: 0">
+      #
+    </p>
+    <p style="margin-top: 0">
+      a_x = qoverm*(Ex + v1y*Bz - v1z*By)
+    </p>
+    <p style="margin-top: 0">
+      a_y = qoverm*(Ey + v1z*Bx - v1x*Bz)
+    </p>
+    <p style="margin-top: 0">
+      a_z = qoverm*(Ez + v1x*By - v1y*Bx)
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      print (&quot;The magnitude of the initial velocity is %.3e&quot;%vmag,&quot; m/s.&quot;) 
+      ##Frem:Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print (&quot;The x-component of the acceleration is %.3e&quot;%a_x,&quot; m/s$^2$.&quot;) 
+      #Frem:Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print (&quot;The y-component of the acceleration is %.3e&quot;%a_y,&quot; m/s$^2$.&quot;) 
+      #Frem:Added brackets
+    </p>
+    <p style="margin-top: 0">
+      print (&quot;The z-component of the acceleration is %.3e&quot;%a_z,&quot; m/s$^2$.&quot;) 
+      #Frem:Added brackets
+    </p>
+    <p style="margin-top: 0">
+      
+    </p>
+    <p style="margin-top: 0">
+      time.sleep(10)##Frem:Added Time to prevent the program from closing too 
+      fast
+    </p>
+  
+  </body>
+</html>

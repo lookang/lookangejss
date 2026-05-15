@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Challenges in Globalisation - Interactive Game</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="./lib/xapiwrapper.min.js"></script>
+    <script src="./lib/xAPI.js"></script>
+  
+    <!-- xAPI Timeline Tracking -->
+    <script>
+(function() {
+  // IMPORTANT:
+  // - Do not send statements directly with fetch/XHR (can trigger CORS failures)
+  // - Use the existing injected SLS glue: window.storeState(...) (vendor/xAPI.js)
+  const xapiState = { startTime: Date.now(), actions: [] };
+  const flushState = { timer: null, lastSentAt: 0, lastSig: '' };
+
+  function safeStore(payload) {
+    try {
+      if (typeof window.storeState === 'function') {
+        window.storeState(payload);
+      }
+    } catch (e) {
+      // never break content
+    }
+  }
+
+  function summarizeTarget(t) {
+    try {
+      return {
+        tag: (t && t.tagName) ? String(t.tagName).toLowerCase() : null,
+        id: t && t.id ? String(t.id).substring(0, 120) : null,
+        name: t && t.name ? String(t.name).substring(0, 120) : null,
+        value: t && t.value != null ? String(t.value).substring(0, 120) : null,
+        text: t && t.textContent ? String(t.textContent).trim().substring(0, 120) : null
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  function logAction(type, data) {
+    xapiState.actions.push({ t: Date.now(), type, data: data || null });
+    // keep payload small
+    if (xapiState.actions.length > 120) xapiState.actions.shift();
+  }
+
+  function captureDashboardSnapshot() {
+    // Best-effort: capture visible "dashboard"/"results" info without knowing the content structure.
+    try {
+      const selectors = [
+        '[id*="dashboard" i]', '[class*="dashboard" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[id*="score" i]', '[class*="score" i]'
+      ];
+      const el = document.querySelector(selectors.join(','));
+      if (!el) return null;
+      const text = (el.textContent || '').trim().replace(/\s+/g, ' ');
+      if (!text) return null;
+      return { selector: el.id ? ('#' + el.id) : (el.className ? ('.' + String(el.className).split(/\s+/)[0]) : null), text: text.substring(0, 400) };
+    } catch {
+      return null;
+    }
+  }
+
+  function extractScoreFromDom() {
+    try {
+      const selectors = [
+        '[id*="score" i]', '[class*="score" i]',
+        '[id*="result" i]', '[class*="result" i]',
+        '[data-score]', '[data-points]', '[data-max]'
+      ];
+      const candidates = Array.from(document.querySelectorAll(selectors.join(',')));
+      for (const el of candidates) {
+        const dataScore = el.getAttribute('data-score') || el.getAttribute('data-points');
+        const dataMax = el.getAttribute('data-max');
+        if (dataScore != null) {
+          const score = Number(dataScore);
+          const max = dataMax != null ? Number(dataMax) : null;
+          if (!Number.isNaN(score)) return { score, max: Number.isNaN(max) ? null : max };
+        }
+        const text = (el.textContent || '').trim();
+        const m = text.match(/(\d+)\s*/\s*(\d+)/);
+        if (m) return { score: Number(m[1]), max: Number(m[2]) };
+      }
+    } catch (e) {}
+    return { score: null, max: null };
+  }
+
+  function computeMetrics(actions) {
+    const elapsedSec = Math.max(0, Math.round((Date.now() - xapiState.startTime) / 1000));
+    const actionTypes = {};
+    const uniqueTargets = new Set();
+    let seqSingle = 0;
+    let seqMulti = 0;
+    let headOn = 0;
+    let extremes = 0;
+
+    let prev = null;
+    actions.forEach(a => {
+      actionTypes[a.type] = (actionTypes[a.type] || 0) + 1;
+      const t = a.data || {};
+      const key = [t.tag, t.id, t.name, t.text, t.value].filter(Boolean).join('|');
+      if (key) uniqueTargets.add(key);
+
+      if (prev && prev.type !== a.type) {
+        seqSingle++;
+        const prevKey = prev.data ? [prev.data.tag, prev.data.id, prev.data.name, prev.data.text, prev.data.value].filter(Boolean).join('|') : '';
+        if (prevKey && key && prevKey !== key) seqMulti++;
+      }
+
+      const textBlob = [t.text, t.id, t.name, t.value].filter(Boolean).join(' ').toLowerCase();
+      if (textBlob.includes('head-on') || textBlob.includes('headon')) headOn++;
+      if (textBlob.includes('mass') || textBlob.includes('speed') || textBlob.includes('velocity')) extremes++;
+      prev = a;
+    });
+
+    return { elapsedSec, actionTypes, uniqueTargets: uniqueTargets.size, seqSingle, seqMulti, headOn, extremes };
+  }
+
+  function buildFeedback(summary, score, max) {
+    const lines = [];
+    lines.push('Feedback');
+    lines.push('Interactive Response Assistant');
+    lines.push(new Date().toLocaleString());
+    lines.push('Interactions: ' + summary.interactions);
+    lines.push('Elapsed Time: ' + summary.elapsedSec + 's');
+    if (score != null) {
+      lines.push('Score: ' + score + (max != null ? (' / ' + max) : ''));
+    }
+    lines.push('Unique Explorations: ' + summary.uniqueTargets);
+    const diversity = Object.keys(summary.actionTypes)
+      .map(k => k + ': ' + summary.actionTypes[k])
+      .join(', ');
+    lines.push('Diversity — ' + (diversity || 'n/a'));
+    lines.push('Sequence Changes — single-param: ' + summary.seqSingle + ', multi-param: ' + summary.seqMulti);
+    lines.push('Scenarios — head-on: ' + summary.headOn + ', extremes (mass/speed): ' + summary.extremes);
+    lines.push('');
+    lines.push('Action Log:');
+    return lines.join('
+');
+  }
+
+  function buildPayload(reason) {
+    const actions = xapiState.actions.slice(-80);
+    const scoreInfo = extractScoreFromDom();
+    const metrics = computeMetrics(actions);
+    const summary = {
+      interactions: actions.length,
+      elapsedSec: metrics.elapsedSec,
+      actionTypes: metrics.actionTypes,
+      uniqueTargets: metrics.uniqueTargets,
+      seqSingle: metrics.seqSingle,
+      seqMulti: metrics.seqMulti,
+      headOn: metrics.headOn,
+      extremes: metrics.extremes
+    };
+
+    const feedback = buildFeedback(summary, scoreInfo.score, scoreInfo.max);
+    const actionLog = actions.slice(-12).map(a => {
+      const seconds = Math.max(0, Math.round((a.t - xapiState.startTime) / 1000));
+      const label = a.data && (a.data.text || a.data.id || a.data.name || a.data.tag) ?
+        [a.data.text || '', a.data.id || '', a.data.name || '', a.data.tag || ''].filter(Boolean).join(' ').trim() : '';
+      return { t: seconds, type: a.type, label };
+    });
+
+    return {
+      score: scoreInfo.score != null ? scoreInfo.score : 0,
+      max: scoreInfo.max != null ? scoreInfo.max : null,
+      feedback,
+      reason,
+      startedAt: xapiState.startTime,
+      summary,
+      actionLog,
+      actions,
+      dashboard: captureDashboardSnapshot(),
+      details: {
+        summary,
+        actionLog,
+        dashboard: captureDashboardSnapshot()
+      }
+    };
+  }
+
+  function signatureOfPayload(p) {
+    try {
+      const last = p && p.actions && p.actions.length ? p.actions[p.actions.length - 1] : null;
+      return String(p.reason) + '|' + (p.actions ? p.actions.length : 0) + '|' + (last ? last.t : 0);
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  function flush(reason) {
+    const p = buildPayload(reason);
+    const sig = signatureOfPayload(p);
+    if (sig === flushState.lastSig) return;
+    flushState.lastSig = sig;
+    flushState.lastSentAt = Date.now();
+    safeStore(p);
+  }
+
+  function scheduleFlush(reason, delayMs) {
+    if (flushState.timer) clearTimeout(flushState.timer);
+    const d = typeof delayMs === 'number' ? delayMs : 1200;
+    flushState.timer = setTimeout(() => {
+      flushState.timer = null;
+      // small throttle to avoid flooding
+      if (Date.now() - flushState.lastSentAt < 700) return scheduleFlush(reason, 700);
+      flush(reason);
+    }, d);
+  }
+
+  document.addEventListener('click', (e) => {
+    // Track ALL clicks (not only buttons/links)
+    const t = e.target;
+    if (!t) return;
+    logAction('click', {
+      tag: t.tagName ? String(t.tagName).toLowerCase() : null,
+      id: t.id || null,
+      name: t.name || null,
+      text: (t.textContent || '').trim().substring(0, 80)
+    });
+    scheduleFlush('auto-click');
+  }, true);
+
+  // Also flush when the tab is hidden / page unloads
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flush('pause');
+  });
+  window.addEventListener('beforeunload', () => {
+    try { flush('unload'); } catch (e) {}
+  });
+  function addSaveBtn() {
+    if (document.getElementById('xapi-save-button')) return;
+    const b = document.createElement('button');
+    b.id = 'xapi-save-button';
+    b.textContent = '💾 Save to SLS';
+    b.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;background:#1976d2;color:white;border:none;border-radius:8px;z-index:9999';
+    b.onclick = () => flush('manual-save');
+    document.body.appendChild(b);
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', addSaveBtn); } else { addSaveBtn(); }
+})();
+    </script>
+  </head>
+<body>
+    <!-- Main container for the interactive -->
+    <div id="main-container">
+        
+        <!-- Tooltip for header information (appears on hover over main panel) -->
+        <div id="header-tooltip" class="tooltip">
+            Security Challenges in Globalisation - Interactive Game
+        </div>
+
+        <!-- Game area - main interactive panel -->
+        <div id="game-area">
+            
+            <!-- Scenario display -->
+            <div id="scenario-panel">
+                <div id="scenario-icon">🌍</div>
+                <div id="scenario-text">Click "Start Game" to begin exploring security challenges in our globalised world!</div>
+            </div>
+
+            <!-- Challenge cards container (drag-and-drop area) -->
+            <div id="challenge-cards-container">
+                <h3>Security Challenges</h3>
+                <div id="challenge-cards"></div>
+            </div>
+
+            <!-- Drop zones for categorization -->
+            <div id="drop-zones-container">
+                <h3>Categorize the Challenges</h3>
+                <div id="drop-zones">
+                    <!-- Drop zones will be generated dynamically -->
+                </div>
+            </div>
+
+            <!-- Control buttons -->
+            <div id="controls">
+                <button id="start-btn" class="btn btn-primary">Start Game</button>
+                <button id="check-btn" class="btn btn-success" disabled>Check Answers</button>
+                <button id="reset-btn" class="btn btn-secondary">Reset</button>
+                <button id="hint-btn" class="btn btn-info">Hint</button>
+            </div>
+
+            <!-- Score and progress display -->
+            <div id="score-panel">
+                <div class="score-item">
+                    <span class="score-label">Score:</span>
+                    <span id="score-value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Level:</span>
+                    <span id="level-value">1</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Challenges Solved:</span>
+                    <span id="progress-value">0/0</span>
+                </div>
+            </div>
+
+            <!-- Feedback message area -->
+            <div id="feedback-message"></div>
+
+        </div>
+
+        <!-- Analytics Panel (collapsible) -->
+        <div id="analytics-panel">
+            <div id="analytics-header">
+                <h3>📊 Learning Analytics</h3>
+                <button id="toggle-analytics" class="btn-icon">▼</button>
+            </div>
+            <div id="analytics-content">
+                <div id="analytics-log"></div>
+                <button id="clear-analytics" class="btn btn-small">Clear Log</button>
+            </div>
+        </div>
+
+        <!-- Help/Instructions Modal (hidden by default) -->
+        <div id="help-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>How to Play</h2>
+                <div class="instructions">
+                    <p><strong>Learning Objective:</strong> Understand different types of security challenges that arise from globalisation and how to categorize them.</p>
+                    
+                    <h3>Instructions:</h3>
+                    <ol>
+                        <li>Click <strong>"Start Game"</strong> to begin</li>
+                        <li>Read each security challenge scenario carefully</li>
+                        <li><strong>Drag and drop</strong> each challenge card into the correct category zone</li>
+                        <li>Categories include:
+                            <ul>
+                                <li><strong>Cybersecurity:</strong> Digital threats and online security</li>
+                                <li><strong>Health Security:</strong> Disease spread and pandemics</li>
+                                <li><strong>Economic Security:</strong> Financial crimes and economic threats</li>
+                                <li><strong>Terrorism:</strong> Extremism and terrorist activities</li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>"Check Answers"</strong> when you've placed all cards</li>
+                        <li>Use <strong>"Hint"</strong> if you need help</li>
+                        <li>Progress through levels with increasing difficulty</li>
+                    </ol>
+
+                    <h3>Scoring:</h3>
+                    <ul>
+                        <li>✅ Correct placement: +10 points</li>
+                        <li>❌ Incorrect placement: -5 points</li>
+                        <li>Complete all challenges to advance to the next level</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

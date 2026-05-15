@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singapore Official Language Quiz</title>
+    <style>
+        /* Base and Font Setup */
+        /* CDN import for 'Inter' font has been removed to avoid external dependencies. */
+        :root {
+            /* Color Palette */
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --color-indigo-600: #4f46e5;
+            --color-red-500: #ef4444;
+            --color-red-600: #dc2626;
+            --color-red-700: #b91c1c;
+
+            /* Bin Colors */
+            --color-english-primary: #bfdbfe; /* blue-200 */
+            --color-english-secondary: #eff6ff; /* blue-50 */
+            --color-english-text: #1e40af; /* blue-700 */
+
+            --color-malay-primary: #fee2e2; /* red-100 */
+            --color-malay-secondary: #fef2f2; /* red-50 */
+            --color-malay-text: #991b1b; /* red-800 */
+
+            --color-mandarin-primary: #d1fae5; /* green-100 */
+            --color-mandarin-secondary: #f0fdf4; /* green-50 */
+            --color-mandarin-text: #065f46; /* green-700 */
+
+            --color-tamil-primary: #fef9c3; /* yellow-100 */
+            --color-tamil-secondary: #fffdf5; /* yellow-50 */
+            --color-tamil-text: #a16207; /* yellow-800 */
+        }
+
+        body {
+            /* Using a robust system font stack to replace the 'Inter' CDN */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: var(--color-gray-100);
+            padding: 1rem; /* p-4 */
+        }
+        @media (min-width: 768px) {
+            body {
+                padding: 2rem; /* md:p-8 */
+            }
+        }
+        
+        /* Main Container */
+        .container-main {
+            max-width: 1024px; /* lg:max-w-6xl is about 72rem or 1152px, using 1024px for tighter fit */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Header */
+        .header-title {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 700; /* font-bold */
+            color: var(--color-gray-700);
+            text-align: center;
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+        @media (min-width: 768px) {
+            .header-title {
+                font-size: 1.5rem; /* md:text-2xl */
+            }
+        }
+
+        /* Control Panel */
+        .control-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 1rem; /* p-4 */
+            margin-bottom: 2rem; /* mb-8 */
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            border: 1px solid var(--color-gray-200); /* border border-gray-100 */
+        }
+        .score-text {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 600; /* font-semibold */
+            color: var(--color-gray-800);
+        }
+        @media (min-width: 768px) {
+            .score-text {
+                font-size: 1.25rem; /* md:text-xl */
+            }
+        }
+        #score-display {
+            color: var(--color-indigo-600);
+        }
+        .restart-btn {
+            padding: 0.5rem 1.25rem; /* px-5 py-2 */
+            color: white;
+            font-weight: 600;
+            background-color: var(--color-red-500);
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+            border: none;
+        }
+        .restart-btn:hover {
+            background-color: var(--color-red-600);
+        }
+        .restart-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Draggable Phrases Grid */
+        .phrases-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr)); /* grid-cols-2 */
+            gap: 1rem; /* gap-4 */
+            margin-bottom: 2.5rem; /* mb-10 */
+        }
+        @media (min-width: 640px) {
+            .phrases-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr)); /* sm:grid-cols-3 */
+            }
+        }
+        @media (min-width: 1024px) {
+            .phrases-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr)); /* lg:grid-cols-4 */
+            }
+        }
+
+        /* Drop Bins Grid */
+        .bins-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr)); /* grid-cols-1 */
+            gap: 1.5rem; /* gap-6 */
+        }
+        @media (min-width: 768px) {
+            .bins-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)); /* md:grid-cols-2 */
+            }
+        }
+        @media (min-width: 1024px) {
+            .bins-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr)); /* lg:grid-cols-4 */
+            }
+        }
+
+        /* Language Bin Base Styles */
+        .language-bin {
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .language-bin:hover {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* hover:shadow-2xl */
+        }
+        .bin-header {
+            min-height: 4.5rem; 
+            padding: 1rem; /* p-4 */
+            border-top-left-radius: 0.75rem;
+            border-top-right-radius: 0.75rem;
+        }
+        .bin-header h2 {
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 700; /* font-bold */
+        }
+        .bin-header p {
+            font-size: 0.875rem; /* text-sm */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+        .bin-content {
+            padding: 0.75rem; /* p-3 */
+        }
+        .bin-content p {
+            color: var(--color-gray-700);
+            font-weight: 500;
+        }
+        .bin-phrases {
+            margin-top: 0.5rem; /* mt-2 */
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem; /* space-y-2 */
+        }
+        
+        /* Individual Bin Color Styles */
+        #English-bin .bin-header { background-color: var(--color-english-primary); }
+        #English-bin .bin-header h2, #English-bin .bin-header p { color: var(--color-english-text); }
+        #English-bin .bin-content { background-color: var(--color-english-secondary); }
+
+        #Malay-bin .bin-header { background-color: var(--color-malay-primary); }
+        #Malay-bin .bin-header h2, #Malay-bin .bin-header p { color: var(--color-malay-text); }
+        #Malay-bin .bin-content { background-color: var(--color-malay-secondary); }
+
+        #MandarinChinese-bin .bin-header { background-color: var(--color-mandarin-primary); }
+        #MandarinChinese-bin .bin-header h2, #MandarinChinese-bin .bin-header p { color: var(--color-mandarin-text); }
+        #MandarinChinese-bin .bin-content { background-color: var(--color-mandarin-secondary); }
+
+        #Tamil-bin .bin-header { background-color: var(--color-tamil-primary); }
+        #Tamil-bin .bin-header h2, #Tamil-bin .bin-header p { color: var(--color-tamil-text); }
+        #Tamil-bin .bin-content { background-color: var(--color-tamil-secondary); }
+
+        /* Phrase Card Styles (Draggable Items) */
+        .phrase-card {
+            background-color: white;
+            padding: 1rem; /* p-4 */
+            text-align: center;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* shadow-md */
+            border: 1px solid var(--color-gray-200);
+            color: var(--color-gray-800);
+            font-weight: 500;
+            cursor: grab;
+            transition: all 0.15s ease-in-out;
+            user-select: none;
+            touch-action: none; 
+        }
+        .phrase-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .phrase-card:active {
+            cursor: grabbing;
+        }
+
+        /* Dropped Phrase Style (in the bin) */
+        .phrase-settled {
+            background-color: var(--color-gray-100); /* bg-gray-50 */
+            font-size: 0.875rem; /* text-sm */
+            cursor: default;
+            box-shadow: none;
+            border: 1px dashed var(--color-gray-200); /* border-dashed */
+            padding: 0.5rem;
+        }
+
+        /* Drag Feedback */
+        .drag-over {
+            transform: scale(1.03);
+            border: 3px dashed var(--color-indigo-600);
+            box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.3);
+        }
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        .bin-correct {
+            border: 4px solid #34d399; /* ring-4 ring-green-400 */
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 1.5rem;
+            width: 91.666667%; /* w-11/12 */
+            max-width: 28rem; /* md:max-w-md */
+            margin-left: auto;
+            margin-right: auto;
+            transform: transition-all;
+        }
+        .modal-content h3 {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+        }
+        .modal-content p {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        .modal-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            transition: background-color 0.15s;
+            border: none;
+            cursor: pointer;
+        }
+        #modal-cancel {
+            color: #4b5563;
+            background-color: var(--color-gray-200);
+        }
+        #modal-cancel:hover {
+            background-color: #d1d5db;
+        }
+        #modal-confirm {
+            color: white;
+            background-color: var(--color-red-600);
+        }
+        #modal-confirm:hover {
+            background-color: var(--color-red-700);
+        }
+
+        /* Utility Class added for JavaScript control */
+        .hidden {
+            display: none;
+        }
+    </style>
+<script async="true" src="https://www.googletagmanager.com/gtag/js?id=G-S9EWRY1CPJ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9EWRY1CPJ');
+</script>
+<script data-ad-client="ca-pub-0121577198857509" async="true" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+<body class="">
+
+    <div class="container-main">
+        <!-- Header -->
+        <h1 class="header-title">
+            Drag each phrase to its correct official language bin.
+        </h1>
+
+        <!-- Score and Control Panel -->
+        <div class="control-panel">
+            <div class="score-text">
+                Score: <span id="score-display">0 / 14</span>
+            </div>
+            <button id="restart-game-btn" class="restart-btn">
+                Restart Game
+            </button>
+        </div>
+
+        <!-- Draggable Phrases Container -->
+        <div id="phrases-container" class="phrases-grid">
+            <!-- Phrases will be dynamically inserted here by JavaScript -->
+        </div>
+
+        <!-- Language Drop Bins Container -->
+        <div id="bins-container" class="bins-grid">
+            <!-- English Bin -->
+            <div id="English-bin" class="language-bin" data-language="English">
+                <div class="bin-header">
+                    <h2>English</h2>
+                    <p>Official Language, lingua franca, forms the base of Singlish.</p>
+                </div>
+                <div class="bin-content">
+                    <p class="text-gray-600 font-medium">Phrases here: <span id="English-count">0</span></p>
+                    <div id="English-phrases" class="bin-phrases">
+                        <!-- Dropped phrases go here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Malay Bin -->
+            <div id="Malay-bin" class="language-bin" data-language="Malay">
+                <div class="bin-header">
+                    <h2>Malay</h2>
+                    <p>National Language of Singapore.</p>
+                </div>
+                <div class="bin-content">
+                    <p class="text-gray-600 font-medium">Phrases here: <span id="Malay-count">0</span></p>
+                    <div id="Malay-phrases" class="bin-phrases">
+                        <!-- Dropped phrases go here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mandarin Chinese Bin -->
+            <div id="MandarinChinese-bin" class="language-bin" data-language="Mandarin Chinese">
+                <div class="bin-header">
+                    <h2>Mandarin Chinese</h2>
+                    <p>Official Language, used in the Speak Mandarin Campaign.</p>
+                </div>
+                <div class="bin-content">
+                    <p class="text-gray-600 font-medium">Phrases here: <span id="Mandarin Chinese-count">0</span></p>
+                    <div id="Mandarin Chinese-phrases" class="bin-phrases">
+                        <!-- Dropped phrases go here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tamil Bin -->
+            <div id="Tamil-bin" class="language-bin" data-language="Tamil">
+                <div class="bin-header">
+                    <h2>Tamil</h2>
+                    <p>One of the four official languages (for Indian Singaporeans).</p>
+                </div>
+                <div class="bin-content">
+                    <p class="text-gray-600 font-medium">Phrases here: <span id="Tamil-count">0</span></p>
+                    <div id="Tamil-phrases" class="bin-phrases">
+                        <!-- Dropped phrases go here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal Structure (Hidden by default) -->
+    <div id="confirmation-modal" class="modal-overlay hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <h3 id="modal-title">Restart Game?</h3>
+            <p>Are you sure you want to restart? Your current score will be lost.</p>
+            <div class="modal-actions">
+                <button type="button" id="modal-cancel" class="modal-btn">
+                    Cancel
+                </button>
+                <button type="button" id="modal-confirm" class="modal-btn">
+                    Restart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        const GAME_PHRASES = [
+            { text: "Selamat Pagi", language: "Malay" },
+            { text: "Terima Kasih", language: "Malay" },
+            { text: "Shiok!", language: "English" },
+            { text: "Lah!", language: "English" },
+            { text: "Pardon me?", language: "English" },
+            { text: "Jiak Ba Buay? (吃飯未?)", language: "Mandarin Chinese" },
+            { text: "Hello, how are you?", language: "English" },
+            { text: "Nandri (நன்றி)", language: "Tamil" },
+            { text: "Vanakkam (வணக்கம்)", language: "Tamil" },
+            { text: "Makan!", language: "Malay" },
+            { text: "Sama-sama", language: "Malay" },
+            { text: "Kopi-O", language: "English" },
+            { text: "Ni Hao (你好)", language: "Mandarin Chinese" },
+            { text: "Xie Xie (謝謝)", language: "Mandarin Chinese" },
+        ];
+
+        const phrasesContainer = document.getElementById('phrases-container');
+        const scoreDisplay = document.getElementById('score-display');
+        const restartButton = document.getElementById('restart-game-btn');
+        const modal = document.getElementById('confirmation-modal');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalCancel = document.getElementById('modal-cancel');
+
+        let score = 0;
+        const totalPhrases = GAME_PHRASES.length;
+        const correctPlacements = new Map(); 
+
+        /**
+         * Initializes the game by setting the score, populating the phrase cards,
+         * and setting up event listeners.
+         */
+        function initializeGame() {
+            score = 0;
+            updateScoreDisplay();
+            phrasesContainer.innerHTML = '';
+            correctPlacements.clear();
+
+            // Clear all dropped phrases from bins
+            document.querySelectorAll('.language-bin').forEach(bin => {
+                const language = bin.dataset.language;
+                // Note: The bin structure is .language-bin > .bin-content > .bin-phrases (or #language-phrases)
+                document.getElementById(`${language}-phrases`).innerHTML = '';
+                document.getElementById(`${language}-count`).textContent = '0';
+                // Remove success styling from bins
+                bin.classList.remove('bin-correct');
+            });
+
+            // Shuffle and render phrases
+            const shuffledPhrases = shuffleArray(GAME_PHRASES);
+            shuffledPhrases.forEach((phrase, index) => {
+                const id = `phrase-${index}`;
+                correctPlacements.set(id, phrase.language);
+                phrasesContainer.appendChild(createPhraseCard(id, phrase.text));
+            });
+
+            // Setup drag-and-drop listeners for desktop
+            setupDesktopDragListeners();
+
+            // Setup touch listeners for mobile
+            setupTouchDragListeners();
+
+            // Setup drop zone listeners
+            setupDropZoneListeners();
+
+            // Setup restart button
+            restartButton.onclick = () => showModal();
+        }
+
+        /**
+         * Shuffles an array using the Fisher-Yates algorithm.
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        /**
+         * Creates an individual draggable phrase card.
+         */
+        function createPhraseCard(id, text) {
+            const card = document.createElement('div');
+            card.id = id;
+            card.textContent = text;
+            card.className = 'phrase-card'; // Use only the custom class
+            card.draggable = true;
+            return card;
+        }
+
+        /**
+         * Updates the score display and checks for game completion.
+         */
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = `${score} / ${totalPhrases}`;
+            if (score === totalPhrases) {
+                setTimeout(() => {
+                    // Using a non-blocking UI alert style
+                    const gameCompleteMessage = document.createElement('div');
+                    // Note: This message uses fixed positioning based on original Tailwind classes.
+                    // Translated original utility classes to pure CSS styles
+                    Object.assign(gameCompleteMessage.style, {
+                        position: 'fixed',
+                        top: '1rem', /* mt-4 */
+                        left: '50%',
+                        transform: 'translateX(-50%)', /* -translate-x-1/2 */
+                        padding: '1rem', /* p-4 */
+                        backgroundColor: 'var(--color-indigo-600)',
+                        color: 'white',
+                        borderRadius: '0.5rem', /* rounded-lg */
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', /* shadow-xl */
+                        zIndex: '50',
+                        transition: 'opacity 0.5s ease-in-out',
+                        opacity: '1'
+                    });
+                    gameCompleteMessage.textContent = 'Congratulations! You correctly categorized all the phrases!';
+                    document.body.appendChild(gameCompleteMessage);
+                    setTimeout(() => {
+                        gameCompleteMessage.style.opacity = '0';
+                        setTimeout(() => gameCompleteMessage.remove(), 500); // Wait for fade-out before removal
+                    }, 3500);
+                }, 100);
+            }
+        }
+
+        // --- Desktop Drag and Drop Handlers (Drag Events) ---
+
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.dataTransfer.setData('text/plain', e.target.id);
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); 
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (e.target.closest('.language-bin')) {
+                e.target.closest('.language-bin').classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            if (e.target.closest('.language-bin')) {
+                e.target.closest('.language-bin').classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const bin = e.target.closest('.language-bin');
+            if (!bin) return;
+
+            bin.classList.remove('drag-over');
+
+            const phraseId = e.dataTransfer.getData('text/plain');
+            const phraseElement = document.getElementById(phraseId);
+            if (!phraseElement) return;
+
+            processDrop(phraseElement, bin);
+        }
+
+        /**
+         * Core logic for processing a successful drop.
+         */
+        function processDrop(phraseElement, binElement) {
+            const droppedLanguage = binElement.dataset.language;
+            const correctLanguage = correctPlacements.get(phraseElement.id);
+            const targetPhraseList = document.getElementById(`${droppedLanguage}-phrases`);
+
+            // Check if the phrase is already in a bin (prevent re-scoring if moved between bins)
+            const isCurrentlyInBin = phraseElement.parentElement.closest('.language-bin');
+
+            // If moving from one bin to another, check if the old bin had the correct answer
+            if (isCurrentlyInBin) {
+                const oldLanguage = isCurrentlyInBin.dataset.language;
+                if (oldLanguage === correctLanguage) {
+                    score--; // Decrement score if moving a correctly placed item
+                    // Remove success class from old bin
+                    isCurrentlyInBin.classList.remove('bin-correct');
+                }
+            }
+
+            // Move the element to the new bin's phrase list
+            targetPhraseList.appendChild(phraseElement);
+
+            // Update the new bin's count
+            document.getElementById(`${droppedLanguage}-count`).textContent = targetPhraseList.children.length;
+
+            // Update the count for the old bin (if applicable)
+            if (isCurrentlyInBin) {
+                // Get the count element within the old bin's body
+                const oldBinCount = document.getElementById(`${isCurrentlyInBin.dataset.language}-count`);
+                const oldPhraseList = document.getElementById(`${isCurrentlyInBin.dataset.language}-phrases`);
+                if (oldBinCount) {
+                    oldBinCount.textContent = oldPhraseList.children.length;
+                }
+            }
+
+
+            // Check for correctness and update score/visuals
+            if (droppedLanguage === correctLanguage) {
+                score++;
+                // Add success class to the correct bin
+                binElement.classList.add('bin-correct');
+            } else {
+                // Remove success class if placed incorrectly
+                binElement.classList.remove('bin-correct');
+            }
+
+            updateScoreDisplay();
+
+            // Make the phrase card look settled in the bin
+            phraseElement.classList.remove('phrase-card'); // Remove draggable card style
+            phraseElement.classList.add('phrase-settled'); // Add settled style
+            phraseElement.draggable = false;
+        }
+
+
+        // --- Touch Drag and Drop Handlers (Mobile Support) ---
+
+        let touchDraggedElement = null;
+        let originalParent = null;
+
+        function handleTouchStart(e) {
+            const touch = e.touches[0];
+            const target = e.target.closest('.phrase-card');
+            if (!target) return;
+
+            e.preventDefault(); 
+            touchDraggedElement = target;
+            originalParent = target.parentElement;
+
+            // Using pure CSS styles instead of utility classes for fixed positioning
+            touchDraggedElement.classList.add('dragging');
+            touchDraggedElement.style.position = 'fixed'; 
+            touchDraggedElement.style.zIndex = '40';
+
+            // Positioning the fixed element under the touch
+            const rect = touchDraggedElement.getBoundingClientRect();
+            touchDraggedElement.style.width = `${rect.width}px`;
+            touchDraggedElement.style.height = `${rect.height}px`;
+            touchDraggedElement.style.left = `${touch.clientX - rect.width / 2}px`;
+            touchDraggedElement.style.top = `${touch.clientY - rect.height / 2}px`;
+        }
+
+        function handleTouchMove(e) {
+            if (!touchDraggedElement) return;
+
+            const touch = e.touches[0];
+            touchDraggedElement.style.left = `${touch.clientX - touchDraggedElement.offsetWidth / 2}px`;
+            touchDraggedElement.style.top = `${touch.clientY - touchDraggedElement.offsetHeight / 2}px`;
+
+            // Visual feedback for bins
+            const bins = document.querySelectorAll('.language-bin');
+            bins.forEach(bin => {
+                const binRect = bin.getBoundingClientRect();
+                if (
+                    touch.clientX > binRect.left &&
+                    touch.clientX < binRect.right &&
+                    touch.clientY > binRect.top &&
+                    touch.clientY < binRect.bottom
+                ) {
+                    bin.classList.add('drag-over');
+                } else {
+                    bin.classList.remove('drag-over');
+                }
+            });
+        }
+
+        function handleTouchEnd(e) {
+            if (!touchDraggedElement) return;
+
+            // Remove temporary fixed styles
+            touchDraggedElement.classList.remove('dragging');
+            touchDraggedElement.style.position = '';
+            touchDraggedElement.style.zIndex = '';
+            touchDraggedElement.style.width = '';
+            touchDraggedElement.style.height = '';
+            touchDraggedElement.style.left = '';
+            touchDraggedElement.style.top = '';
+
+            const touch = e.changedTouches[0];
+            let targetBin = null;
+            const bins = document.querySelectorAll('.language-bin');
+
+            // Find which bin the drop occurred over
+            for (const bin of bins) {
+                bin.classList.remove('drag-over'); 
+                const binRect = bin.getBoundingClientRect();
+                if (
+                    touch.clientX > binRect.left &&
+                    touch.clientX < binRect.right &&
+                    touch.clientY > binRect.top &&
+                    touch.clientY < binRect.bottom
+                ) {
+                    targetBin = bin;
+                    break;
+                }
+            }
+
+            if (targetBin) {
+                // Successful drop
+                processDrop(touchDraggedElement, targetBin);
+            } else {
+                // Return the element to its original parent if drop was outside a bin
+                originalParent.appendChild(touchDraggedElement);
+            }
+
+            touchDraggedElement = null;
+            originalParent = null;
+        }
+
+        // --- Setup Functions ---
+
+        function setupDesktopDragListeners() {
+            document.querySelectorAll('.phrase-card').forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        function setupTouchDragListeners() {
+            // Use event delegation on the container for efficiency
+            phrasesContainer.addEventListener('touchstart', handleTouchStart);
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', handleTouchEnd);
+        }
+
+        function setupDropZoneListeners() {
+            document.querySelectorAll('.language-bin').forEach(bin => {
+                bin.addEventListener('dragover', handleDragOver);
+                bin.addEventListener('dragenter', handleDragEnter);
+                bin.addEventListener('dragleave', handleDragLeave);
+                bin.addEventListener('drop', handleDrop);
+            });
+        }
+
+        // --- Modal Control ---
+
+        function showModal() {
+            modal.classList.remove('hidden');
+        }
+
+        function hideModal() {
+            modal.classList.add('hidden');
+        }
+
+        modalCancel.onclick = hideModal;
+        modalConfirm.onclick = () => {
+            hideModal();
+            initializeGame();
+        };
+        modal.onclick = (e) => {
+            if (e.target.id === 'confirmation-modal') {
+                hideModal();
+            }
+        };
+
+        // Initialize the game when the window loads
+        window.onload = initializeGame;
+
+    </script>
+<!-- AIzipper Custom Footer Start -->
+<div class="aizipper-custom-footer">
+<p>add credit: made by lookang, using Gemini 2.5 Pro
+for more resource URL <a href="https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mother-tongue-languages/chinese" target="_blank" rel="noopener noreferrer">https://sg.iwant2study.org/ospsg/index.php/interactive-resources/mother-tongue-languages/chinese</a></p>
+</div>
+<!-- AIzipper Custom Footer End -->
+</body>
+</html>

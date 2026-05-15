@@ -1,0 +1,696 @@
+// ============================================
+// EDM DRUM SEQUENCER - Main Application
+// ============================================
+
+// Audio Context Setup
+// Create Web Audio API context for sound generation
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioContext = new AudioContext();
+
+// ============================================
+// DRUM SOUND SYNTHESIS
+// ============================================
+
+// Drum sound definitions with their synthesis parameters
+const drumSounds = {
+    kick: { name: 'Kick', color: '#ff6b6b' },
+    snare: { name: 'Snare', color: '#4ecdc4' },
+    hihat: { name: 'Hi-Hat', color: '#ffe66d' },
+    openhat: { name: 'Open Hat', color: '#ffb347' },
+    clap: { name: 'Clap', color: '#95e1d3' },
+    crash: { name: 'Crash', color: '#f38181' },
+    perc: { name: 'Perc', color: '#aa96da' }
+};
+
+// Synthesize kick drum sound using oscillators
+function createKick(time, filterCutoff, filterResonance, volume) {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    
+    // Kick uses a pitch envelope from high to low
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(40, time + 0.5);
+    
+    // Apply filter with user-controlled parameters
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterCutoff * 100, time);
+    filter.Q.setValueAtTime(filterResonance * 10, time);
+    
+    // Volume envelope for punch
+    gain.gain.setValueAtTime(volume, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    osc.start(time);
+    osc.stop(time + 0.5);
+}
+
+// Synthesize snare drum using noise and oscillator
+function createSnare(time, filterCutoff, filterResonance, volume) {
+    // Noise component for snare body
+    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.3, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseBuffer.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+    
+    const noiseFilter = audioContext.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.setValueAtTime(1000 * (filterCutoff / 100), time);
+    noiseFilter.Q.setValueAtTime(filterResonance * 5, time);
+    
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.setValueAtTime(volume * 0.7, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+    
+    // Tonal component for snare snap
+    const osc = audioContext.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(200, time);
+    
+    const oscGain = audioContext.createGain();
+    oscGain.gain.setValueAtTime(volume * 0.3, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+    
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+    
+    osc.connect(oscGain);
+    oscGain.connect(audioContext.destination);
+    
+    noise.start(time);
+    noise.stop(time + 0.3);
+    osc.start(time);
+    osc.stop(time + 0.1);
+}
+
+// Synthesize closed hi-hat using filtered noise
+function createHiHat(time, filterCutoff, filterResonance, volume) {
+    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.05, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseBuffer.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+    
+    const filter = audioContext.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(7000 * (filterCutoff / 100), time);
+    filter.Q.setValueAtTime(filterResonance * 10, time);
+    
+    const gain = audioContext.createGain();
+    gain.gain.setValueAtTime(volume * 0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    noise.start(time);
+    noise.stop(time + 0.05);
+}
+
+// Synthesize open hi-hat with longer decay
+function createOpenHat(time, filterCutoff, filterResonance, volume) {
+    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.3, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseBuffer.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+    
+    const filter = audioContext.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(6000 * (filterCutoff / 100), time);
+    filter.Q.setValueAtTime(filterResonance * 8, time);
+    
+    const gain = audioContext.createGain();
+    gain.gain.setValueAtTime(volume * 0.4, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    noise.start(time);
+    noise.stop(time + 0.3);
+}
+
+// Synthesize clap using multiple noise bursts
+function createClap(time, filterCutoff, filterResonance, volume) {
+    // Create multiple short noise bursts for clap effect
+    for (let i = 0; i < 3; i++) {
+        const delay = i * 0.015;
+        const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.05, audioContext.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let j = 0; j < noiseBuffer.length; j++) {
+            noiseData[j] = Math.random() * 2 - 1;
+        }
+        
+        const noise = audioContext.createBufferSource();
+        noise.buffer = noiseBuffer;
+        
+        const filter = audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1500 * (filterCutoff / 100), time + delay);
+        filter.Q.setValueAtTime(filterResonance * 5, time + delay);
+        
+        const gain = audioContext.createGain();
+        gain.gain.setValueAtTime(volume * 0.3, time + delay);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + delay + 0.05);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        noise.start(time + delay);
+        noise.stop(time + delay + 0.05);
+    }
+}
+
+// Synthesize crash cymbal using filtered noise
+function createCrash(time, filterCutoff, filterResonance, volume) {
+    const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 2, audioContext.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseBuffer.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+    }
+    
+    const noise = audioContext.createBufferSource();
+    noise.buffer = noiseBuffer;
+    
+    const filter = audioContext.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(3000 * (filterCutoff / 100), time);
+    filter.Q.setValueAtTime(filterResonance * 3, time);
+    
+    const gain = audioContext.createGain();
+    gain.gain.setValueAtTime(volume * 0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 2);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    noise.start(time);
+    noise.stop(time + 2);
+}
+
+// Synthesize percussion sound using tuned oscillator
+function createPerc(time, filterCutoff, filterResonance, volume) {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const filter = audioContext.createBiquadFilter();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, time);
+    osc.frequency.exponentialRampToValueAtTime(400, time + 0.1);
+    
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterCutoff * 50, time);
+    filter.Q.setValueAtTime(filterResonance * 5, time);
+    
+    gain.gain.setValueAtTime(volume * 0.4, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    osc.start(time);
+    osc.stop(time + 0.1);
+}
+
+// Map drum types to their synthesis functions
+const drumFunctions = {
+    kick: createKick,
+    snare: createSnare,
+    hihat: createHiHat,
+    openhat: createOpenHat,
+    clap: createClap,
+    crash: createCrash,
+    perc: createPerc
+};
+
+// ============================================
+// SEQUENCER STATE MANAGEMENT
+// ============================================
+
+// Global state object
+const state = {
+    isPlaying: false,
+    currentStep: 0,
+    tempo: 120,
+    swing: 0,
+    selectedTrack: null,
+    tracks: {},
+    intervalId: null
+};
+
+// Initialize tracks with default parameters
+Object.keys(drumSounds).forEach(drumType => {
+    state.tracks[drumType] = {
+        steps: new Array(16).fill(false),
+        volume: 0.7,
+        filterCutoff: 100,
+        filterResonance: 0
+    };
+});
+
+// ============================================
+// UI INITIALIZATION
+// ============================================
+
+// Create the sequencer grid UI
+function initializeUI() {
+    const tracksContainer = document.getElementById('tracksContainer');
+    
+    // Create a row for each drum sound
+    Object.keys(drumSounds).forEach(drumType => {
+        const trackRow = document.createElement('div');
+        trackRow.className = 'track-row';
+        trackRow.dataset.drum = drumType;
+        
+        // Track label and controls
+        const trackLabel = document.createElement('div');
+        trackLabel.className = 'track-label';
+        
+        const trackName = document.createElement('div');
+        trackName.className = 'track-name';
+        trackName.textContent = drumSounds[drumType].name;
+        trackName.title = `Click to select ${drumSounds[drumType].name} track for filter control`;
+        trackName.addEventListener('click', () => selectTrack(drumType));
+        
+        const volumeControl = document.createElement('div');
+        volumeControl.className = 'volume-control';
+        volumeControl.title = `Volume control for ${drumSounds[drumType].name}`;
+        
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.min = '0';
+        volumeSlider.max = '100';
+        volumeSlider.value = '70';
+        volumeSlider.addEventListener('input', (e) => {
+            state.tracks[drumType].volume = e.target.value / 100;
+            volumeValue.textContent = e.target.value;
+        });
+        
+        const volumeValue = document.createElement('span');
+        volumeValue.className = 'volume-value';
+        volumeValue.textContent = '70';
+        
+        volumeControl.appendChild(volumeSlider);
+        volumeControl.appendChild(volumeValue);
+        
+        trackLabel.appendChild(trackName);
+        trackLabel.appendChild(volumeControl);
+        
+        // Create 16 step buttons
+        const stepsContainer = document.createElement('div');
+        stepsContainer.className = 'steps';
+        
+        for (let i = 0; i < 16; i++) {
+            const step = document.createElement('div');
+            step.className = 'step';
+            step.dataset.step = i;
+            step.title = `Step ${i + 1} - Click to toggle`;
+            
+            // Toggle step on click
+            step.addEventListener('click', () => {
+                state.tracks[drumType].steps[i] = !state.tracks[drumType].steps[i];
+                step.classList.toggle('active', state.tracks[drumType].steps[i]);
+            });
+            
+            stepsContainer.appendChild(step);
+        }
+        
+        trackRow.appendChild(trackLabel);
+        trackRow.appendChild(stepsContainer);
+        tracksContainer.appendChild(trackRow);
+    });
+}
+
+// ============================================
+// TRACK SELECTION AND FILTER CONTROL
+// ============================================
+
+// Select a track for filter editing
+function selectTrack(drumType) {
+    state.selectedTrack = drumType;
+    
+    // Update UI to show selected track
+    document.querySelectorAll('.track-row').forEach(row => {
+        row.classList.remove('selected');
+    });
+    document.querySelector(`[data-drum="${drumType}"]`).classList.add('selected');
+    
+    // Update filter display
+    document.getElementById('filterTrackName').textContent = drumSounds[drumType].name;
+    
+    // Update knob positions
+    updateKnob('cutoffKnob', state.tracks[drumType].filterCutoff);
+    updateKnob('resonanceKnob', state.tracks[drumType].filterResonance);
+}
+
+// Update knob visual position
+function updateKnob(knobId, value) {
+    const knob = document.getElementById(knobId);
+    const indicator = knob.querySelector('.knob-indicator');
+    const valueDisplay = document.getElementById(knobId.replace('Knob', 'Value'));
+    
+    knob.dataset.value = value;
+    const rotation = (value / 100) * 270 - 135; // -135° to +135°
+    indicator.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+    indicator.style.transformOrigin = 'center bottom';
+    valueDisplay.textContent = Math.round(value) + '%';
+}
+
+// Initialize knob interactions
+function initializeKnobs() {
+    const knobs = document.querySelectorAll('.knob');
+    
+    knobs.forEach(knob => {
+        let isDragging = false;
+        let startY = 0;
+        let startValue = 0;
+        
+        const onMove = (clientY) => {
+            if (!isDragging || !state.selectedTrack) return;
+            
+            const deltaY = startY - clientY;
+            let newValue = startValue + (deltaY * 0.5);
+            newValue = Math.max(0, Math.min(100, newValue));
+            
+            const param = knob.id.replace('Knob', '');
+            const paramName = 'filter' + param.charAt(0).toUpperCase() + param.slice(1);
+            state.tracks[state.selectedTrack][paramName] = newValue;
+            
+            updateKnob(knob.id, newValue);
+        };
+        
+        // Mouse events
+        knob.addEventListener('mousedown', (e) => {
+            if (!state.selectedTrack) {
+                showTooltip('Please select a track first by clicking on a track name');
+                return;
+            }
+            isDragging = true;
+            startY = e.clientY;
+            startValue = parseFloat(knob.dataset.value);
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            onMove(e.clientY);
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        // Touch events
+        knob.addEventListener('touchstart', (e) => {
+            if (!state.selectedTrack) {
+                showTooltip('Please select a track first by clicking on a track name');
+                return;
+            }
+            isDragging = true;
+            startY = e.touches[0].clientY;
+            startValue = parseFloat(knob.dataset.value);
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                onMove(e.touches[0].clientY);
+            }
+        });
+        
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+    });
+}
+
+// ============================================
+// SEQUENCER PLAYBACK ENGINE
+// ============================================
+
+// Calculate step timing with swing
+function getStepTime(step, tempo, swing) {
+    const beatDuration = 60 / tempo;
+    const sixteenthNote = beatDuration / 4;
+    
+    // Apply swing to odd-numbered steps
+    if (step % 2 === 1 && swing > 0) {
+        const swingAmount = (swing / 100) * sixteenthNote * 0.5;
+        return (step * sixteenthNote) + swingAmount;
+    }
+    
+    return step * sixteenthNote;
+}
+
+// Start sequencer playback
+function play() {
+    if (state.isPlaying) {
+        pause();
+        return;
+    }
+    
+    // Resume audio context if suspended
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+    
+    state.isPlaying = true;
+    document.getElementById('playBtn').classList.add('playing');
+    document.getElementById('playBtn').textContent = '❚❚';
+    
+    const stepDuration = (60 / state.tempo) / 4 * 1000; // Convert to milliseconds
+    
+    state.intervalId = setInterval(() => {
+        playStep(state.currentStep);
+        state.currentStep = (state.currentStep + 1) % 16;
+    }, stepDuration);
+}
+
+// Pause playback
+function pause() {
+    state.isPlaying = false;
+    clearInterval(state.intervalId);
+    document.getElementById('playBtn').classList.remove('playing');
+    document.getElementById('playBtn').textContent = '▶';
+    clearCurrentStepHighlight();
+}
+
+// Stop playback and reset
+function stop() {
+    pause();
+    state.currentStep = 0;
+    clearCurrentStepHighlight();
+}
+
+// Play a single step
+function playStep(step) {
+    const currentTime = audioContext.currentTime;
+    
+    // Highlight current step
+    clearCurrentStepHighlight();
+    document.querySelectorAll(`[data-step="${step}"]`).forEach(stepEl => {
+        stepEl.classList.add('current');
+    });
+    
+    // Play active steps for each track
+    Object.keys(state.tracks).forEach(drumType => {
+        if (state.tracks[drumType].steps[step]) {
+            const stepEl = document.querySelector(`[data-drum="${drumType}"] [data-step="${step}"]`);
+            stepEl.classList.add('playing');
+            setTimeout(() => stepEl.classList.remove('playing'), 100);
+            
+            // Trigger drum sound
+            const drumFunc = drumFunctions[drumType];
+            if (drumFunc) {
+                drumFunc(
+                    currentTime,
+                    state.tracks[drumType].filterCutoff,
+                    state.tracks[drumType].filterResonance,
+                    state.tracks[drumType].volume
+                );
+            }
+        }
+    });
+}
+
+// Clear step highlighting
+function clearCurrentStepHighlight() {
+    document.querySelectorAll('.step.current').forEach(step => {
+        step.classList.remove('current');
+    });
+}
+
+// ============================================
+// PATTERN MANAGEMENT
+// ============================================
+
+// Clear all steps
+function clearPattern() {
+    Object.keys(state.tracks).forEach(drumType => {
+        state.tracks[drumType].steps.fill(false);
+    });
+    updateStepDisplay();
+}
+
+// Generate random pattern
+function randomPattern() {
+    Object.keys(state.tracks).forEach(drumType => {
+        for (let i = 0; i < 16; i++) {
+            state.tracks[drumType].steps[i] = Math.random() > 0.7;
+        }
+    });
+    updateStepDisplay();
+}
+
+// Update step button display
+function updateStepDisplay() {
+    Object.keys(state.tracks).forEach(drumType => {
+        state.tracks[drumType].steps.forEach((active, i) => {
+            const stepEl = document.querySelector(`[data-drum="${drumType}"] [data-step="${i}"]`);
+            stepEl.classList.toggle('active', active);
+        });
+    });
+}
+
+// ============================================
+// PRESET PATTERNS
+// ============================================
+
+const presets = {
+    fourOnFloor: {
+        kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+        snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        hihat: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+        openhat: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        clap: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        crash: [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        perc: [0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1]
+    },
+    breakbeat: {
+        kick: [1,0,0,0,0,0,1,0,0,1,0,0,0,0,1,0],
+        snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        hihat: [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1],
+        openhat: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+        clap: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        crash: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        perc: [0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,0]
+    },
+    techno: {
+        kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+        snare: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        hihat: [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],
+        openhat: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        clap: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        crash: [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+        perc: [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1]
+    },
+    house: {
+        kick: [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+        snare: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        hihat: [0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],
+        openhat: [0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+        clap: [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+        crash: [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        perc: [0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0]
+    },
+    dnb: {
+        kick: [1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
+        snare: [0,0,0,0,1,0,0,0,0,0,1,0,1,0,0,0],
+        hihat: [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
+        openhat: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        clap: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        crash: [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        perc: [0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,1]
+    }
+};
+
+// Load preset pattern
+function loadPreset(presetName) {
+    if (!presets[presetName]) return;
+    
+    const preset = presets[presetName];
+    Object.keys(preset).forEach(drumType => {
+        state.tracks[drumType].steps = preset[drumType].map(v => v === 1);
+    });
+    updateStepDisplay();
+}
+
+// ============================================
+// TOOLTIP SYSTEM
+// ============================================
+
+function showTooltip(text) {
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = text;
+    tooltip.classList.add('show');
+    setTimeout(() => {
+        tooltip.classList.remove('show');
+    }, 2000);
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
+document.getElementById('playBtn').addEventListener('click', play);
+document.getElementById('stopBtn').addEventListener('click', stop);
+
+document.getElementById('tempoSlider').addEventListener('input', (e) => {
+    state.tempo = parseInt(e.target.value);
+    document.getElementById('tempoValue').textContent = state.tempo;
+    
+    // Restart playback with new tempo if playing
+    if (state.isPlaying) {
+        pause();
+        play();
+    }
+});
+
+document.getElementById('swingSlider').addEventListener('input', (e) => {
+    state.swing = parseInt(e.target.value);
+    document.getElementById('swingValue').textContent = state.swing + '%';
+});
+
+document.getElementById('clearBtn').addEventListener('click', clearPattern);
+document.getElementById('randomBtn').addEventListener('click', randomPattern);
+
+document.getElementById('presetSelect').addEventListener('change', (e) => {
+    if (e.target.value) {
+        loadPreset(e.target.value);
+        e.target.value = '';
+    }
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+// Initialize the application
+initializeUI();
+initializeKnobs();
+
+// Show welcome tooltip
+setTimeout(() => {
+    showTooltip('Welcome! Click track names to select, then adjust filters. Click steps to program beats. Press Play to start!');
+}, 500);

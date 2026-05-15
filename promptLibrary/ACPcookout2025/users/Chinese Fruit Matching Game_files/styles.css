@@ -1,0 +1,469 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Container with responsive height */
+.container {
+    width: 100%;
+    height: 450px; /* Default iframe height */
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Full screen mode detection */
+@media (min-height: 600px) and (min-width: 800px) {
+    .container {
+        height: 90vh;
+        padding: 20px;
+    }
+}
+
+/* Progress bar styling */
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    cursor: help;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+.progress-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+/* Game area layout */
+.game-area {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+    min-height: 0;
+}
+
+.fruit-cards-section,
+.matching-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    text-align: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    cursor: help;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Fruit cards styling */
+.fruit-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    flex: 1;
+}
+
+.fruit-card {
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    cursor: grab;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 2px solid transparent;
+    user-select: none;
+    touch-action: none;
+}
+
+.fruit-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fruit-card:active {
+    cursor: grabbing;
+    transform: scale(1.05);
+}
+
+.fruit-card.dragging {
+    opacity: 0.7;
+    transform: rotate(5deg) scale(1.1);
+    z-index: 1000;
+}
+
+.fruit-emoji {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Modified: Hide the Chinese text under fruit emojis */
+.fruit-name {
+    display: none;
+}
+
+/* Matching boxes styling */
+.matching-boxes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    flex: 1;
+}
+
+.matching-box {
+    background: rgba(255, 255, 255, 0.9);
+    border: 3px dashed #ccc;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.matching-box.drag-over {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+    transform: scale(1.02);
+}
+
+.matching-box.correct {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.2);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.matching-box.incorrect {
+    border-color: #f44336;
+    background: rgba(244, 67, 54, 0.1);
+    animation: shake 0.5s ease-in-out;
+}
+
+.chinese-character {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.fruit-hint {
+    font-size: 12px;
+    color: #666;
+    opacity: 0.8;
+}
+
+/* Feedback icons */
+.feedback-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.matching-box.correct .feedback-icon {
+    opacity: 1;
+}
+
+.matching-box.incorrect .feedback-icon {
+    opacity: 1;
+}
+
+/* Controls styling */
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.controls button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-height: 44px; /* Touch-friendly size */
+    white-space: nowrap;
+}
+
+.help-btn {
+    background: linear-gradient(135deg, #FFC107, #FF9800);
+    color: white;
+}
+
+.submit-btn {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.reset-btn {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+}
+
+.controls button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.controls button:active {
+    transform: translateY(0);
+}
+
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: white;
+    margin: 10% auto;
+    padding: 0;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px 15px 0 0;
+    position: relative;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.close-btn {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.modal-body ul {
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+.hint-examples {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.score-display {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #4CAF50;
+}
+
+.encouragement {
+    text-align: center;
+    font-size: 16px;
+    color: #333;
+}
+
+.modal-footer {
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #eee;
+}
+
+.modal-btn {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Tooltip styling */
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 1500;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 200px;
+    text-align: center;
+}
+
+/* Animations */
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.correct .feedback-icon {
+    animation: bounce 0.6s ease;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 8px;
+    }
+    
+    .game-area {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .fruit-cards,
+    .matching-boxes {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .section-title {
+        font-size: 14px;
+        padding: 6px;
+    }
+    
+    .chinese-character {
+        font-size: 20px;
+    }
+    
+    .fruit-emoji {
+        font-size: 32px;
+    }
+    
+    .controls button {
+        font-size: 12px;
+        padding: 8px 16px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .fruit-card {
+        border: 2px solid #000;
+    }
+    
+    .matching-box {
+        border-width: 4px;
+    }
+    
+    .section-title {
+        border: 2px solid #333;
+    }
+}

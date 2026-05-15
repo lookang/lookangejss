@@ -1,0 +1,531 @@
+// ===================================
+// GLOBAL VARIABLES & INITIALIZATION
+// ===================================
+
+// Canvas and context
+let canvas, ctx;
+
+// Current state
+let currentTexture = 'monophony';
+let isPlaying = false;
+let tempo = 120;
+let volume = 70;
+
+// Animation variables
+let animationFrame;
+let startTime = 0;
+let elapsedTime = 0;
+
+// Analytics
+let sessionStartTime = Date.now();
+let actionLog = [];
+
+// Texture definitions with educational content
+const textures = {
+    monophony: {
+        title: 'Monophony',
+        description: 'A single melodic line with no accompaniment. The simplest musical texture.',
+        example: 'Example: Gregorian chant, solo flute melody, unison singing',
+        voices: 1,
+        color: '#667eea'
+    },
+    homophony: {
+        title: 'Homophony',
+        description: 'One main melody with harmonic accompaniment. Most common in popular music.',
+        example: 'Example: Singer with guitar chords, hymns, pop songs',
+        voices: 4,
+        color: '#f093fb'
+    },
+    polyphony: {
+        title: 'Polyphony',
+        description: 'Multiple independent melodic lines played simultaneously. Complex and rich texture.',
+        example: 'Example: Fugues, rounds like "Row Your Boat", Renaissance motets',
+        voices: 3,
+        color: '#4facfe'
+    },
+    heterophony: {
+        title: 'Heterophony',
+        description: 'Simultaneous variations of the same melody. Common in Asian music traditions.',
+        example: 'Example: Gamelan music, Chinese traditional ensembles',
+        voices: 2,
+        color: '#fa709a'
+    }
+};
+
+// ===================================
+// INITIALIZATION
+// ===================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCanvas();
+    initializeControls();
+    initializeAnalytics();
+    updateVisualization();
+    logAction('🎵 Interactive Started', 'Session initialized');
+});
+
+// ===================================
+// CANVAS INITIALIZATION
+// ===================================
+
+function initializeCanvas() {
+    canvas = document.getElementById('textureCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // Set canvas size to match container
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+}
+
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    updateVisualization();
+}
+
+// ===================================
+// CONTROL INITIALIZATION
+// ===================================
+
+function initializeControls() {
+    // Texture buttons
+    const textureButtons = document.querySelectorAll('.texture-btn');
+    textureButtons.forEach(btn => {
+        btn.addEventListener('click', () => handleTextureChange(btn));
+        // Touch support
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            handleTextureChange(btn);
+        });
+    });
+    
+    // Play button
+    const playBtn = document.getElementById('playBtn');
+    playBtn.addEventListener('click', handlePlay);
+    playBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handlePlay();
+    });
+    
+    // Stop button
+    const stopBtn = document.getElementById('stopBtn');
+    stopBtn.addEventListener('click', handleStop);
+    stopBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleStop();
+    });
+    
+    // Reset button
+    const resetBtn = document.getElementById('resetBtn');
+    resetBtn.addEventListener('click', handleReset);
+    resetBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        handleReset();
+    });
+    
+    // Tempo slider
+    const tempoSlider = document.getElementById('tempoSlider');
+    tempoSlider.addEventListener('input', handleTempoChange);
+    tempoSlider.addEventListener('touchmove', handleTempoChange);
+    
+    // Volume slider
+    const volumeSlider = document.getElementById('volumeSlider');
+    volumeSlider.addEventListener('input', handleVolumeChange);
+    volumeSlider.addEventListener('touchmove', handleVolumeChange);
+    
+    // Analytics toggle
+    const toggleAnalytics = document.getElementById('toggleAnalytics');
+    toggleAnalytics.addEventListener('click', toggleAnalyticsPanel);
+    
+    // Clear log button
+    const clearLog = document.getElementById('clearLog');
+    clearLog.addEventListener('click', clearActionLog);
+}
+
+// ===================================
+// EVENT HANDLERS
+// ===================================
+
+function handleTextureChange(btn) {
+    // Remove active class from all buttons
+    document.querySelectorAll('.texture-btn').forEach(b => b.classList.remove('active'));
+    
+    // Add active class to clicked button
+    btn.classList.add('active');
+    
+    // Update current texture
+    currentTexture = btn.dataset.texture;
+    
+    // Update description
+    updateDescription();
+    
+    // Update visualization
+    updateVisualization();
+    
+    // Log action
+    logAction('🎼 Texture Changed', `Selected: ${textures[currentTexture].title}`, `Voices: ${textures[currentTexture].voices}`);
+}
+
+function handlePlay() {
+    if (!isPlaying) {
+        isPlaying = true;
+        startTime = Date.now();
+        animate();
+        logAction('▶ Play Started', `Playing ${textures[currentTexture].title}`, `Tempo: ${tempo} BPM, Volume: ${volume}%`);
+    }
+}
+
+function handleStop() {
+    if (isPlaying) {
+        isPlaying = false;
+        cancelAnimationFrame(animationFrame);
+        logAction('■ Play Stopped', `Stopped at ${elapsedTime.toFixed(1)}s`, '');
+    }
+}
+
+function handleReset() {
+    // Reset all values
+    isPlaying = false;
+    cancelAnimationFrame(animationFrame);
+    tempo = 120;
+    volume = 70;
+    currentTexture = 'monophony';
+    elapsedTime = 0;
+    
+    // Reset UI
+    document.getElementById('tempoSlider').value = 120;
+    document.getElementById('tempoValue').textContent = 120;
+    document.getElementById('volumeSlider').value = 70;
+    document.getElementById('volumeValue').textContent = 70;
+    
+    // Reset texture buttons
+    document.querySelectorAll('.texture-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.texture === 'monophony') {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update display
+    updateDescription();
+    updateVisualization();
+    
+    logAction('↻ Reset', 'All values reset to default', 'Monophony, 120 BPM, 70% volume');
+}
+
+function handleTempoChange(e) {
+    tempo = parseInt(e.target.value);
+    document.getElementById('tempoValue').textContent = tempo;
+    logAction('🎵 Tempo Adjusted', `Tempo: ${tempo} BPM`, '');
+}
+
+function handleVolumeChange(e) {
+    volume = parseInt(e.target.value);
+    document.getElementById('volumeValue').textContent = volume;
+    logAction('🔊 Volume Adjusted', `Volume: ${volume}%`, '');
+}
+
+// ===================================
+// DESCRIPTION UPDATE
+// ===================================
+
+function updateDescription() {
+    const texture = textures[currentTexture];
+    document.getElementById('textureTitle').textContent = texture.title;
+    document.getElementById('textureDescription').textContent = texture.description;
+    document.getElementById('textureExample').textContent = texture.example;
+}
+
+// ===================================
+// VISUALIZATION
+// ===================================
+
+function updateVisualization() {
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#f7fafc');
+    gradient.addColorStop(1, '#edf2f7');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw texture-specific visualization
+    const texture = textures[currentTexture];
+    
+    switch(currentTexture) {
+        case 'monophony':
+            drawMonophony();
+            break;
+        case 'homophony':
+            drawHomophony();
+            break;
+        case 'polyphony':
+            drawPolyphony();
+            break;
+        case 'heterophony':
+            drawHeterophony();
+            break;
+    }
+}
+
+function drawMonophony() {
+    // Single melodic line
+    const centerY = canvas.height / 2;
+    const amplitude = 40;
+    const frequency = 0.02;
+    
+    ctx.strokeStyle = textures.monophony.color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    
+    for (let x = 0; x < canvas.width; x++) {
+        const y = centerY + Math.sin((x + elapsedTime * 50) * frequency) * amplitude;
+        if (x === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    
+    // Add note indicators
+    if (isPlaying) {
+        const noteX = (elapsedTime * 100) % canvas.width;
+        const noteY = centerY + Math.sin((noteX + elapsedTime * 50) * frequency) * amplitude;
+        
+        ctx.fillStyle = textures.monophony.color;
+        ctx.beginPath();
+        ctx.arc(noteX, noteY, 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawHomophony() {
+    // Main melody with accompaniment
+    const melodyY = canvas.height * 0.3;
+    const chordY = canvas.height * 0.7;
+    const amplitude = 30;
+    const frequency = 0.02;
+    
+    // Draw accompaniment chords (vertical lines)
+    ctx.strokeStyle = textures.homophony.color;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.4;
+    
+    for (let x = 0; x < canvas.width; x += 80) {
+        const offset = isPlaying ? (elapsedTime * 50) % 80 : 0;
+        ctx.beginPath();
+        ctx.moveTo(x - offset, chordY - 30);
+        ctx.lineTo(x - offset, chordY + 30);
+        ctx.stroke();
+    }
+    
+    ctx.globalAlpha = 1;
+    
+    // Draw main melody
+    ctx.strokeStyle = textures.homophony.color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    
+    for (let x = 0; x < canvas.width; x++) {
+        const y = melodyY + Math.sin((x + elapsedTime * 50) * frequency) * amplitude;
+        if (x === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    
+    // Add note indicator
+    if (isPlaying) {
+        const noteX = (elapsedTime * 100) % canvas.width;
+        const noteY = melodyY + Math.sin((noteX + elapsedTime * 50) * frequency) * amplitude;
+        
+        ctx.fillStyle = textures.homophony.color;
+        ctx.beginPath();
+        ctx.arc(noteX, noteY, 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawPolyphony() {
+    // Multiple independent melodic lines
+    const voices = 3;
+    const colors = ['#4facfe', '#00f2fe', '#43e97b'];
+    
+    for (let v = 0; v < voices; v++) {
+        const y = canvas.height * (v + 1) / (voices + 1);
+        const amplitude = 25;
+        const frequency = 0.02 + v * 0.005;
+        const phase = v * Math.PI / 3;
+        
+        ctx.strokeStyle = colors[v];
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        
+        for (let x = 0; x < canvas.width; x++) {
+            const waveY = y + Math.sin((x + elapsedTime * 50) * frequency + phase) * amplitude;
+            if (x === 0) {
+                ctx.moveTo(x, waveY);
+            } else {
+                ctx.lineTo(x, waveY);
+            }
+        }
+        
+        ctx.stroke();
+        
+        // Add note indicators
+        if (isPlaying) {
+            const noteX = (elapsedTime * 100 + v * 50) % canvas.width;
+            const noteY = y + Math.sin((noteX + elapsedTime * 50) * frequency + phase) * amplitude;
+            
+            ctx.fillStyle = colors[v];
+            ctx.beginPath();
+            ctx.arc(noteX, noteY, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+function drawHeterophony() {
+    // Variations of the same melody
+    const centerY = canvas.height / 2;
+    const amplitude = 35;
+    const frequency = 0.02;
+    
+    // Draw main melody
+    ctx.strokeStyle = textures.heterophony.color;
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    
+    for (let x = 0; x < canvas.width; x++) {
+        const y = centerY + Math.sin((x + elapsedTime * 50) * frequency) * amplitude;
+        if (x === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    
+    // Draw variation (slightly offset and different amplitude)
+    ctx.strokeStyle = '#fee140';
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    
+    for (let x = 0; x < canvas.width; x++) {
+        const y = centerY + Math.sin((x + elapsedTime * 50) * frequency + 0.3) * (amplitude * 0.8) - 10;
+        if (x === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    
+    // Add note indicators
+    if (isPlaying) {
+        const noteX = (elapsedTime * 100) % canvas.width;
+        
+        // Main melody note
+        const noteY1 = centerY + Math.sin((noteX + elapsedTime * 50) * frequency) * amplitude;
+        ctx.fillStyle = textures.heterophony.color;
+        ctx.beginPath();
+        ctx.arc(noteX, noteY1, 7, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Variation note
+        const noteY2 = centerY + Math.sin((noteX + elapsedTime * 50) * frequency + 0.3) * (amplitude * 0.8) - 10;
+        ctx.fillStyle = '#fee140';
+        ctx.beginPath();
+        ctx.arc(noteX, noteY2, 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// ===================================
+// ANIMATION LOOP
+// ===================================
+
+function animate() {
+    if (!isPlaying) return;
+    
+    elapsedTime = (Date.now() - startTime) / 1000;
+    updateVisualization();
+    
+    animationFrame = requestAnimationFrame(animate);
+}
+
+// ===================================
+// ANALYTICS FUNCTIONS
+// ===================================
+
+function initializeAnalytics() {
+    // Update session time every second
+    setInterval(() => {
+        const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+        document.getElementById('sessionTime').textContent = `Session: ${elapsed}s`;
+    }, 1000);
+}
+
+function logAction(action, description, state) {
+    const timestamp = Math.floor((Date.now() - sessionStartTime) / 1000);
+    
+    const entry = {
+        time: timestamp,
+        action: action,
+        description: description,
+        state: state
+    };
+    
+    actionLog.push(entry);
+    
+    // Add to display
+    const logContainer = document.getElementById('actionLog');
+    const logEntry = document.createElement('div');
+    logEntry.className = 'log-entry';
+    logEntry.innerHTML = `
+        <span class="log-time">t=${timestamp}s</span> 
+        <span class="log-action">${action}</span> - ${description}
+        ${state ? `<div class="log-state">${state}</div>` : ''}
+    `;
+    
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+function toggleAnalyticsPanel() {
+    const panel = document.getElementById('analyticsPanel');
+    panel.classList.toggle('collapsed');
+}
+
+function clearActionLog() {
+    actionLog = [];
+    document.getElementById('actionLog').innerHTML = '';
+    sessionStartTime = Date.now();
+    logAction('🔄 Log Cleared', 'Analytics reset', '');
+}
+
+// ===================================
+// UTILITY FUNCTIONS
+// ===================================
+
+// Detect if running in iframe
+function detectIframeMode() {
+    if (window.self !== window.top) {
+        document.body.classList.add('iframe-mode');
+    }
+}
+
+detectIframeMode();
