@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xAPI Interactive One-Shot Prompt Template</title>
+  <script src="assets/xapiwrapper.min.js"></script>
+  <script src="assets/xAPI.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --accent: #5b6ee1;
+      --accent-dark: #3f4db0;
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #5d667a;
+      --border: #d8deef;
+      --success: #0b7a45;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, #eef1ff, transparent 38rem), var(--bg);
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #6070ea 0%, #7c4fb5 100%);
+      color: white;
+      border-radius: 24px;
+      padding: clamp(24px, 5vw, 48px);
+      box-shadow: 0 24px 60px rgba(74, 77, 145, 0.24);
+    }
+
+    .hero p {
+      max-width: 850px;
+      font-size: 1.08rem;
+      opacity: 0.95;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.15;
+      margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.8rem);
+    }
+
+    h2 {
+      color: var(--accent-dark);
+      font-size: clamp(1.35rem, 3vw, 2rem);
+    }
+
+    a {
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 16px 36px rgba(69, 81, 130, 0.09);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 20px 0 0;
+    }
+
+    .step {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .step strong {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      color: var(--text);
+      background: white;
+    }
+
+    textarea {
+      min-height: 200px;
+      resize: vertical;
+    }
+
+    .output textarea {
+      min-height: 520px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f9fbff;
+      margin-bottom: 12px;
+    }
+
+    .checkbox input {
+      width: auto;
+      margin-top: 4px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    button, .button-link {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      min-height: 46px;
+      background: var(--accent);
+      color: white;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 22px rgba(91, 110, 225, 0.24);
+    }
+
+    button.secondary, .button-link.secondary {
+      background: #172033;
+    }
+
+    button.ghost {
+      color: var(--accent-dark);
+      background: #eef1ff;
+      box-shadow: none;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .asset-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .asset-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    code {
+      background: #eef1ff;
+      color: #26306f;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+
+    .status {
+      min-height: 24px;
+      color: var(--success);
+      font-weight: 800;
+    }
+
+    .preview {
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fbfcff;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+      }
+
+      .grid, .steps, .row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>xAPI + Interactive One-Shot Builder</h1>
+      <p>
+        Use this template after generating an educational-interactive prompt in the
+        <a href="../promptLibrary/ai-prompt-library.html" target="_blank" rel="noopener" style="color:white;">SLS Prompt Library</a>.
+        Paste that prompt here, then copy one combined instruction for ChatGPT or Codex Cloud so the AI builds the interactive and xAPI wiring together in a single shot.
+      </p>
+      <div class="steps" aria-label="Workflow overview">
+        <div class="step"><strong>1. Generate</strong>Make the learning prompt in the prompt library.</div>
+        <div class="step"><strong>2. Bundle</strong>This page adds the xAPI asset contract and files.</div>
+        <div class="step"><strong>3. Build</strong>Paste into ChatGPT/Codex Cloud and ask for one finished folder.</div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>One-shot prompt inputs</h2>
+        <p class="muted">The generated prompt tells the AI to create one self-contained interactive folder that includes these local xAPI assets and calls <code>storeState()</code> consistently.</p>
+
+        <div class="field">
+          <label for="basePrompt">Prompt Library output</label>
+          <textarea id="basePrompt" placeholder="Paste the prompt generated by promptLibrary/ai-prompt-library.html here..."></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="targetTool">AI destination</label>
+            <select id="targetTool">
+              <option value="ChatGPT">ChatGPT</option>
+              <option value="Codex Cloud">Codex Cloud</option>
+              <option value="Generic AI coding agent">Generic AI coding agent</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="folderName">Requested output folder</label>
+            <input id="folderName" value="xapi_interactive_one_shot" />
+          </div>
+        </div>
+
+        <label class="checkbox">
+          <input id="includeAssetText" type="checkbox" checked>
+          <span><strong>Embed asset source text in the AI prompt.</strong><br><span class="muted">Best for ChatGPT. If browser security blocks local asset reads, the prompt will fall back to repository paths and URLs.</span></span>
+        </label>
+
+        <label class="checkbox">
+          <input id="includeValidation" type="checkbox" checked>
+          <span><strong>Require xAPI validation steps.</strong><br><span class="muted">Asks the AI to inspect statements, state save/restore, and quiz attempt logs before handing back the final files.</span></span>
+        </label>
+
+        <div class="actions">
+          <button id="generateBtn" type="button">Generate combined prompt</button>
+          <button id="copyBtn" class="secondary" type="button">Copy prompt</button>
+          <a class="button-link ghost" href="../promptLibrary/ai-prompt-library.html" target="_blank" rel="noopener">Open prompt library</a>
+          <a class="button-link ghost" href="https://chatgpt.com/" target="_blank" rel="noopener">Open ChatGPT</a>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <aside class="card">
+        <h2>Bundled xAPI assets</h2>
+        <p class="muted">This template includes copies of the existing integrator assets so a generated interactive can ship with its own xAPI runtime.</p>
+        <ul class="asset-list">
+          <li><span><code>assets/xAPI.js</code></span><span>integration helpers</span></li>
+          <li><span><code>assets/xapiwrapper.min.js</code></span><span>ADL wrapper</span></li>
+        </ul>
+
+        <h3 style="margin-top: 22px;">Required generated HTML pattern</h3>
+        <div class="preview">
+          <pre style="white-space: pre-wrap; margin: 0;"><code>&lt;script src="assets/xapiwrapper.min.js"&gt;&lt;/script&gt;
+&lt;script src="assets/xAPI.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  storeState({
+    score: currentScore,
+    max: maxScore,
+    history: attemptHistory,
+    actionLog: actionLog,
+    feedback: feedbackHtml,
+    reason: 'answer-submitted'
+  });
+&lt;/script&gt;</code></pre>
+        </div>
+      </aside>
+    </div>
+
+    <section class="card output" style="margin-top: 20px;">
+      <h2>Combined prompt for the AI</h2>
+      <textarea id="combinedPrompt" spellcheck="false" placeholder="Click Generate combined prompt..."></textarea>
+    </section>
+  </main>
+
+  <script>
+    const assetSources = [
+      {
+        path: 'assets/xAPI.js',
+        repoPath: 'appXapiIntegratorTemplate/assets/xAPI.js',
+        sourcePath: 'appXapiIntegratorAgent/lib/xAPI.js',
+        rawUrl: 'https://raw.githubusercontent.com/lookang/lookangejss/master/appXapiIntegratorAgent/lib/xAPI.js'
+      },
+      {
+        path: 'assets/xapiwrapper.min.js',
+        repoPath: 'appXapiIntegratorTemplate/assets/xapiwrapper.min.js',
+        sourcePath: 'appXapiIntegratorAgent/lib/xapiwrapper.min.js',
+        rawUrl: 'https://raw.githubusercontent.com/lookang/lookangejss/master/appXapiIntegratorAgent/lib/xapiwrapper.min.js'
+      }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(message) {
+      $('status').textContent = message;
+    }
+
+    async function readAssetText(asset) {
+      const response = await fetch(asset.path, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Unable to load ${asset.path}: ${response.status}`);
+      return response.text();
+    }
+
+    async function buildAssetBlock(includeAssetText) {
+      const manifest = assetSources.map(asset => `- ${asset.path} (copied from ${asset.sourcePath}; raw fallback: ${asset.rawUrl})`).join('\n');
+      if (!includeAssetText) {
+        return `ASSET MANIFEST\n${manifest}\n\nUse these assets as files in the generated folder. Do not rewrite their internals unless a compatibility bug is found.`;
+      }
+
+      try {
+        const loaded = await Promise.all(assetSources.map(async (asset) => ({
+          ...asset,
+          text: await readAssetText(asset)
+        })));
+        return `ASSET MANIFEST\n${manifest}\n\nEMBEDDED ASSET CONTENTS\n${loaded.map(asset => `\n--- FILE: ${asset.path} ---\n${asset.text}\n--- END FILE: ${asset.path} ---`).join('\n')}`;
+      } catch (error) {
+        return `ASSET MANIFEST\n${manifest}\n\nNOTE: This browser could not inline the asset files (${error.message}). Fetch or copy them from the repo paths/raw URLs above and include them unchanged in the generated folder.`;
+      }
+    }
+
+    function validationBlock() {
+      return `\nVALIDATION BEFORE FINAL ANSWER\n- Confirm index.html includes xapiwrapper.min.js before xAPI.js.\n- Confirm every meaningful learner action is appended to actionLog with a timestamp/label.\n- Confirm every submitted answer updates history with question, learner answer, expected answer, correctness, and attempt number when applicable.\n- Confirm storeState() is called after answer submission, reset, important exploration actions, score changes, and page visibility/pagehide events.\n- Confirm getState() is used on load to restore saved state where possible.\n- Confirm the generated folder can be zipped and uploaded as an SLS interactive without external network dependencies other than the LRS endpoint supplied by SLS.\n- Include a short manual test plan for xAPI state and statements.`;
+    }
+
+    async function generateCombinedPrompt() {
+      const basePrompt = $('basePrompt').value.trim();
+      const targetTool = $('targetTool').value;
+      const folderName = $('folderName').value.trim() || 'xapi_interactive_one_shot';
+      const includeAssetText = $('includeAssetText').checked;
+      const includeValidation = $('includeValidation').checked;
+      const assets = await buildAssetBlock(includeAssetText);
+
+      const prompt = `You are ${targetTool}, acting as an expert HTML5 educational-interactive developer and xAPI/SLS integrator.\n\nGOAL\nCreate a complete, ready-to-upload interactive in a new folder named \`${folderName}\`. Build the learning interactive and the xAPI instrumentation together in one pass. Avoid the old workflow where the interactive is generated first and xAPI is patched through many later iterations.\n\nBASE EDUCATIONAL INTERACTIVE PROMPT\n${basePrompt || '[Paste the prompt generated by promptLibrary/ai-prompt-library.html here before sending to the AI.]'}\n\nXAPI INTEGRATION REQUIREMENTS\n- The final folder must contain \`index.html\`, \`assets/xAPI.js\`, and \`assets/xapiwrapper.min.js\`.\n- In \`index.html\`, load \`assets/xapiwrapper.min.js\` first, then \`assets/xAPI.js\`.\n- Keep the interactive self-contained: no build step, no frameworks, no CDN dependency for core functionality.\n- Use xAPI query parameters supplied by SLS through the included \`xAPI.js\`; do not hard-code LRS credentials.\n- Call \`getState()\` during startup and restore prior learner progress if state exists.\n- Maintain a state object with at least: \`score\`, \`max\`, \`history\`, \`actionLog\`, \`summary\`, \`feedback\`, and \`reason\`.\n- Call \`storeState(state)\` whenever the learner submits an answer, changes a significant control, completes a task, requests feedback, resets, and when the page is hidden/unloaded.\n- For quiz or assessment interactions, each history item should include question text/id, learner response, expected answer, correctness, timestamp, and attempt count.\n- For simulations or open exploration, actionLog should capture meaningful control changes and milestones, not every animation frame.\n- Render learner-facing feedback in the page and pass a concise feedback summary into state.feedback.\n- Ensure buttons and controls work with mouse, keyboard, touch screens, and smartboards.\n\nEXPECTED OUTPUT\n- Return the full contents of every file created.\n- Include concise instructions for testing locally and uploading the folder/zip to SLS.\n- Do not omit the asset files; if the asset contents are provided below, copy them exactly.\n\n${includeValidation ? validationBlock() : ''}\n\n${assets}`;
+
+      $('combinedPrompt').value = prompt;
+      setStatus('Combined prompt generated.');
+    }
+
+    async function copyCombinedPrompt() {
+      if (!$('combinedPrompt').value.trim()) {
+        await generateCombinedPrompt();
+      }
+      await navigator.clipboard.writeText($('combinedPrompt').value);
+      setStatus('Copied combined prompt to clipboard.');
+    }
+
+    $('generateBtn').addEventListener('click', () => {
+      setStatus('Generating...');
+      generateCombinedPrompt().catch((error) => setStatus(`Unable to generate prompt: ${error.message}`));
+    });
+
+    $('copyBtn').addEventListener('click', () => {
+      copyCombinedPrompt().catch((error) => setStatus(`Unable to copy prompt: ${error.message}`));
+    });
+
+    generateCombinedPrompt().catch(() => {
+      // Non-fatal; user can still click the button after loading finishes.
+    });
+  </script>
+</body>
+</html>
