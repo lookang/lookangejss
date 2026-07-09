@@ -38,6 +38,74 @@ const getGoogleClient = () => {
   return new OAuth2Client(clientId);
 };
 
+function getUploadDir() {
+  return path.resolve(process.env.UPLOAD_DIR || './uploads');
+}
+
+function isInsideDir(filePath, dir) {
+  const relative = path.relative(dir, filePath);
+  return relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+function getSampleDirs(folderName) {
+  const uploadDir = getUploadDir();
+  return [
+    { label: folderName, dir: path.resolve(uploadDir, folderName), acceptsRootFile: false },
+    { label: 'uploads', dir: uploadDir, acceptsRootFile: true }
+  ];
+}
+
+function listSampleFiles(folderName, rootFileMatcher) {
+  const files = [];
+  const seen = new Set();
+
+  getSampleDirs(folderName).forEach(({ dir, acceptsRootFile }) => {
+    if (!fs.existsSync(dir)) return;
+
+    fs.readdirSync(dir, { withFileTypes: true })
+      .filter(entry => entry.isFile())
+      .forEach(entry => {
+        const filename = entry.name;
+        if (!/\.zip$/i.test(filename)) return;
+        if (acceptsRootFile && !rootFileMatcher(filename)) return;
+
+        const key = filename.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const filePath = path.join(dir, filename);
+        const stats = fs.statSync(filePath);
+        files.push({
+          name: filename,
+          size: stats.size,
+          modifiedAt: stats.mtime.toISOString(),
+          modifiedMs: stats.mtimeMs
+        });
+      });
+  });
+
+  return files.sort((a, b) => b.modifiedMs - a.modifiedMs);
+}
+
+function resolveSampleFile(folderName, filename, rootFileMatcher) {
+  const requested = String(filename || '');
+  const basename = path.basename(requested);
+  if (!basename || basename !== requested || !/\.zip$/i.test(basename)) return null;
+
+  for (const { dir, acceptsRootFile } of getSampleDirs(folderName)) {
+    if (acceptsRootFile && !rootFileMatcher(basename)) continue;
+    const baseDir = path.resolve(dir);
+    const resolved = path.resolve(baseDir, basename);
+    if (!isInsideDir(resolved, baseDir)) continue;
+    if (fs.existsSync(resolved)) return { path: resolved, filename: basename };
+  }
+
+  return null;
+}
+
+const isTimelineRootSample = filename => /^scorable_newTab_timeline_/i.test(filename);
+const isQuizRootSample = filename => /^scorable_newTab_quiz_/i.test(filename);
+
 function getCookieOptions(req) {
   const secure = (req?.headers?.['x-forwarded-proto'] || '').includes('https')
     || (process.env.NODE_ENV === 'production');
@@ -438,27 +506,7 @@ router.get('/ai-test', async (req, res) => {
  */
 router.get('/samples/timeline', (req, res) => {
   try {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const timelineDir = path.resolve(uploadDir, 'Timeline_Mode');
-
-    if (!fs.existsSync(timelineDir)) {
-      return res.json({ ok: true, folder: 'Timeline_Mode', files: [] });
-    }
-
-    const entries = fs.readdirSync(timelineDir, { withFileTypes: true });
-    const files = entries
-      .filter(entry => entry.isFile())
-      .map(entry => {
-        const filePath = path.join(timelineDir, entry.name);
-        const stats = fs.statSync(filePath);
-        return {
-          name: entry.name,
-          size: stats.size,
-          modifiedAt: stats.mtime.toISOString(),
-          modifiedMs: stats.mtimeMs
-        };
-      })
-      .sort((a, b) => b.modifiedMs - a.modifiedMs);
+    const files = listSampleFiles('Timeline_Mode', isTimelineRootSample);
 
     return res.json({ ok: true, folder: 'Timeline_Mode', files });
   } catch (error) {
@@ -472,21 +520,13 @@ router.get('/samples/timeline', (req, res) => {
  */
 router.get('/samples/timeline/:filename', (req, res) => {
   try {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const timelineDir = path.resolve(uploadDir, 'Timeline_Mode');
     const filename = String(req.params.filename || '');
-    const filePath = path.join(timelineDir, filename);
-
-    const resolved = path.resolve(filePath);
-    if (!resolved.startsWith(timelineDir)) {
-      return res.status(403).json({ ok: false, message: 'Forbidden' });
-    }
-
-    if (!fs.existsSync(resolved)) {
+    const file = resolveSampleFile('Timeline_Mode', filename, isTimelineRootSample);
+    if (!file) {
       return res.status(404).json({ ok: false, message: 'File not found' });
     }
 
-    return res.download(resolved, filename);
+    return res.download(file.path, file.filename);
   } catch (error) {
     return res.status(500).json({ ok: false, message: error?.message || String(error) });
   }
@@ -498,27 +538,7 @@ router.get('/samples/timeline/:filename', (req, res) => {
  */
 router.get('/samples/quiz', (req, res) => {
   try {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const quizDir = path.resolve(uploadDir, 'Quiz_Mode');
-
-    if (!fs.existsSync(quizDir)) {
-      return res.json({ ok: true, folder: 'Quiz_Mode', files: [] });
-    }
-
-    const entries = fs.readdirSync(quizDir, { withFileTypes: true });
-    const files = entries
-      .filter(entry => entry.isFile())
-      .map(entry => {
-        const filePath = path.join(quizDir, entry.name);
-        const stats = fs.statSync(filePath);
-        return {
-          name: entry.name,
-          size: stats.size,
-          modifiedAt: stats.mtime.toISOString(),
-          modifiedMs: stats.mtimeMs
-        };
-      })
-      .sort((a, b) => b.modifiedMs - a.modifiedMs);
+    const files = listSampleFiles('Quiz_Mode', isQuizRootSample);
 
     return res.json({ ok: true, folder: 'Quiz_Mode', files });
   } catch (error) {
@@ -532,21 +552,13 @@ router.get('/samples/quiz', (req, res) => {
  */
 router.get('/samples/quiz/:filename', (req, res) => {
   try {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    const quizDir = path.resolve(uploadDir, 'Quiz_Mode');
     const filename = String(req.params.filename || '');
-    const filePath = path.join(quizDir, filename);
-
-    const resolved = path.resolve(filePath);
-    if (!resolved.startsWith(quizDir)) {
-      return res.status(403).json({ ok: false, message: 'Forbidden' });
-    }
-
-    if (!fs.existsSync(resolved)) {
+    const file = resolveSampleFile('Quiz_Mode', filename, isQuizRootSample);
+    if (!file) {
       return res.status(404).json({ ok: false, message: 'File not found' });
     }
 
-    return res.download(resolved, filename);
+    return res.download(file.path, file.filename);
   } catch (error) {
     return res.status(500).json({ ok: false, message: error?.message || String(error) });
   }

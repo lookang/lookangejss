@@ -22,6 +22,8 @@
   // Base path awareness so the app works both at domain root and under a subfolder.
   // We also guard against the case where the page is served as
   //   /lookangejss/appXapiIntegratorAgent/index.html
+  // or through the static public directory:
+  //   /lookangejss/appXapiIntegratorAgent/public/
   // so that API calls still go to:
   //   /lookangejss/appXapiIntegratorAgent/api/...
   (function fixAppBase() {
@@ -30,7 +32,8 @@
     const withoutFile = rawPath.replace(/\/[^^/]*\.[^/]*$/, '/');
     // Remove a trailing slash (except when the path is just '/')
     const cleaned = withoutFile === '/' ? '/' : withoutFile.replace(/\/$/, '');
-    window.__XAPI_APP_BASE__ = cleaned === '/' ? '' : cleaned;
+    const withoutPublic = cleaned.replace(/\/public$/i, '');
+    window.__XAPI_APP_BASE__ = withoutPublic === '/' ? '' : withoutPublic;
   })();
 
   const APP_BASE = window.__XAPI_APP_BASE__ || '';

@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'production';
 // Application base path as exposed on the public site (cPanel "Base Application URL")
 // We also register routes without this prefix so it works in either mounting style.
 const APP_BASE = '/lookangejss/appXapiIntegratorAgent';
@@ -23,6 +24,8 @@ const APP_BASE = '/lookangejss/appXapiIntegratorAgent';
 ensureDirectories();
 
 // Middleware
+app.disable('x-powered-by');
+
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   methods: ['GET', 'POST'],
@@ -35,13 +38,14 @@ app.use(attachAuthSession);
 // Serve static assets from /public for both root and APP_BASE paths
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(APP_BASE, express.static(path.join(__dirname, 'public')));
+app.use(`${APP_BASE}/public`, express.static(path.join(__dirname, 'public')));
 
 // Routes (support both plain paths and full APP_BASE-prefixed paths)
-app.use(['/api/upload', `${APP_BASE}/api/upload`], uploadRoutes);
-app.use(['/api', `${APP_BASE}/api`], apiRoutes);
+app.use(['/api/upload', `${APP_BASE}/api/upload`, `${APP_BASE}/public/api/upload`], uploadRoutes);
+app.use(['/api', `${APP_BASE}/api`, `${APP_BASE}/public/api`], apiRoutes);
 
 // Download endpoint
-app.get(['/api/download/:filename', `${APP_BASE}/api/download/:filename`], (req, res) => {
+app.get(['/api/download/:filename', `${APP_BASE}/api/download/:filename`, `${APP_BASE}/public/api/download/:filename`], (req, res) => {
   const filename = req.params.filename;
   const filepath = path.join(__dirname, process.env.DOWNLOAD_DIR || './downloads', filename);
   
@@ -68,12 +72,12 @@ app.get(['/api/download/:filename', `${APP_BASE}/api/download/:filename`], (req,
 });
 
 // Health check
-app.get(['/health', `${APP_BASE}/health`], (req, res) => {
+app.get(['/health', `${APP_BASE}/health`, `${APP_BASE}/public/health`], (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Serve index.html for root path (both bare and APP_BASE paths)
-app.get(['/', APP_BASE, `${APP_BASE}/`], (req, res) => {
+app.get(['/', APP_BASE, `${APP_BASE}/`, `${APP_BASE}/public`, `${APP_BASE}/public/`], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -86,17 +90,17 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    error: NODE_ENV === 'development' ? (err.message || 'Internal server error') : 'Internal server error',
+    ...(NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 xAPI Integrator Server running on http://localhost:${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📝 Environment: ${NODE_ENV}`);
   
-  if (process.env.NODE_ENV === 'production') {
+  if (NODE_ENV === 'production') {
     console.log('⚙️  Production mode - AI agent features enabled');
   }
   
